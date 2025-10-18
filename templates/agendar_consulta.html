@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar Consulta - DoctorCare{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-calendar-plus me-2"></i>Agendar Nova Consulta
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Informações do Paciente (se for paciente) -->
+                {% if user.user_type == 'paciente' and paciente_nome %}
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-user me-2"></i>Agendando consulta para:
+                    </h6>
+                    <p class="mb-0 fs-5">
+                        <strong>{{ paciente_nome }}</strong>
+                        <span class="badge bg-secondary ms-2">Paciente</span>
+                    </p>
+                </div>
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('agendar_consulta') }}">
+                    <!-- Campo Paciente (apenas para admin/medico) -->
+                    {% if user.user_type != 'paciente' %}
+                    <div class="mb-3">
+                        <label for="paciente_id" class="form-label">
+                            <strong>Paciente *</strong>
+                        </label>
+                        <select class="form-select" id="paciente_id" name="paciente_id" required>
+                            <option value="">Selecione um paciente</option>
+                            {% for paciente in pacientes %}
+                            <option value="{{ paciente[0] }}">{{ paciente[1] }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Selecione o paciente para a consulta</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Campo Médico -->
+                    <div class="mb-3">
+                        <label for="medico_id" class="form-label">
+                            <strong>Médico *</strong>
+                        </label>
+                        <select class="form-select" id="medico_id" name="medico_id" required>
+                            <option value="">Selecione um médico</option>
+                            {% for medico in medicos %}
+                            <option value="{{ medico[0] }}">
+                                Dr. {{ medico[1] }} - {{ medico[2] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Escolha o médico especialista para sua consulta</div>
+                    </div>
+
+                    <!-- Data e Hora -->
+                    <div class="mb-3">
+                        <label for="data_hora" class="form-label">
+                            <strong>Data e Hora da Consulta *</strong>
+                        </label>
+                        <input type="datetime-local" class="form-control" id="data_hora" name="data_hora" required
+                               min="{{ datetime.now().strftime('%Y-%m-%dT%H:%M') }}">
+                        <div class="form-text">
+                            Selecione a data e horário desejados para a consulta
+                        </div>
+                    </div>
+
+                    <!-- Observações -->
+                    <div class="mb-4">
+                        <label for="observacoes" class="form-label">
+                            <strong>Observações e Sintomas</strong>
+                        </label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="4" 
+                                  placeholder="Descreva os sintomas, motivo da consulta ou qualquer informação relevante..."></textarea>
+                        <div class="form-text">
+                            Informações que ajudarão o médico a preparar melhor sua consulta
+                        </div>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% if user.user_type == 'paciente' %}{{ url_for('paciente_dashboard') }}{% else %}{{ url_for('consultas_admin') }}{% endif %}" 
+                           class="btn btn-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-calendar-check me-2"></i>Agendar Consulta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Informações Úteis -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informações Importantes
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-clock text-primary me-2"></i>
+                        <strong>Horário de Funcionamento:</strong> Segunda a Sexta, 8h às 18h
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-calendar-check text-success me-2"></i>
+                        <strong>Confirmação:</strong> Você receberá uma confirmação por email
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <strong>Cancelamento:</strong> Cancelamentos devem ser feitos com 24h de antecedência
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    // Validação da data (não permitir datas passadas)
+    const now = new Date();
+    const minDateTime = now.toISOString().slice(0, 16);
+    $('#data_hora').attr('min', minDateTime);
+
+    // Validação do formulário
+    $('form').submit(function(e) {
+        const medico = $('#medico_id').val();
+        const dataHora = $('#data_hora').val();
+        
+        if (!medico || !dataHora) {
+            e.preventDefault();
+            alert('Por favor, preencha todos os campos obrigatórios.');
+            return false;
+        }
+        
+        // Verificar se a data não é no passado
+        const selectedDate = new Date(dataHora);
+        if (selectedDate < now) {
+            e.preventDefault();
+            alert('Por favor, selecione uma data e hora futuras.');
+            return false;
+        }
+        
+        return true;
+    });
+});
+</script>
+{% endblock %}

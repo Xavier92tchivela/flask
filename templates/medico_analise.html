@@ -1,0 +1,1469 @@
+{% extends "base.html" %}
+
+{% block title %}Análise Médica{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0">Análise de Exames e Diagnóstico</h2>
+    <a href="{{ url_for('medico_dashboard') }}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Voltar
+    </a>
+</div>
+
+<!-- Adicione este alerta para mostrar erros -->
+<div class="alert alert-danger alert-dismissible fade show d-none" id="errorAlert">
+    <strong><i class="fas fa-exclamation-triangle"></i> Erro:</strong>
+    <span id="errorMessage"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row">
+    <!-- Coluna principal para dispositivos móveis -->
+    <div class="col-12 col-lg-6">
+        <!-- Card de informações do paciente -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-user-injured"></i> Informações do Paciente</h4>
+            </div>
+            <div class="card-body p-3">
+                <div class="row">
+                    <div class="col-12 col-sm-6 mb-2">
+                        <p class="mb-1"><strong>Nome:</strong> {{ consulta[1] }}</p>
+                        <p class="mb-1"><strong>Data:</strong> {{ consulta[3].strftime('%d/%m/%Y %H:%M') }}</p>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <p class="mb-1"><strong>Status:</strong> 
+                            <span class="badge bg-{% if consulta[4] == 'realizada' %}success{% elif consulta[4] == 'cancelada' %}danger{% else %}warning{% endif %}">
+                                {{ consulta[4]|capitalize }}
+                            </span>
+                        </p>
+                        {% if consulta[5] %}
+                        <p class="mb-0"><strong>Observações:</strong> {{ consulta[5] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card de upload de exames -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-file-medical"></i> Upload de Exames</h4>
+            </div>
+            <div class="card-body p-3">
+                <form method="POST" enctype="multipart/form-data" id="analiseForm">
+                    <div class="mb-3">
+                        <label for="imagem" class="form-label">Selecione a imagem do exame</label>
+                        <input class="form-control form-control-sm" type="file" id="imagem" name="imagem" accept="image/*" required>
+                        <div class="form-text">Formatos aceitos: JPG, PNG, GIF</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tipo_exame" class="form-label">Tipo de Exame</label>
+                        <select class="form-select form-select-sm" id="tipo_exame" name="tipo_exame" required>
+                            <option value="">Selecione o tipo de exame</option>
+                            <option value="hemograma">Hemograma Completo</option>
+                            <option value="urina">Análise de Urina</option>
+                            <option value="bioquimica">Bioquímica Sanguínea</option>
+                            <option value="microbiologia">Microbiologia</option>
+                            <option value="histologia">Histologia</option>
+                            <option value="citologia">Citologia</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observacoes_exame" class="form-label">Observações do Exame</label>
+                        <textarea class="form-control form-control-sm" id="observacoes_exame" name="observacoes_exame" rows="2" placeholder="Informações relevantes sobre o exame"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="fas fa-microscope"></i> Analisar Exame e Gerar Diagnóstico
+                    </button>
+
+                    <!-- Botão alternativo para quando a API falhar -->
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-outline-warning w-100 py-2" onclick="usarAnaliseLocal()">
+                            <i class="fas fa-user-md"></i> Usar Análise Básica (Modo Offline)
+                        </button>
+                        <small class="text-muted d-block mt-1">Use quando houver problemas de conexão com a IA</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna de resultados para dispositivos móveis -->
+    <div class="col-12 col-lg-6">
+        <!-- Card de resultados da análise -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-stethoscope"></i> Resultados da Análise</h4>
+            </div>
+            <div class="card-body p-3">
+                <div id="areaResultados">
+                    {% if receita %}
+                    <div class="alert alert-info py-2 mb-3">
+                        <h5 class="h6 mb-0">Diagnóstico Gerado em: {{ datetime.now().strftime('%d/%m/%Y %H:%M') }}</h5>
+                    </div>
+                    <div class="receita-medica" id="receitaContent">
+                        {{ receita|safe }}
+                    </div>
+                    <div class="mt-3 d-flex flex-wrap gap-1" id="botoesAcao">
+                        <button class="btn btn-outline-primary btn-sm flex-fill" onclick="window.print()">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <button class="btn btn-outline-success btn-sm flex-fill" onclick="copiarReceita()">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button class="btn btn-outline-info btn-sm flex-fill" onclick="gerarReceitaMedica()">
+                            <i class="fas fa-prescription"></i> Receita
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm flex-fill" onclick="abrirChatDiagnostico()">
+                            <i class="fas fa-comments"></i> IA
+                        </button>
+                        <!-- BOTÃO PDF CORRIGIDO -->
+                        <button class="btn btn-outline-danger btn-sm flex-fill" onclick="gerarPDF(event)">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button class="btn btn-success btn-sm flex-fill" onclick="salvarDiagnosticoRevisado()">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4" id="semResultado">
+                        <i class="fas fa-microscope fa-2x mb-3"></i>
+                        <h5 class="h6">Nenhum diagnóstico gerado</h5>
+                        <p class="small">Faça o upload de uma imagem de exame para análise e geração do diagnóstico.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card de histórico de análises -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-history"></i> Histórico de Análises</h4>
+            </div>
+            <div class="card-body p-2">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item px-2 py-2">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 small">Hemograma Completo</h6>
+                            <small>15/05/2023</small>
+                        </div>
+                        <p class="mb-1 small">Resultados dentro dos parâmetros normais.</p>
+                    </div>
+                    <div class="list-group-item px-2 py-2">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 small">Análise de Urina</h6>
+                            <small>10/04/2023</small>
+                        </div>
+                        <p class="mb-1 small">Leve presença de proteínas, recomenda-se repetir o exame.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para concordância com a receita -->
+<div class="modal fade" id="concordanciaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h5 class="modal-title h6 mb-0"><i class="fas fa-clipboard-check"></i> Confirmar Concordância</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2">
+                <p class="mb-2">Dr(a). <strong>{{ session.user_name }}</strong>, você confirma que concorda com a receita médica gerada?</p>
+                <p class="text-muted small mb-2">Após confirmar, a receita será salva como aprovada.</p>
+                
+                <div class="mb-2">
+                    <label for="observacoesMedico" class="form-label small">Observações (opcional):</label>
+                    <textarea class="form-control form-control-sm" id="observacoesMedico" rows="2" placeholder="Digite suas observações sobre a receita..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="confirmarConcordancia()">
+                    <i class="fas fa-check"></i> Sim, Concordo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para discordância com a receita -->
+<div class="modal fade" id="discordanciaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h5 class="modal-title h6 mb-0"><i class="fas fa-exclamation-triangle"></i> Discordância</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2">
+                <p class="mb-2">Dr(a). <strong>{{ session.user_name }}</strong>, você não concorda com a receita médica gerada?</p>
+                <p class="text-muted small mb-2">Você poderá discutir e ajustar a receita com a IA.</p>
+                
+                <div class="mb-2">
+                    <label for="observacoesDiscordancia" class="form-label small">Motivo da discordância (opcional):</label>
+                    <textarea class="form-control form-control-sm" id="observacoesDiscordancia" rows="2" placeholder="Digite o motivo da sua discordância..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" onclick="confirmarDiscordancia()">
+                    <i class="fas fa-times"></i> Sim, Discordo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para chat com a IA -->
+<div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title h6 mb-0">
+                    <i class="fas fa-robot"></i> Discussão com IA
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="chat-container" style="height: 300px; overflow-y: auto; margin-bottom: 10px;" id="chatMessages">
+                    <div class="chat-message ai-message">
+                        <div class="message-header">
+                            <strong>Assistente IA</strong>
+                            <small class="text-muted">Agora</small>
+                        </div>
+                        <div class="message-content">
+                            Olá, Dr(a). {{ session.user_name }}. Estou aqui para discutir o diagnóstico e ajudar com qualquer dúvida ou ajuste.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <textarea class="form-control form-control-sm" id="mensagemChat" rows="2" placeholder="Digite sua dúvida ou comentário..."></textarea>
+                    <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" onclick="sugerirPerguntas()">
+                            <i class="fas fa-lightbulb"></i> Sugestões
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="enviarMensagem()">
+                            <i class="fas fa-paper-plane"></i> Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="finalizarDiscussao()">
+                    <i class="fas fa-check"></i> Finalizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para receita médica - AQUI FICAM OS BOTÕES EDITAR E PDF -->
+<div class="modal fade" id="receitaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white py-2">
+                <h5 class="modal-title h6 mb-0">
+                    <i class="fas fa-prescription"></i> Receita - 
+                    <span id="nomePacienteReceita">{{ consulta[1] }}</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="conteudoReceita"></div>
+                
+                <!-- SEÇÃO DE CONCORDÂNCIA/DISCORDÂNCIA COM BOTÕES EDITAR E PDF -->
+                <div id="secaoConcordancia" class="mt-3 p-2 bg-light rounded d-none">
+                    <h6 class="h6 mb-1"><i class="fas fa-user-md"></i> Avaliação Médica</h6>
+                    <p class="small mb-2">Após análise da receita gerada, por favor declare sua concordância:</p>
+                    
+                    <!-- Linha 1: Ações Principais -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-center mb-2">
+                        <button class="btn btn-success btn-sm" onclick="concordarReceitaDireta()">
+                            <i class="fas fa-check"></i> Concordar
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="mostrarModalDiscordancia()">
+                            <i class="fas fa-times"></i> Discordar
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <!-- BOTÃO EDITAR NO MODAL -->
+                        <button class="btn btn-warning btn-sm" onclick="editarReceita()">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <!-- BOTÃO PDF CORRIGIDO NO MODAL -->
+                        <button class="btn btn-outline-danger btn-sm" onclick="gerarPDF(event)">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                    
+                    <!-- Linha 2: Ações Secundárias -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-center mt-2">
+                        <button class="btn btn-outline-info btn-sm" onclick="gerarReceitaMedica()">
+                            <i class="fas fa-prescription"></i> Nova Receita
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="abrirChatDiagnostico()">
+                            <i class="fas fa-comments"></i> Discussão IA
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="copiarReceita()">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button class="btn btn-success btn-sm" onclick="salvarDiagnosticoRevisado()">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="imprimirReceitaDiretamente()">
+                    <i class="fas fa-print"></i> Imprimir Direto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA EDIÇÃO DA RECEITA -->
+<div class="modal fade" id="editarReceitaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h5 class="modal-title h6 mb-0">
+                    <i class="fas fa-edit"></i> Editar Receita - {{ consulta[1] }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="alert alert-info py-2 mb-2">
+                    <small><i class="fas fa-info-circle"></i> Edite o conteúdo da receita abaixo. O texto será formatado automaticamente ao salvar.</small>
+                </div>
+                <textarea class="form-control" id="editorReceita" rows="15" style="font-family: monospace; white-space: pre-wrap;" 
+                          placeholder="Digite ou edite a receita médica aqui..."></textarea>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <strong>Dicas de formatação:</strong><br>
+                        • Use quebras de linha para separar parágrafos<br>
+                        • Use "- item" ou "• item" para listas<br>
+                        • Linhas que terminam com ":" serão destacadas como títulos<br>
+                        • Linhas em MAIÚSCULAS serão automaticamente destacadas
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success btn-sm" onclick="salvarReceitaEditada()">
+                    <i class="fas fa-save"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos para o conteúdo médico limpo */
+.receita-medica-conteudo, .diagnostico-conteudo {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.receita-cabecalho, .diagnostico-cabecalho {
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.receita-cabecalho h4, .diagnostico-cabecalho h4 {
+    color: #007bff;
+    margin-bottom: 10px;
+}
+
+.receita-corpo h5, .diagnostico-corpo h5 {
+    color: #2c3e50;
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.item-lista {
+    margin: 8px 0;
+    padding-left: 10px;
+}
+
+.item-titulo {
+    font-weight: bold;
+    margin: 15px 0 8px 0;
+    color: #34495e;
+}
+
+.receita-rodape, .diagnostico-rodape {
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.assinatura {
+    text-align: right;
+    margin-top: 40px;
+}
+
+.assinatura p {
+    margin: 5px 0;
+}
+
+/* Remove qualquer estilo de interface do usuário que possa ter sido salvo anteriormente */
+.receita-medica-conteudo .alert,
+.receita-medica-conteudo .btn,
+.receita-medica-conteudo .modal,
+.diagnostico-conteudo .alert,
+.diagnostico-conteudo .btn,
+.diagnostico-conteudo .modal {
+    display: none !important;
+}
+
+/* Estilos existentes para chat */
+.chat-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    max-width: 90%;
+    font-size: 0.9em;
+}
+
+.ai-message {
+    background-color: #e3f2fd;
+    margin-right: auto;
+    border-left: 4px solid #2196F3;
+}
+
+.doctor-message {
+    background-color: #d1ecf1;
+    margin-left: auto;
+    border-right: 4px solid #17a2b8;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    font-size: 0.8em;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding-bottom: 3px;
+}
+
+.message-content {
+    line-height: 1.3;
+    margin-top: 5px;
+}
+
+.sugestoes-container {
+    margin-top: 8px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+}
+
+.sugestao-btn {
+    margin: 2px;
+    font-size: 0.8em;
+    white-space: normal;
+    text-align: left;
+    padding: 4px 8px;
+}
+
+.receita-medica {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.9em;
+}
+
+/* Estilo para o editor de receita */
+#editorReceita {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 15px;
+    min-height: 400px;
+}
+
+/* Destaque para o modal de edição */
+#editarReceitaModal .modal-body {
+    background-color: #f8f9fa;
+}
+
+/* Melhorar a aparência do texto no editor */
+#editorReceita:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 576px) {
+    .card-body {
+        padding: 10px !important;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .chat-container {
+        max-height: 250px;
+    }
+    
+    .receita-medica {
+        max-height: 300px;
+        padding: 10px;
+    }
+    
+    .modal-xl {
+        max-width: 95%;
+    }
+    
+    /* Ajustes para botões dentro do modal em mobile */
+    #secaoConcordancia .d-flex {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    #secaoConcordancia .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    #editorReceita {
+        min-height: 300px;
+        font-size: 0.8em;
+    }
+}
+</style>
+
+<script>
+const CONSULTA_ID = {{ consulta[0] }};
+let receitaAtual = null;
+let pacienteNome = '';
+
+// ========== FUNÇÃO GERAR PDF CORRIGIDA ==========
+
+function gerarPDF(event) {
+    // Corrigir a captura do evento - importante!
+    const originalButton = event ? event.target : this;
+    const originalHTML = originalButton.innerHTML;
+    originalButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';
+    originalButton.disabled = true;
+    
+    console.log('Iniciando geração de PDF para consulta:', CONSULTA_ID);
+    
+    // Fazer download do PDF
+    fetch(`/api/receita/pdf/${CONSULTA_ID}`)
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { 
+                throw new Error(err.error || 'Erro ao gerar PDF'); 
+            });
+        }
+        return response.blob();
+    })
+    .then(blob => {
+        if (blob.size === 0) {
+            throw new Error('PDF vazio ou não gerado');
+        }
+        
+        // Criar link para download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `receita_${pacienteNome || 'paciente'}_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        console.log('PDF gerado com sucesso');
+    })
+    .catch(error => {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Erro ao gerar PDF: ' + error.message);
+        
+        // Tentar método alternativo se disponível
+        if (receitaAtual) {
+            const confirmar = confirm('Deseja tentar imprimir a receita como alternativa?');
+            if (confirmar) {
+                imprimirReceitaDiretamente();
+            }
+        }
+    })
+    .finally(() => {
+        originalButton.innerHTML = originalHTML;
+        originalButton.disabled = false;
+    });
+}
+
+// ========== FUNÇÃO ALTERNATIVA DE IMPRESSÃO ==========
+
+function imprimirReceitaDiretamente() {
+    const conteudo = document.getElementById('conteudoReceita').innerHTML;
+    const janelaImpressao = window.open('', '_blank');
+    janelaImpressao.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Receita Médica - ${pacienteNome}</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 20px; 
+                    line-height: 1.4;
+                    color: #333;
+                }
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 30px;
+                    border-bottom: 2px solid #333;
+                    padding-bottom: 10px;
+                }
+                .paciente-info {
+                    margin: 20px 0;
+                    padding: 15px;
+                    background: #f5f5f5;
+                    border-radius: 5px;
+                }
+                .content {
+                    margin: 20px 0;
+                }
+                .assinatura {
+                    margin-top: 50px;
+                    text-align: right;
+                }
+                @media print {
+                    body { margin: 0; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>RECEITA MÉDICA</h1>
+            </div>
+            <div class="paciente-info">
+                <p><strong>Paciente:</strong> ${pacienteNome}</p>
+                <p><strong>Data:</strong> ${new Date().toLocaleDateString('pt-BR')}</p>
+            </div>
+            <div class="content">
+                ${conteudo}
+            </div>
+            <div class="assinatura">
+                <p>_________________________</p>
+                <p>Dr(a). {{ session.user_name }}</p>
+                <p>CRM: {{ session.crm or '' }}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    setTimeout(() => {
+        janelaImpressao.print();
+        // janelaImpressao.close(); // Descomente se quiser fechar automaticamente
+    }, 500);
+}
+
+// ========== FUNÇÕES PARA CONCORDÂNCIA/DISCORDÂNCIA ==========
+
+function concordarReceitaDireta() {
+    const concordanciaModal = new bootstrap.Modal(document.getElementById('concordanciaModal'));
+    concordanciaModal.show();
+}
+
+function mostrarModalConcordancia() {
+    const concordanciaModal = new bootstrap.Modal(document.getElementById('concordanciaModal'));
+    concordanciaModal.show();
+}
+
+function mostrarModalDiscordancia() {
+    const discordanciaModal = new bootstrap.Modal(document.getElementById('discordanciaModal'));
+    discordanciaModal.show();
+}
+
+function confirmarConcordancia() {
+    const observacoes = document.getElementById('observacoesMedico').value;
+    
+    // Mostrar loading
+    const confirmButton = document.querySelector('#concordanciaModal .btn-success');
+    const originalText = confirmButton.innerHTML;
+    confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    confirmButton.disabled = true;
+    
+    fetch(`/api/receita/concordancia/${CONSULTA_ID}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            concordancia: true, 
+            observacoes: observacoes 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            bootstrap.Modal.getInstance(document.getElementById('concordanciaModal')).hide();
+            
+            // Fechar modal de receita se estiver aberto
+            const receitaModal = bootstrap.Modal.getInstance(document.getElementById('receitaModal'));
+            if (receitaModal) {
+                receitaModal.hide();
+            }
+            
+            // Atualizar a receita principal
+            if (receitaAtual) {
+                atualizarReceitaPrincipal(receitaAtual, 'Receita Aprovada e Salva!');
+            }
+            
+            // Mostrar mensagem de sucesso
+            mostrarMensagemSucesso('Receita aprovada com sucesso!');
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erro de conexão: ' + error.message);
+    })
+    .finally(() => {
+        confirmButton.innerHTML = originalText;
+        confirmButton.disabled = false;
+    });
+}
+
+function confirmarDiscordancia() {
+    const observacoes = document.getElementById('observacoesDiscordancia').value;
+    
+    // Mostrar loading
+    const confirmButton = document.querySelector('#discordanciaModal .btn-warning');
+    const originalText = confirmButton.innerHTML;
+    confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+    confirmButton.disabled = true;
+    
+    fetch(`/api/receita/concordancia/${CONSULTA_ID}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            concordancia: false, 
+            observacoes: observacoes 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        bootstrap.Modal.getInstance(document.getElementById('discordanciaModal')).hide();
+        
+        // Fechar modal de receita se estiver aberto
+        const receitaModal = bootstrap.Modal.getInstance(document.getElementById('receitaModal'));
+        if (receitaModal) {
+            receitaModal.hide();
+        }
+        
+        // Abrir chat para discussão
+        setTimeout(() => {
+            abrirChatDiscordancia(observacoes);
+        }, 300);
+    })
+    .catch(error => {
+        alert('Erro de conexão: ' + error.message);
+    })
+    .finally(() => {
+        confirmButton.innerHTML = originalText;
+        confirmButton.disabled = false;
+    });
+}
+
+// ========== FUNÇÕES PARA EDIÇÃO E PDF ==========
+
+function editarReceita() {
+    console.log('Função editarReceita chamada');
+    
+    // Buscar o conteúdo atual da receita do MODAL
+    const conteudoReceita = document.getElementById('conteudoReceita');
+    
+    if (!conteudoReceita || !conteudoReceita.innerHTML.trim()) {
+        alert('Nenhuma receita encontrada para editar. Gere uma receita primeiro.');
+        return;
+    }
+    
+    console.log('Conteúdo da receita encontrado:', conteudoReceita.innerHTML.substring(0, 100) + '...');
+    
+    // Extrair TODO o conteúdo HTML da receita (mantendo a formatação original da IA)
+    let conteudoCompleto = conteudoReceita.innerHTML;
+    
+    // Se houver timestamp no final, removê-lo para não editar
+    const timestampDiv = conteudoReceita.querySelector('.text-end, .text-muted');
+    if (timestampDiv) {
+        timestampDiv.remove();
+    }
+    
+    // Fechar modal atual
+    const receitaModal = bootstrap.Modal.getInstance(document.getElementById('receitaModal'));
+    if (receitaModal) {
+        receitaModal.hide();
+    }
+    
+    // Preparar o editor com o conteúdo completo
+    document.getElementById('editorReceita').value = htmlParaTextoEditavel(conteudoCompleto);
+    
+    // Abrir modal de edição
+    const editorModal = new bootstrap.Modal(document.getElementById('editarReceitaModal'));
+    editorModal.show();
+    
+    console.log('Modal de edição aberto com conteúdo completo da IA');
+}
+
+// Função para converter HTML da IA em texto editável mantendo a estrutura
+function htmlParaTextoEditavel(html) {
+    if (!html) return '';
+    
+    // Criar elemento temporário
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Preservar a estrutura mas converter para texto formatado
+    let textoFormatado = '';
+    
+    // Processar cabeçalhos e seções
+    const elementos = tempDiv.querySelectorAll('*');
+    elementos.forEach(el => {
+        const tagName = el.tagName.toLowerCase();
+        const texto = el.textContent.trim();
+        
+        if (!texto) return;
+        
+        // Cabeçalhos principais (mantém como título)
+        if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'h4') {
+            textoFormatado += '\n' + texto.toUpperCase() + '\n';
+        }
+        // Listas
+        else if (tagName === 'li') {
+            textoFormatado += '• ' + texto + '\n';
+        }
+        // Parágrafos e divs
+        else if (tagName === 'p' || tagName === 'div') {
+            // Verificar se é um título de seção (texto em negrito ou todo em maiúsculas)
+            const isBold = el.querySelector('strong, b') || el.innerHTML.includes('<strong>') || el.innerHTML.includes('<b>');
+            const isAllCaps = texto === texto.toUpperCase();
+            
+            if (isBold || isAllCaps) {
+                textoFormatado += '\n' + texto + '\n';
+            } else {
+                textoFormatado += texto + '\n\n';
+            }
+        }
+        // Itens strong/b (negrito)
+        else if (tagName === 'strong' || tagName === 'b') {
+            textoFormatado += texto + '\n';
+        }
+        // Quebras de linha
+        else if (tagName === 'br') {
+            textoFormatado += '\n';
+        }
+    });
+    
+    // Se não conseguiu extrair bem, usar fallback
+    if (!textoFormatado.trim()) {
+        textoFormatado = tempDiv.textContent || tempDiv.innerText || '';
+    }
+    
+    // Limpar formatação excessiva
+    textoFormatado = textoFormatado
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        .replace(/ +/g, ' ')
+        .trim();
+    
+    console.log('Texto convertido para edição:', textoFormatado.substring(0, 200) + '...');
+    
+    return textoFormatado;
+}
+
+function salvarReceitaEditada() {
+    const conteudoEditado = document.getElementById('editorReceita').value.trim();
+    
+    if (!conteudoEditado) {
+        alert('A receita não pode estar vazia.');
+        return;
+    }
+    
+    // Mostrar loading
+    const saveButton = document.querySelector('#editarReceitaModal .btn-success');
+    const originalText = saveButton.innerHTML;
+    saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+    saveButton.disabled = true;
+    
+    console.log('Salvando receita editada...');
+    
+    // Formatar o texto para HTML básico mantendo a estrutura
+    const conteudoFormatado = formatarTextoParaHTML(conteudoEditado);
+    
+    // Enviar para o servidor
+    fetch(`/api/receita/editar/${CONSULTA_ID}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ 
+            receita: conteudoFormatado,
+            receita_texto: conteudoEditado
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro na resposta do servidor');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Fechar modal de edição
+            const editorModal = bootstrap.Modal.getInstance(document.getElementById('editarReceitaModal'));
+            if (editorModal) {
+                editorModal.hide();
+            }
+            
+            // Atualizar a receita no modal
+            document.getElementById('conteudoReceita').innerHTML = conteudoFormatado;
+            
+            // Atualizar a receita principal também
+            document.getElementById('receitaContent').innerHTML = conteudoFormatado;
+            
+            // Atualizar a variável global
+            receitaAtual = conteudoFormatado;
+            
+            // Mostrar mensagem de sucesso
+            mostrarMensagemSucesso('Receita editada com sucesso!');
+            
+            console.log('Receita atualizada com sucesso');
+        } else {
+            throw new Error(data.error || 'Erro desconhecido ao salvar');
+        }
+    })
+    .catch(error => {
+        console.error('Erro ao salvar receita:', error);
+        alert('Erro ao salvar receita: ' + error.message);
+    })
+    .finally(() => {
+        saveButton.innerHTML = originalText;
+        saveButton.disabled = false;
+    });
+}
+
+// Função para melhor visualização do conteúdo no editor
+function formatarTextoParaHTML(texto) {
+    if (!texto) return '';
+    
+    // Manter o formato original mas garantir que seja HTML válido
+    let html = `<div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">`;
+    
+    // Processar o texto mantendo quebras de linha e estrutura
+    const linhas = texto.split('\n').filter(linha => linha.trim().length > 0);
+    
+    linhas.forEach(linha => {
+        const linhaTrim = linha.trim();
+        
+        if (!linhaTrim) {
+            html += '<br>';
+            return;
+        }
+        
+        // Detectar títulos (texto em maiúsculas ou que termina com :)
+        if (linhaTrim === linhaTrim.toUpperCase() || linhaTrim.endsWith(':')) {
+            html += `<div style="font-weight: bold; margin: 15px 0 8px 0; padding: 8px 12px; background: #f8f9fa; border-left: 4px solid #007bff;">
+                        ${linhaTrim}
+                     </div>`;
+        }
+        // Detectar itens de lista
+        else if (linhaTrim.startsWith('•') || linhaTrim.startsWith('-')) {
+            html += `<div style="margin: 5px 0 5px 20px; padding-left: 10px;">
+                        ${linhaTrim}
+                     </div>`;
+        }
+        // Texto normal
+        else {
+            html += `<div style="margin: 8px 0; line-height: 1.4;">
+                        ${linhaTrim}
+                     </div>`;
+        }
+    });
+    
+    html += `</div>`;
+    return html;
+}
+
+function mostrarMensagemSucesso(mensagem) {
+    // Criar ou atualizar alerta de sucesso
+    let alertDiv = document.querySelector('#receitaContent .alert-success');
+    
+    if (!alertDiv) {
+        alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success py-2 mb-3';
+        const receitaContent = document.getElementById('receitaContent');
+        receitaContent.insertBefore(alertDiv, receitaContent.firstChild);
+    }
+    
+    alertDiv.innerHTML = `
+        <h5 class="h6 mb-0">
+            <i class="fas fa-check-circle"></i> ${mensagem}
+        </h5>
+        <small>Use os botões abaixo para editar, exportar ou salvar a receita.</small>
+    `;
+}
+
+// ========== FUNÇÃO ATUALIZADA PARA GERAR RECEITA ==========
+
+function gerarReceitaMedica() {
+    const receitaModal = new bootstrap.Modal(document.getElementById('receitaModal'));
+    document.getElementById('conteudoReceita').innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2 small">Gerando receita médica com IA...</p>
+        </div>
+    `;
+    
+    document.getElementById('secaoConcordancia').classList.add('d-none');
+    receitaModal.show();
+    
+    fetch(`/api/receita/gerar/${CONSULTA_ID}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'}
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            document.getElementById('conteudoReceita').innerHTML = `
+                <div class="alert alert-danger py-2">
+                    <h5 class="h6">Erro ao gerar receita</h5>
+                    <p class="small">${data.error}</p>
+                </div>
+            `;
+        } else {
+            // SALVAR A RECEITA NA VARIÁVEL GLOBAL
+            receitaAtual = data.receita;
+            pacienteNome = data.paciente;
+            
+            document.getElementById('nomePacienteReceita').textContent = data.paciente;
+            document.getElementById('conteudoReceita').innerHTML = data.receita;
+            document.getElementById('secaoConcordancia').classList.remove('d-none');
+            
+            // Adicionar timestamp
+            const timestamp = document.createElement('div');
+            timestamp.className = 'text-end text-muted mt-2';
+            timestamp.innerHTML = `<small>Gerado por IA em: ${data.timestamp}</small>`;
+            document.getElementById('conteudoReceita').appendChild(timestamp);
+
+            // ATUALIZAR A RECEITA PRINCIPAL TAMBÉM
+            atualizarReceitaPrincipal(data.receita, 'Receita Médica Gerada pela IA!');
+            
+            console.log('Receita gerada pela IA e salva para possível edição');
+        }
+    })
+    .catch(error => {
+        document.getElementById('conteudoReceita').innerHTML = `
+            <div class="alert alert-danger py-2">
+                <h5 class="h6">Erro de conexão</h5>
+                <p class="small">Não foi possível conectar com a IA para gerar a receita.</p>
+                <button class="btn btn-warning btn-sm mt-2" onclick="usarAnaliseLocal()">
+                    Usar Análise Básica
+                </button>
+            </div>
+        `;
+    });
+}
+
+// ========== FUNÇÃO PARA ATUALIZAR A RECEITA PRINCIPAL ==========
+
+function atualizarReceitaPrincipal(conteudoReceita, mensagemSucesso) {
+    // Remover a mensagem "Nenhum diagnóstico gerado" se existir
+    const semResultado = document.getElementById('semResultado');
+    if (semResultado) {
+        semResultado.remove();
+    }
+    
+    // Atualizar o conteúdo da receita
+    document.getElementById('receitaContent').innerHTML = conteudoReceita;
+    
+    // Adicionar alerta informativo
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-success py-2 mb-3';
+    alertDiv.innerHTML = `
+        <h5 class="h6 mb-0">
+            <i class="fas fa-check-circle"></i> ${mensagemSucesso}
+        </h5>
+        <small>Use os botões abaixo para editar, exportar ou salvar a receita.</small>
+    `;
+    document.getElementById('receitaContent').prepend(alertDiv);
+}
+
+// ========== FUNÇÕES EXISTENTES ==========
+
+function mostrarErro(mensagem) {
+    const errorAlert = document.getElementById('errorAlert');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    errorMessage.textContent = mensagem;
+    errorAlert.classList.remove('d-none');
+    
+    errorAlert.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function analisarExameComRetry(formData, retries = 2) {
+    return fetch('/api/diagnostico/analisar/' + CONSULTA_ID, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .catch(error => {
+        if (retries > 0 && (error.name === 'TypeError' || error.message.includes('SSL') || error.message.includes('EOF') || error.message.includes('Network'))) {
+            console.log(`Tentativa ${3 - retries} falhou, tentando novamente...`);
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    resolve(analisarExameComRetry(formData, retries - 1));
+                }, 2000);
+            });
+        }
+        throw error;
+    });
+}
+
+function usarAnaliseLocal() {
+    const tipoExame = document.getElementById('tipo_exame').value;
+    const observacoes = document.getElementById('observacoes_exame').value;
+    
+    if (!tipoExame) {
+        mostrarErro('Selecione o tipo de exame primeiro.');
+        return;
+    }
+
+    const submitButton = document.querySelector('#analiseForm button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando análise local...';
+    submitButton.disabled = true;
+
+    fetch('/api/analise-local', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            tipo_exame: tipoExame,
+            observacoes: observacoes,
+            consulta_id: CONSULTA_ID,
+            paciente_nome: '{{ consulta[1] }}'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            mostrarErro(data.error || 'Erro ao gerar análise local');
+        }
+    })
+    .catch(error => {
+        mostrarErro('Erro de conexão: ' + error.message);
+    })
+    .finally(() => {
+        submitButton.innerHTML = originalText;
+        submitButton.disabled = false;
+    });
+}
+
+document.getElementById('analiseForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    const fileInput = document.getElementById('imagem');
+    const tipoExame = document.getElementById('tipo_exame');
+    const observacoes = document.getElementById('observacoes_exame').value;
+    
+    if (!fileInput.value || !tipoExame.value) {
+        mostrarErro('Por favor, preencha todos os campos obrigatórios.');
+        return;
+    }
+    
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analisando...';
+    submitButton.disabled = true;
+    
+    document.getElementById('errorAlert').classList.add('d-none');
+    
+    const formData = new FormData();
+    formData.append('imagem', fileInput.files[0]);
+    formData.append('tipo_exame', tipoExame.value);
+    formData.append('observacoes_exame', observacoes);
+    
+    analisarExameComRetry(formData)
+        .then(data => {
+            if (data.error) {
+                mostrarErro('Erro na análise: ' + data.error + '. Tente usar a análise local.');
+            } else {
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Erro na análise:', error);
+            let errorMessage = 'Erro ao conectar com o serviço de análise. ';
+            
+            if (error.message.includes('SSL') || error.message.includes('EOF')) {
+                errorMessage += 'Problema de conexão SSL com o servidor de IA. ';
+                errorMessage += 'Tente usar a "Análise Básica" ou verifique sua conexão.';
+            } else if (error.message.includes('fetch') || error.message.includes('Network')) {
+                errorMessage += 'Problema de rede. Verifique sua conexão com a internet.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            mostrarErro(errorMessage);
+        })
+        .finally(() => {
+            submitButton.innerHTML = originalText;
+            submitButton.disabled = false;
+        });
+});
+
+function abrirChatDiagnostico() {
+    const chatModal = new bootstrap.Modal(document.getElementById('chatModal'));
+    chatModal.show();
+    
+    document.getElementById('chatMessages').innerHTML = `
+        <div class="chat-message ai-message">
+            <div class="message-header">
+                <strong>Assistente IA</strong>
+                <small class="text-muted">Agora</small>
+            </div>
+            <div class="message-content">
+                Olá, Dr(a). {{ session.user_name }}. Estou aqui para discutir o diagnóstico e ajudar com qualquer dúvida ou ajuste.
+            </div>
+        </div>
+    `;
+}
+
+function abrirChatDiscordancia(observacoes) {
+    const chatModal = new bootstrap.Modal(document.getElementById('chatModal'));
+    chatModal.show();
+    
+    document.getElementById('chatMessages').innerHTML = '';
+    
+    adicionarMensagem(
+        `Olá, Dr(a). {{ session.user_name }}. Entendo que você não concorda com a receita gerada. Vamos discutir e ajustar juntos. O que específicamente você gostaria de modificar?`,
+        'ai'
+    );
+    
+    if (observacoes) {
+        setTimeout(() => {
+            adicionarMensagem(
+                `Não concorda com a receita porque: ${observacoes}`,
+                'doctor'
+            );
+        }, 1000);
+    }
+}
+
+function enviarMensagem() {
+    const mensagemInput = document.getElementById('mensagemChat');
+    const mensagem = mensagemInput.value.trim();
+    
+    if (!mensagem) return;
+    
+    adicionarMensagem(mensagem, 'doctor');
+    mensagemInput.value = '';
+    
+    const sugestoesContainer = document.querySelector('.sugestoes-container');
+    if (sugestoesContainer) sugestoesContainer.remove();
+    
+    const loadingMessage = document.createElement('div');
+    loadingMessage.className = 'chat-message ai-message';
+    loadingMessage.innerHTML = `
+        <div class="message-header">
+            <strong>Assistente IA</strong>
+            <small class="text-muted">Digitando...</small>
+        </div>
+        <div class="message-content">
+            <div class="spinner-border spinner-border-sm" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            Processando sua pergunta...
+        </div>
+    `;
+    document.getElementById('chatMessages').appendChild(loadingMessage);
+    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+    
+    fetch(`/api/diagnostico/chat/${CONSULTA_ID}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ message: mensagem })
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('chatMessages').removeChild(loadingMessage);
+        if (data.error) {
+            adicionarMensagem('Erro ao conectar com a IA: ' + data.error, 'ai');
+        } else {
+            adicionarMensagem(data.response, 'ai', data.timestamp);
+        }
+    })
+    .catch(error => {
+        document.getElementById('chatMessages').removeChild(loadingMessage);
+        adicionarMensagem('Erro de conexão com a IA. Tente novamente.', 'ai');
+    });
+}
+
+function adicionarMensagem(texto, tipo, timestamp = null) {
+    const chatMessages = document.getElementById('chatMessages');
+    const timestampStr = timestamp || new Date().toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', minute: '2-digit' 
+    });
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${tipo}-message`;
+    messageDiv.innerHTML = `
+        <div class="message-header">
+            <strong>${tipo === 'ai' ? 'Assistente IA' : 'Você'}</strong>
+            <small class="text-muted">${timestampStr}</small>
+        </div>
+        <div class="message-content">${texto}</div>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function sugerirPerguntas() {
+    const sugestoes = [
+        "Explique melhor o diagnóstico",
+        "Quais as evidências?",
+        "Diagnósticos diferenciais?",
+        "Ajustar medicação?",
+        "Exames complementares?"
+    ];
+    
+    const sugestoesContainer = document.createElement('div');
+    sugestoesContainer.className = 'sugestoes-container';
+    sugestoesContainer.innerHTML = '<small class="text-muted">Sugestões:</small><br>';
+    
+    sugestoes.forEach(sugestao => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-secondary sugestao-btn';
+        btn.textContent = sugestao;
+        btn.onclick = () => {
+            document.getElementById('mensagemChat').value = sugestao;
+            sugestoesContainer.remove();
+        };
+        sugestoesContainer.appendChild(btn);
+    });
+    
+    const existingSugestoes = document.querySelector('.sugestoes-container');
+    if (existingSugestoes) existingSugestoes.remove();
+    
+    document.querySelector('.chat-input').parentNode.insertBefore(sugestoesContainer, document.querySelector('.chat-input'));
+}
+
+function finalizarDiscussao() {
+    bootstrap.Modal.getInstance(document.getElementById('chatModal')).hide();
+    alert('Discussão finalizada. Use "Salvar" para aplicar mudanças.');
+}
+
+function imprimirReceita() {
+    window.print();
+}
+
+function salvarDiagnosticoRevisado() {
+    if (confirm('Salvar alterações no diagnóstico?')) {
+        fetch(`/api/diagnostico/salvar/${CONSULTA_ID}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ diagnostico: document.querySelector('.receita-medica').innerHTML })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Diagnóstico salvo!');
+                location.reload();
+            } else {
+                alert('Erro ao salvar.');
+            }
+        })
+        .catch(error => alert('Erro de conexão.'));
+    }
+}
+
+function copiarReceita() {
+    const receitaElement = document.querySelector('.receita-medica');
+    const tempElement = document.createElement('div');
+    tempElement.innerHTML = receitaElement.innerHTML;
+    const receitaText = tempElement.textContent || tempElement.innerText;
+    
+    navigator.clipboard.writeText(receitaText)
+        .then(() => alert('Texto copiado!'))
+        .catch(err => alert('Erro ao copiar.'));
+}
+
+document.getElementById('mensagemChat').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        enviarMensagem();
+    }
+});
+
+// Inicialização para dispositivos móveis
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.innerWidth < 768) {
+        const chatContainer = document.getElementById('chatMessages');
+        if (chatContainer) {
+            chatContainer.style.height = '250px';
+        }
+        
+        const receitaContainer = document.querySelector('.receita-medica');
+        if (receitaContainer) {
+            receitaContainer.style.maxHeight = '300px';
+        }
+    }
+});
+</script>
+{% endblock %}

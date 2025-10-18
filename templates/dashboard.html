@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+<p>Olá, {{ user.username }}! Seu papel é: {{ user.role }}</p>
+
+{% if user.role == 'paciente' %}
+    <div class="d-flex justify-content-start">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Suas Consultas</h5>
+                <p class="card-text">Aqui você pode ver suas consultas agendadas.</p>
+                <a href="{{ url_for('consultas') }}" class="btn btn-primary">Ver Consultas</a>
+            </div>
+        </div>
+    </div>
+{% elif user.role == 'medico' %}
+    <div class="d-flex justify-content-start">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Suas Consultas</h5>
+                <p class="card-text">Aqui você pode ver suas consultas agendadas.</p>
+                <a href="{{ url_for('consultas') }}" class="btn btn-primary">Ver Consultas</a>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <div class="row justify-content-start">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Pacientes</h5>
+                    <p class="card-text">Gerencie os pacientes do sistema.</p>
+                    <a href="{{ url_for('pacientes') }}" class="btn btn-primary">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Médicos</h5>
+                    <p class="card-text">Gerencie os médicos do sistema.</p>
+                    <a href="{{ url_for('medicos') }}" class="btn btn-primary">Gerenciar</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Consultas</h5>
+                    <p class="card-text">Visualize todas as consultas.</p>
+                    <a href="{{ url_for('consultas') }}" class="btn btn-primary">Ver Consultas</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

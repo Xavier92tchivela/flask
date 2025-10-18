@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Minhas Consultas - DoctorCare{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-calendar-check me-2 text-primary"></i>
+        Minhas Consultas
+    </h2>
+    {% if user_type == 'paciente' %}
+    <a href="{{ url_for('agendar_consulta') }}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Nova Consulta
+    </a>
+    {% endif %}
+</div>
+
+<!-- Estatísticas -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4 class="mb-0">{{ consultas|length }}</h4>
+                <p class="mb-0">Total</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4 class="mb-0">{{ consultas|selectattr('4', 'equalto', 'realizada')|list|length }}</h4>
+                <p class="mb-0">Realizadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h4 class="mb-0">{{ consultas|selectattr('4', 'equalto', 'agendada')|list|length }}</h4>
+                <p class="mb-0">Agendadas</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h4 class="mb-0">{{ consultas|selectattr('4', 'equalto', 'cancelada')|list|length }}</h4>
+                <p class="mb-0">Canceladas</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Lista de Consultas -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-history me-2"></i>Histórico de Consultas
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        {% if user_type == 'paciente' %}
+                        <th>Médico</th>
+                        <th>Especialidade</th>
+                        {% else %}
+                        <th>Paciente</th>
+                        {% endif %}
+                        <th>Data/Hora</th>
+                        <th>Status</th>
+                        <th>Laudo</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if consultas %}
+                        {% for consulta in consultas %}
+                        <tr>
+                            <td><strong>#{{ consulta[0] }}</strong></td>
+                            {% if user_type == 'paciente' %}
+                            <td>{{ consulta[1] }}</td>
+                            <td>{{ consulta[2] }}</td>
+                            {% else %}
+                            <td>{{ consulta[1] }}</td>
+                            {% endif %}
+                            <td>{{ formatar_data(consulta[3], '%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <span class="badge bg-{% if consulta[4] == 'realizada' %}success{% elif consulta[4] == 'cancelada' %}danger{% else %}warning{% endif %}">
+                                    {{ consulta[4]|capitalize }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if consulta[5] %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-file-medical me-1"></i>Disponível
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-clock me-1"></i>Pendente
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('detalhes_consulta', consulta_id=consulta[0]) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if consulta[4] == 'agendada' %}
+                                <button class="btn btn-sm btn-outline-danger cancelar-consulta" 
+                                        data-consulta-id="{{ consulta[0] }}">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-calendar-times fa-2x mb-3 d-block"></i>
+                                Nenhuma consulta encontrada.
+                                <br>
+                                {% if user_type == 'paciente' %}
+                                <a href="{{ url_for('agendar_consulta') }}" class="btn btn-primary mt-2">
+                                    Agendar Primeira Consulta
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('.cancelar-consulta').click(function() {
+        const consultaId = $(this).data('consulta-id');
+        
+        if (confirm('Tem certeza que deseja cancelar esta consulta?')) {
+            $.ajax({
+                url: '/consultas/' + consultaId + '/cancelar',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.error);
+                    }
+                },
+                error: function() {
+                    alert('Erro ao cancelar consulta.');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Consulta #{{ consulta[0] }} - DoctorCare{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-file-medical me-2"></i>
+                    Consulta #{{ consulta[0] }}
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Paciente:</strong> {{ consulta[7] }}<br>
+                        <strong>Data Nasc.:</strong> {{ formatar_data(consulta[8], '%d/%m/%Y') if consulta[8] else 'Não informado' }}<br>
+                        <strong>Gênero:</strong> {{ consulta[9] or 'Não informado' }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Médico:</strong> {{ consulta[1] }}<br>
+                        <strong>Especialidade:</strong> {{ consulta[2] }}<br>
+                        <strong>CRM:</strong> {{ consulta[3] }}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Data/Hora:</strong> {{ formatar_data(consulta[4], '%d/%m/%Y %H:%M') }}<br>
+                        <strong>Status:</strong> 
+                        <span class="badge bg-{% if consulta[5] == 'realizada' %}success{% elif consulta[5] == 'cancelada' %}danger{% else %}warning{% endif %}">
+                            {{ consulta[5]|capitalize }}
+                        </span>
+                    </div>
+                </div>
+
+                {% if consulta[6] %}
+                <div class="mb-3">
+                    <strong>Observações:</strong>
+                    <p class="mt-1">{{ consulta[6] }}</p>
+                </div>
+                {% endif %}
+
+                {% if consulta[10] %}
+                <div class="mt-4">
+                    <h5><i class="fas fa-file-medical-alt me-2"></i>Laudo/Receita</h5>
+                    <div class="border rounded p-3 bg-light">
+                        {{ consulta[10]|safe }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-cogs me-2"></i>Ações
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('minhas_consultas') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar
+                    </a>
+                    
+                    {% if consulta[5] == 'agendada' %}
+                    <button class="btn btn-danger cancelar-consulta" 
+                            data-consulta-id="{{ consulta[0] }}">
+                        <i class="fas fa-times me-2"></i>Cancelar Consulta
+                    </button>
+                    {% endif %}
+
+                    {% if user_type == 'medico' and consulta[5] == 'agendada' %}
+                    <a href="{{ url_for('medico_analise', consulta_id=consulta[0]) }}" 
+                       class="btn btn-primary">
+                        <i class="fas fa-stethoscope me-2"></i>Realizar Análise
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('.cancelar-consulta').click(function() {
+        const consultaId = $(this).data('consulta-id');
+        
+        if (confirm('Tem certeza que deseja cancelar esta consulta?')) {
+            $.ajax({
+                url: '/consultas/' + consultaId + '/cancelar',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        alert(response.message);
+                        location.reload();
+                    } else {
+                        alert('Erro: ' + response.error);
+                    }
+                },
+                error: function() {
+                    alert('Erro ao cancelar consulta.');
+                }
+            });
+        }
+    });
+});
+</script>
+{% endblock %}
