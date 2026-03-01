@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Minhas Consultas</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* VARIÁVEIS CSS */
+        :root {
+            --primary: #4A6CF7;
+            --primary-light: #6B8AFF;
+            --success: #28C76F;
+            --warning: #FF9F43;
+            --danger: #EA5455;
+            --dark: #2C3E50;
+            --gray: #6C757D;
+            --light-gray: #F8F9FA;
+            --white: #FFFFFF;
+            
+            /* Sombras para mobile-first */
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+            
+            /* Espaçamentos mobile */
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 20px;
+            --space-2xl: 24px;
+        }
+        
+        /* RESET MOBILE-FIRST */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        html {
+            font-size: 14px;
+            -webkit-text-size-adjust: 100%;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--light-gray);
+            line-height: 1.5;
+            color: var(--dark);
+            padding-bottom: constant(safe-area-inset-bottom);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        
+        /* CONTAINER RESPONSIVO */
+        .mobile-container {
+            width: 100%;
+            padding-right: var(--space-md);
+            padding-left: var(--space-md);
+            margin-right: auto;
+            margin-left: auto;
+        }
+        
+        @media (min-width: 576px) {
+            .mobile-container {
+                max-width: 540px;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .mobile-container {
+                max-width: 720px;
+                padding-right: var(--space-lg);
+                padding-left: var(--space-lg);
+            }
+        }
+        
+        @media (min-width: 992px) {
+            .mobile-container {
+                max-width: 960px;
+            }
+        }
+        
+        @media (min-width: 1200px) {
+            .mobile-container {
+                max-width: 1140px;
+            }
+        }
+        
+        /* NAVBAR MOBILE OTIMIZADA */
+        .mobile-navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: var(--space-md) 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .mobile-navbar .container-fluid {
+            padding: 0 var(--space-md);
+        }
+        
+        .navbar-back-btn {
+            color: var(--white);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+            padding: var(--space-sm) 0;
+        }
+        
+        .navbar-title {
+            color: var(--white);
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        /* CARD PRINCIPAL MOBILE-FRIENDLY */
+        .mobile-card {
+            background: var(--white);
+            border-radius: 12px;
+            margin: var(--space-lg) 0;
+            overflow: hidden;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .card-header-mobile {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: var(--space-lg);
+            position: relative;
+        }
+        
+        .card-header-content {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-lg);
+        }
+        
+        @media (min-width: 768px) {
+            .card-header-content {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+        
+        .page-title {
+            color: var(--white);
+            font-size: 1.4rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--space-md);
+            margin: 0;
+        }
+        
+        /* BOTÃO AGENDAR MOBILE */
+        .btn-mobile-primary {
+            background: var(--white);
+            color: var(--primary);
+            border: none;
+            border-radius: 50px;
+            padding: var(--space-md) var(--space-xl);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(74, 108, 247, 0.25);
+            width: 100%;
+        }
+        
+        @media (min-width: 768px) {
+            .btn-mobile-primary {
+                width: auto;
+            }
+        }
+        
+        .btn-mobile-primary:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(74, 108, 247, 0.2);
+        }
+        
+        /* CARD DE CONSULTA MOBILE */
+        .consultation-card {
+            background: var(--white);
+            border-radius: 10px;
+            margin-bottom: var(--space-lg);
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--primary);
+            transition: all 0.2s ease;
+        }
+        
+        .consultation-card:active {
+            transform: scale(0.995);
+        }
+        
+        .consultation-header {
+            padding: var(--space-lg);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background: rgba(74, 108, 247, 0.03);
+        }
+        
+        .doctor-info h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: var(--space-xs);
+            line-height: 1.3;
+        }
+        
+        .doctor-specialty {
+            color: var(--gray);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-sm);
+        }
+        
+        .doctor-specialty i {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        
+        /* STATUS BADGE MOBILE */
+        .mobile-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-top: var(--space-sm);
+        }
+        
+        .badge-scheduled { background: linear-gradient(135deg, #FF9F43 0%, #FFB74D 100%); color: white; }
+        .badge-completed { background: linear-gradient(135deg, #28C76F 0%, #4CD964 100%); color: white; }
+        .badge-cancelled { background: linear-gradient(135deg, #EA5455 0%, #FF6B6B 100%); color: white; }
+        .badge-confirmed { background: linear-gradient(135deg, #00CFE8 0%, #35E2F2 100%); color: white; }
+        
+        /* CONSULTA BODY MOBILE */
+        .consultation-body {
+            padding: var(--space-lg);
+        }
+        
+        .consultation-details {
+            background: rgba(0,0,0,0.02);
+            border-radius: 8px;
+            padding: var(--space-md);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .detail-item {
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-md);
+            margin-bottom: var(--space-sm);
+        }
+        
+        .detail-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .detail-icon {
+            color: var(--primary);
+            font-size: 0.9rem;
+            margin-top: 2px;
+            min-width: 16px;
+        }
+        
+        .detail-text {
+            font-size: 0.9rem;
+            color: var(--dark);
+            flex: 1;
+        }
+        
+        /* PRESCRIPTION PREVIEW MOBILE */
+        .prescription-preview {
+            background: rgba(40, 199, 111, 0.08);
+            border-left: 3px solid var(--success);
+            border-radius: 0 6px 6px 0;
+            padding: var(--space-md);
+            margin-bottom: var(--space-lg);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-sm);
+        }
+        
+        .prescription-preview i {
+            color: var(--success);
+            font-size: 0.9rem;
+            margin-top: 1px;
+        }
+        
+        /* BOTÕES DE AÇÃO MOBILE */
+        .action-buttons-mobile {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-sm);
+            margin-top: var(--space-lg);
+        }
+        
+        @media (min-width: 576px) {
+            .action-buttons-mobile {
+                flex-direction: row;
+            }
+        }
+        
+        .btn-action {
+            flex: 1;
+            padding: var(--space-md);
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-sm);
+            text-decoration: none;
+            transition: all 0.2s ease;
+            min-height: 44px; /* Tamanho mínimo para toque */
+            -webkit-tap-highlight-color: rgba(0,0,0,0.1);
+        }
+        
+        .btn-action:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-details {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: rgba(234, 84, 85, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(234, 84, 85, 0.2);
+        }
+        
+        .btn-cancel:active {
+            background: var(--danger);
+            color: white;
+        }
+        
+        /* EMPTY STATE MOBILE */
+        .empty-state-mobile {
+            text-align: center;
+            padding: var(--space-2xl) var(--space-lg);
+        }
+        
+        .empty-icon {
+            font-size: 3.5rem;
+            color: rgba(74, 108, 247, 0.15);
+            margin-bottom: var(--space-lg);
+        }
+        
+        .empty-state-mobile h3 {
+            color: var(--dark);
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: var(--space-sm);
+        }
+        
+        .empty-state-mobile p {
+            color: var(--gray);
+            font-size: 0.95rem;
+            margin-bottom: var(--space-xl);
+            max-width: 320px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* CARD FOOTER MOBILE */
+        .card-footer-mobile {
+            background: rgba(0,0,0,0.02);
+            border-top: 1px solid rgba(0,0,0,0.05);
+            padding: var(--space-lg);
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+        
+        .footer-stats {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-md);
+        }
+        
+        @media (min-width: 576px) {
+            .footer-stats {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-sm);
+        }
+        
+        .stat-item i {
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        
+        /* ALERTS MOBILE */
+        .alert-mobile {
+            border-radius: 10px;
+            padding: var(--space-md);
+            margin-bottom: var(--space-lg);
+            border: none;
+            box-shadow: var(--shadow-sm);
+            animation: slideInDown 0.3s ease;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border-left: 4px solid var(--success);
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-left: 4px solid var(--warning);
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-left: 4px solid var(--danger);
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            border-left: 4px solid #00CFE8;
+        }
+        
+        /* SCROLL SUAVE PARA MOBILE */
+        @media (prefers-reduced-motion: no-preference) {
+            html {
+                scroll-behavior: smooth;
+            }
+        }
+        
+        /* MELHORIAS PARA IOS */
+        @supports (-webkit-touch-callout: none) {
+            .btn-action, .btn-mobile-primary {
+                -webkit-appearance: none;
+            }
+        }
+        
+        /* PREVENIR ZOOM EM INPUTS NO IOS */
+        @media screen and (max-width: 767px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+        
+        /* LOADING SKELETON (opcional) */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* ADJUSTMENTS FOR VERY SMALL SCREENS */
+        @media (max-width: 320px) {
+            html {
+                font-size: 13px;
+            }
+            
+            .mobile-container {
+                padding-right: var(--space-sm);
+                padding-left: var(--space-sm);
+            }
+            
+            .consultation-header,
+            .consultation-body {
+                padding: var(--space-md);
+            }
+        }
+        
+        /* DARK MODE SUPPORT (opcional) */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --dark: #E2E8F0;
+                --light-gray: #1A202C;
+                --white: #2D3748;
+                --gray: #A0AEC0;
+            }
+            
+            body {
+                background: #1A202C;
+            }
+            
+            .mobile-card,
+            .consultation-card {
+                background: #2D3748;
+                border-color: #4A5568;
+            }
+            
+            .consultation-details {
+                background: rgba(255,255,255,0.05);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- NAVBAR MOBILE -->
+    <nav class="mobile-navbar">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('paciente.dashboard') }}" class="navbar-back-btn">
+                    <i class="fas fa-chevron-left"></i>
+                    <span class="d-none d-sm-inline">Voltar</span>
+                </a>
+                <div class="navbar-title">
+                    <i class="fas fa-calendar-check"></i>
+                    <span>Minhas Consultas</span>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="mobile-container">
+        <!-- MENSAGENS FLASH -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-mobile alert-dismissible fade show mt-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas 
+                                {% if category == 'success' %}fa-check-circle
+                                {% elif category == 'warning' %}fa-exclamation-triangle
+                                {% elif category == 'danger' %}fa-times-circle
+                                {% else %}fa-info-circle{% endif %}
+                                me-2"></i>
+                            <div class="flex-grow-1">{{ message }}</div>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- CARD PRINCIPAL -->
+        <div class="mobile-card">
+            <!-- HEADER -->
+            <div class="card-header-mobile">
+                <div class="card-header-content">
+                    <h1 class="page-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        Minhas Consultas
+                    </h1>
+                    <a href="{{ url_for('paciente.agendar_consulta') }}" class="btn-mobile-primary">
+                        <i class="fas fa-plus-circle"></i>
+                        Nova Consulta
+                    </a>
+                </div>
+            </div>
+
+            <!-- BODY -->
+            <div class="card-body p-3 p-md-4">
+                {% if consultas %}
+                    {% for consulta in consultas %}
+                    <!-- CARD DA CONSULTA -->
+                    <div class="consultation-card">
+                        <!-- HEADER DA CONSULTA -->
+                        <div class="consultation-header">
+                            <div class="doctor-info">
+                                <h3>{{ consulta.medico_nome }}</h3>
+                                <div class="doctor-specialty">
+                                    <i class="fas fa-briefcase-medical"></i>
+                                    <span>{{ consulta.especialidade }}</span>
+                                    {% if consulta.crm %}
+                                    <span class="ms-2">
+                                        <i class="fas fa-id-card"></i>
+                                        CRM: {{ consulta.crm }}
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <span class="mobile-badge badge-{{ consulta.status_class }}">
+                                <i class="fas 
+                                    {% if consulta.status == 'realizada' %}fa-check-circle
+                                    {% elif consulta.status == 'agendada' %}fa-clock
+                                    {% elif consulta.status == 'cancelada' %}fa-ban
+                                    {% else %}fa-calendar-check{% endif %}">
+                                </i>
+                                {{ consulta.status|upper }}
+                            </span>
+                        </div>
+
+                        <!-- BODY DA CONSULTA -->
+                        <div class="consultation-body">
+                            <!-- DETALHES -->
+                            <div class="consultation-details">
+                                <div class="detail-item">
+                                    <i class="fas fa-calendar-day detail-icon"></i>
+                                    <div class="detail-text">
+                                        <strong>Data:</strong> {{ consulta.data_hora }}
+                                    </div>
+                                </div>
+                                
+                                {% if consulta.status == 'agendada' %}
+                                <div class="detail-item">
+                                    <i class="fas fa-info-circle detail-icon"></i>
+                                    <div class="detail-text">
+                                        <em>Aguardando atendimento</em>
+                                    </div>
+                                </div>
+                                {% elif consulta.status == 'realizada' %}
+                                <div class="detail-item">
+                                    <i class="fas fa-check-circle detail-icon"></i>
+                                    <div class="detail-text">
+                                        <em>Consulta realizada</em>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- RECEITA (se houver) -->
+                            {% if consulta.receita %}
+                            <div class="prescription-preview">
+                                <i class="fas fa-file-prescription"></i>
+                                <div>{{ consulta.receita|safe }}</div>
+                            </div>
+                            {% endif %}
+
+                            <!-- BOTÕES DE AÇÃO -->
+                            <div class="action-buttons-mobile">
+                                <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=consulta.id) }}" 
+                                   class="btn-action btn-details">
+                                    <i class="fas fa-eye"></i>
+                                    Ver Detalhes
+                                </a>
+                                
+                                {% if consulta.status == 'agendada' %}
+                                <form action="{{ url_for('paciente.cancelar_consulta', consulta_id=consulta.id) }}" 
+                                      method="POST" class="d-flex">
+                                    <button type="submit" class="btn-action btn-cancel"
+                                            onclick="return confirmCancel(event)">
+                                        <i class="fas fa-times"></i>
+                                        Cancelar
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <!-- ESTADO VAZIO -->
+                    <div class="empty-state-mobile">
+                        <div class="empty-icon">
+                            <i class="fas fa-calendar-times"></i>
+                        </div>
+                        <h3>Nenhuma consulta</h3>
+                        <p>Você ainda não possui consultas agendadas. Agende sua primeira consulta!</p>
+                        <a href="{{ url_for('paciente.agendar_consulta') }}" class="btn-mobile-primary" style="max-width: 280px; margin: 0 auto;">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Agendar Primeira Consulta
+                        </a>
+                        <div class="mt-4">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Suas consultas aparecerão aqui automaticamente
+                            </small>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- FOOTER (apenas se houver consultas) -->
+            {% if consultas %}
+            <div class="card-footer-mobile">
+                <div class="footer-stats">
+                    <div class="stat-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Total: <strong>{{ consultas|length }}</strong> consulta(s)</span>
+                    </div>
+                    <div class="stat-item">
+                        <i class="fas fa-sync-alt"></i>
+                        <span>Atualizado: {{ datetime.now().strftime('%H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // MOBILE-FIRST JAVASCRIPT
+        document.addEventListener('DOMContentLoaded', function() {
+            // PREVENIR ZOOM DUPLO TAP EM IOS
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // CONFIRMAÇÃO DE CANCELAMENTO COM FEEDBACK MOBILE
+            function confirmCancel(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Criar modal de confirmação mobile-friendly
+                const modalHTML = `
+                    <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content" style="border-radius: 16px; border: none;">
+                                <div class="modal-header border-0 pb-0">
+                                    <div class="modal-title w-100 text-center">
+                                        <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 2.5rem;"></i>
+                                        <h5 class="mb-1" style="font-weight: 600;">Cancelar Consulta</h5>
+                                    </div>
+                                </div>
+                                <div class="modal-body text-center py-3">
+                                    <p class="mb-3">Tem certeza que deseja cancelar esta consulta?</p>
+                                    <small class="text-muted d-block mb-3">Esta ação não pode ser desfeita.</small>
+                                </div>
+                                <div class="modal-footer border-0 pt-0">
+                                    <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">
+                                        <i class="fas fa-times me-2"></i>Manter
+                                    </button>
+                                    <button type="button" id="confirmCancel" class="btn btn-danger flex-fill">
+                                        <i class="fas fa-check me-2"></i>Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Adicionar modal ao body
+                if (!document.getElementById('cancelModal')) {
+                    document.body.insertAdjacentHTML('beforeend', modalHTML);
+                }
+                
+                // Mostrar modal
+                const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+                modal.show();
+                
+                // Confirmar cancelamento
+                document.getElementById('confirmCancel').onclick = function() {
+                    event.target.closest('form').submit();
+                    modal.hide();
+                };
+                
+                return false;
+            }
+            
+            // Anexar evento a todos os botões de cancelar
+            document.querySelectorAll('.btn-cancel').forEach(btn => {
+                btn.addEventListener('click', confirmCancel);
+            });
+
+            // FEEDBACK TÁTIL PARA BOTÕES
+            document.querySelectorAll('.btn-action, .btn-mobile-primary').forEach(btn => {
+                btn.addEventListener('touchstart', function() {
+                    this.style.opacity = '0.8';
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                btn.addEventListener('touchend', function() {
+                    this.style.opacity = '';
+                    this.style.transform = '';
+                });
+                
+                btn.addEventListener('touchcancel', function() {
+                    this.style.opacity = '';
+                    this.style.transform = '';
+                });
+            });
+
+            // SWIPE PARA ATUALIZAR (opcional)
+            let startY;
+            const pullThreshold = 100;
+            
+            document.addEventListener('touchstart', function(e) {
+                startY = e.touches[0].pageY;
+            });
+            
+            document.addEventListener('touchmove', function(e) {
+                const currentY = e.touches[0].pageY;
+                const pullDistance = currentY - startY;
+                
+                // Se puxar para baixo do topo da página
+                if (window.scrollY === 0 && pullDistance > 0) {
+                    e.preventDefault();
+                    // Adicionar efeito visual de pull-to-refresh
+                    if (pullDistance < pullThreshold) {
+                        document.documentElement.style.setProperty('--pull-distance', `${pullDistance}px`);
+                    }
+                }
+            });
+            
+            document.addEventListener('touchend', function(e) {
+                const currentY = e.changedTouches[0].pageY;
+                const pullDistance = currentY - startY;
+                
+                if (window.scrollY === 0 && pullDistance > pullThreshold) {
+                    // Atualizar a página
+                    window.location.reload();
+                }
+                
+                // Resetar estilo
+                document.documentElement.style.setProperty('--pull-distance', '0px');
+            });
+
+            // OTIMIZAR DESEMPENHO DE SCROLL
+            let ticking = false;
+            window.addEventListener('scroll', function() {
+                if (!ticking) {
+                    window.requestAnimationFrame(function() {
+                        // Otimizações durante scroll
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+
+            // DETECTAR CONEXÃO LENTA
+            if ('connection' in navigator) {
+                const connection = navigator.connection;
+                if (connection.saveData || connection.effectiveType.includes('2g')) {
+                    // Modo economia de dados
+                    document.querySelectorAll('img').forEach(img => {
+                        if (!img.hasAttribute('loading')) {
+                            img.setAttribute('loading', 'lazy');
+                        }
+                    });
+                }
+            }
+
+            // PREVENIR MENU CONTEXTUAL EM BOTÕES
+            document.querySelectorAll('.btn-action, .btn-mobile-primary').forEach(btn => {
+                btn.addEventListener('contextmenu', function(e) {
+                    e.preventDefault();
+                    return false;
+                });
+            });
+        });
+
+        // FUNÇÃO PARA AJUSTAR VIEWPORT EM IOS
+        function adjustViewport() {
+            const viewport = document.querySelector('meta[name="viewport"]');
+            if (viewport && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
+                viewport.content = viewport.content + ', maximum-scale=5.0';
+            }
+        }
+        adjustViewport();
+    </script>
+</body>
+</html>

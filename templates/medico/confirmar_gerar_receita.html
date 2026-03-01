@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Confirmar Geração de Receita{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.pedidos_analise') }}">Pedidos</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.ver_detalhes_pedido', pedido_id=pedido.id) }}">Pedido #{{ pedido.id }}</a></li>
+                    <li class="breadcrumb-item active">Confirmar Receita</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Card de Confirmação -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-prescription me-2"></i>
+                        Confirmar Geração de Receita com IA
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-robot me-2"></i>
+                        <strong>Gemini AI {{ '✅' if gemini_available else '❌' }}</strong>
+                        {% if gemini_available %}
+                            - A IA irá gerar uma receita baseada no diagnóstico e sintomas abaixo.
+                        {% else %}
+                            - Gemini não está disponível no momento.
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-user me-2"></i>Paciente
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Nome:</strong> {{ pedido.paciente_nome }}</p>
+                                <p class="mb-1"><strong>Idade:</strong> {{ pedido.paciente_idade or 'Não informada' }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Gênero:</strong> {{ pedido.paciente_genero or 'Não informado' }}</p>
+                                <p class="mb-1"><strong>Tipo de Exame:</strong> {{ pedido.tipo_exame }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== SEÇÃO DE SINTOMAS ADICIONADA ===== -->
+                    {% if sintomas_lista and sintomas_lista|length > 0 %}
+                    <div class="mb-4">
+                        <h6 class="text-info border-bottom pb-2">
+                            <i class="fas fa-thermometer-half me-2"></i>Sintomas Relatados pelo Paciente
+                        </h6>
+                        <div class="d-flex flex-wrap gap-2 p-3 bg-light rounded">
+                            {% for sintoma in sintomas_lista %}
+                            <span class="badge bg-info text-white p-2" style="font-size: 0.95rem; border-radius: 30px;">
+                                <i class="fas fa-check-circle me-1"></i>{{ sintoma }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        <small class="text-muted">* Estes sintomas serão considerados na geração da receita</small>
+                    </div>
+                    {% endif %}
+
+                    <div class="mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-stethoscope me-2"></i>Diagnóstico (Fonte: {{ fonte_diagnostico }})
+                        </h6>
+                        <div class="bg-light p-3 rounded" style="max-height: 300px; overflow-y: auto;">
+                            <pre class="mb-0" style="white-space: pre-wrap; font-family: inherit;">{{ diagnostico_completo }}</pre>
+                        </div>
+                        <small class="text-muted">* Este diagnóstico será usado pela IA para gerar a receita</small>
+                    </div>
+
+                    <form method="POST">
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('medico.ver_detalhes_pedido', pedido_id=pedido.id) }}" 
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-prescription me-2"></i>
+                                Confirmar e Gerar Receita com IA
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Informações do Pedido -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-microscope me-2"></i>Pedido #{{ pedido.id }}</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Solicitado:</strong> {{ pedido.data_solicitacao }}</p>
+                    {% if pedido.data_conclusao %}
+                    <p class="mb-2"><strong>Concluído:</strong> {{ pedido.data_conclusao }}</p>
+                    {% endif %}
+                    <p class="mb-2"><strong>Status Aprovação:</strong> 
+                        <span class="badge bg-success">{{ pedido.status_aprovacao|upper }}</span>
+                    </p>
+                    <p class="mb-2"><strong>Analista:</strong> {{ pedido.analista_nome }}</p>
+                    
+                    <!-- Resumo de Sintomas -->
+                    {% if sintomas_lista %}
+                    <p class="mb-0 mt-3">
+                        <strong>Total de Sintomas:</strong> 
+                        <span class="badge bg-info">{{ sintomas_lista|length }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Instruções -->
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Instruções</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">A IA irá gerar uma receita completa baseada no diagnóstico</li>
+                        <li class="mb-2">Os sintomas do paciente serão considerados na prescrição</li>
+                        <li class="mb-2">Você poderá visualizar a receita antes de baixar o PDF</li>
+                        <li class="mb-2">A receita será salva automaticamente no sistema</li>
+                        <li class="mb-2">O PDF será gerado para impressão</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.badge.bg-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    box-shadow: 0 2px 5px rgba(23,162,184,0.3);
+    transition: all 0.3s ease;
+}
+.badge.bg-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(23,162,184,0.4);
+}
+</style>
+{% endblock %}

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Consulta #{{ consulta.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('paciente.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('paciente.minhas_consultas') }}">Minhas Consultas</a></li>
+                    <li class="breadcrumb-item active">Consulta #{{ consulta.id }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Detalhes da Consulta</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Informações do Médico</h6>
+                    <p><strong>Nome:</strong> {{ consulta.medico_nome }}</p>
+                    <p><strong>Especialidade:</strong> {{ consulta.especialidade }}</p>
+                    <p><strong>CRM:</strong> {{ consulta.crm }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Informações da Consulta</h6>
+                    <p><strong>Data/Hora:</strong> {{ consulta.data_hora }}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge bg-{{ consulta.status_class }}">{{ consulta.status|upper }}</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Sintomas -->
+            {% if consulta.sintomas_lista and consulta.sintomas_lista|length > 0 %}
+            <hr>
+            <h6>Meus Sintomas</h6>
+            <div class="mb-3">
+                {% for sintoma in consulta.sintomas_lista %}
+                <span class="badge bg-info me-1 mb-1 p-2">{{ sintoma }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Observações -->
+            {% if consulta.observacoes %}
+            <hr>
+            <h6>Observações</h6>
+            <p>{{ consulta.observacoes }}</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

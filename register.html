@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Sistema Médico</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .register-container {
+            min-height: 100vh;
+            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1932&q=80');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .register-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+        
+        .register-header {
+            background-color: #3498db;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+        
+        .register-body {
+            padding: 25px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #3498db;
+            box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+        }
+        
+        .btn-register {
+            background-color: #3498db;
+            border-color: #3498db;
+            color: white;
+            padding: 10px;
+            font-weight: 500;
+        }
+        
+        .btn-register:hover {
+            background-color: #2980b9;
+            border-color: #2980b9;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .step {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            z-index: 2;
+        }
+        
+        .step.active {
+            background-color: #3498db;
+            color: white;
+        }
+        
+        .step-indicator::before {
+            content: "";
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #e9ecef;
+            z-index: 1;
+        }
+        
+        .back-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+        }
+        
+        /* Estilo para feedback de validação */
+        .is-invalid {
+            border-color: #dc3545 !important;
+        }
+        
+        .is-valid {
+            border-color: #28a745 !important;
+        }
+        
+        .invalid-feedback {
+            display: none;
+            font-size: 0.875em;
+            color: #dc3545;
+        }
+        
+        .was-validated .form-control:invalid ~ .invalid-feedback {
+            display: block;
+        }
+        
+        /* Ícones nos inputs */
+        .input-group-text {
+            background-color: #f8f9fa;
+        }
+        
+        /* Títulos das seções */
+        .section-title {
+            color: #2c3e50;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 20px 0 15px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #3498db;
+        }
+        
+        .section-title:first-of-type {
+            margin-top: 0;
+        }
+        
+        /* Checkbox dos termos */
+        .form-check-input:checked {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        
+        .form-check-label a {
+            color: #3498db;
+            text-decoration: none;
+        }
+        
+        .form-check-label a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Link de login */
+        .login-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .login-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .divider span {
+            padding: 0 10px;
+            color: #777;
+            font-size: 14px;
+        }
+        
+        /* Password strength indicator */
+        .password-strength {
+            height: 4px;
+            margin-top: 5px;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        
+        .password-strength.weak {
+            background: #dc3545;
+            width: 33%;
+        }
+        
+        .password-strength.medium {
+            background: #f39c12;
+            width: 66%;
+        }
+        
+        .password-strength.strong {
+            background: #28a745;
+            width: 100%;
+        }
+        
+        /* Password match indicator */
+        .password-match {
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+        
+        .password-match.match {
+            color: #28a745;
+        }
+        
+        .password-match.no-match {
+            color: #dc3545;
+        }
+        
+        /* Alert messages */
+        .alert {
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Botão para voltar à página inicial -->
+    <div class="back-home">
+        <a href="{{ url_for('auth.index') }}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Início
+        </a>
+    </div>
+    
+    <div class="register-container">
+        <div class="register-card">
+            <div class="register-header">
+                <h4><i class="fas fa-hospital me-2"></i> Sistema Médico</h4>
+                <p class="mb-0">Crie sua conta</p>
+            </div>
+            
+            <div class="register-body">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Step Indicator -->
+                <div class="step-indicator mb-4">
+                    <div class="step active">1</div>
+                    <div class="step">2</div>
+                    <div class="step">3</div>
+                </div>
+                
+                <!-- FORMULÁRIO DE CADASTRO -->
+                <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm" novalidate>
+                    <!-- Informações Pessoais -->
+                    <h5 class="section-title">
+                        <i class="fas fa-user me-2"></i>Informações Pessoais
+                    </h5>
+                    
+                    <!-- Nome Completo -->
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome Completo</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user"></i></span>
+                            <input type="text" class="form-control" id="nome" name="nome" required 
+                                   placeholder="Seu nome completo" minlength="3" maxlength="100">
+                        </div>
+                        <div class="invalid-feedback">Por favor, insira seu nome completo.</div>
+                    </div>
+                    
+                    <!-- Email e Telefone -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                <input type="email" class="form-control" id="email" name="email" required 
+                                       placeholder="seu@email.com">
+                            </div>
+                            <div class="invalid-feedback">Por favor, insira um email válido.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telefone" class="form-label">Telefone</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                <input type="tel" class="form-control" id="telefone" name="telefone" required 
+                                       placeholder="(XX) XXXXX-XXXX">
+                            </div>
+                            <div class="invalid-feedback" id="telefone-feedback">
+                                Por favor, insira um número de telefone válido.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Senha e Confirmar Senha -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="password" class="form-label">Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="password" name="password" required 
+                                       placeholder="Mínimo 6 caracteres" minlength="6">
+                            </div>
+                            <div class="password-strength" id="passwordStrength"></div>
+                            <div class="invalid-feedback">A senha deve ter pelo menos 6 caracteres.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label">Confirmar Senha</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required 
+                                       placeholder="Digite novamente">
+                            </div>
+                            <div class="password-match" id="senhaMatch"></div>
+                            <div class="invalid-feedback">As senhas não coincidem.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informações do Perfil -->
+                    <h5 class="section-title">
+                        <i class="fas fa-id-card me-2"></i>Informações do Perfil
+                    </h5>
+                    
+                    <!-- Tipo de Usuário -->
+                    <div class="mb-3">
+                        <label for="tipo" class="form-label">Tipo de Usuário</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
+                            <select class="form-select" id="tipo" name="tipo" required>
+                                <option value="">Selecione o tipo de usuário...</option>
+                                <option value="paciente">Paciente</option>
+                                <option value="medico">Médico</option>
+                                <option value="analista">Analista Clínico</option>
+                            </select>
+                        </div>
+                        <div class="invalid-feedback">Por favor, selecione o tipo de usuário.</div>
+                    </div>
+                    
+                    <!-- Campos específicos para Médico -->
+                    <div id="medico-fields" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="especialidade" class="form-label">Especialidade</label>
+                                <select class="form-select" id="especialidade" name="especialidade">
+                                    <option value="">Selecione...</option>
+                                    <option value="Cardiologia">Cardiologia</option>
+                                    <option value="Dermatologia">Dermatologia</option>
+                                    <option value="Neurologia">Neurologia</option>
+                                    <option value="Ortopedia">Ortopedia</option>
+                                    <option value="Pediatria">Pediatria</option>
+                                    <option value="Psiquiatria">Psiquiatria</option>
+                                    <option value="Radiologia">Radiologia</option>
+                                    <option value="Clínico Geral">Clínico Geral</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="crm" class="form-label">CRM</label>
+                                <input type="text" class="form-control" id="crm" name="crm" placeholder="CRM/UF 12345">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos específicos para Analista -->
+                    <div id="analista-fields" style="display: none;">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="area_atuacao" class="form-label">Área de Atuação</label>
+                                <select class="form-select" id="area_atuacao" name="area_atuacao">
+                                    <option value="">Selecione...</option>
+                                    <option value="hematologia">Hematologia</option>
+                                    <option value="bioquimica">Bioquímica</option>
+                                    <option value="microbiologia">Microbiologia</option>
+                                    <option value="imunologia">Imunologia</option>
+                                    <option value="patologia">Patologia</option>
+                                    <option value="radiologia">Radiologia</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="registro_profissional" class="form-label">Registro Profissional</label>
+                                <input type="text" class="form-control" id="registro_profissional" name="registro_profissional" 
+                                       placeholder="Número do registro">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Termos e Condições -->
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="terms" required>
+                        <label class="form-check-label" for="terms">
+                            Aceito os <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">termos de uso</a> e 
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">política de privacidade</a>
+                        </label>
+                        <div class="invalid-feedback">Você deve aceitar os termos para continuar.</div>
+                    </div>
+                    
+                    <!-- Botões -->
+                    <button type="submit" class="btn btn-register w-100 mb-3">
+                        <i class="fas fa-user-plus me-2"></i>Criar Conta
+                    </button>
+                    
+                    <div class="divider">
+                        <span>OU</span>
+                    </div>
+                    
+                    <!-- Link para Login -->
+                    <div class="text-center mt-3">
+                        <p>Já tem uma conta? <a href="{{ url_for('auth.login') }}" class="login-link">Faça login aqui</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Termos de Uso -->
+    <div class="modal fade" id="termsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Termos de Uso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>1. Aceitação dos Termos</strong></p>
+                    <p>Ao acessar e usar este sistema médico, você concorda em cumprir estes termos de uso.</p>
+                    
+                    <p><strong>2. Uso Adequado</strong></p>
+                    <p>O sistema deve ser utilizado apenas para fins legítimos de gestão médica e de saúde.</p>
+                    
+                    <p><strong>3. Responsabilidades</strong></p>
+                    <p>Os dados inseridos no sistema são de responsabilidade do usuário.</p>
+                    
+                    <p><strong>4. Privacidade</strong></p>
+                    <p>Respeitamos a confidencialidade das informações médicas conforme a legislação aplicável.</p>
+                    
+                    <p><strong>5. Limitações</strong></p>
+                    <p>Este é um projeto demonstrativo e não substitui sistemas profissionais de saúde.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Política de Privacidade -->
+    <div class="modal fade" id="privacyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Política de Privacidade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Coleta de Dados:</strong> Coletamos apenas os dados necessários para o funcionamento do sistema.</p>
+                    <p><strong>Uso dos Dados:</strong> Os dados são utilizados apenas para fins de demonstração do sistema.</p>
+                    <p><strong>Segurança:</strong> Implementamos medidas de segurança para proteger suas informações.</p>
+                    <p><strong>Confidencialidade:</strong> Os dados médicos são tratados com confidencialidade.</p>
+                    <p><strong>Compartilhamento:</strong> Não compartilhamos seus dados com terceiros.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Mostrar/ocultar campos específicos baseado no tipo de usuário
+        document.getElementById('tipo').addEventListener('change', function() {
+            const tipo = this.value;
+            const medicoFields = document.getElementById('medico-fields');
+            const analistaFields = document.getElementById('analista-fields');
+            
+            // Esconder todos os campos específicos primeiro
+            medicoFields.style.display = 'none';
+            analistaFields.style.display = 'none';
+            
+            // Remover required de todos os campos específicos
+            document.getElementById('especialidade').required = false;
+            document.getElementById('crm').required = false;
+            document.getElementById('area_atuacao').required = false;
+            document.getElementById('registro_profissional').required = false;
+            
+            // Mostrar campos específicos baseado no tipo
+            if (tipo === 'medico') {
+                medicoFields.style.display = 'block';
+                document.getElementById('especialidade').required = true;
+                document.getElementById('crm').required = true;
+            } else if (tipo === 'analista') {
+                analistaFields.style.display = 'block';
+                document.getElementById('area_atuacao').required = true;
+                document.getElementById('registro_profissional').required = true;
+            }
+        });
+
+        // Formatar telefone enquanto digita
+        document.getElementById('telefone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.length <= 10) {
+                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            } else {
+                value = value.replace(/^(\d{2})(\d)/g, '($1) $2');
+                value = value.replace(/(\d{5})(\d)/, '$1-$2');
+            }
+            
+            e.target.value = value;
+        });
+
+        // Verificar força da senha
+        document.getElementById('password').addEventListener('input', function() {
+            const senha = this.value;
+            const strengthBar = document.getElementById('passwordStrength');
+            
+            strengthBar.className = 'password-strength';
+            
+            if (senha.length === 0) {
+                strengthBar.style.width = '0';
+                return;
+            }
+            
+            let forca = 0;
+            
+            if (senha.length >= 6) forca++;
+            if (senha.length >= 8) forca++;
+            if (/[A-Z]/.test(senha)) forca++;
+            if (/[0-9]/.test(senha)) forca++;
+            if (/[^A-Za-z0-9]/.test(senha)) forca++;
+            
+            if (forca <= 2) {
+                strengthBar.classList.add('weak');
+            } else if (forca <= 4) {
+                strengthBar.classList.add('medium');
+            } else {
+                strengthBar.classList.add('strong');
+            }
+            
+            verificarConfirmacaoSenha();
+        });
+
+        // Verificar confirmação de senha
+        document.getElementById('confirm_password').addEventListener('input', verificarConfirmacaoSenha);
+        
+        function verificarConfirmacaoSenha() {
+            const senha = document.getElementById('password').value;
+            const confirmar = document.getElementById('confirm_password').value;
+            const matchDiv = document.getElementById('senhaMatch');
+            
+            if (confirmar.length === 0) {
+                matchDiv.textContent = '';
+                matchDiv.className = 'password-match';
+                return;
+            }
+            
+            if (senha === confirmar) {
+                matchDiv.textContent = '✓ As senhas coincidem';
+                matchDiv.className = 'password-match match';
+            } else {
+                matchDiv.textContent = '✗ As senhas não coincidem';
+                matchDiv.className = 'password-match no-match';
+            }
+        }
+
+        // Validação do formulário
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const tipo = document.getElementById('tipo').value;
+            
+            if (!tipo) {
+                e.preventDefault();
+                document.getElementById('tipo').classList.add('is-invalid');
+                return false;
+            }
+            
+            // Validação específica para médico
+            if (tipo === 'medico') {
+                const especialidade = document.getElementById('especialidade').value;
+                const crm = document.getElementById('crm').value;
+                
+                if (!especialidade) {
+                    e.preventDefault();
+                    document.getElementById('especialidade').classList.add('is-invalid');
+                    return false;
+                }
+                
+                if (!crm) {
+                    e.preventDefault();
+                    document.getElementById('crm').classList.add('is-invalid');
+                    return false;
+                }
+            }
+            
+            // Validação específica para analista
+            if (tipo === 'analista') {
+                const areaAtuacao = document.getElementById('area_atuacao').value;
+                const registro = document.getElementById('registro_profissional').value;
+                
+                if (!areaAtuacao) {
+                    e.preventDefault();
+                    document.getElementById('area_atuacao').classList.add('is-invalid');
+                    return false;
+                }
+                
+                if (!registro) {
+                    e.preventDefault();
+                    document.getElementById('registro_profissional').classList.add('is-invalid');
+                    return false;
+                }
+            }
+            
+            // Validação das senhas
+            const senha = document.getElementById('password').value;
+            const confirmar = document.getElementById('confirm_password').value;
+            
+            if (senha !== confirmar) {
+                e.preventDefault();
+                document.getElementById('confirm_password').classList.add('is-invalid');
+                return false;
+            }
+            
+            // Validação dos termos
+            const terms = document.getElementById('terms');
+            if (!terms.checked) {
+                e.preventDefault();
+                terms.classList.add('is-invalid');
+                return false;
+            }
+            
+            this.classList.add('was-validated');
+        });
+
+        // Focar no primeiro campo
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('nome').focus();
+        });
+    </script>
+</body>
+</html>

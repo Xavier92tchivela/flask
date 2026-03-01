@@ -1,0 +1,687 @@
+<!-- templates/medico/novo_pedido_analise.html -->
+{% extends "base.html" %}
+
+{% block title %}Novo Pedido de Análise{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-microscope me-2"></i> Novo Pedido de Análise
+        </h2>
+        <a href="{{ url_for('pedido_analise.meus_pedidos') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <!-- Mensagens Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="row">
+        <!-- Formulário Principal -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i> Dados do Pedido
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('pedido_analise.criar_pedido') }}" enctype="multipart/form-data" id="formPedido">
+                        
+                        <!-- Seção: Seleção de Consulta -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-calendar-check me-2"></i> Selecionar Consulta
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label for="selectConsulta" class="form-label">
+                                    <i class="fas fa-search me-1"></i> Consulta Relacionada
+                                </label>
+                                <select class="form-select" id="selectConsulta" name="consulta_id">
+                                    <option value="">Selecione uma consulta (opcional)</option>
+                                    {% if consultas %}
+                                        {% for consulta in consultas %}
+                                            <option value="{{ consulta.id }}" 
+                                                    data-paciente-id="{{ consulta.paciente_id }}"
+                                                    data-paciente-nome="{{ consulta.paciente_nome }}"
+                                                    data-paciente-idade="{{ consulta.idade }}"
+                                                    data-paciente-genero="{{ consulta.genero }}"
+                                                    data-consulta-data="{{ consulta.data_hora }}"
+                                                    data-consulta-obs="{{ consulta.observacoes }}"
+                                                    {% if consulta_selecionada and consulta_selecionada.id == consulta.id %}selected{% endif %}>
+                                                {{ consulta.data_hora }} - {{ consulta.paciente_nome }}
+                                                ({{ consulta.idade }} anos, {{ consulta.genero }})
+                                            </option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
+                                <div class="form-text">
+                                    Vinculação opcional a uma consulta existente
+                                </div>
+                            </div>
+                            
+                            <!-- Informações da consulta selecionada -->
+                            <div id="infoConsulta" class="alert alert-info" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Paciente:</strong> <span id="infoPacienteNome"></span></p>
+                                        <p class="mb-1"><strong>Idade/Gênero:</strong> <span id="infoPacienteIdade"></span> anos, <span id="infoPacienteGenero"></span></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-1"><strong>Data da Consulta:</strong> <span id="infoConsultaData"></span></p>
+                                        <p class="mb-1"><strong>Observações:</strong> <span id="infoConsultaObs"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Ou cadastro manual do paciente -->
+                            <div class="mt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="pacienteManual">
+                                    <label class="form-check-label" for="pacienteManual">
+                                        Cadastrar paciente manualmente
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Campos para paciente manual (inicialmente ocultos) -->
+                            <div id="camposPacienteManual" class="row g-3 mt-2" style="display: none;">
+                                <div class="col-md-6">
+                                    <label class="form-label">Nome do Paciente *</label>
+                                    <input type="text" class="form-control" name="paciente_nome_manual" id="pacienteNomeManual">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Data Nascimento</label>
+                                    <input type="date" class="form-control" name="paciente_nascimento_manual" id="pacienteNascimentoManual">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Gênero</label>
+                                    <select class="form-select" name="paciente_genero_manual" id="pacienteGeneroManual">
+                                        <option value="">Selecione</option>
+                                        <option value="masculino">Masculino</option>
+                                        <option value="feminino">Feminino</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Campo oculto para paciente_id -->
+                            <input type="hidden" name="paciente_id" id="inputPacienteId" value="">
+                        </div>
+                        
+                        <!-- Seção: Dados do Exame -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-vial me-2"></i> Dados do Exame
+                            </h6>
+                            
+                            <div class="row g-3">
+                                <!-- Tipo de Exame -->
+                                <div class="col-md-6">
+                                    <label for="tipoExame" class="form-label">
+                                        <i class="fas fa-vial me-1"></i> Tipo de Exame *
+                                    </label>
+                                    <select class="form-select" id="tipoExame" name="tipo_exame" required>
+                                        <option value="">Selecione o tipo de exame</option>
+                                        {% for tipo in tipos_exame %}
+                                            <option value="{{ tipo }}">{{ tipo }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                
+                                <!-- Nível de Urgência -->
+                                <div class="col-md-6">
+                                    <label for="urgencia" class="form-label">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Nível de Urgência
+                                    </label>
+                                    <select class="form-select" id="urgencia" name="urgencia">
+                                        <option value="normal" selected>Normal (5-7 dias)</option>
+                                        <option value="baixa">Baixa (7-10 dias)</option>
+                                        <option value="alta">Alta (3-5 dias)</option>
+                                        <option value="urgente">Urgente (24-48 horas)</option>
+                                    </select>
+                                    <div class="form-text" id="prazoEstimado">
+                                        Prazo estimado: 5-7 dias
+                                    </div>
+                                </div>
+                                
+                                <!-- Descrição do Exame -->
+                                <div class="col-12">
+                                    <label for="descricao" class="form-label">
+                                        <i class="fas fa-align-left me-1"></i> Descrição do Exame *
+                                    </label>
+                                    <textarea class="form-control" id="descricao" name="descricao" 
+                                              rows="4" placeholder="Descreva detalhadamente o exame solicitado, parâmetros a serem analisados, histórico relevante..." required></textarea>
+                                    <div class="form-text">
+                                        Descreva os parâmetros a serem analisados e qualquer informação relevante
+                                    </div>
+                                </div>
+                                
+                                <!-- Observações Clínicas -->
+                                <div class="col-12">
+                                    <label for="observacoes" class="form-label">
+                                        <i class="fas fa-sticky-note me-1"></i> Observações Clínicas
+                                    </label>
+                                    <textarea class="form-control" id="observacoes" name="observacoes" 
+                                              rows="3" placeholder="Informações relevantes para o analista: sintomas, histórico, medicamentos em uso..."></textarea>
+                                    <div class="form-text">
+                                        Informe sintomas, histórico relevante, medicamentos em uso ou outras observações importantes.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Seção: Analista -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-user-md me-2"></i> Designação do Analista
+                            </h6>
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <label for="analista_id" class="form-label">
+                                        <i class="fas fa-user-md me-1"></i> Analista Designado (Opcional)
+                                    </label>
+                                    <select class="form-select" id="analista_id" name="analista_id">
+                                        <option value="">Atribuição automática</option>
+                                        {% if analistas %}
+                                            {% for analista in analistas %}
+                                                <option value="{{ analista[0] }}"
+                                                        data-especialidade="{{ analista[2] }}"
+                                                        data-registro="{{ analista[3] }}"
+                                                        data-telefone="{{ analista[5] }}"
+                                                        data-supervisor="{{ analista[6] }}"
+                                                        title="Especialidade: {{ analista[2] }} | Registro: {{ analista[3] }}">
+                                                    {{ analista[1] }} - {{ analista[2] }}
+                                                    {% if analista[6] == 1 %}
+                                                        <span class="badge bg-info ms-1" title="Supervisor">S</span>
+                                                    {% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </select>
+                                    <div class="form-text">
+                                        {% if analistas %}
+                                            {% set total_analistas = analistas|length %}
+                                            <div>
+                                                <i class="fas fa-users text-primary me-1"></i>
+                                                <span>{{ total_analistas }} analista(s) disponível(is)</span>
+                                            </div>
+                                        {% else %}
+                                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                            <span>Nenhum analista disponível - será atribuído automaticamente</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Informações do analista selecionado -->
+                                <div class="col-md-4">
+                                    <div id="infoAnalista" class="mt-4 p-3 border rounded bg-light" style="display: none;">
+                                        <h6 class="mb-2">Analista Selecionado:</h6>
+                                        <p class="mb-1 small" id="infoAnalistaNome"></p>
+                                        <p class="mb-1 small" id="infoAnalistaEspecialidade"></p>
+                                        <p class="mb-1 small" id="infoAnalistaRegistro"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Seção: Anexos -->
+                        <div class="mb-4">
+                            <h6 class="border-bottom pb-2 mb-3">
+                                <i class="fas fa-paperclip me-2"></i> Anexos
+                            </h6>
+                            
+                            <div class="mb-3">
+                                <label for="anexos" class="form-label">
+                                    <i class="fas fa-paperclip me-1"></i> Arquivos Anexados (Opcional)
+                                </label>
+                                <div class="input-group">
+                                    <input type="file" class="form-control" id="anexos" name="anexos[]" multiple
+                                           accept=".jpg,.jpeg,.png,.gif,.pdf,.doc,.docx,.txt,.dcm,.zip,.rar">
+                                    <button class="btn btn-outline-secondary" type="button" id="limparAnexos">
+                                        <i class="fas fa-times"></i> Limpar
+                                    </button>
+                                </div>
+                                <div class="form-text">
+                                    Anexe imagens, documentos ou outros arquivos relevantes (máx. 5 arquivos, 10MB cada)
+                                </div>
+                                <div id="previewAnexos" class="mt-2"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões de Ação -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('pedido_analise.meus_pedidos') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="btnEnviar">
+                                <i class="fas fa-paper-plane me-2"></i> Enviar Pedido
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Painel Lateral -->
+        <div class="col-lg-4">
+            <!-- Painel de Informações -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i> Informações Importantes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <h6 class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Campos Obrigatórios</h6>
+                            <p class="small mb-0">Tipo de exame e descrição são campos obrigatórios.</p>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Vinculação</h6>
+                            <p class="small mb-0">Vincular a uma consulta facilita o rastreamento do histórico.</p>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Urgência</h6>
+                            <p class="small mb-0">Classifique corretamente para otimizar o tempo de resposta.</p>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Anexos</h6>
+                            <p class="small mb-0">Anexe exames anteriores, receitas ou documentos relevantes.</p>
+                        </div>
+                        <div class="list-group-item">
+                            <h6 class="mb-2"><i class="fas fa-check-circle text-success me-2"></i> Acompanhamento</h6>
+                            <p class="small mb-0">Você poderá acompanhar o status na seção "Meus Pedidos".</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Painel de Prazos -->
+            <div class="card shadow">
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i> Prazos Estimados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Urgente</span>
+                                <span class="badge bg-danger">24-48 horas</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Alta</span>
+                                <span class="badge bg-warning">3-5 dias</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Normal</span>
+                                <span class="badge bg-info">5-7 dias</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold">Baixa</span>
+                                <span class="badge bg-secondary">7-10 dias</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== VARIÁVEIS ==========
+    const form = document.getElementById('formPedido');
+    const btnEnviar = document.getElementById('btnEnviar');
+    const selectConsulta = document.getElementById('selectConsulta');
+    const pacienteManualCheck = document.getElementById('pacienteManual');
+    const camposPacienteManual = document.getElementById('camposPacienteManual');
+    const inputPacienteId = document.getElementById('inputPacienteId');
+    const infoConsulta = document.getElementById('infoConsulta');
+    const urgenciaSelect = document.getElementById('urgencia');
+    const prazoEstimado = document.getElementById('prazoEstimado');
+    const analistaSelect = document.getElementById('analista_id');
+    const infoAnalista = document.getElementById('infoAnalista');
+    const anexosInput = document.getElementById('anexos');
+    const previewAnexos = document.getElementById('previewAnexos');
+    
+    // ========== FUNÇÕES ==========
+    
+    // Função para atualizar informações da consulta selecionada
+    function atualizarInfoConsulta() {
+        const selectedOption = selectConsulta.options[selectConsulta.selectedIndex];
+        
+        if (selectedOption.value) {
+            // Mostrar informações
+            infoConsulta.style.display = 'block';
+            
+            // Preencher informações
+            document.getElementById('infoPacienteNome').textContent = 
+                selectedOption.getAttribute('data-paciente-nome');
+            document.getElementById('infoPacienteIdade').textContent = 
+                selectedOption.getAttribute('data-paciente-idade');
+            document.getElementById('infoPacienteGenero').textContent = 
+                selectedOption.getAttribute('data-paciente-genero');
+            document.getElementById('infoConsultaData').textContent = 
+                selectedOption.getAttribute('data-consulta-data');
+            document.getElementById('infoConsultaObs').textContent = 
+                selectedOption.getAttribute('data-consulta-obs') || 'Nenhuma';
+            
+            // Definir paciente_id
+            inputPacienteId.value = selectedOption.getAttribute('data-paciente-id');
+            
+            // Desabilitar checkbox de paciente manual
+            pacienteManualCheck.checked = false;
+            pacienteManualCheck.disabled = true;
+            camposPacienteManual.style.display = 'none';
+            
+        } else {
+            // Ocultar informações
+            infoConsulta.style.display = 'none';
+            inputPacienteId.value = '';
+            
+            // Habilitar checkbox de paciente manual
+            pacienteManualCheck.disabled = false;
+            
+            // Verificar se paciente manual está ativo
+            if (pacienteManualCheck.checked) {
+                camposPacienteManual.style.display = 'block';
+                inputPacienteId.value = 'manual';
+            } else {
+                camposPacienteManual.style.display = 'none';
+            }
+        }
+    }
+    
+    // Função para atualizar prazo estimado
+    function atualizarPrazoEstimado() {
+        const prazos = {
+            'urgente': '24-48 horas',
+            'alta': '3-5 dias',
+            'normal': '5-7 dias',
+            'baixa': '7-10 dias'
+        };
+        
+        const urgencia = urgenciaSelect.value;
+        prazoEstimado.textContent = `Prazo estimado: ${prazos[urgencia] || '5-7 dias'}`;
+    }
+    
+    // Função para atualizar informações do analista
+    function atualizarInfoAnalista() {
+        const selectedOption = analistaSelect.options[analistaSelect.selectedIndex];
+        
+        if (selectedOption.value) {
+            infoAnalista.style.display = 'block';
+            
+            document.getElementById('infoAnalistaNome').textContent = 
+                selectedOption.textContent.replace(/<[^>]*>/g, '');
+            document.getElementById('infoAnalistaEspecialidade').textContent = 
+                `Especialidade: ${selectedOption.getAttribute('data-especialidade')}`;
+            document.getElementById('infoAnalistaRegistro').textContent = 
+                `Registro: ${selectedOption.getAttribute('data-registro') || 'Não informado'}`;
+        } else {
+            infoAnalista.style.display = 'none';
+        }
+    }
+    
+    // Função para formatar bytes
+    function formatBytes(bytes, decimals = 2) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const dm = decimals < 0 ? 0 : decimals;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+    
+    // Função para mostrar alerta
+    function showAlert(message, type = 'danger') {
+        // Remover alertas anteriores
+        document.querySelectorAll('.alert.position-fixed').forEach(alert => alert.remove());
+        
+        // Criar novo alerta
+        const alertHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" 
+                 style="z-index: 9999; max-width: 500px;" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'} me-2"></i>
+                    <div class="flex-grow-1">${message}</div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', alertHTML);
+        
+        // Remover após 5 segundos
+        setTimeout(() => {
+            const alert = document.querySelector('.alert.position-fixed');
+            if (alert) alert.remove();
+        }, 5000);
+    }
+    
+    // ========== EVENT LISTENERS ==========
+    
+    // Consulta selecionada
+    selectConsulta.addEventListener('change', atualizarInfoConsulta);
+    
+    // Paciente manual
+    pacienteManualCheck.addEventListener('change', function() {
+        if (this.checked) {
+            camposPacienteManual.style.display = 'block';
+            inputPacienteId.value = 'manual';
+            selectConsulta.value = '';
+            infoConsulta.style.display = 'none';
+        } else {
+            camposPacienteManual.style.display = 'none';
+            inputPacienteId.value = '';
+            selectConsulta.disabled = false;
+        }
+    });
+    
+    // Urgência
+    urgenciaSelect.addEventListener('change', atualizarPrazoEstimado);
+    
+    // Analista
+    analistaSelect.addEventListener('change', atualizarInfoAnalista);
+    
+    // Anexos
+    anexosInput.addEventListener('change', function() {
+        previewAnexos.innerHTML = '';
+        
+        if (this.files.length > 5) {
+            showAlert('Máximo de 5 arquivos permitido.', 'warning');
+            this.value = '';
+            return;
+        }
+        
+        Array.from(this.files).forEach(file => {
+            if (file.size > 10 * 1024 * 1024) {
+                showAlert(`Arquivo "${file.name}" excede o tamanho máximo de 10MB.`, 'warning');
+                return;
+            }
+            
+            const fileItem = document.createElement('div');
+            fileItem.className = 'alert alert-sm alert-secondary d-flex justify-content-between align-items-center mb-2';
+            fileItem.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-file me-2"></i>
+                    <div>
+                        <div class="small fw-bold">${file.name}</div>
+                        <div class="small text-muted">${formatBytes(file.size)}</div>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-danger remover-arquivo">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            previewAnexos.appendChild(fileItem);
+        });
+    });
+    
+    // Remover arquivo do preview
+    previewAnexos.addEventListener('click', function(e) {
+        if (e.target.closest('.remover-arquivo')) {
+            e.target.closest('.alert').remove();
+        }
+    });
+    
+    // Limpar anexos
+    document.getElementById('limparAnexos').addEventListener('click', function() {
+        anexosInput.value = '';
+        previewAnexos.innerHTML = '';
+    });
+    
+    // Validação do formulário
+    form.addEventListener('submit', function(e) {
+        // Verificar campos obrigatórios
+        const tipoExame = document.getElementById('tipoExame').value;
+        const descricao = document.getElementById('descricao').value.trim();
+        const pacienteId = inputPacienteId.value;
+        
+        let isValid = true;
+        let errorMessage = '';
+        
+        if (!tipoExame) {
+            isValid = false;
+            errorMessage = 'Selecione o tipo de exame.';
+        } else if (!descricao) {
+            isValid = false;
+            errorMessage = 'A descrição do exame é obrigatória.';
+        } else if (!pacienteId) {
+            isValid = false;
+            errorMessage = 'Selecione um paciente ou cadastre manualmente.';
+        }
+        
+        if (!isValid) {
+            e.preventDefault();
+            showAlert(errorMessage, 'warning');
+            return;
+        }
+        
+        // Confirmar envio
+        if (!confirm('Deseja enviar o pedido de análise?')) {
+            e.preventDefault();
+            return;
+        }
+        
+        // Desabilitar botão para evitar múltiplos envios
+        btnEnviar.disabled = true;
+        btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Enviando...';
+    });
+    
+    // ========== INICIALIZAÇÃO ==========
+    
+    // Inicializar informações se já houver consulta selecionada
+    if (selectConsulta.value) {
+        atualizarInfoConsulta();
+    }
+    
+    // Inicializar prazo estimado
+    atualizarPrazoEstimado();
+    
+    // Inicializar informações do analista
+    if (analistaSelect.value) {
+        atualizarInfoAnalista();
+    }
+    
+    // Se houver consulta pré-selecionada via URL
+    {% if consulta_selecionada %}
+        // Encontrar a opção correspondente
+        const options = selectConsulta.options;
+        for (let i = 0; i < options.length; i++) {
+            if (options[i].value == "{{ consulta_selecionada.id }}") {
+                selectConsulta.selectedIndex = i;
+                atualizarInfoConsulta();
+                break;
+            }
+        }
+    {% endif %}
+});
+</script>
+
+<style>
+.remover-arquivo:hover {
+    background-color: #dc3545;
+    color: white;
+}
+
+.form-text {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.alert-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.6em;
+}
+
+.file-preview {
+    border-left: 4px solid #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.analista-info {
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .row.g-3 {
+        margin-bottom: 0;
+    }
+    
+    .col-md-6 {
+        margin-bottom: 1rem;
+    }
+}
+
+#analista_id option {
+    padding: 8px 4px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+#analista_id option:hover {
+    background-color: #f8f9fa;
+}
+
+.badge.bg-info {
+    font-size: 0.6rem;
+    padding: 0.15em 0.4em;
+    vertical-align: text-top;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Dashboard - DoctorIA</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- ApexCharts -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #2c3e50;
+            --light-bg: #f4f6f9;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow-x: hidden;
+        }
+        
+        /* Sidebar - igual ao exemplo dos médicos */
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
+            color: white;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1050;
+            transition: transform 0.3s ease-in-out;
+            transform: translateX(-100%);
+            overflow-y: auto;
+        }
+        
+        .sidebar.active {
+            transform: translateX(0);
+        }
+        
+        @media (min-width: 992px) {
+            .sidebar {
+                transform: translateX(0);
+                width: 280px;
+            }
+        }
+        
+        .sidebar .logo-area {
+            padding: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .sidebar .logo {
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .sidebar .logo i {
+            font-size: 28px;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 14px 20px;
+            margin: 6px 12px;
+            border-radius: 12px;
+            transition: all 0.3s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.12);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+        }
+        
+        .sidebar .nav-link i {
+            width: 22px;
+            text-align: center;
+        }
+        
+        .sidebar .user-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+        }
+        
+        /* Menu Toggle */
+        .menu-toggle {
+            display: flex;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1060;
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+            font-size: 20px;
+        }
+        
+        @media (min-width: 992px) {
+            .menu-toggle {
+                display: none;
+            }
+        }
+        
+        /* Main Content */
+        .main-content {
+            min-height: 100vh;
+            padding: 70px 15px 20px 15px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        @media (min-width: 992px) {
+            .main-content {
+                margin-left: 280px;
+                padding: 30px;
+            }
+        }
+        
+        /* Page Title */
+        .page-title {
+            margin-bottom: 30px;
+            color: var(--dark-color);
+            font-weight: 800;
+            font-size: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        @media (min-width: 768px) {
+            .page-title {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 28px;
+            }
+        }
+        
+        .page-title i {
+            margin-right: 12px;
+            color: var(--primary-color);
+        }
+        
+        .date-badge {
+            background: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            color: #64748b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            width: fit-content;
+        }
+        
+        .date-badge i {
+            color: var(--primary-color);
+            margin: 0;
+        }
+        
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        @media (min-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 24px;
+            }
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .stats-card .icon {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 40px;
+            opacity: 0.1;
+            color: var(--primary-color);
+        }
+        
+        .stats-card .number {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+        
+        .stats-card .label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            border: 1px solid rgba(0,0,0,0.03);
+            background: white;
+        }
+        
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px 25px;
+            border-radius: 24px 24px 0 0 !important;
+        }
+        
+        .card-header h5 {
+            margin: 0;
+            color: var(--dark-color);
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header h5 i {
+            color: var(--primary-color);
+            font-size: 1.4rem;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* List Group */
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+            background: transparent;
+        }
+        
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge.agendada { background: rgba(67, 97, 238, 0.1); color: var(--primary-color); }
+        .badge.realizada { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .badge.cancelada { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .badge.active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .badge.inactive { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #cbd5e0;
+            margin-bottom: 15px;
+        }
+        
+        .empty-state p {
+            color: #94a3b8;
+            margin: 0;
+        }
+        
+        /* Charts */
+        #consultasChart, #statusChart {
+            min-height: 300px;
+            width: 100%;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 70px 12px 20px 12px;
+            }
+            
+            .stats-card {
+                padding: 15px;
+            }
+            
+            .stats-card .number {
+                font-size: 24px;
+            }
+            
+            .stats-card .label {
+                font-size: 11px;
+            }
+            
+            .card-header {
+                padding: 15px 20px;
+            }
+            
+            .card-header h5 {
+                font-size: 1rem;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .list-group-item {
+                padding: 12px 15px;
+                font-size: 14px;
+            }
+        }
+        
+        /* Touch Improvements */
+        @media (max-width: 768px) {
+            .btn, 
+            .nav-link {
+                min-height: 44px;
+            }
+            
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        /* Animações */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Menu Toggle (Mobile) -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <a href="{{ url_for('admin.dashboard') }}" class="logo">
+                <i class="fas fa-brain"></i>
+                <span>Doctor<span style="font-weight: 300;">IA</span></span>
+            </a>
+        </div>
+        
+        <nav class="nav flex-column">
+            <a class="nav-link active" href="{{ url_for('admin.dashboard') }}">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            
+            <a class="nav-link" href="{{ url_for('admin.medicos') }}">
+                <i class="fas fa-user-md"></i> Médicos
+            </a>
+            
+            <a class="nav-link" href="{{ url_for('admin.analistas') }}">
+                <i class="fas fa-microscope"></i> Analistas
+            </a>
+            
+            <a class="nav-link" href="{{ url_for('admin.consultas') }}">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
+            
+            <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
+                <i class="fas fa-users"></i> Pacientes
+            </a>
+            
+            <hr class="bg-white-50">
+            
+            <a class="nav-link" href="{{ url_for('admin.logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </nav>
+        
+        <!-- User Info -->
+        <div class="user-info">
+            <div class="d-flex align-items-center">
+                <div class="bg-white rounded-circle p-2 me-3" style="width: 40px; height: 40px;">
+                    <i class="fas fa-crown text-warning" style="font-size: 1.2rem;"></i>
+                </div>
+                <div>
+                    <small class="text-white-50 d-block">Administrador</small>
+                    <strong class="text-white">{{ user.user_name if user else 'Admin' }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Title -->
+        <div class="page-title fade-in">
+            <div>
+                <i class="fas fa-chart-line"></i>
+                Dashboard
+            </div>
+            <div class="date-badge">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="currentDateTime"></span>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid fade-in">
+            <div class="stats-card">
+                <i class="fas fa-user-md icon"></i>
+                <div class="number" id="statsMedicos">{{ total_medicos or 0 }}</div>
+                <div class="label">Médicos</div>
+            </div>
+            
+            <div class="stats-card">
+                <i class="fas fa-microscope icon"></i>
+                <div class="number" id="statsAnalistas">{{ total_analistas or 0 }}</div>
+                <div class="label">Analistas</div>
+            </div>
+            
+            <div class="stats-card">
+                <i class="fas fa-users icon"></i>
+                <div class="number" id="statsPacientes">{{ total_pacientes or 0 }}</div>
+                <div class="label">Pacientes</div>
+            </div>
+            
+            <div class="stats-card">
+                <i class="fas fa-calendar-check icon"></i>
+                <div class="number" id="statsConsultas">{{ total_consultas or 0 }}</div>
+                <div class="label">Consultas</div>
+            </div>
+        </div>
+        
+        <!-- Charts -->
+        <div class="row g-4 fade-in">
+            <div class="col-12 col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>
+                            <i class="fas fa-chart-line"></i>
+                            Movimento de Consultas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="consultasChart"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12 col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>
+                            <i class="fas fa-chart-pie"></i>
+                            Status das Consultas
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="statusChart"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Activities -->
+        <div class="row g-4 mt-2 fade-in">
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>
+                            <i class="fas fa-clock"></i>
+                            Últimas Consultas
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if atividades_recentes %}
+                            {% for atividade in atividades_recentes %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ atividade[1] }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ atividade[3].strftime('%d/%m/%Y %H:%M') if atividade[3] else '' }}</small>
+                                </div>
+                                <span class="badge {{ atividade[2] }}">{{ atividade[2]|capitalize }}</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <p>Nenhuma consulta recente</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>
+                            <i class="fas fa-users"></i>
+                            Últimos Usuários
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if ultimos_usuarios %}
+                            {% for usuario in ultimos_usuarios %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ usuario[1] }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ usuario[2] }} • {{ usuario[3] }}</small>
+                                </div>
+                                <span class="badge {{ 'active' if usuario[4] else 'inactive' }}">
+                                    {{ 'Ativo' if usuario[4] else 'Inativo' }}
+                                </span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-user-slash"></i>
+                                <p>Nenhum usuário recente</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // ==================== SIDEBAR FUNCTIONS ====================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+        
+        // ==================== UPDATE DATE/TIME ====================
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            };
+            document.getElementById('currentDateTime').textContent = now.toLocaleString('pt-BR', options);
+        }
+        
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+        
+        // ==================== CHARTS ====================
+        // Gráfico de Consultas
+        var consultasOptions = {
+            series: [{
+                name: 'Consultas',
+                data: [65, 59, 80, 81, 56, 55, 40, 70, 85, 90, 75, 95]
+            }],
+            chart: {
+                height: 300,
+                type: 'area',
+                toolbar: { show: false },
+                animations: { enabled: true },
+                fontFamily: 'Segoe UI, sans-serif'
+            },
+            stroke: {
+                curve: 'smooth',
+                width: 3,
+                colors: ['#4361ee']
+            },
+            fill: {
+                type: 'gradient',
+                gradient: {
+                    shadeIntensity: 1,
+                    opacityFrom: 0.7,
+                    opacityTo: 0.2
+                }
+            },
+            xaxis: {
+                categories: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+            },
+            colors: ['#4361ee']
+        };
+        
+        var consultasChart = new ApexCharts(document.querySelector("#consultasChart"), consultasOptions);
+        consultasChart.render();
+        
+        // Gráfico de Status
+        var statusOptions = {
+            series: [10, 20, 5],
+            chart: {
+                type: 'donut',
+                height: 250,
+                animations: { enabled: true },
+                fontFamily: 'Segoe UI, sans-serif'
+            },
+            labels: ['Agendadas', 'Realizadas', 'Canceladas'],
+            colors: ['#4361ee', '#10b981', '#ef4444'],
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '60%',
+                        labels: {
+                            show: true,
+                            total: {
+                                show: true,
+                                label: 'Total',
+                                formatter: function(w) {
+                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0)
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            legend: { 
+                position: 'bottom',
+                fontSize: '12px'
+            },
+            responsive: [{
+                breakpoint: 768,
+                options: {
+                    chart: {
+                        height: 200
+                    },
+                    legend: {
+                        position: 'bottom',
+                        fontSize: '11px'
+                    }
+                }
+            }]
+        };
+        
+        var statusChart = new ApexCharts(document.querySelector("#statusChart"), statusOptions);
+        statusChart.render();
+        
+        // ==================== LOAD STATISTICS ====================
+        function carregarEstatisticas() {
+            fetch('/admin/api/dashboard-stats')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('statsMedicos').textContent = data.data.medicos;
+                        document.getElementById('statsAnalistas').textContent = data.data.analistas;
+                        document.getElementById('statsPacientes').textContent = data.data.pacientes;
+                        document.getElementById('statsConsultas').textContent = data.data.consultas;
+                    }
+                })
+                .catch(error => console.error('Erro ao carregar estatísticas:', error));
+        }
+        
+        // Carregar estatísticas a cada 60 segundos
+        carregarEstatisticas();
+        setInterval(carregarEstatisticas, 60000);
+        
+        // ==================== TOUCH FEEDBACK ====================
+        document.querySelectorAll('.stats-card, .nav-link').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            el.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+            
+            el.addEventListener('touchcancel', function() {
+                this.style.transform = '';
+            });
+        });
+        
+        // ==================== RESIZE HANDLER ====================
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 992) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+        });
+    </script>
+</body>
+</html>

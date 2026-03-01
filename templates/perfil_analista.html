@@ -1,0 +1,393 @@
+<!-- templates/perfil_analista.html -->
+{% extends "base.html" %}
+
+{% block title %}Perfil - Analista{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3">
+            <i class="fas fa-user-md me-2"></i>Meu Perfil
+        </h1>
+        <div>
+            <a href="{{ url_for('analista.dashboard') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+            </a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger">
+                <i class="fas fa-sign-out-alt me-1"></i> Sair
+            </a>
+        </div>
+    </div>
+
+    <!-- Debug: Mostrar estrutura dos dados -->
+    {% if request.args.get('debug') %}
+    <div class="alert alert-info mb-4">
+        <h5><i class="fas fa-bug me-2"></i>Debug - Estrutura dos Dados</h5>
+        <p><strong>Total de campos:</strong> {{ analista|length }}</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Índice</th>
+                        <th>Valor</th>
+                        <th>Tipo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in range(analista|length) %}
+                    <tr>
+                        <td>{{ i }}</td>
+                        <td>
+                            {% if analista[i] is none %}
+                                <span class="text-muted">NULL</span>
+                            {% elif analista[i] is string %}
+                                "{{ analista[i] }}"
+                            {% else %}
+                                {{ analista[i] }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if analista[i] is none %}
+                                None
+                            {% else %}
+                                {{ analista[i].__class__.__name__ }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Informações do Analista -->
+    <div class="row">
+        <!-- Card de Perfil -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <div class="bg-primary rounded-circle p-4 d-inline-block">
+                            <i class="fas fa-user-md fa-3x text-white"></i>
+                        </div>
+                    </div>
+                    <h4 class="card-title">
+                        {# Nome do usuário - último campo da query #}
+                        {% if analista|length > 0 %}
+                            {% set nome_index = analista|length - 2 %} {# Penúltimo campo #}
+                            {{ analista[nome_index] if analista[nome_index] else session.get('user_name', 'Analista') }}
+                        {% else %}
+                            {{ session.get('user_name', 'Analista') }}
+                        {% endif %}
+                    </h4>
+                    <p class="text-muted mb-2">
+                        <i class="fas fa-graduation-cap me-1"></i> 
+                        {# Especialidade - campo 2 (índice 2) #}
+                        {{ analista[2] if analista|length > 2 and analista[2] else 'Analista' }}
+                    </p>
+                    <p class="text-muted mb-2">
+                        <i class="fas fa-id-card me-1"></i> 
+                        {# Registro profissional - campo 3 (índice 3) #}
+                        {{ analista[3] if analista|length > 3 and analista[3] else 'Registro não informado' }}
+                    </p>
+                    <div class="mt-3">
+                        {# Status - campo 5 (índice 5) #}
+                        {% if analista|length > 5 and analista[5] %}
+                            <span class="badge bg-{{ 'success' if analista[5] == 'ativo' else 'secondary' }}">
+                                {{ analista[5]|title }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% endif %}
+                        
+                        {# Supervisor - campo 4 (índice 4) #}
+                        {% if analista|length > 4 and analista[4] == 1 %}
+                        <span class="badge bg-info ms-1">Supervisor</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações de Contato -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-address-card me-2"></i>Contato</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex align-items-center">
+                            <i class="fas fa-envelope text-muted me-2"></i>
+                            <div>
+                                <small class="text-muted">E-mail</small>
+                                <div>
+                                    {# Email do usuário - último campo da query #}
+                                    {% if analista|length > 0 %}
+                                        {% set email_index = analista|length - 1 %} {# Último campo #}
+                                        {{ analista[email_index] if analista[email_index] else session.get('user_email', 'Não informado') }}
+                                    {% else %}
+                                        {{ session.get('user_email', 'Não informado') }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item d-flex align-items-center">
+                            <i class="fas fa-phone text-muted me-2"></i>
+                            <div>
+                                <small class="text-muted">Telefone</small>
+                                {# Telefone - campo 10 (índice 10) #}
+                                <div>{{ analista[10] if analista|length > 10 and analista[10] else 'Não informado' }}</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Menu Rápido -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Acesso Rápido</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-success">
+                            <i class="fas fa-search me-1"></i> Próximo Pedido
+                        </a>
+                        <a href="{{ url_for('analista.minhas_analises') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-history me-1"></i> Minhas Análises
+                        </a>
+                        <a href="{{ url_for('analista.pedidos') }}" class="btn btn-outline-info">
+                            <i class="fas fa-file-medical me-1"></i> Todos os Pedidos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações Detalhadas -->
+        <div class="col-lg-8">
+            <!-- Informações Pessoais -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Informações Pessoais</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Nome Completo</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 0 %}
+                                    {% set nome_index = analista|length - 2 %}
+                                    {{ analista[nome_index] if analista[nome_index] else 'Não informado' }}
+                                {% else %}
+                                    Não informado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">E-mail</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 0 %}
+                                    {% set email_index = analista|length - 1 %}
+                                    {{ analista[email_index] if analista[email_index] else 'Não informado' }}
+                                {% else %}
+                                    Não informado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Telefone</label>
+                            <p class="form-control-plaintext">
+                                {{ analista[10] if analista|length > 10 and analista[10] else 'Não informado' }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Tipo de Usuário</label>
+                            <p class="form-control-plaintext">
+                                <span class="badge bg-primary">Analista</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações Profissionais -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-briefcase-medical me-2"></i>Informações Profissionais</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Especialidade</label>
+                            <p class="form-control-plaintext">
+                                {{ analista[2] if analista|length > 2 and analista[2] else 'Não informada' }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Registro Profissional</label>
+                            <p class="form-control-plaintext">
+                                {{ analista[3] if analista|length > 3 and analista[3] else 'Não informado' }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Experiência/Formação</label>
+                            <p class="form-control-plaintext">
+                                {{ analista[6] if analista|length > 6 and analista[6] else 'Não informada' }}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Carga Horária Semanal</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 7 and analista[7] %}
+                                    {{ analista[7] }} horas
+                                {% else %}
+                                    Não definida
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Data de Contratação</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 8 and analista[8] %}
+                                    {# Tenta formatar data #}
+                                    {% if analista[8] is string %}
+                                        {{ analista[8][:10] }} {# Pega apenas a parte da data se for string longa #}
+                                    {% else %}
+                                        {{ analista[8] }}
+                                    {% endif %}
+                                {% else %}
+                                    Não informada
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Status</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 5 and analista[5] %}
+                                    <span class="badge bg-{{ 'success' if analista[5] == 'ativo' else 'secondary' }}">
+                                        {{ analista[5]|title }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-success">Ativo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Supervisor</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 4 and analista[4] == 1 %}
+                                    <span class="badge bg-info">Sim</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Não</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Datas do Sistema -->
+            <div class="card shadow">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Datas do Sistema</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Conta Criada em</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 9 and analista[9] %}
+                                    {% if analista[9] is string %}
+                                        {{ analista[9][:19] }} {# Pega data e hora se for string longa #}
+                                    {% else %}
+                                        {{ analista[9] }}
+                                    {% endif %}
+                                {% else %}
+                                    Não informado
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Última Atualização</label>
+                            <p class="form-control-plaintext">
+                                {% if analista|length > 10 and analista[10] %}
+                                    {% if analista[10] is string %}
+                                        {{ analista[10][:19] }} {# Pega data e hora se for string longa #}
+                                    {% else %}
+                                        {{ analista[10] }}
+                                    {% endif %}
+                                {% else %}
+                                    Não informado
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('analista.configuracoes') }}" class="btn btn-primary">
+                        <i class="fas fa-edit me-1"></i> Editar Perfil
+                    </a>
+                    <a href="{{ url_for('auth.perfil') }}?debug=1" class="btn btn-outline-warning ms-2">
+                        <i class="fas fa-bug me-1"></i> Ver Dados Brutos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página de perfil carregada');
+});
+</script>
+
+<style>
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 600;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 0;
+    background: transparent;
+}
+
+.list-group-item:not(:last-child) {
+    border-bottom: 1px solid rgba(0,0,0,.125);
+}
+
+.btn {
+    border-radius: 8px;
+    font-weight: 500;
+}
+
+.form-control-plaintext {
+    min-height: 1.5em;
+    padding: 0.375rem 0;
+    font-weight: 500;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+</style>
+{% endblock %}

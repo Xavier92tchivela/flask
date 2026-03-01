@@ -1,0 +1,392 @@
+<!-- templates/analista/minhas_analises.html -->
+{% extends "base.html" %}
+
+{% block title %}Minhas Análises - Analista{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-3">
+    <!-- Cabeçalho Responsivo -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 mb-md-4">
+        <h2 class="h5 h4-md mb-0">
+            <i class="fas fa-history me-2"></i> Histórico de Análises
+        </h2>
+        <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+            <a href="{{ url_for('analista.dashboard') }}" class="btn btn-outline-secondary btn-sm w-100 w-sm-auto">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas Rápidas -->
+    <div class="row g-2 g-md-3 mb-3 mb-md-4">
+        <div class="col-6 col-md-4">
+            <div class="card border-left-success h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Total Concluídos</div>
+                            <div class="h5 h4-md mb-0">{{ analises|length }}</div>
+                        </div>
+                        <div class="text-success">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-4">
+            <div class="card border-left-info h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Diagnósticos</div>
+                            <div class="h5 h4-md mb-0">{{ analises|selectattr('diagnostico_analista', 'defined')|list|length }}</div>
+                        </div>
+                        <div class="text-info">
+                            <i class="fas fa-file-medical fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-md-4">
+            <div class="card border-left-warning h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Taxa</div>
+                            <div class="h5 h4-md mb-0">100%</div>
+                        </div>
+                        <div class="text-warning">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Análises -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center py-2 py-md-3">
+            <h5 class="mb-0 small">
+                <i class="fas fa-list me-2"></i> Análises Concluídas
+            </h5>
+            <span class="badge bg-primary">{{ analises|length }} análise(s)</span>
+        </div>
+        <div class="card-body p-0">
+            {% if analises %}
+            
+            <!-- Versão Mobile: Cards (SEM ID) -->
+            <div class="d-block d-md-none">
+                {% for analise in analises %}
+                <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
+                    <!-- Cabeçalho do Card -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="fw-semibold">{{ analise.paciente_nome }}</div>
+                            <small class="text-muted d-block">{{ analise.tipo_exame }}</small>
+                        </div>
+                        <div class="text-end">
+                            {% if analise.urgencia is defined %}
+                                <span class="badge bg-{% if analise.urgencia == 'urgente' %}danger{% elif analise.urgencia == 'alta' %}warning{% elif analise.urgencia == 'normal' %}info{% else %}secondary{% endif %} mb-1">
+                                    <i class="fas fa-{% if analise.urgencia == 'urgente' %}exclamation-triangle{% elif analise.urgencia == 'alta' %}arrow-up{% elif analise.urgencia == 'normal' %}circle{% else %}arrow-down{% endif %} me-1"></i>
+                                    {{ analise.urgencia|upper }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Detalhes -->
+                    <div class="mb-2">
+                        <small class="text-muted d-block">
+                            <i class="fas fa-user-md me-1"></i> Médico: {{ analise.medico_nome }}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="fas fa-calendar-alt me-1"></i> Solicitação: {{ analise.data_solicitacao }}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="fas fa-check-circle me-1 text-success"></i> Conclusão: {{ analise.data_conclusao }}
+                        </small>
+                    </div>
+                    
+                    <!-- Diagnóstico (se existir) -->
+                    {% if analise.diagnostico_analista %}
+                    <div class="mb-2 p-2 bg-light rounded-2">
+                        <small class="text-muted d-block mb-1"><i class="fas fa-stethoscope me-1"></i> Diagnóstico:</small>
+                        <small class="d-block">{{ analise.diagnostico_analista|truncate(80) }}</small>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Botão de Ação -->
+                    <div class="mt-2">
+                        <a href="{{ url_for('analista.analisar_pedido', pedido_id=analise.id) }}" 
+                           class="btn btn-outline-primary btn-sm w-100">
+                            <i class="fas fa-eye me-1"></i> Ver Detalhes
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Versão Desktop: Tabela (SEM ID) -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-3 py-2">Paciente</th>
+                            <th class="px-3 py-2">Exame</th>
+                            <th class="px-3 py-2">Médico</th>
+                            <th class="px-3 py-2">Urgência</th>
+                            <th class="px-3 py-2">Solicitação</th>
+                            <th class="px-3 py-2">Conclusão</th>
+                            <th class="px-3 py-2">Diagnóstico</th>
+                            <th class="px-3 py-2 text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for analise in analises %}
+                        <tr>
+                            <td class="px-3 py-2">{{ analise.paciente_nome }}</td>
+                            <td class="px-3 py-2">{{ analise.tipo_exame }}</td>
+                            <td class="px-3 py-2">{{ analise.medico_nome }}</td>
+                            <td class="px-3 py-2">
+                                <span class="badge bg-{% if analise.urgencia == 'urgente' %}danger{% elif analise.urgencia == 'alta' %}warning{% elif analise.urgencia == 'normal' %}info{% else %}secondary{% endif %}">
+                                    <i class="fas fa-{% if analise.urgencia == 'urgente' %}exclamation-triangle{% elif analise.urgencia == 'alta' %}arrow-up{% elif analise.urgencia == 'normal' %}circle{% else %}arrow-down{% endif %} me-1"></i>
+                                    {{ analise.urgencia|upper }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2">{{ analise.data_solicitacao }}</td>
+                            <td class="px-3 py-2">{{ analise.data_conclusao }}</td>
+                            <td class="px-3 py-2">
+                                <span class="badge bg-success bg-opacity-10 text-success border border-success" 
+                                      title="{{ analise.diagnostico_analista }}">
+                                    <i class="fas fa-check-circle me-1"></i> OK
+                                </span>
+                            </td>
+                            <td class="px-3 py-2 text-end">
+                                <a href="{{ url_for('analista.analisar_pedido', pedido_id=analise.id) }}" 
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-eye me-1"></i> Ver
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% else %}
+            <!-- Estado vazio -->
+            <div class="text-center py-4 py-md-5">
+                <div class="mb-3 mb-md-4">
+                    <div class="empty-state-icon mx-auto">
+                        <i class="fas fa-history fa-3x fa-4x-md text-muted"></i>
+                    </div>
+                </div>
+                <h5 class="h6 text-muted mb-2">Nenhuma análise concluída</h5>
+                <p class="text-muted small mb-3 mb-md-4">Você ainda não concluiu nenhuma análise.</p>
+                <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-play me-2"></i> Analisar Primeiro Pedido
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos específicos para o histórico */
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+.border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+
+.empty-state-icon {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 50%;
+    margin: 0 auto;
+}
+
+/* Ajustes mobile */
+@media (max-width: 768px) {
+    .border-left-success,
+    .border-left-info,
+    .border-left-warning {
+        border-left-width: 6px !important;
+    }
+    
+    .empty-state-icon {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .fa-3x {
+        font-size: 2rem;
+    }
+    
+    .btn-sm {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-sm i {
+        margin-right: 0.25rem;
+    }
+    
+    .card-body.p-0 .border-bottom {
+        transition: all 0.2s ease;
+    }
+    
+    .card-body.p-0 .border-bottom:active {
+        background-color: #f8f9fa;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.5rem;
+    }
+}
+
+/* Tooltip para diagnóstico longo */
+[title] {
+    cursor: help;
+}
+
+/* Animações */
+.border-bottom {
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Touch improvements */
+@media (max-width: 768px) {
+    .btn, 
+    .badge,
+    .list-group-item {
+        min-height: 44px;
+    }
+    
+    .btn:active {
+        transform: scale(0.98);
+    }
+    
+    * {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .border-bottom {
+        -webkit-tap-highlight-color: rgba(78, 115, 223, 0.1);
+    }
+}
+
+/* Loading state */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-loading:after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    top: 50%;
+    left: 50%;
+    margin-left: -0.5rem;
+    margin-top: -0.5rem;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Acessibilidade */
+.btn:focus-visible {
+    outline: 3px solid #4e73df;
+    outline-offset: 2px;
+}
+
+/* Safe area support */
+@supports (padding: max(0px)) {
+    .container-fluid {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+}
+</style>
+
+<script>
+// Função para visualizar análise
+function viewAnalise(analiseId) {
+    // Adicionar feedback visual
+    const btn = event.target.closest('a');
+    if (btn) {
+        btn.classList.add('btn-loading');
+    }
+    
+    // Redirecionar
+    window.location.href = `/analista/analisar/${analiseId}`;
+}
+
+// Loading state para links
+document.addEventListener('DOMContentLoaded', function() {
+    const links = document.querySelectorAll('a[href*="/analista/analisar/"]');
+    links.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!this.classList.contains('disabled')) {
+                this.classList.add('btn-loading');
+            }
+        });
+    });
+    
+    // Touch feedback
+    if (window.innerWidth <= 768) {
+        const cards = document.querySelectorAll('.border-bottom');
+        cards.forEach(card => {
+            card.addEventListener('touchstart', function() {
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            card.addEventListener('touchend', function() {
+                this.style.backgroundColor = '';
+            });
+        });
+    }
+});
+
+// Formatar datas (se necessário)
+function formatDate(dateStr) {
+    if (!dateStr) return '';
+    return dateStr;
+}
+</script>
+{% endblock %}

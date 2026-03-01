@@ -1,0 +1,737 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar Consulta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-calendar-plus me-2"></i> Agendar Nova Consulta
+        </h2>
+        <a href="{{ url_for('paciente.dashboard') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-info-circle me-2"></i> Preencha os dados da consulta
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('paciente.agendar_consulta') }}" id="formAgendar">
+                        <!-- Seleção do Médico -->
+                        <div class="mb-4">
+                            <label for="medico_id" class="form-label fw-bold">
+                                <i class="fas fa-user-md me-2"></i>Selecione o Médico
+                            </label>
+                            <select class="form-select" id="medico_id" name="medico_id" required>
+                                <option value="" selected disabled>Selecione um médico...</option>
+                                {% if medicos %}
+                                    {% for medico in medicos %}
+                                    <option value="{{ medico[0] }}">
+                                        {{ medico[1] }} - {{ medico[2] }} (CRM: {{ medico[3] }})
+                                    </option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="" disabled>Nenhum médico disponível no momento</option>
+                                {% endif %}
+                            </select>
+                            <div class="form-text">Escolha o médico especialista que deseja consultar</div>
+                        </div>
+
+                        <!-- Data da Consulta -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="data_consulta" class="form-label fw-bold">
+                                    <i class="fas fa-calendar-day me-2"></i>Data da Consulta
+                                </label>
+                                <input type="date" class="form-control" id="data_consulta" 
+                                       name="data_consulta" 
+                                       min="{{ data_minima }}" 
+                                       max="{{ data_maxima }}"
+                                       required>
+                                <div class="form-text">Datas disponíveis nos próximos 30 dias</div>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="hora_consulta" class="form-label fw-bold">
+                                    <i class="fas fa-clock me-2"></i>Horário
+                                </label>
+                                <select class="form-select" id="hora_consulta" name="hora_consulta" required>
+                                    <option value="" selected disabled>Selecione um horário...</option>
+                                    {% if horarios %}
+                                        {% for horario in horarios %}
+                                        <option value="{{ horario }}">{{ horario }}</option>
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="" disabled>Nenhum horário disponível</option>
+                                    {% endif %}
+                                </select>
+                                <div class="form-text">Horários disponíveis: 8:00 às 18:00</div>
+                            </div>
+                        </div>
+
+                        <!-- ===== SEÇÃO DE SINTOMAS ===== -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-thermometer me-2"></i>
+                                    Selecione seus sintomas
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted mb-3">
+                                    Clique nos sintomas que você está sentindo. 
+                                    <span class="badge bg-primary ms-2" id="contadorSintomas">0 selecionados</span>
+                                </p>
+                                
+                                <!-- Categorias de Sintomas -->
+                                <ul class="nav nav-tabs mb-3" id="sintomasTab" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="gerais-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#gerais" type="button" role="tab">
+                                            <i class="fas fa-head-side-virus me-1"></i>Gerais
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="respiratorios-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#respiratorios" type="button" role="tab">
+                                            <i class="fas fa-lungs me-1"></i>Respiratórios
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="digestivos-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#digestivos" type="button" role="tab">
+                                            <i class="fas fa-stomach me-1"></i>Digestivos
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="urinarios-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#urinarios" type="button" role="tab">
+                                            <i class="fas fa-tint me-1"></i>Urinários
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="neurologicos-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#neurologicos" type="button" role="tab">
+                                            <i class="fas fa-brain me-1"></i>Neurológicos
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="musculares-tab" data-bs-toggle="tab" 
+                                                data-bs-target="#musculares" type="button" role="tab">
+                                            <i class="fas fa-bone me-1"></i>Musculares
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <!-- Conteúdo das Abas -->
+                                <div class="tab-content" id="sintomasTabContent">
+                                    <!-- Sintomas Gerais -->
+                                    <div class="tab-pane fade show active" id="gerais" role="tabpanel">
+                                        <div class="sintomas-grid">
+                                            <div class="sintoma-item" data-sintoma="Febre">
+                                                <i class="fas fa-thermometer-half fa-2x mb-2"></i>
+                                                <span>Febre</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Febre alta (acima de 39°C)">
+                                                <i class="fas fa-temperature-high fa-2x mb-2"></i>
+                                                <span>Febre alta</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Calafrios">
+                                                <i class="fas fa-snowflake fa-2x mb-2"></i>
+                                                <span>Calafrios</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Suor noturno">
+                                                <i class="fas fa-cloud-rain fa-2x mb-2"></i>
+                                                <span>Suor noturno</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Fadiga">
+                                                <i class="fas fa-tired fa-2x mb-2"></i>
+                                                <span>Fadiga</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Perda de peso">
+                                                <i class="fas fa-weight-scale fa-2x mb-2"></i>
+                                                <span>Perda de peso</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Mal-estar">
+                                                <i class="fas fa-face-frown fa-2x mb-2"></i>
+                                                <span>Mal-estar</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Tontura">
+                                                <i class="fas fa-dizzy fa-2x mb-2"></i>
+                                                <span>Tontura</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Fraqueza">
+                                                <i class="fas fa-hand-peace fa-2x mb-2"></i>
+                                                <span>Fraqueza</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sintomas Respiratórios -->
+                                    <div class="tab-pane fade" id="respiratorios" role="tabpanel">
+                                        <div class="sintomas-grid">
+                                            <div class="sintoma-item" data-sintoma="Tosse seca">
+                                                <i class="fas fa-lungs fa-2x mb-2"></i>
+                                                <span>Tosse seca</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Tosse com catarro">
+                                                <i class="fas fa-lungs fa-2x mb-2"></i>
+                                                <span>Tosse com catarro</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Falta de ar">
+                                                <i class="fas fa-lungs fa-2x mb-2"></i>
+                                                <span>Falta de ar</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Chiado no peito">
+                                                <i class="fas fa-lungs fa-2x mb-2"></i>
+                                                <span>Chiado no peito</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor no peito">
+                                                <i class="fas fa-heart fa-2x mb-2"></i>
+                                                <span>Dor no peito</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Congestão nasal">
+                                                <i class="fas fa-nose fa-2x mb-2"></i>
+                                                <span>Congestão nasal</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Espirros">
+                                                <i class="fas fa-wind fa-2x mb-2"></i>
+                                                <span>Espirros</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor de garganta">
+                                                <i class="fas fa-throat fa-2x mb-2"></i>
+                                                <span>Dor de garganta</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sintomas Digestivos -->
+                                    <div class="tab-pane fade" id="digestivos" role="tabpanel">
+                                        <div class="sintomas-grid">
+                                            <div class="sintoma-item" data-sintoma="Náusea">
+                                                <i class="fas fa-face-frown fa-2x mb-2"></i>
+                                                <span>Náusea</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Vômito">
+                                                <i class="fas fa-face-frown fa-2x mb-2"></i>
+                                                <span>Vômito</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor abdominal">
+                                                <i class="fas fa-stomach fa-2x mb-2"></i>
+                                                <span>Dor abdominal</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Diarreia">
+                                                <i class="fas fa-toilet fa-2x mb-2"></i>
+                                                <span>Diarreia</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Prisão de ventre">
+                                                <i class="fas fa-toilet fa-2x mb-2"></i>
+                                                <span>Prisão de ventre</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Azia">
+                                                <i class="fas fa-fire fa-2x mb-2"></i>
+                                                <span>Azia</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Má digestão">
+                                                <i class="fas fa-stomach fa-2x mb-2"></i>
+                                                <span>Má digestão</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Inchaço abdominal">
+                                                <i class="fas fa-circle fa-2x mb-2"></i>
+                                                <span>Inchaço abdominal</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ===== NOVA ABA: SINTOMAS URINÁRIOS ===== -->
+                                    <div class="tab-pane fade" id="urinarios" role="tabpanel">
+                                        <div class="sintomas-grid">
+                                            <div class="sintoma-item" data-sintoma="Dor ao urinar">
+                                                <i class="fas fa-tint fa-2x mb-2"></i>
+                                                <span>Dor ao urinar</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Ardência ao urinar">
+                                                <i class="fas fa-fire fa-2x mb-2"></i>
+                                                <span>Ardência ao urinar</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Vontade frequente de urinar">
+                                                <i class="fas fa-clock fa-2x mb-2"></i>
+                                                <span>Vontade frequente</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Urinar pouca quantidade">
+                                                <i class="fas fa-tint-slash fa-2x mb-2"></i>
+                                                <span>Pouca quantidade</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Urgência para urinar">
+                                                <i class="fas fa-exclamation-circle fa-2x mb-2"></i>
+                                                <span>Urgência</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Incontinência urinária">
+                                                <i class="fas fa-water fa-2x mb-2"></i>
+                                                <span>Incontinência</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Urina com sangue">
+                                                <i class="fas fa-droplet fa-2x mb-2" style="color: #dc3545;"></i>
+                                                <span>Urina com sangue</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Urina escura">
+                                                <i class="fas fa-droplet fa-2x mb-2" style="color: #856404;"></i>
+                                                <span>Urina escura</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Urina com odor forte">
+                                                <i class="fas fa-wind fa-2x mb-2"></i>
+                                                <span>Odor forte</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Urina turva">
+                                                <i class="fas fa-cloud fa-2x mb-2"></i>
+                                                <span>Urina turva</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor na bexiga">
+                                                <i class="fas fa-circle fa-2x mb-2"></i>
+                                                <span>Dor na bexiga</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor nas costas (região lombar)">
+                                                <i class="fas fa-spine fa-2x mb-2"></i>
+                                                <span>Dor lombar</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor no baixo ventre">
+                                                <i class="fas fa-circle fa-2x mb-2"></i>
+                                                <span>Dor baixo ventre</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dificuldade para iniciar micção">
+                                                <i class="fas fa-pause-circle fa-2x mb-2"></i>
+                                                <span>Dificuldade inicial</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Jato urinário fraco">
+                                                <i class="fas fa-water fa-2x mb-2"></i>
+                                                <span>Jato fraco</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Sensação de bexiga cheia">
+                                                <i class="fas fa-circle fa-2x mb-2"></i>
+                                                <span>Bexiga cheia</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sintomas Neurológicos -->
+                                    <div class="tab-pane fade" id="neurologicos" role="tabpanel">
+                                        <div class="sintomas-grid">
+                                            <div class="sintoma-item" data-sintoma="Dor de cabeça">
+                                                <i class="fas fa-head-side-brain fa-2x mb-2"></i>
+                                                <span>Dor de cabeça</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Enxaqueca">
+                                                <i class="fas fa-brain fa-2x mb-2"></i>
+                                                <span>Enxaqueca</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Tontura">
+                                                <i class="fas fa-dizzy fa-2x mb-2"></i>
+                                                <span>Tontura</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Desmaio">
+                                                <i class="fas fa-person-falling fa-2x mb-2"></i>
+                                                <span>Desmaio</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Formigamento">
+                                                <i class="fas fa-hand fa-2x mb-2"></i>
+                                                <span>Formigamento</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Tremor">
+                                                <i class="fas fa-hand-peace fa-2x mb-2"></i>
+                                                <span>Tremor</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Confusão mental">
+                                                <i class="fas fa-question fa-2x mb-2"></i>
+                                                <span>Confusão mental</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Ansiedade">
+                                                <i class="fas fa-face-anxious fa-2x mb-2"></i>
+                                                <span>Ansiedade</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sintomas Musculares -->
+                                    <div class="tab-pane fade" id="musculares" role="tabpanel">
+                                        <div class="sintomas-grid">
+                                            <div class="sintoma-item" data-sintoma="Dor muscular">
+                                                <i class="fas fa-bolt fa-2x mb-2"></i>
+                                                <span>Dor muscular</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor nas costas">
+                                                <i class="fas fa-spine fa-2x mb-2"></i>
+                                                <span>Dor nas costas</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Dor nas juntas">
+                                                <i class="fas fa-bone fa-2x mb-2"></i>
+                                                <span>Dor nas juntas</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Inchaço nas juntas">
+                                                <i class="fas fa-hand fa-2x mb-2"></i>
+                                                <span>Inchaço nas juntas</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Rigidez muscular">
+                                                <i class="fas fa-hand-fist fa-2x mb-2"></i>
+                                                <span>Rigidez muscular</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Fraqueza muscular">
+                                                <i class="fas fa-hand-peace fa-2x mb-2"></i>
+                                                <span>Fraqueza muscular</span>
+                                            </div>
+                                            <div class="sintoma-item" data-sintoma="Cãibra">
+                                                <i class="fas fa-bolt fa-2x mb-2"></i>
+                                                <span>Cãibra</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Sintomas selecionados -->
+                                <div class="mt-4">
+                                    <label class="fw-bold">
+                                        <i class="fas fa-list me-2 text-success"></i>
+                                        Sintomas selecionados:
+                                    </label>
+                                    <div class="sintomas-selecionados p-3 bg-white rounded border" id="listaSintomas">
+                                        <em class="text-muted">Nenhum sintoma selecionado</em>
+                                    </div>
+                                </div>
+
+                                <!-- Campo oculto para enviar os sintomas -->
+                                <input type="hidden" name="sintomas" id="sintomasInput" value="">
+                            </div>
+                        </div>
+
+                        <!-- Observações -->
+                        <div class="mb-4">
+                            <label for="observacoes" class="form-label fw-bold">
+                                <i class="fas fa-sticky-note me-2"></i>Observações (opcional)
+                            </label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" 
+                                      rows="3" placeholder="Descreva outros sintomas ou informações relevantes..."></textarea>
+                            <div class="form-text">Informações adicionais para o médico</div>
+                        </div>
+
+                        <!-- Informações Importantes -->
+                        <div class="alert alert-info mb-4">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-circle me-2"></i>Informações Importantes
+                            </h6>
+                            <ul class="mb-0">
+                                <li>Confirme seus dados pessoais antes do agendamento</li>
+                                <li>Cancelamentos devem ser feitos com até 24h de antecedência</li>
+                                <li>Chegue com 15 minutos de antecedência</li>
+                                <li>Traga seus documentos e exames anteriores (se houver)</li>
+                            </ul>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('paciente.dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-calendar-check me-2"></i>Agendar Consulta
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Médicos (informações adicionais) -->
+            {% if medicos %}
+            <div class="card shadow mt-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-user-md me-2"></i> Médicos Disponíveis
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for medico in medicos %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100 border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">{{ medico[1] }}</h6>
+                                    <p class="card-text mb-1">
+                                        <small class="text-muted">
+                                            <i class="fas fa-stethoscope me-1"></i>{{ medico[2] }}
+                                        </small>
+                                    </p>
+                                    <p class="card-text mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-id-card me-1"></i>CRM: {{ medico[3] }}
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.sintomas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.sintoma-item {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100px;
+}
+
+.sintoma-item:hover {
+    border-color: #4e73df;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(78,115,223,0.2);
+}
+
+.sintoma-item.selecionado {
+    background: #4e73df;
+    border-color: #2e59d9;
+    color: white;
+}
+
+.sintoma-item.selecionado i {
+    color: white !important;
+}
+
+.sintoma-item i {
+    color: #6c757d;
+    transition: color 0.3s ease;
+    font-size: 1.5rem;
+}
+
+.sintomas-selecionados {
+    min-height: 60px;
+}
+
+.sintoma-tag {
+    display: inline-block;
+    background: #e7f5ff;
+    color: #4e73df;
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin: 0 5px 5px 0;
+    border: 1px solid #b8daff;
+    font-size: 0.9rem;
+}
+
+.sintoma-tag i {
+    margin-left: 5px;
+    cursor: pointer;
+}
+
+.sintoma-tag i:hover {
+    color: #dc3545;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+}
+
+.nav-tabs .nav-link.active {
+    color: #4e73df;
+    border-bottom: 3px solid #4e73df;
+    font-weight: 600;
+}
+
+.form-label {
+    color: #495057;
+    font-weight: 600;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+
+.card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.35rem;
+}
+
+.card.border-primary {
+    border-color: #4e73df !important;
+}
+
+.alert-info {
+    background-color: #f8f9fc;
+    border-color: #d1d3e2;
+    color: #3a3b45;
+}
+
+.btn-primary {
+    background-color: #4e73df;
+    border-color: #4e73df;
+    padding: 0.5rem 2rem;
+}
+
+.btn-primary:hover {
+    background-color: #2e59d9;
+    border-color: #2653d4;
+}
+
+/* Responsividade para telas pequenas */
+@media (max-width: 768px) {
+    .sintomas-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .nav-tabs .nav-link {
+        padding: 0.5rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .sintoma-item {
+        min-height: 90px;
+        font-size: 0.8rem;
+    }
+    
+    .sintoma-item i {
+        font-size: 1.2rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sintomasSelecionados = new Set();
+    const listaSintomasDiv = document.getElementById('listaSintomas');
+    const contadorSpan = document.getElementById('contadorSintomas');
+    const sintomasInput = document.getElementById('sintomasInput');
+
+    // Adicionar evento de clique a todos os sintomas
+    document.querySelectorAll('.sintoma-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const sintoma = this.dataset.sintoma;
+            
+            if (sintomasSelecionados.has(sintoma)) {
+                sintomasSelecionados.delete(sintoma);
+                this.classList.remove('selecionado');
+            } else {
+                sintomasSelecionados.add(sintoma);
+                this.classList.add('selecionado');
+            }
+            
+            atualizarListaSintomas();
+        });
+    });
+
+    // Atualizar a lista visual de sintomas
+    function atualizarListaSintomas() {
+        // Atualizar contador
+        contadorSpan.textContent = sintomasSelecionados.size + ' selecionados';
+        
+        // Atualizar input hidden
+        sintomasInput.value = Array.from(sintomasSelecionados).join(', ');
+        
+        // Atualizar lista visual
+        if (sintomasSelecionados.size === 0) {
+            listaSintomasDiv.innerHTML = '<em class="text-muted">Nenhum sintoma selecionado</em>';
+            return;
+        }
+        
+        let html = '';
+        sintomasSelecionados.forEach(sintoma => {
+            html += `<span class="sintoma-tag">
+                        ${sintoma} 
+                        <i class="fas fa-times" onclick="removerSintoma('${sintoma}')"></i>
+                     </span>`;
+        });
+        listaSintomasDiv.innerHTML = html;
+    }
+
+    // Função global para remover sintoma
+    window.removerSintoma = function(sintoma) {
+        sintomasSelecionados.delete(sintoma);
+        
+        // Remover classe selecionada do item correspondente
+        document.querySelectorAll('.sintoma-item').forEach(item => {
+            if (item.dataset.sintoma === sintoma) {
+                item.classList.remove('selecionado');
+            }
+        });
+        
+        atualizarListaSintomas();
+    };
+
+    // Formata a data atual para o formato brasileiro
+    function formatarDataBrasileira(data) {
+        const [ano, mes, dia] = data.split('-');
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    // Validação do formulário antes de enviar
+    const form = document.getElementById('formAgendar');
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            const medicoId = document.getElementById('medico_id').value;
+            const data = document.getElementById('data_consulta').value;
+            const hora = document.getElementById('hora_consulta').value;
+            const sintomasSelecionadosSize = sintomasSelecionados.size;
+            
+            if (!medicoId || !data || !hora) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                event.preventDefault();
+                return false;
+            }
+            
+            if (sintomasSelecionadosSize === 0) {
+                alert('Por favor, selecione pelo menos um sintoma.');
+                event.preventDefault();
+                return false;
+            }
+            
+            // Verifica se a data não é no passado
+            const dataSelecionada = new Date(data + 'T' + hora);
+            const agora = new Date();
+            
+            if (dataSelecionada < agora) {
+                alert('Não é possível agendar consultas em datas/horários passados.');
+                event.preventDefault();
+                return false;
+            }
+            
+            // Confirmação final
+            const confirmacao = confirm(`Confirmar agendamento para ${formatarDataBrasileira(data)} às ${hora}?`);
+            if (!confirmacao) {
+                event.preventDefault();
+                return false;
+            }
+        });
+    }
+
+    // Ativar a primeira aba por padrão
+    const firstTab = new bootstrap.Tab(document.getElementById('gerais-tab'));
+    firstTab.show();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,711 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Consulta #{{ consulta.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2 mt-md-4 px-2 px-md-3">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+                <ol class="breadcrumb bg-light p-2 p-md-3 rounded-3 shadow-sm">
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.dashboard') }}" class="text-decoration-none"><i class="fas fa-home me-1"></i><span class="d-none d-sm-inline">Dashboard</span></a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.consultas') }}" class="text-decoration-none"><i class="fas fa-calendar-check me-1"></i><span class="d-none d-sm-inline">Consultas</span></a></li>
+                    <li class="breadcrumb-item active fw-bold"><span class="d-none d-sm-inline">Consulta </span>#{{ consulta.id }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <!-- Card Principal da Consulta -->
+            <div class="card shadow-lg border-0 mb-3 mb-md-4">
+                <div class="card-header bg-gradient-primary text-white py-2 py-md-3 rounded-top-3">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                        <h5 class="mb-2 mb-sm-0 fw-bold h6 h5-md">
+                            <i class="fas fa-calendar-check me-2"></i>Consulta #{{ consulta.id }}
+                        </h5>
+                        <span class="badge bg-{{ consulta.status_class }} fs-6 p-2 align-self-start align-self-sm-center">
+                            {{ consulta.status|upper }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-2 p-md-4">
+                    <!-- Informações do Paciente e Médico - Stack vertical em mobile -->
+                    <div class="row g-2 g-md-4 mb-3 mb-md-4">
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                        <i class="fas fa-user me-2"></i>Paciente
+                                    </h6>
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-user-circle"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Nome</small>
+                                            <span class="small">{{ consulta.paciente_nome }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if consulta.paciente_idade %}
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Idade</small>
+                                            <span class="small">{{ consulta.paciente_idade }} anos</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-venus-mars"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Gênero</small>
+                                            <span class="small">{{ consulta.paciente_genero or 'Não informado' }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-phone-alt"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Telefone</small>
+                                            <span class="small">{{ consulta.paciente_telefone or 'Não informado' }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-item d-flex">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Email</small>
+                                            <span class="small">{{ consulta.paciente_email|truncate(20) or 'Não informado' }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                        <i class="fas fa-user-md me-2"></i>Médico
+                                    </h6>
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-user-md"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Nome</small>
+                                            <span class="small">{{ consulta.medico_nome }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-stethoscope"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Especialidade</small>
+                                            <span class="small">{{ consulta.especialidade }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-id-card"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">CRM</small>
+                                            <span class="small">{{ consulta.crm }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="info-item d-flex">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-envelope"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Email</small>
+                                            <span class="small">{{ consulta.medico_email }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Data e Status - Grid responsivo -->
+                    <div class="row g-2 g-md-4 mb-3 mb-md-4">
+                        <div class="col-6">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 small fw-bold">
+                                        <i class="fas fa-clock me-2"></i>Data/Hora
+                                    </h6>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-calendar-alt text-primary me-2 me-md-3" style="font-size: 1.2rem;"></i>
+                                        <div>
+                                            <span class="small">{{ consulta.data_hora }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 small fw-bold">
+                                        <i class="fas fa-info-circle me-2"></i>Status
+                                    </h6>
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-tag text-primary me-2 me-md-3" style="font-size: 1.2rem;"></i>
+                                        <div>
+                                            <span class="badge bg-{{ consulta.status_class }} p-2">
+                                                {{ consulta.status|upper }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== SEÇÃO DE SINTOMAS ===== -->
+                    {% if sintomas and sintomas|length > 0 %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-info border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-thermometer-half me-2"></i>Sintomas
+                            </h6>
+                            <div class="d-flex flex-wrap gap-1 gap-md-2">
+                                {% for sintoma in sintomas %}
+                                <span class="badge bg-info text-white p-2 p-md-3 m-1" style="font-size: 0.85rem; border-radius: 30px;">
+                                    <i class="fas fa-check-circle me-1"></i>{{ sintoma }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Observações -->
+                    {% if consulta.observacoes %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-sticky-note me-2"></i>Observações
+                            </h6>
+                            <p class="mb-0 small">{{ consulta.observacoes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Diagnóstico -->
+                    {% if diagnostico %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-success border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-stethoscope me-2"></i>Diagnóstico
+                            </h6>
+                            <div class="p-2 p-md-3 bg-white rounded-3 border small">
+                                <p class="mb-2"><strong>Final:</strong> {{ diagnostico.diagnostico_final or 'Não informado' }}</p>
+                                {% if diagnostico.diagnostico_preliminar %}
+                                <p class="mb-2"><strong>Preliminar:</strong> {{ diagnostico.diagnostico_preliminar }}</p>
+                                {% endif %}
+                                {% if diagnostico.resultado %}
+                                <p class="mb-0"><strong>Resultado:</strong> {{ diagnostico.resultado }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Pedidos de Análise -->
+                    {% if pedidos and pedidos|length > 0 %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-warning border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-microscope me-2"></i>Pedidos de Análise
+                            </h6>
+                            {% for pedido in pedidos %}
+                            <div class="mb-2 mb-md-3 p-2 p-md-3 bg-white rounded-3 border">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                                    <strong class="small">{{ pedido.tipo_exame }}</strong>
+                                    <span class="badge bg-{{ 'success' if pedido.status == 'concluido' else 'warning' }} mt-1 mt-sm-0">
+                                        {{ pedido.status|upper }}
+                                    </span>
+                                </div>
+                                <p class="mb-0 mt-1 mt-md-2"><small>Solicitado: {{ pedido.data_solicitacao }}</small></p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Receitas -->
+                    {% if receitas and receitas|length > 0 %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-success border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-prescription me-2"></i>Receitas
+                            </h6>
+                            {% for receita in receitas %}
+                            <div class="mb-2 mb-md-3 p-2 p-md-3 bg-white rounded-3 border">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                                    <strong class="small">Receita #{{ receita.id }}</strong>
+                                    <span class="badge bg-success mt-1 mt-sm-0">{{ receita.status|upper }}</span>
+                                </div>
+                                <p class="mb-0 mt-1 mt-md-2"><small>Criada: {{ receita.created_at }}</small></p>
+                                {% if receita.pdf_gerado %}
+                                <div class="mt-2">
+                                    <a href="{{ url_for('medico.download_receita_pdf', receita_id=receita.id) }}" 
+                                       class="btn btn-sm btn-outline-danger w-100 w-sm-auto">
+                                        <i class="fas fa-file-pdf me-1"></i> Download PDF
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <!-- Card de Ações - Sticky apenas em desktop -->
+            <div class="card shadow-lg border-0 mb-3 mb-md-4 sticky-lg-top" style="top: 20px; z-index: 1000;">
+                <div class="card-header bg-gradient-primary text-white py-2 py-md-3 rounded-top-3">
+                    <h6 class="mb-0 fw-bold small h6-md"><i class="fas fa-cog me-2"></i>Ações</h6>
+                </div>
+                <div class="card-body p-2 p-md-4">
+                    <div class="d-grid gap-2 gap-md-3">
+                        {% if consulta.status == 'agendada' or consulta.status == 'confirmada' %}
+                        <a href="{{ url_for('medico.editar_consulta', consulta_id=consulta.id) }}" 
+                           class="btn btn-warning btn-sm btn-md py-2 py-md-3">
+                            <i class="fas fa-edit me-2"></i>Editar Consulta
+                        </a>
+                        
+                        <form action="{{ url_for('consulta.confirmar_consulta', consulta_id=consulta.id) }}" method="POST">
+                            <button type="submit" class="btn btn-success btn-sm btn-md w-100 py-2 py-md-3">
+                                <i class="fas fa-check-circle me-2"></i>Confirmar
+                            </button>
+                        </form>
+                        
+                        <form action="{{ url_for('consulta.realizar_consulta', consulta_id=consulta.id) }}" method="POST">
+                            <button type="submit" class="btn btn-primary btn-sm btn-md w-100 py-2 py-md-3">
+                                <i class="fas fa-check-double me-2"></i>Realizar
+                            </button>
+                        </form>
+                        
+                        <form action="{{ url_for('consulta.cancelar_consulta', consulta_id=consulta.id) }}" method="POST"
+                              onsubmit="return confirm('Tem certeza que deseja cancelar esta consulta?');">
+                            <button type="submit" class="btn btn-danger btn-sm btn-md w-100 py-2 py-md-3">
+                                <i class="fas fa-times-circle me-2"></i>Cancelar
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('medico.consultas') }}" class="btn btn-outline-secondary btn-sm btn-md py-2 py-md-3">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações Adicionais -->
+            <div class="card shadow-lg border-0 mt-3 mt-md-4">
+                <div class="card-header bg-gradient-secondary text-white py-2 py-md-3 rounded-top-3">
+                    <h6 class="mb-0 fw-bold small h6-md"><i class="fas fa-info-circle me-2"></i>Informações</h6>
+                </div>
+                <div class="card-body p-2 p-md-4">
+                    <div class="mb-2 mb-md-3 pb-2 border-bottom">
+                        <small class="text-muted d-block mb-1">Criado em</small>
+                        <strong class="small"><i class="far fa-calendar-alt me-2 text-primary"></i>{{ agora }}</strong>
+                    </div>
+                    
+                    <div class="mb-2 mb-md-3 pb-2 border-bottom">
+                        <small class="text-muted d-block mb-1">Endereço</small>
+                        <strong class="small"><i class="fas fa-map-marker-alt me-2 text-danger"></i>{{ consulta.paciente_endereco|truncate(30) or 'Não informado' }}</strong>
+                    </div>
+                    
+                    <!-- Resumo de Sintomas -->
+                    {% if sintomas %}
+                    <div class="mb-2 mb-md-3 pb-2 border-bottom">
+                        <small class="text-muted d-block mb-1">Total de Sintomas</small>
+                        <strong class="small"><i class="fas fa-thermometer-half me-2 text-info"></i>{{ sintomas|length }} sintoma(s)</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Resumo de Pedidos -->
+                    {% if pedidos %}
+                    <div class="mb-2 mb-md-3 pb-2 border-bottom">
+                        <small class="text-muted d-block mb-1">Pedidos de Análise</small>
+                        <strong class="small"><i class="fas fa-microscope me-2 text-warning"></i>{{ pedidos|length }} pedido(s)</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Resumo de Receitas -->
+                    {% if receitas %}
+                    <div class="mb-0">
+                        <small class="text-muted d-block mb-1">Receitas</small>
+                        <strong class="small"><i class="fas fa-prescription me-2 text-success"></i>{{ receitas|length }} receita(s)</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Mobile First Styles */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.info-item {
+    transition: all 0.2s ease;
+}
+
+.info-item:hover {
+    transform: translateX(3px);
+}
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Responsividade do sticky */
+@media (min-width: 992px) {
+    .sticky-lg-top {
+        position: sticky;
+        top: 20px;
+        z-index: 1000;
+    }
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+    .card {
+        margin-bottom: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+        padding: 0.35rem 0.65rem;
+    }
+    
+    .btn-sm {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    .info-icon {
+        width: 18px !important;
+    }
+    
+    .info-icon i {
+        font-size: 0.9rem;
+    }
+    
+    .small {
+        font-size: 0.75rem;
+    }
+    
+    .breadcrumb {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Ajustes para gradientes */
+    .bg-gradient-primary, .bg-gradient-secondary {
+        padding: 0.5rem 0.75rem !important;
+    }
+    
+    .bg-gradient-primary h5, .bg-gradient-secondary h6 {
+        font-size: 0.9rem;
+    }
+    
+    /* Ajustes para cards de sintomas */
+    .badge.bg-info {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.8rem !important;
+    }
+    
+    /* Ajustes para ícones */
+    .fa-2x {
+        font-size: 1.3rem;
+    }
+    
+    /* Ajustes para formulários */
+    .form-control, .form-select {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    /* Ajustes para bordas */
+    .border-bottom {
+        border-width: 1px;
+    }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 375px) {
+    .col-6 {
+        padding: 0 4px;
+    }
+    
+    .card-body {
+        padding: 0.5rem !important;
+    }
+    
+    .small {
+        font-size: 0.7rem;
+    }
+    
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.3rem 0.6rem;
+    }
+    
+    .badge {
+        font-size: 0.65rem;
+    }
+}
+
+/* Ajustes para tablets */
+@media (min-width: 768px) and (max-width: 992px) {
+    .container-fluid {
+        padding: 0 15px;
+    }
+    
+    .h5-md {
+        font-size: 1.1rem !important;
+    }
+    
+    .h6-md {
+        font-size: 0.95rem !important;
+    }
+    
+    .btn-md {
+        font-size: 0.9rem;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Touch optimizations */
+@media (max-width: 768px) {
+    .btn, 
+    .btn-group .btn,
+    .badge,
+    .list-group-item {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn i {
+        font-size: 0.9rem;
+    }
+    
+    .btn-group {
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+    }
+    
+    /* Área de clique maior para links */
+    a {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Prevenir zoom em inputs */
+    select, input, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Animações suaves */
+.info-item, .card, .btn {
+    transition: all 0.2s ease;
+}
+
+.btn:active {
+    transform: scale(0.95);
+}
+
+/* Ajustes para breadcrumb em mobile */
+@media (max-width: 576px) {
+    .breadcrumb-item {
+        font-size: 0.75rem;
+    }
+    
+    .breadcrumb-item i {
+        margin-right: 0.2rem !important;
+    }
+}
+
+/* Safe area support */
+@supports (padding: max(0px)) {
+    .container-fluid {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+}
+
+/* Melhorias de acessibilidade */
+.btn:focus-visible,
+a:focus-visible {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Ajustes para cards de diagnóstico */
+.bg-white.rounded-3.border {
+    background-color: #fff;
+    border: 1px solid #e9ecef !important;
+}
+
+@media (max-width: 768px) {
+    .bg-white.rounded-3.border {
+        padding: 0.5rem !important;
+    }
+}
+
+/* Ajustes para pedidos e receitas */
+.badge.bg-warning,
+.badge.bg-success {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.65rem;
+}
+
+@media (min-width: 768px) {
+    .badge.bg-warning,
+    .badge.bg-success {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* Loading states (se necessário) */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Ajustes para truncagem de texto */
+.text-truncate-mobile {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (min-width: 768px) {
+    .text-truncate-mobile {
+        max-width: 100%;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página de detalhes da consulta carregada');
+    
+    // Ajustar sticky para mobile
+    function adjustSticky() {
+        const stickyCard = document.querySelector('.sticky-lg-top');
+        if (stickyCard) {
+            if (window.innerWidth < 992) {
+                stickyCard.classList.remove('sticky-lg-top');
+            } else {
+                stickyCard.classList.add('sticky-lg-top');
+            }
+        }
+    }
+    
+    // Executar no carregamento e no redimensionamento
+    adjustSticky();
+    window.addEventListener('resize', adjustSticky);
+    
+    // Melhorar experiência de formulários
+    const forms = document.querySelectorAll('form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            const button = this.querySelector('button[type="submit"]');
+            if (button) {
+                button.classList.add('loading');
+                button.disabled = true;
+            }
+        });
+    });
+});
+
+// Função para confirmar cancelamento
+function confirmCancel() {
+    return confirm('Tem certeza que deseja cancelar esta consulta?');
+}
+
+// Feedback visual para ações
+function showToast(message, type = 'info') {
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+// Prevenir zoom em inputs no iOS
+document.addEventListener('touchstart', function(event) {
+    if (event.target.nodeName === 'SELECT' || event.target.nodeName === 'INPUT' || event.target.nodeName === 'TEXTAREA') {
+        event.target.style.fontSize = '16px';
+    }
+}, { passive: true });
+</script>
+{% endblock %}

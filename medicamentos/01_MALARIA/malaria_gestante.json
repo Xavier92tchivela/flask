@@ -1,0 +1,40 @@
+{
+  "nome_doenca": "Malária em Gestantes",
+  "protocolo": "OMS 2024 - Manejo na Gravidez",
+  "trimestres": {
+    "primeiro": {
+      "recomendacao": "Avaliar risco/benefício",
+      "medicamentos_seguros": [
+        {
+          "id": "MAL201",
+          "nome": "Quinina + Clindamicina",
+          "posologia": "Quinina 10mg/kg 8/8h + Clindamicina 20mg/kg/dia 8/8h",
+          "duracao": "7 dias",
+          "observacoes": "Preferencial no primeiro trimestre"
+        }
+      ]
+    },
+    "segundo_terceiro": {
+      "recomendacao": "ACT é seguro",
+      "medicamentos_seguros": [
+        {
+          "id": "MAL202",
+          "nome": "Artemeter-Lumefantrina",
+          "posologia": "Esquema padrão 3 dias",
+          "observacoes": "Seguro no 2º e 3º trimestres"
+        }
+      ]
+    }
+  },
+  "contraindicados": [
+    "Primaquina",
+    "Tafenoquina",
+    "Doxiciclina",
+    "Tetraciclina"
+  ],
+  "suplementacao_obrigatoria": {
+    "sulfato_ferroso": "300mg/dia",
+    "acido_folico": "5mg/dia"
+  },
+  "ultima_atualizacao": "2024-02-26"
+}

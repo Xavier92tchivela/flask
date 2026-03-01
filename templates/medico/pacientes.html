@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Meus Pacientes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-users me-2"></i> Meus Pacientes
+        </h2>
+        <a href="{{ url_for('medico.dashboard') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-user-friends me-2"></i> Lista de Pacientes
+            </h6>
+        </div>
+        <div class="card-body">
+            {% if pacientes %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Data Nascimento</th>
+                            <th>Gênero</th>
+                            <th>Telefone</th>
+                            <th>Total Consultas</th>
+                            <th>Última Consulta</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes %}
+                        <tr>
+                            <td>
+                                <strong>{{ paciente.nome }}</strong>
+                            </td>
+                            <td>{{ paciente.data_nascimento or 'Não informado' }}</td>
+                            <td>{{ paciente.genero or 'Não informado' }}</td>
+                            <td>{{ paciente.telefone or 'Não informado' }}</td>
+                            <td>
+                                <span class="badge bg-primary">{{ paciente.total_consultas }}</span>
+                            </td>
+                            <td>{{ paciente.ultima_consulta }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('medico.consultas') }}?paciente_id={{ paciente.id }}" 
+                                       class="btn btn-outline-info" 
+                                       title="Ver Consultas">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </a>
+                                    <a href="#" class="btn btn-outline-secondary" title="Ver Histórico">
+                                        <i class="fas fa-history"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-user-slash fa-3x text-muted mb-3"></i>
+                <h5>Nenhum paciente encontrado</h5>
+                <p class="text-muted">Você ainda não atendeu nenhum paciente.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.table td {
+    vertical-align: middle;
+}
+.badge {
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+}
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}

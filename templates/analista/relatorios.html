@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Analista{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h3 mb-2 text-gray-800">
+            <i class="fas fa-chart-bar me-2"></i>Relatórios e Estatísticas
+        </h1>
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+            <button type="button" class="btn btn-outline-success" onclick="exportarRelatorio()">
+                <i class="fas fa-file-export"></i> Exportar
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-filter me-1"></i> Filtros
+            </h6>
+        </div>
+        <div class="card-body">
+            <form id="filtroRelatorio" class="row g-3">
+                <div class="col-md-3">
+                    <label for="dataInicio" class="form-label">Data Início</label>
+                    <input type="date" class="form-control" id="dataInicio" name="dataInicio">
+                </div>
+                <div class="col-md-3">
+                    <label for="dataFim" class="form-label">Data Fim</label>
+                    <input type="date" class="form-control" id="dataFim" name="dataFim">
+                </div>
+                <div class="col-md-3">
+                    <label for="tipoExame" class="form-label">Tipo de Exame</label>
+                    <select class="form-control" id="tipoExame" name="tipoExame">
+                        <option value="">Todos</option>
+                        <option value="raio-x">Raio-X</option>
+                        <option value="tomografia">Tomografia</option>
+                        <option value="ressonancia">Ressonância Magnética</option>
+                        <option value="ultrassom">Ultrassom</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Análises</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.total or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Taxa de Conclusão</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% if stats.total > 0 %}
+                                {{ ((stats.concluidos / stats.total) * 100)|round(1) }}%
+                                {% else %}0%{% endif %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Tempo Médio (horas)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.tempo_medio or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-stopwatch fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Em Andamento</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats.em_analise or 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-spinner fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Distribuição por Tipo de Exame -->
+    <div class="row mb-4">
+        <div class="col-xl-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-pie me-1"></i> Distribuição por Tipo de Exame
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Tipo de Exame</th>
+                                    <th>Quantidade</th>
+                                    <th>Porcentagem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% set total_exames = stats.total or 1 %}
+                                {% for exame in distribuicao_exames %}
+                                <tr>
+                                    <td>{{ exame[0] or 'Não especificado' }}</td>
+                                    <td>{{ exame[1] }}</td>
+                                    <td>
+                                        <div class="progress">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ (exame[1] / total_exames) * 100 }}%">
+                                                {{ ((exame[1] / total_exames) * 100)|round(1) }}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="3" class="text-center">Nenhum dado disponível</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Análises Recentes -->
+        <div class="col-xl-6">
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-history me-1"></i> Análises Recentes
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Paciente</th>
+                                    <th>Exame</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for analise in analises_recentes %}
+                                <tr>
+                                    <td>#{{ analise[0] }}</td>
+                                    <td>{{ analise[4] }}</td>
+                                    <td>{{ analise[1] }}</td>
+                                    <td>
+                                        {% if analise[2] == 'concluido' %}
+                                        <span class="badge bg-success">Concluído</span>
+                                        {% else %}
+                                        <span class="badge bg-warning">{{ analise[2] }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ analise[3].strftime('%d/%m/%Y %H:%M') if analise[3] else '-' }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="text-center">Nenhuma análise recente</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mb-4">
+        <div class="col-xl-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-chart-area me-1"></i> Evolução de Análises (Últimos 30 dias)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Gráfico de Evolução</h5>
+                        <p class="text-muted">Os dados para o gráfico serão carregados aqui.</p>
+                        <button class="btn btn-primary" onclick="carregarGrafico()">
+                            <i class="fas fa-sync-alt"></i> Carregar Gráfico
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function exportarRelatorio() {
+    alert('Funcionalidade de exportação em desenvolvimento.');
+}
+
+function carregarGrafico() {
+    alert('Funcionalidade de gráfico em desenvolvimento.');
+}
+
+// Configurar filtro de datas padrão (últimos 30 dias)
+document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date();
+    const umMesAtras = new Date();
+    umMesAtras.setDate(hoje.getDate() - 30);
+    
+    document.getElementById('dataInicio').valueAsDate = umMesAtras;
+    document.getElementById('dataFim').valueAsDate = hoje;
+    
+    // Configurar submit do formulário
+    document.getElementById('filtroRelatorio').addEventListener('submit', function(e) {
+        e.preventDefault();
+        alert('Filtro aplicado! (Funcionalidade em desenvolvimento)');
+    });
+});
+</script>
+{% endblock %}

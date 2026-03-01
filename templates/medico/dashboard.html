@@ -1,0 +1,933 @@
+<!-- templates/medico/dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Dashboard Médico{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap">
+    <h2 class="h4 mb-2 mb-sm-0">Dashboard Médico</h2>
+    <div class="d-flex flex-wrap gap-1">
+        <span class="badge bg-primary">
+            <i class="fas fa-user-md me-1"></i> Dr(a). {{ user.user_name }}
+        </span>
+        {% if user.especialidade %}
+        <span class="badge bg-secondary">
+            <i class="fas fa-stethoscope me-1"></i> {{ user.especialidade }}
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Estatísticas - Grid responsivo -->
+<div class="row mb-4 g-2 g-md-3">
+    <div class="col-6 col-xl-3 col-md-6 mb-2 mb-md-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body p-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Consultas Hoje
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="consultasHoje">{{ consultasHoje|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-xl-3 col-md-6 mb-2 mb-md-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body p-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Resultados Pendentes
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="contadorResultados">{{ contadorResultados|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-medical-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-xl-3 col-md-6 mb-2 mb-md-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body p-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Análises Solicitadas
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="contadorAnalises">{{ contadorAnalises|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-microscope fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-6 col-xl-3 col-md-6 mb-2 mb-md-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body p-3">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Pedidos Criados
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="contadorPedidos">{{ contadorPedidos|default(0) }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-medical fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botão de Ação Principal - Responsivo -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow border-left-success">
+            <div class="card-body p-3 p-md-4">
+                <div class="row align-items-center">
+                    <div class="col-12 col-md-8 mb-3 mb-md-0">
+                        <h5 class="card-title mb-1">
+                            <i class="fas fa-microscope me-2 text-success"></i>
+                            Pedido de Análise
+                        </h5>
+                        <p class="card-text text-muted mb-0 small d-none d-md-block">
+                            Solicite análise de exames para seus pacientes. Selecione um analista ou deixe o sistema atribuir automaticamente.
+                        </p>
+                    </div>
+                    <div class="col-12 col-md-4 text-start text-md-end">
+                        <div class="d-grid gap-2 d-md-block">
+                            <a href="{{ url_for('pedido_analise.novo_pedido') }}" 
+                               class="btn btn-success w-100 w-md-auto mb-2 mb-md-0 px-md-4 py-3">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                <strong>NOVO PEDIDO</strong>
+                            </a>
+                            <a href="{{ url_for('medico.pedidos_analise') }}" 
+                               class="btn btn-outline-success w-100 w-md-auto px-md-4 py-3">
+                                <i class="fas fa-list me-2"></i>
+                                VER TODOS
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Consultas e Ações - Layout responsivo -->
+<div class="row">
+    <!-- Consultas -->
+    <div class="col-12 col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                <h6 class="m-0 font-weight-bold text-primary mb-2 mb-sm-0">
+                    <i class="fas fa-calendar-check me-2"></i> Próximas Consultas
+                </h6>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle w-100 w-sm-auto" type="button" 
+                            data-bs-toggle="dropdown">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" data-filter="all">Todas</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="agendada">Agendadas</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="realizada">Realizadas</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="pendente">Pendentes</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card-body p-2 p-md-3">
+                {% if consultas %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tabelaConsultas">
+                        <thead class="d-none d-md-table-header-group">
+                            <tr>
+                                <th>Paciente</th>
+                                <th>Data/Hora</th>
+                                <th>Status</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for consulta in consultas %}
+                            <tr class="consulta-row d-block d-md-table-row" data-status="{{ consulta.status }}">
+                                <!-- Mobile View -->
+                                <td class="d-block d-md-none border-0 p-2" colspan="4">
+                                    <div class="mobile-consulta-card p-2">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-user-injured text-primary me-2"></i>
+                                                <strong>{{ consulta.paciente_nome }}</strong>
+                                            </div>
+                                            <span class="badge bg-{% if consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% elif consulta.status == 'agendada' %}primary{% else %}warning{% endif %}">
+                                                {{ consulta.status|capitalize }}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div>
+                                                <i class="fas fa-calendar-alt text-muted me-1"></i>
+                                                {# Usar a data já formatada - dividir se necessário #}
+                                                {% if consulta.data_hora %}
+                                                    {% if '/' in consulta.data_hora %}
+                                                        {{ consulta.data_hora.split(' ')[0] }}
+                                                    {% else %}
+                                                        {{ consulta.data_hora[:10] }}
+                                                    {% endif %}
+                                                {% endif %}
+                                                <br class="d-inline d-sm-none">
+                                                <i class="fas fa-clock text-muted ms-0 ms-sm-2 me-1"></i>
+                                                {# Extrair hora se disponível #}
+                                                {% if consulta.data_hora and ' ' in consulta.data_hora %}
+                                                    {{ consulta.data_hora.split(' ')[1] }}
+                                                {% elif consulta.data_hora and ':' in consulta.data_hora %}
+                                                    {{ consulta.data_hora }}
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                {% if consulta.tem_analise_pendente %}
+                                                <span class="badge bg-warning">Análise Solicitada</span>
+                                                {% endif %}
+                                                {% if consulta.tem_resultado %}
+                                                <span class="badge bg-success">Resultado Disponível</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="d-flex flex-wrap gap-2 mt-2">
+                                            <a href="{{ url_for('medico.analise', consulta_id=consulta.id) }}" 
+                                               class="btn btn-sm btn-{% if consulta.status == 'agendada' %}primary{% else %}outline-primary{% endif %} flex-fill">
+                                                <i class="fas fa-{% if consulta.status == 'agendada' %}stethoscope{% else %}eye{% endif %} me-1"></i>
+                                                {% if consulta.status == 'agendada' %}Atender{% else %}Detalhes{% endif %}
+                                            </a>
+                                            
+                                            {% if consulta.status in ['agendada', 'realizada'] %}
+                                            <a href="{{ url_for('pedido_analise.novo_pedido') }}?consulta_id={{ consulta.id }}" 
+                                               class="btn btn-sm btn-success flex-fill">
+                                                <i class="fas fa-microscope me-1"></i>
+                                                Análise
+                                            </a>
+                                            {% endif %}
+                                            
+                                            {% if consulta.tem_resultado %}
+                                            <a href="{{ url_for('medico.revisar_analise', consulta_id=consulta.id) }}" 
+                                               class="btn btn-sm btn-info flex-fill">
+                                                <i class="fas fa-file-medical-alt me-1"></i>
+                                                Resultado
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                
+                                <!-- Desktop View -->
+                                <td class="d-none d-md-table-cell">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            <i class="fas fa-user-injured text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ consulta.paciente_nome }}</strong>
+                                            {% if consulta.tem_analise_pendente %}
+                                            <span class="badge bg-warning badge-sm ms-2">Análise</span>
+                                            {% endif %}
+                                            {% if consulta.tem_resultado %}
+                                            <span class="badge bg-success badge-sm ms-2">Resultado</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    {# Usar a data já formatada #}
+                                    {% if consulta.data_hora %}
+                                        {% if '/' in consulta.data_hora %}
+                                            {{ consulta.data_hora.split(' ')[0] }}
+                                        {% else %}
+                                            {{ consulta.data_hora[:10] }}
+                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">
+                                            {% if consulta.data_hora and ' ' in consulta.data_hora %}
+                                                {{ consulta.data_hora.split(' ')[1] }}
+                                            {% elif consulta.data_hora and ':' in consulta.data_hora %}
+                                                {{ consulta.data_hora }}
+                                            {% endif %}
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td class="d-none d-md-table-cell">
+                                    <span class="badge bg-{% if consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% elif consulta.status == 'agendada' %}primary{% else %}warning{% endif %}">
+                                        {{ consulta.status|capitalize }}
+                                    </span>
+                                </td>
+                                <td class="d-none d-md-table-cell text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('medico.analise', consulta_id=consulta.id) }}" 
+                                           class="btn btn-{% if consulta.status == 'agendada' %}primary{% else %}outline-primary{% endif %}"
+                                           title="{% if consulta.status == 'agendada' %}Atender Consulta{% else %}Ver Detalhes{% endif %}">
+                                            <i class="fas fa-{% if consulta.status == 'agendada' %}stethoscope{% else %}eye{% endif %}"></i>
+                                        </a>
+                                        
+                                        {% if consulta.status in ['agendada', 'realizada'] %}
+                                        <a href="{{ url_for('pedido_analise.novo_pedido') }}?consulta_id={{ consulta.id }}" 
+                                           class="btn btn-success"
+                                           title="Solicitar Análise">
+                                            <i class="fas fa-microscope"></i>
+                                        </a>
+                                        {% endif %}
+                                        
+                                        {% if consulta.tem_resultado %}
+                                        <a href="{{ url_for('medico.revisar_analise', consulta_id=consulta.id) }}" 
+                                           class="btn btn-info"
+                                           title="Ver Resultados">
+                                            <i class="fas fa-file-medical-alt"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 py-md-5">
+                    <div class="mb-3 mb-md-4">
+                        <i class="fas fa-calendar-times fa-3x fa-md-4x text-gray-300"></i>
+                    </div>
+                    <h5 class="text-gray-800 h6 h5-md">Nenhuma consulta agendada</h5>
+                    <p class="text-gray-600 small">Você não tem consultas marcadas no momento.</p>
+                    <a href="#" class="btn btn-primary btn-sm btn-md mt-2 mt-md-3">
+                        <i class="fas fa-user-clock me-2"></i> Agendar Nova Consulta
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Pedidos Recentes de Análise -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                <h6 class="m-0 font-weight-bold text-success mb-2 mb-sm-0">
+                    <i class="fas fa-microscope me-2"></i> Pedidos de Análise Recentes
+                </h6>
+                <a href="{{ url_for('pedido_analise.novo_pedido') }}" class="btn btn-sm btn-success w-100 w-sm-auto">
+                    <i class="fas fa-plus me-1"></i> Novo Pedido
+                </a>
+            </div>
+            <div class="card-body p-2 p-md-3">
+                <div id="listaPedidos" class="list-group list-group-flush">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-success spinner-border-sm" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <p class="mt-2 text-muted small">Carregando pedidos...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer text-center p-2">
+                <a href="{{ url_for('medico.pedidos_analise') }}" class="btn btn-sm btn-outline-success w-100 w-sm-auto">
+                    <i class="fas fa-list me-1"></i> Ver Todos os Pedidos
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Menu Lateral - Responsivo -->
+    <div class="col-12 col-lg-4">
+        <!-- Ações Rápidas -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-success">
+                    <i class="fas fa-bolt me-2"></i> Ações Rápidas
+                </h6>
+                <span class="badge bg-success" id="contadorPedidosRapidos">0</span>
+            </div>
+            <div class="card-body p-2 p-md-3">
+                <div class="d-grid gap-2 gap-md-3">
+                    <a href="{{ url_for('pedido_analise.novo_pedido') }}" class="btn btn-success btn-block py-2 py-md-3">
+                        <div class="d-flex align-items-center justify-content-center">
+                            <i class="fas fa-microscope fa-2x me-3"></i>
+                            <div class="text-start">
+                                <div class="h6 h5-md mb-0">NOVO PEDIDO</div>
+                                <small class="text-white d-none d-md-inline">Solicitar análise de exames</small>
+                            </div>
+                        </div>
+                    </a>
+                    
+                    <a href="{{ url_for('medico.pedidos_analise') }}?status=concluido&aprovacao=pendente" class="btn btn-info btn-block">
+                        <i class="fas fa-file-medical-alt me-2"></i> 
+                        Revisar Resultados
+                        <span class="badge bg-white text-info ms-2" id="badgeResultados">0</span>
+                    </a>
+                    
+                    <a href="{{ url_for('medico.pedidos_analise') }}" class="btn btn-outline-success btn-block">
+                        <i class="fas fa-list-check me-2"></i> Meus Pedidos
+                    </a>
+                    
+                    <a href="{{ url_for('medico.consultas') }}" class="btn btn-outline-primary btn-block">
+                        <i class="fas fa-calendar-day me-2"></i> Consultas de Hoje
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notificações de Pedidos -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-warning">
+                    <i class="fas fa-bell me-2"></i> Notificações
+                </h6>
+                <span class="badge bg-warning" id="contadorNotificacoes">0</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="listaNotificacoes">
+                    <div class="list-group-item p-3">
+                        <div class="d-flex w-100 justify-content-between">
+                            <small class="text-muted">Carregando notificações...</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer p-2">
+                <a href="{{ url_for('pedido_analise.novo_pedido') }}" class="btn btn-sm btn-warning w-100">
+                    <i class="fas fa-plus me-1"></i> Criar Novo Pedido
+                </a>
+            </div>
+        </div>
+        
+        <!-- Atalhos - Grid responsivo -->
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-link me-2"></i> Atalhos Rápidos
+                </h6>
+            </div>
+            <div class="card-body p-2 p-md-3">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <a href="{{ url_for('pedido_analise.novo_pedido') }}" 
+                           class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
+                            <i class="fas fa-microscope fa-2x mb-1 mb-md-2"></i>
+                            <small class="fw-bold text-center">NOVO PEDIDO</small>
+                        </a>
+                    </div>
+                    
+                    <div class="col-6">
+                        <a href="{{ url_for('medico.pedidos_analise') }}" 
+                           class="btn btn-outline-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
+                            <i class="fas fa-list-check fa-2x mb-1 mb-md-2"></i>
+                            <small class="text-center">MEUS PEDIDOS</small>
+                        </a>
+                    </div>
+                    
+                    <div class="col-6">
+                        <a href="{{ url_for('medico.consultas') }}" 
+                           class="btn btn-outline-primary w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
+                            <i class="fas fa-calendar-check fa-2x mb-1 mb-md-2"></i>
+                            <small class="text-center">CONSULTAS</small>
+                        </a>
+                    </div>
+                    
+                    <div class="col-6">
+                        <a href="{{ url_for('medico.meus_pacientes') }}" 
+                           class="btn btn-outline-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center">
+                            <i class="fas fa-users fa-2x mb-1 mb-md-2"></i>
+                            <small class="text-center">PACIENTES</small>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <a href="#" class="small text-muted" data-bs-toggle="modal" data-bs-target="#modalAjudaPedidos">
+                        <i class="fas fa-question-circle me-1"></i> Como criar um pedido?
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ajuda -->
+<div class="modal fade" id="modalAjudaPedidos" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title h6 h5-md">
+                    <i class="fas fa-question-circle me-2"></i> Como criar um pedido
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3 p-md-4">
+                <ol class="ps-3 mb-0">
+                    <li class="mb-2 mb-md-3">
+                        <strong>Clique em "NOVO PEDIDO"</strong> no topo da página
+                    </li>
+                    <li class="mb-2 mb-md-3">
+                        <strong>Selecione o paciente</strong> da lista de consultas
+                    </li>
+                    <li class="mb-2 mb-md-3">
+                        <strong>Escolha o tipo de exame</strong> e nível de urgência
+                    </li>
+                    <li class="mb-2 mb-md-3">
+                        <strong>Descreva o exame</strong> e adicione observações
+                    </li>
+                    <li class="mb-2 mb-md-3">
+                        <strong>Selecione um analista</strong> ou deixe atribuição automática
+                    </li>
+                    <li class="mb-2 mb-md-3">
+                        <strong>Anexe arquivos</strong> do exame
+                    </li>
+                    <li>
+                        <strong>Clique em "Solicitar Análise"</strong> para enviar
+                    </li>
+                </ol>
+            </div>
+            <div class="modal-footer p-3">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                <a href="{{ url_for('pedido_analise.novo_pedido') }}" class="btn btn-sm btn-success">
+                    <i class="fas fa-rocket me-2"></i> Criar Pedido
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSS Responsivo Adicional -->
+<style>
+/* Mobile First Adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .h5 {
+        font-size: 1rem;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+    }
+    
+    .btn {
+        font-size: 0.875rem;
+    }
+    
+    .border-left-primary,
+    .border-left-success,
+    .border-left-warning,
+    .border-left-info {
+        border-left-width: 3px !important;
+    }
+    
+    .mobile-consulta-card {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+    }
+    
+    /* Ajustes para tabela mobile */
+    .table-responsive {
+        border: none;
+    }
+    
+    .consulta-row {
+        margin-bottom: 1rem;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .consulta-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Ajustes para ícones */
+    .fa-2x {
+        font-size: 1.5rem;
+    }
+    
+    /* Ajustes para cards de estatísticas */
+    .card.border-left-primary .card-body,
+    .card.border-left-success .card-body,
+    .card.border-left-warning .card-body,
+    .card.border-left-info .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .text-xs {
+        font-size: 0.7rem;
+    }
+    
+    .h5.mb-0 {
+        font-size: 1rem;
+    }
+    
+    /* Ajustes para botões */
+    .btn-lg {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+    }
+    
+    .btn-block {
+        width: 100%;
+    }
+    
+    /* Ajustes para listas */
+    .list-group-item {
+        padding: 0.75rem;
+    }
+    
+    /* Ajustes para modals */
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    /* Espaçamento entre elementos */
+    .gap-2 {
+        gap: 0.5rem !important;
+    }
+    
+    /* Ajustes para o card de ação principal */
+    .card.border-left-success .btn {
+        font-size: 0.875rem;
+        padding: 0.75rem;
+    }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 375px) {
+    .col-6 {
+        padding: 0 4px;
+    }
+    
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .badge {
+        font-size: 0.65rem;
+    }
+    
+    .mobile-consulta-card .btn {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+/* Ajustes para tablets */
+@media (min-width: 768px) and (max-width: 992px) {
+    .container {
+        max-width: 100%;
+        padding: 0 15px;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+    }
+}
+
+/* Melhorias de touch para mobile */
+@media (max-width: 768px) {
+    .btn, 
+    .dropdown-item,
+    .list-group-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .btn-group-sm .btn {
+        min-height: 38px;
+    }
+    
+    .dropdown-menu {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    /* Aumentar área de clique */
+    a, button {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Melhorar scroll */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Classes utilitárias responsivas */
+.d-none.d-md-table-cell {
+    display: none !important;
+}
+
+.d-block.d-md-table-row {
+    display: block !important;
+}
+
+@media (min-width: 768px) {
+    .d-none.d-md-table-cell {
+        display: table-cell !important;
+    }
+    
+    .d-block.d-md-table-row {
+        display: table-row !important;
+    }
+    
+    .w-md-auto {
+        width: auto !important;
+    }
+    
+    .text-md-end {
+        text-align: right !important;
+    }
+    
+    .h5-md {
+        font-size: 1.25rem !important;
+    }
+}
+
+/* Animações suaves */
+.consulta-row {
+    transition: all 0.2s ease;
+}
+
+.consulta-row:active {
+    transform: scale(0.98);
+}
+
+/* Loading states */
+.spinner-border-sm {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-width: 0.2rem;
+}
+
+/* Ajustes para notificações */
+#listaNotificacoes .list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+#listaNotificacoes .list-group-item:first-child {
+    border-top: none;
+}
+
+#listaNotificacoes .list-group-item:last-child {
+    border-bottom: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtros de consultas
+    const filterLinks = document.querySelectorAll('[data-filter]');
+    const consultaRows = document.querySelectorAll('.consulta-row');
+    
+    filterLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const filter = this.getAttribute('data-filter');
+            
+            consultaRows.forEach(row => {
+                if (filter === 'all' || row.getAttribute('data-status') === filter) {
+                    row.style.display = window.innerWidth < 768 ? 'block' : '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Fechar dropdown após seleção
+            const dropdown = bootstrap.Dropdown.getInstance(this.closest('.dropdown').querySelector('[data-bs-toggle="dropdown"]'));
+            if (dropdown) {
+                dropdown.hide();
+            }
+        });
+    });
+    
+    // Funções de carregamento de dados
+    function carregarPedidosRecentes() {
+        fetch('/medico/api/pedidos-recentes')
+            .then(response => response.ok ? response.json() : { pedidos: [] })
+            .then(data => {
+                const listaPedidos = document.getElementById('listaPedidos');
+                
+                if (data.pedidos && data.pedidos.length > 0) {
+                    let html = '';
+                    data.pedidos.forEach(pedido => {
+                        let badgeClass = 'secondary';
+                        if (pedido.status === 'pendente') badgeClass = 'warning';
+                        else if (pedido.status === 'em_analise') badgeClass = 'info';
+                        else if (pedido.status === 'concluido') badgeClass = 'success';
+                        else if (pedido.status === 'cancelado') badgeClass = 'danger';
+                        
+                        let btnAction = 'Ver';
+                        let btnClass = 'outline-primary';
+                        let btnUrl = `/medico/pedidos_analise`;
+                        
+                        if (pedido.status === 'concluido' && pedido.status_aprovacao === 'pendente') {
+                            btnAction = 'Revisar';
+                            btnClass = 'success';
+                            btnUrl = `/medico/revisar-analise/${pedido.id}`;
+                        } else if (pedido.status === 'concluido') {
+                            btnAction = 'Resultado';
+                            btnClass = 'info';
+                            btnUrl = `/medico/revisar-analise/${pedido.id}`;
+                        }
+                        
+                        html += `
+                        <div class="list-group-item list-group-item-action p-2 p-md-3">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                                <div class="flex-grow-1 mb-2 mb-sm-0 me-sm-3">
+                                    <h6 class="mb-1">${pedido.paciente_nome}</h6>
+                                    <p class="mb-1 small text-muted">${pedido.tipo_exame}</p>
+                                    <div class="d-flex align-items-center flex-wrap">
+                                        <span class="badge bg-${badgeClass} me-2">${pedido.status}</span>
+                                        <small class="text-muted">${pedido.data_solicitacao}</small>
+                                    </div>
+                                </div>
+                                <a href="${btnUrl}" class="btn btn-sm btn-${btnClass} w-100 w-sm-auto">
+                                    ${btnAction}
+                                </a>
+                            </div>
+                        </div>
+                        `;
+                    });
+                    listaPedidos.innerHTML = html;
+                } else {
+                    listaPedidos.innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-microscope fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted h6">Nenhum pedido de análise</h6>
+                        <p class="small text-muted mb-3">Você ainda não criou nenhum pedido.</p>
+                        <a href="{{ url_for('pedido_analise.novo_pedido') }}" class="btn btn-sm btn-success">
+                            <i class="fas fa-plus me-1"></i> Criar Primeiro Pedido
+                        </a>
+                    </div>
+                    `;
+                }
+            })
+            .catch(() => {
+                document.getElementById('listaPedidos').innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-microscope fa-3x text-muted mb-3"></i>
+                    <p class="small text-muted">Módulo de pedidos disponível</p>
+                </div>
+                `;
+            });
+    }
+    
+    function carregarContadores() {
+        fetch('/medico/api/contadores')
+            .then(response => response.ok ? response.json() : {})
+            .then(data => {
+                document.getElementById('contadorResultados').textContent = data.resultados_pendentes || 0;
+                document.getElementById('contadorAnalises').textContent = data.analises_solicitadas || 0;
+                document.getElementById('contadorPedidos').textContent = (data.analises_solicitadas || 0) + (data.resultados_pendentes || 0);
+                document.getElementById('badgeResultados').textContent = data.resultados_pendentes || 0;
+                document.getElementById('contadorNotificacoes').textContent = data.notificacoes || 0;
+                document.getElementById('consultasHoje').textContent = data.consultas_hoje || 0;
+                document.getElementById('contadorPedidosRapidos').textContent = (data.analises_solicitadas || 0) + (data.resultados_pendentes || 0);
+            })
+            .catch(console.error);
+    }
+    
+    function carregarNotificacoes() {
+        fetch('/medico/api/notificacoes')
+            .then(response => response.ok ? response.json() : { notificacoes: [] })
+            .then(data => {
+                const listaNotificacoes = document.getElementById('listaNotificacoes');
+                
+                if (data.notificacoes && data.notificacoes.length > 0) {
+                    let html = '';
+                    data.notificacoes.slice(0, 3).forEach(notificacao => {
+                        html += `
+                        <a href="${notificacao.link}" class="list-group-item list-group-item-action p-3">
+                            <div class="d-flex w-100 justify-content-between align-items-start">
+                                <div class="flex-grow-1 me-3">
+                                    <h6 class="mb-1 small fw-bold">${notificacao.titulo}</h6>
+                                    <p class="mb-1 small">${notificacao.mensagem}</p>
+                                </div>
+                                <small class="text-muted text-nowrap">${notificacao.tempo}</small>
+                            </div>
+                        </a>
+                        `;
+                    });
+                    listaNotificacoes.innerHTML = html;
+                } else {
+                    listaNotificacoes.innerHTML = `
+                    <div class="list-group-item p-3">
+                        <div class="text-center py-2">
+                            <i class="fas fa-bell-slash fa-2x text-muted mb-2"></i>
+                            <p class="small text-muted mb-0">Sem notificações</p>
+                        </div>
+                    </div>
+                    `;
+                }
+            })
+            .catch(console.error);
+    }
+    
+    // Inicializar
+    carregarPedidosRecentes();
+    carregarContadores();
+    carregarNotificacoes();
+    
+    // Atualizar a cada 30 segundos
+    setInterval(() => {
+        carregarContadores();
+        carregarNotificacoes();
+    }, 30000);
+    
+    // Verificar consulta_id na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const consultaId = urlParams.get('consulta_id');
+    if (consultaId) {
+        setTimeout(() => {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-info alert-dismissible fade show mt-2 mt-md-3 mx-2';
+            alertDiv.innerHTML = `
+                <i class="fas fa-info-circle me-2"></i>
+                Consulta selecionada. 
+                <a href="{{ url_for('pedido_analise.novo_pedido') }}?consulta_id=${consultaId}" class="alert-link d-block d-sm-inline mt-1 mt-sm-0">
+                    Criar pedido de análise
+                </a>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+        }, 500);
+    }
+    
+    // Ajustar exibição em mudança de orientação
+    window.addEventListener('resize', function() {
+        const currentFilter = document.querySelector('.dropdown-item.active')?.getAttribute('data-filter') || 'all';
+        consultaRows.forEach(row => {
+            if (currentFilter === 'all' || row.getAttribute('data-status') === currentFilter) {
+                row.style.display = window.innerWidth < 768 ? 'block' : '';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,642 @@
+<!-- templates/analista/pedidos_para_analise.html -->
+{% extends "base.html" %}
+
+{% block title %}Pedidos para Análise{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-clipboard-check me-2"></i> Pedidos para Análise
+        </h2>
+        <div class="d-flex align-items-center">
+            <span class="badge bg-primary me-3">
+                <i class="fas fa-user-md me-1"></i> {{ current_user.nome }}
+            </span>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalFiltrosAvancados">
+                <i class="fas fa-sliders-h me-2"></i> Filtros Avançados
+            </button>
+        </div>
+    </div>
+
+    <!-- Mensagens Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Estatísticas do Analista -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-primary">{{ total_atribuidos }}</h5>
+                    <p class="card-text text-muted">Total Atribuídos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-warning">{{ em_analise }}</h5>
+                    <p class="card-text text-muted">Em Análise</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-success">{{ concluidos }}</h5>
+                    <p class="card-text text-muted">Concluídos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-info">{{ urgente_count }}</h5>
+                    <p class="card-text text-muted">Urgentes Pendentes</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Filtros Rápidos -->
+    <div class="card shadow mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="me-2"><strong>Filtrar por:</strong></span>
+                <a href="{{ url_for('analista.pedidos_para_analise') }}" 
+                   class="btn btn-sm btn-outline-secondary {% if not request.args.get('status') %}active{% endif %}">
+                    Todos
+                </a>
+                <a href="{{ url_for('analista.pedidos_para_analise', status='pendente') }}" 
+                   class="btn btn-sm btn-outline-warning {% if request.args.get('status') == 'pendente' %}active{% endif %}">
+                    Pendentes ({{ pedidos_pendentes|length }})
+                </a>
+                <a href="{{ url_for('analista.pedidos_para_analise', status='em_analise') }}" 
+                   class="btn btn-sm btn-outline-info {% if request.args.get('status') == 'em_analise' %}active{% endif %}">
+                    Em Análise ({{ pedidos_em_analise|length }})
+                </a>
+                <a href="{{ url_for('analista.pedidos_para_analise', urgencia='urgente') }}" 
+                   class="btn btn-sm btn-outline-danger {% if request.args.get('urgencia') == 'urgente' %}active{% endif %}">
+                    <i class="fas fa-exclamation-triangle me-1"></i> Urgentes
+                </a>
+                <a href="{{ url_for('analista.pedidos_para_analise', urgencia='alta') }}" 
+                   class="btn btn-sm btn-outline-warning {% if request.args.get('urgencia') == 'alta' %}active{% endif %}">
+                    Alta Prioridade
+                </a>
+                <div class="ms-auto">
+                    <div class="input-group input-group-sm" style="width: 250px;">
+                        <input type="text" class="form-control" placeholder="Buscar paciente ou ID..." id="buscaRapida">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Pedidos -->
+    <div class="card shadow">
+        <div class="card-header bg-white py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">
+                    <i class="fas fa-tasks me-2"></i> Lista de Pedidos
+                    <span class="badge bg-primary ms-2">{{ pedidos|length }}</span>
+                </h6>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="mostrarApenasUrgentes">
+                    <label class="form-check-label small" for="mostrarApenasUrgentes">
+                        Mostrar apenas urgentes
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if pedidos %}
+                <div class="table-responsive">
+                    <table class="table table-hover" id="tabelaPedidos">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Paciente</th>
+                                <th>Tipo de Exame</th>
+                                <th>Médico Solicitante</th>
+                                <th>Status</th>
+                                <th>Urgência</th>
+                                <th>Prazo Estimado</th>
+                                <th>Solicitado em</th>
+                                <th class="text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pedido in pedidos %}
+                            <tr class="{% if pedido.urgencia == 'urgente' %}table-danger{% elif pedido.urgencia == 'alta' %}table-warning{% endif %}" 
+                                data-urgencia="{{ pedido.urgencia }}"
+                                data-status="{{ pedido.status }}"
+                                data-paciente="{{ pedido.paciente_nome|lower }}"
+                                data-id="{{ pedido.id }}">
+                                <td>
+                                    <span class="badge bg-dark">#{{ pedido.id }}</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-light rounded-circle d-flex align-items-center justify-content-center me-2">
+                                            <i class="fas fa-user text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <strong>{{ pedido.paciente_nome }}</strong>
+                                            {% if pedido.paciente_idade %}
+                                                <div class="small text-muted">{{ pedido.paciente_idade }} anos, {{ pedido.paciente_genero }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <strong>{{ pedido.tipo_exame }}</strong>
+                                    {% if pedido.descricao %}
+                                        <div class="small text-muted text-truncate" style="max-width: 200px;">
+                                            {{ pedido.descricao }}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ pedido.medico_nome }}
+                                    {% if pedido.medico_crm %}
+                                        <div class="small text-muted">CRM: {{ pedido.medico_crm }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if pedido.status == 'concluido' %}success{% elif pedido.status == 'cancelado' %}danger{% elif pedido.status == 'em_analise' %}info{% else %}warning{% endif %}">
+                                        {% if pedido.status == 'em_analise' %}
+                                            <i class="fas fa-spinner fa-spin me-1"></i>
+                                        {% endif %}
+                                        {{ pedido.status|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if pedido.urgencia == 'urgente' %}danger{% elif pedido.urgencia == 'alta' %}warning{% elif pedido.urgencia == 'baixa' %}secondary{% else %}info{% endif %}">
+                                        <i class="fas fa-{% if pedido.urgencia == 'urgente' %}exclamation-triangle{% elif pedido.urgencia == 'alta' %}exclamation-circle{% else %}clock{% endif %} me-1"></i>
+                                        {{ pedido.urgencia|title }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if pedido.prazo_estimado %}
+                                        <div class="small">
+                                            <i class="fas fa-calendar-alt me-1"></i>
+                                            {{ pedido.prazo_estimado|date_format }}
+                                            {% if pedido.dias_restantes %}
+                                                <span class="badge bg-{% if pedido.dias_restantes <= 1 %}danger{% elif pedido.dias_restantes <= 3 %}warning{% else %}success{% endif %} ms-1">
+                                                    {{ pedido.dias_restantes }} dia(s)
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="small">
+                                        {{ pedido.data_solicitacao|date_format }}
+                                        <div class="text-muted">
+                                            {{ pedido.data_solicitacao|time_ago }}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ url_for('analista.detalhes_pedido', pedido_id=pedido.id) }}" 
+                                           class="btn btn-outline-primary" title="Ver Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if pedido.status == 'pendente' %}
+                                        <button type="button" class="btn btn-outline-success" 
+                                                title="Iniciar Análise"
+                                                onclick="iniciarAnalise({{ pedido.id }})">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        {% elif pedido.status == 'em_analise' %}
+                                        <a href="{{ url_for('analista.registrar_resultado', pedido_id=pedido.id) }}" 
+                                           class="btn btn-outline-success" title="Registrar Resultado">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-outline-info" 
+                                                title="Adicionar Observação"
+                                                onclick="adicionarObservacao({{ pedido.id }})">
+                                            <i class="fas fa-comment"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginação -->
+                {% if total_paginas > 1 %}
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item {% if pagina == 1 %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('analista.pedidos_para_analise', page=pagina-1, **request.args) }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                        
+                        {% for p in range(1, total_paginas + 1) %}
+                            {% if p >= pagina - 2 and p <= pagina + 2 %}
+                            <li class="page-item {% if p == pagina %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('analista.pedidos_para_analise', page=p, **request.args) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        <li class="page-item {% if pagina == total_paginas %}disabled{% endif %}">
+                            <a class="page-link" href="{{ url_for('analista.pedidos_para_analise', page=pagina+1, **request.args) }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                    <h5>Nenhum pedido para análise</h5>
+                    <p class="text-muted">Todos os pedidos atribuídos a você foram concluídos.</p>
+                    {% if pedidos_disponiveis %}
+                    <a href="{{ url_for('analista.pedidos_disponiveis') }}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus me-2"></i> Ver Pedidos Disponíveis
+                    </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Filtros Avançados -->
+<div class="modal fade" id="modalFiltrosAvancados" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-sliders-h me-2"></i> Filtros Avançados
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="GET" action="{{ url_for('analista.pedidos_para_analise') }}">
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Exame</label>
+                            <select class="form-select" name="tipo_exame">
+                                <option value="">Todos os tipos</option>
+                                {% for tipo in tipos_exame_disponiveis %}
+                                <option value="{{ tipo }}" {% if request.args.get('tipo_exame') == tipo %}selected{% endif %}>
+                                    {{ tipo }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status</label>
+                            <select class="form-select" name="status">
+                                <option value="">Todos os status</option>
+                                <option value="pendente" {% if request.args.get('status') == 'pendente' %}selected{% endif %}>Pendente</option>
+                                <option value="em_analise" {% if request.args.get('status') == 'em_analise' %}selected{% endif %}>Em Análise</option>
+                                <option value="concluido" {% if request.args.get('status') == 'concluido' %}selected{% endif %}>Concluído</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Urgência</label>
+                            <select class="form-select" name="urgencia">
+                                <option value="">Todas as urgências</option>
+                                <option value="urgente" {% if request.args.get('urgencia') == 'urgente' %}selected{% endif %}>Urgente</option>
+                                <option value="alta" {% if request.args.get('urgencia') == 'alta' %}selected{% endif %}>Alta</option>
+                                <option value="normal" {% if request.args.get('urgencia') == 'normal' %}selected{% endif %}>Normal</option>
+                                <option value="baixa" {% if request.args.get('urgencia') == 'baixa' %}selected{% endif %}>Baixa</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Período</label>
+                            <select class="form-select" name="periodo">
+                                <option value="">Todo período</option>
+                                <option value="hoje" {% if request.args.get('periodo') == 'hoje' %}selected{% endif %}>Hoje</option>
+                                <option value="semana" {% if request.args.get('periodo') == 'semana' %}selected{% endif %}>Última semana</option>
+                                <option value="mes" {% if request.args.get('periodo') == 'mes' %}selected{% endif %}>Último mês</option>
+                                <option value="3meses" {% if request.args.get('periodo') == '3meses' %}selected{% endif %}>Últimos 3 meses</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data Inicial</label>
+                            <input type="date" class="form-control" name="data_inicio" value="{{ request.args.get('data_inicio') }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Data Final</label>
+                            <input type="date" class="form-control" name="data_fim" value="{{ request.args.get('data_fim') }}">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Ordenar por</label>
+                            <select class="form-select" name="ordenar">
+                                <option value="urgencia_desc" {% if request.args.get('ordenar') == 'urgencia_desc' %}selected{% endif %}>Urgência (maior primeiro)</option>
+                                <option value="data_desc" {% if request.args.get('ordenar') == 'data_desc' %}selected{% endif %}>Data (mais recente)</option>
+                                <option value="data_asc" {% if request.args.get('ordenar') == 'data_asc' %}selected{% endif %}>Data (mais antiga)</option>
+                                <option value="prazo_asc" {% if request.args.get('ordenar') == 'prazo_asc' %}selected{% endif %}>Prazo (menor primeiro)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ url_for('analista.pedidos_para_analise') }}" class="btn btn-outline-secondary">
+                        Limpar Filtros
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i> Aplicar Filtros
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Formulários ocultos para ações -->
+<form id="formIniciarAnalise" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ========== FILTRO DE BUSCA RÁPIDA ==========
+    const buscaRapida = document.getElementById('buscaRapida');
+    const linhasTabela = document.querySelectorAll('#tabelaPedidos tbody tr');
+    
+    if (buscaRapida) {
+        buscaRapida.addEventListener('input', function() {
+            const termo = this.value.toLowerCase().trim();
+            
+            linhasTabela.forEach(linha => {
+                const paciente = linha.getAttribute('data-paciente');
+                const id = linha.getAttribute('data-id').toString();
+                
+                if (paciente.includes(termo) || id.includes(termo) || termo === '') {
+                    linha.style.display = '';
+                } else {
+                    linha.style.display = 'none';
+                }
+            });
+        });
+    }
+    
+    // ========== FILTRO APENAS URGENTES ==========
+    const mostrarApenasUrgentes = document.getElementById('mostrarApenasUrgentes');
+    
+    if (mostrarApenasUrgentes) {
+        mostrarApenasUrgentes.addEventListener('change', function() {
+            const mostrar = this.checked;
+            
+            linhasTabela.forEach(linha => {
+                const urgencia = linha.getAttribute('data-urgencia');
+                
+                if (mostrar && urgencia !== 'urgente') {
+                    linha.style.display = 'none';
+                } else if (!mostrar) {
+                    linha.style.display = '';
+                }
+            });
+        });
+    }
+    
+    // ========== ORDENAÇÃO DA TABELA ==========
+    const headers = document.querySelectorAll('#tabelaPedidos th[data-sort]');
+    headers.forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', function() {
+            const sortField = this.getAttribute('data-sort');
+            const currentSort = new URLSearchParams(window.location.search).get('sort');
+            const currentOrder = new URLSearchParams(window.location.search).get('order');
+            
+            let newOrder = 'asc';
+            if (currentSort === sortField && currentOrder === 'asc') {
+                newOrder = 'desc';
+            }
+            
+            const url = new URL(window.location);
+            url.searchParams.set('sort', sortField);
+            url.searchParams.set('order', newOrder);
+            window.location.href = url.toString();
+        });
+    });
+    
+    // ========== ATUALIZAÇÃO AUTOMÁTICA ==========
+    // Atualizar a página a cada 2 minutos para ver novos pedidos
+    setInterval(() => {
+        if (!document.hidden) {
+            const url = new URL(window.location);
+            if (!url.searchParams.has('auto_refresh')) {
+                url.searchParams.set('auto_refresh', '1');
+            }
+            window.location.href = url.toString();
+        }
+    }, 120000); // 2 minutos
+});
+
+// ========== FUNÇÕES DE AÇÃO ==========
+function iniciarAnalise(pedidoId) {
+    if (confirm('Deseja iniciar a análise deste pedido?')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/analista/pedido/${pedidoId}/iniciar-analise`;
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function adicionarObservacao(pedidoId) {
+    const observacao = prompt('Digite sua observação:');
+    
+    if (observacao && observacao.trim() !== '') {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/analista/pedido/${pedidoId}/adicionar-observacao`;
+        
+        const csrfToken = document.querySelector('input[name="csrf_token"]');
+        if (csrfToken) {
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = csrfToken.value;
+            form.appendChild(csrfInput);
+        }
+        
+        const observacaoInput = document.createElement('input');
+        observacaoInput.type = 'hidden';
+        observacaoInput.name = 'observacao';
+        observacaoInput.value = observacao.trim();
+        form.appendChild(observacaoInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+// ========== ATALHOS DE TECLADO ==========
+document.addEventListener('keydown', function(e) {
+    // Ctrl + F para focar na busca
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        const busca = document.getElementById('buscaRapida');
+        if (busca) {
+            busca.focus();
+            busca.select();
+        }
+    }
+    
+    // Esc para limpar busca
+    if (e.key === 'Escape') {
+        const busca = document.getElementById('buscaRapida');
+        if (busca && busca.value) {
+            busca.value = '';
+            busca.dispatchEvent(new Event('input'));
+        }
+    }
+});
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.table-danger {
+    background-color: rgba(220, 53, 69, 0.05);
+}
+
+.table-warning {
+    background-color: rgba(255, 193, 7, 0.05);
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 0.25rem;
+}
+
+.card {
+    border: 1px solid #e3e6f0;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    border-bottom: 1px solid #e3e6f0;
+    background-color: #f8f9fc;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+        border: 0;
+    }
+    
+    .btn-group {
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+    
+    .d-flex.flex-wrap {
+        justify-content: center;
+    }
+    
+    .input-group {
+        width: 100% !important;
+        margin-top: 0.5rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+}
+
+/* Animações */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.badge.bg-danger {
+    animation: pulse 2s infinite;
+}
+
+/* Scroll personalizado */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+</style>
+{% endblock %}

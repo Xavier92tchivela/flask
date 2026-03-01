@@ -1,0 +1,2933 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Analisar Exame - Pedido #{{ pedido.id }}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #858796;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --mobile-spacing: 12px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fc;
+            padding-bottom: 70px; /* Espaço para navegação mobile */
+        }
+        
+        /* Container responsivo */
+        .container-fluid {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        
+        @media (min-width: 768px) {
+            .container-fluid {
+                padding-left: 20px;
+                padding-right: 20px;
+            }
+        }
+        
+        /* Estilos para o Receituário */
+        .receita-medica {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #ced4da;
+            max-height: 450px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            line-height: 1.6;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        @media (max-width: 576px) {
+            .receita-medica {
+                max-height: 350px;
+                padding: 15px;
+                font-size: 0.85em;
+                line-height: 1.5;
+            }
+        }
+        
+        .receita-medica h4 {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 8px;
+            margin-top: 15px;
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+        
+        @media (max-width: 576px) {
+            .receita-medica h4 {
+                font-size: 1.1em;
+                margin-top: 12px;
+            }
+        }
+        
+        .receita-medica h5 {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-top: 12px;
+            padding-left: 8px;
+            border-left: 4px solid var(--info-color);
+            font-size: 1.1em;
+        }
+        
+        .receita-medica h6 {
+            color: #495057;
+            font-weight: 600;
+            margin-top: 10px;
+            font-size: 0.95em;
+        }
+        
+        .receita-medica strong {
+            color: #2c3e50;
+        }
+        
+        .receita-medica::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        @media (max-width: 576px) {
+            .receita-medica::-webkit-scrollbar {
+                width: 4px;
+            }
+        }
+        
+        .receita-medica::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .receita-medica::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+        
+        .receita-medica::-webkit-scrollbar-thumb:hover {
+            background: #224abe;
+        }
+        
+        /* Cards modernos e responsivos */
+        .card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 0.25rem 1rem rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s ease-in-out;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        @media (max-width: 576px) {
+            .card {
+                border-radius: 10px;
+                margin-bottom: 12px;
+            }
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.35rem 1.5rem rgba(0, 0, 0, 0.12);
+        }
+        
+        @media (max-width: 576px) {
+            .card:hover {
+                transform: none;
+            }
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            border-bottom: none;
+            padding: 0.8rem 1rem;
+            border-radius: 0 !important;
+        }
+        
+        @media (max-width: 576px) {
+            .card-header {
+                padding: 0.7rem 0.8rem;
+            }
+            
+            .card-header h4, 
+            .card-header h6 {
+                font-size: 1em;
+            }
+        }
+        
+        .card-header.bg-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #13855c 100%) !important;
+        }
+        
+        .card-header.bg-info {
+            background: linear-gradient(135deg, var(--info-color) 0%, #258391 100%) !important;
+        }
+        
+        .card-header.bg-secondary {
+            background: linear-gradient(135deg, var(--secondary-color) 0%, #6c757d 100%) !important;
+        }
+        
+        .card-header h4, 
+        .card-header h6 {
+            color: white;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 1rem;
+        }
+        
+        @media (max-width: 576px) {
+            .card-body {
+                padding: 0.8rem;
+            }
+        }
+        
+        /* Badges personalizados */
+        .badge {
+            font-weight: 600;
+            padding: 0.4em 0.8em;
+            border-radius: 6px;
+            font-size: 0.8em;
+        }
+        
+        @media (max-width: 576px) {
+            .badge {
+                font-size: 0.75em;
+                padding: 0.3em 0.6em;
+            }
+        }
+        
+        .badge.bg-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%) !important;
+        }
+        
+        .badge.bg-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%) !important;
+            color: #000;
+        }
+        
+        .badge.bg-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%) !important;
+        }
+        
+        .badge.bg-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%) !important;
+        }
+        
+        /* Tabelas responsivas */
+        .table-borderless td {
+            padding: 0.4rem 0;
+            vertical-align: middle;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        @media (max-width: 576px) {
+            .table-borderless td {
+                padding: 0.35rem 0;
+                font-size: 0.9em;
+            }
+            
+            .table-borderless td:first-child {
+                width: 40%;
+            }
+            
+            .table-borderless td:last-child {
+                width: 60%;
+            }
+        }
+        
+        .table-borderless tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Alertas personalizados */
+        .alert {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 12px;
+        }
+        
+        @media (max-width: 576px) {
+            .alert {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.9em;
+                margin-bottom: 10px;
+            }
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+        
+        .alert-info {
+            background: linear-gradient(135deg, #d1ecf1 0%, #a3d9e6 100%);
+            border-left: 4px solid #17a2b8;
+            color: #0c5460;
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #d4edda 0%, #a3d9b1 100%);
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        
+        /* Botões melhorados e responsivos */
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 576px) {
+            .btn {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .btn-group {
+                display: flex;
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-group .btn {
+                border-radius: 6px !important;
+                margin: 2px 0;
+            }
+        }
+        
+        .btn-sm {
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        
+        @media (max-width: 576px) {
+            .btn-sm {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.75rem;
+            }
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            border: none;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #3e64d8 0%, #1c3d9e 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(78, 115, 223, 0.3);
+        }
+        
+        @media (max-width: 576px) {
+            .btn-primary:hover {
+                transform: none;
+            }
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #13855c 100%);
+            border: none;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #18b981 0%, #0c6e4a 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(28, 200, 138, 0.3);
+        }
+        
+        /* Ajustes responsivos principais */
+        @media (max-width: 768px) {
+            .card-body {
+                padding: 12px !important;
+            }
+            
+            .receita-medica {
+                max-height: 300px;
+                padding: 12px;
+            }
+            
+            .btn-group-modal {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn-group-modal .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .modal-xl {
+                max-width: 95%;
+                margin: 0.5rem auto;
+            }
+            
+            .modal-body {
+                padding: 1rem;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .modal-body {
+                padding: 0.8rem;
+            }
+            
+            .modal-header {
+                padding: 0.8rem;
+            }
+            
+            .modal-header h5 {
+                font-size: 1.1rem;
+            }
+            
+            .modal-footer {
+                padding: 0.8rem;
+                flex-direction: column;
+            }
+            
+            .modal-footer .btn {
+                width: 100%;
+                margin: 2px 0;
+            }
+            
+            /* Ajustes para o cabeçalho mobile */
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+            
+            .d-flex.justify-content-between .btn {
+                width: 100%;
+            }
+            
+            /* Ajustes para formulários mobile */
+            .row.g-3 {
+                gap: 0.5rem;
+            }
+            
+            .col-md-6 {
+                width: 100%;
+                padding: 0 5px;
+            }
+            
+            .form-label {
+                font-size: 0.9em;
+                margin-bottom: 0.3rem;
+            }
+            
+            .form-control, .form-select {
+                font-size: 0.9em;
+                padding: 0.4rem 0.6rem;
+            }
+            
+            .form-text {
+                font-size: 0.8em;
+            }
+            
+            /* Ajustes para anexos */
+            .list-group-item .d-flex {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+            
+            .list-group-item .btn-group {
+                width: 100%;
+                display: flex;
+                flex-direction: row;
+                justify-content: flex-end;
+            }
+            
+            .list-group-item .btn-group .btn {
+                width: auto;
+                flex: 1;
+            }
+            
+            /* Ajustes para preview de imagem */
+            #previewContainer {
+                margin-top: 10px;
+            }
+            
+            #previewImagem {
+                max-height: 150px;
+                width: auto;
+            }
+            
+            /* Toast mobile */
+            .toast-container {
+                width: 90%;
+                left: 5%;
+                right: 5%;
+                bottom: 10px;
+            }
+            
+            .toast {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 992px) {
+            .col-lg-4, .col-lg-8 {
+                width: 100%;
+            }
+            
+            .receita-medica {
+                max-height: 400px;
+            }
+        }
+        
+        /* Preview de imagem */
+        #previewImagem {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 2px solid #dee2e6;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        @media (max-width: 576px) {
+            #previewImagem {
+                border-radius: 6px;
+                border-width: 1px;
+            }
+        }
+        
+        /* Animações */
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+        }
+        
+        .loading-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @media (max-width: 576px) {
+            .animate-fade-in {
+                animation-duration: 0.3s;
+            }
+        }
+        
+        /* Modal styles */
+        .modal-content {
+            border-radius: 15px;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        @media (max-width: 576px) {
+            .modal-content {
+                border-radius: 10px;
+            }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+        
+        @media (max-width: 576px) {
+            .modal-header .btn-close {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Toast notifications */
+        .toast {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        @media (max-width: 576px) {
+            .toast {
+                border-radius: 6px;
+                font-size: 0.9em;
+            }
+        }
+        
+        /* List groups */
+        .list-group-item {
+            border: none;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            padding: 0.8rem;
+        }
+        
+        @media (max-width: 576px) {
+            .list-group-item {
+                padding: 0.6rem;
+            }
+        }
+        
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Form controls */
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #ced4da;
+            padding: 0.5rem 0.75rem;
+            transition: all 0.3s;
+        }
+        
+        @media (max-width: 576px) {
+            .form-control, .form-select {
+                border-radius: 6px;
+                padding: 0.4rem 0.6rem;
+                font-size: 0.9rem;
+            }
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+        }
+        
+        .form-text {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        @media (max-width: 576px) {
+            .form-text {
+                font-size: 0.75em;
+            }
+        }
+        
+        /* Separadores */
+        .border-top {
+            border-top: 2px solid rgba(0,0,0,0.1) !important;
+        }
+        
+        /* Text truncation */
+        .text-truncate {
+            max-width: 200px;
+        }
+        
+        @media (max-width: 576px) {
+            .text-truncate {
+                max-width: 150px;
+            }
+        }
+        
+        /* Estilo para resultados da IA */
+        .diagnostico-ia {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #e3e6f0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 576px) {
+            .diagnostico-ia {
+                padding: 12px;
+                max-height: 300px;
+                font-size: 0.9em;
+            }
+            
+            .diagnostico-ia h5 {
+                font-size: 1em;
+                padding-bottom: 5px;
+            }
+            
+            .diagnostico-ia ul {
+                padding-left: 15px;
+            }
+            
+            .diagnostico-ia li {
+                margin-bottom: 5px;
+            }
+        }
+        
+        .diagnostico-ia h5 {
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+        
+        .diagnostico-ia ul {
+            padding-left: 20px;
+        }
+        
+        .diagnostico-ia li {
+            margin-bottom: 8px;
+        }
+        
+        /* Imagem no modal */
+        #imagemPreview img {
+            max-height: 200px;
+            max-width: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+            border: 2px solid #dee2e6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        @media (max-width: 576px) {
+            #imagemPreview img {
+                max-height: 150px;
+                border-radius: 6px;
+            }
+        }
+        
+        /* Botões do modal */
+        .btn-group-modal {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        @media (max-width: 576px) {
+            .btn-group-modal {
+                flex-direction: column;
+                width: 100%;
+                gap: 0.3rem;
+            }
+            
+            .btn-group-modal .btn {
+                width: 100%;
+                margin: 2px 0;
+            }
+        }
+        
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        
+        @media (max-width: 576px) {
+            .status-indicator {
+                padding: 0.2rem 0.5rem;
+                font-size: 0.75em;
+                gap: 0.3rem;
+            }
+        }
+        
+        .status-indicator::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        
+        @media (max-width: 576px) {
+            .status-indicator::before {
+                width: 6px;
+                height: 6px;
+            }
+        }
+        
+        .status-pendente {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #856404;
+        }
+        
+        .status-pendente::before {
+            background-color: #ffc107;
+        }
+        
+        .status-em-analise {
+            background-color: rgba(13, 110, 253, 0.1);
+            color: #0d6efd;
+        }
+        
+        .status-em-analise::before {
+            background-color: #0d6efd;
+        }
+        
+        .status-concluido {
+            background-color: rgba(25, 135, 84, 0.1);
+            color: #198754;
+        }
+        
+        .status-concluido::before {
+            background-color: #198754;
+        }
+        
+        /* Barra de progresso */
+        .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+        
+        @media (max-width: 576px) {
+            .progress {
+                height: 6px;
+            }
+        }
+        
+        /* Ícones */
+        @media (max-width: 576px) {
+            i {
+                font-size: 0.9em;
+            }
+            
+            .fa-3x {
+                font-size: 2.5em;
+            }
+            
+            .fa-4x {
+                font-size: 3em;
+            }
+        }
+        
+        /* Menu de ações mobile */
+        @media (max-width: 576px) {
+            .d-grid.gap-2 {
+                gap: 0.5rem !important;
+            }
+            
+            /* Ajustes para o formulário de resultados finais */
+            #formResultadosFinais {
+                margin-top: 1rem;
+                padding-top: 0.8rem;
+            }
+            
+            #formResultadosFinais h5 {
+                font-size: 1.1rem;
+            }
+            
+            #formResultadosFinais textarea {
+                min-height: 80px;
+            }
+            
+            #formResultadosFinais .btn-lg {
+                padding: 0.8rem;
+                font-size: 1rem;
+            }
+        }
+        
+        /* Touch-friendly improvements */
+        @media (max-width: 576px) {
+            button, 
+            .btn, 
+            .list-group-item,
+            .nav-link,
+            .form-control,
+            .form-select {
+                min-height: 44px; /* Tamanho mínimo para toque */
+            }
+            
+            .btn-sm {
+                min-height: 36px;
+            }
+            
+            /* Espaçamento para elementos clicáveis */
+            .list-group-item {
+                padding: 12px;
+            }
+            
+            /* Melhor visibilidade do foco em touch */
+            .btn:active,
+            .list-group-item:active {
+                opacity: 0.8;
+            }
+            
+            /* Ajuste para selects */
+            select.form-select {
+                background-position: right 0.5rem center;
+                padding-right: 2rem;
+            }
+        }
+        
+        /* Landscape orientation fixes */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .modal-dialog {
+                margin: 0.25rem;
+                max-height: 90vh;
+            }
+            
+            .modal-body {
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+            
+            #imagemPreview img {
+                max-height: 120px;
+            }
+            
+            .diagnostico-ia {
+                max-height: 200px;
+            }
+        }
+        
+        /* Fix para input file em mobile */
+        @media (max-width: 576px) {
+            input[type="file"] {
+                font-size: 0.85rem;
+                padding: 0.4rem;
+            }
+            
+            input[type="file"]::-webkit-file-upload-button {
+                padding: 0.4rem 0.8rem;
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* Estilos para o novo botão ANÁLISE CONCLUÍDA */
+        #btnConcluirAgora {
+            background: linear-gradient(135deg, var(--success-color) 0%, #13855c 100%);
+            border: none;
+            color: white;
+            font-weight: bold;
+        }
+        
+        #btnConcluirAgora:hover {
+            background: linear-gradient(135deg, #18b981 0%, #0c6e4a 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(28, 200, 138, 0.3);
+        }
+        
+        @media (max-width: 576px) {
+            #btnConcluirAgora {
+                order: -1; /* Coloca o botão em primeiro em mobile */
+            }
+        }
+        
+        /* Badge para análise concluída */
+        .badge-concluida {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+    <div class="container-fluid">
+        <!-- Cabeçalho Responsivo -->
+        <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4 animate-fade-in">
+            <div>
+                <h2 class="h5 h4-md mb-0">
+                    <i class="fas fa-microscope me-2 text-primary"></i> Análise de Exame
+                </h2>
+                <p class="text-muted mb-0 small">
+                    <i class="fas fa-hashtag me-1"></i> Pedido #{{ pedido.id }} - 
+                    <i class="fas fa-user me-1 ms-2"></i> {{ pedido.paciente_nome }}
+                </p>
+            </div>
+            <a href="{{ url_for('analista.pedidos') }}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> <span class="d-none d-sm-inline">Voltar para Pedidos</span>
+                <span class="d-inline d-sm-none">Voltar</span>
+            </a>
+        </div>
+
+        <!-- Alertas Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-3 mb-md-4 animate-fade-in" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }} me-2"></i>
+                            <div class="flex-grow-1">{{ message }}</div>
+                            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Status da API Gemini -->
+        {% if gemini_available %}
+            {% if MODEL_NAME and MODEL_NAME != 'gemini-pro-vision' %}
+            <div class="alert alert-info alert-dismissible fade show mb-3 mb-md-4 animate-fade-in" role="alert">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-robot me-2"></i>
+                    <div class="flex-grow-1">
+                        <strong>API Gemini Configurada:</strong> {{ MODEL_NAME }}
+                        <br><small class="text-muted">Análise com IA disponível</small>
+                    </div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+        <div class="alert alert-warning alert-dismissible fade show mb-3 mb-md-4 animate-fade-in" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <div class="flex-grow-1">
+                    <strong>Atenção:</strong> API Gemini não configurada.
+                    <br><small class="text-muted">Use análise manual.</small>
+                </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row animate-fade-in" style="animation-delay: 0.1s;">
+            <!-- Informações do Pedido (Lado Esquerdo) -->
+            <div class="col-12 col-lg-4">
+                <!-- Card de Informações -->
+                <div class="card mb-3 mb-md-4">
+                    <div class="card-header">
+                        <h4 class="h6 mb-0"><i class="fas fa-info-circle me-2"></i> Informações do Pedido</h4>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-borderless mb-0">
+                                <tr>
+                                    <td width="40%"><strong><i class="fas fa-hashtag me-1"></i> ID:</strong></td>
+                                    <td><span class="badge bg-dark">#{{ pedido.id }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-user me-1"></i> Paciente:</strong></td>
+                                    <td class="text-truncate" style="max-width: 150px;">{{ pedido.paciente_nome or 'Não informado' }}</td>
+                                </tr>
+                                {% if pedido.paciente_idade %}
+                                <tr>
+                                    <td><strong><i class="fas fa-calendar-alt me-1"></i> Idade:</strong></td>
+                                    <td>{{ pedido.paciente_idade }} anos</td>
+                                </tr>
+                                {% endif %}
+                                {% if pedido.paciente_genero %}
+                                <tr>
+                                    <td><strong><i class="fas fa-venus-mars me-1"></i> Gênero:</strong></td>
+                                    <td>{{ pedido.paciente_genero }}</td>
+                                </tr>
+                                {% endif %}
+                                {% if pedido.paciente_data_nascimento %}
+                                <tr>
+                                    <td><strong><i class="fas fa-birthday-cake me-1"></i> Data Nasc.:</strong></td>
+                                    <td>{{ pedido.paciente_data_nascimento }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong><i class="fas fa-user-md me-1"></i> Médico:</strong></td>
+                                    <td class="text-truncate" style="max-width: 150px;">{{ pedido.medico_nome or 'Não informado' }}</td>
+                                </tr>
+                                {% if pedido.medico_especialidade %}
+                                <tr>
+                                    <td><strong><i class="fas fa-stethoscope me-1"></i> Especialidade:</strong></td>
+                                    <td>{{ pedido.medico_especialidade }}</td>
+                                </tr>
+                                {% endif %}
+                                <tr>
+                                    <td><strong><i class="fas fa-file-medical me-1"></i> Tipo de Exame:</strong></td>
+                                    <td class="text-truncate" style="max-width: 150px;">{{ pedido.tipo_exame or 'Não especificado' }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-exclamation-triangle me-1"></i> Urgência:</strong></td>
+                                    <td>
+                                        <span class="badge bg-{% if pedido.urgencia == 'urgente' %}danger{% elif pedido.urgencia == 'alta' %}warning{% elif pedido.urgencia == 'normal' %}info{% else %}secondary{% endif %}">
+                                            <i class="fas fa-{% if pedido.urgencia == 'urgente' %}exclamation-circle{% elif pedido.urgencia == 'alta' %}exclamation{% else %}info-circle{% endif %} me-1"></i>
+                                            {{ pedido.urgencia|upper if pedido.urgencia else 'NORMAL' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-tasks me-1"></i> Status:</strong></td>
+                                    <td>
+                                        {% if pedido.status == 'pendente' %}
+                                            <span class="status-indicator status-pendente">
+                                                Pendente
+                                            </span>
+                                        {% elif pedido.status == 'em_analise' %}
+                                            <span class="status-indicator status-em-analise">
+                                                Em Análise
+                                            </span>
+                                        {% elif pedido.status == 'concluido' %}
+                                            <span class="status-indicator status-concluido">
+                                                Concluído
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">
+                                                {{ pedido.status|replace('_', ' ')|title if pedido.status else 'PENDENTE' }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong><i class="fas fa-calendar me-1"></i> Data Solicitação:</strong></td>
+                                    <td>{{ pedido.data_solicitacao or 'Não informada' }}</td>
+                                </tr>
+                                {% if pedido.data_consulta %}
+                                <tr>
+                                    <td><strong><i class="fas fa-calendar-check me-1"></i> Data Consulta:</strong></td>
+                                    <td>{{ pedido.data_consulta }}</td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        
+                        {% if pedido.descricao %}
+                        <div class="mt-2 mt-md-3 pt-2 pt-md-3 border-top">
+                            <h6 class="border-bottom pb-1"><i class="fas fa-file-alt me-1"></i> Descrição:</h6>
+                            <p class="small mb-0 mt-2">{{ pedido.descricao }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if pedido.observacoes %}
+                        <div class="mt-2 mt-md-3 pt-2 pt-md-3 border-top">
+                            <h6 class="border-bottom pb-1"><i class="fas fa-clipboard me-1"></i> Observações:</h6>
+                            <p class="small mb-0 mt-2">{{ pedido.observacoes }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Dados para JavaScript -->
+                        <div id="dadosPaciente" 
+                             data-paciente-id="{{ pedido.paciente_id or '' }}"
+                             data-paciente-idade="{{ pedido.paciente_idade or 'Não informada' }}"
+                             data-paciente-genero="{{ pedido.paciente_genero or 'Não informado' }}"
+                             data-tipo-exame="{{ pedido.tipo_exame or 'Não especificado' }}"
+                             data-urgencia="{{ pedido.urgencia or 'NORMAL' }}"
+                             data-descricao="{{ pedido.descricao or 'Não informada' }}"
+                             data-pedido-id="{{ pedido.id }}">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Ações -->
+                <div class="card mb-3 mb-md-4">
+                    <div class="card-header bg-success">
+                        <h4 class="h6 mb-0"><i class="fas fa-tasks me-2"></i> Ações do Analista</h4>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        {% if pedido.status == 'pendente' %}
+                        <form method="POST" class="mb-2">
+                            <input type="hidden" name="acao" value="iniciar_analise">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-play me-2"></i> Iniciar Análise
+                            </button>
+                            <p class="small text-muted mt-2 mb-0 text-center">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Marcar como "Em Análise"
+                            </p>
+                        </form>
+                        {% endif %}
+                        
+                        {% if pedido.status == 'em_analise' %}
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-success" id="btnConcluirAnalise">
+                                <i class="fas fa-check-circle me-2"></i> Concluir Análise
+                            </button>
+                            <button type="button" class="btn btn-info" id="btnUploadResultados">
+                                <i class="fas fa-upload me-2"></i> Upload de Resultados
+                            </button>
+                            <button type="button" class="btn btn-outline-warning" id="btnTestarGemini">
+                                <i class="fas fa-vial me-2"></i> Testar Gemini API
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="btnSalvarRascunho">
+                                <i class="fas fa-save me-2"></i> Salvar Rascunho
+                            </button>
+                        </div>
+                        {% endif %}
+                        
+                        {% if pedido.status == 'concluido' %}
+                        <div class="text-center">
+                            <div class="alert alert-success py-2 mb-3">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Análise Concluída</strong>
+                            </div>
+                            <a href="{{ url_for('analista.minhas_analises') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-history me-2"></i> Ver Histórico
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Anexos Existentes -->
+                {% if anexos_pedido %}
+                <div class="card mb-3 mb-md-4">
+                    <div class="card-header bg-secondary">
+                        <h4 class="h6 mb-0"><i class="fas fa-paperclip me-2"></i> Anexos do Pedido</h4>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <div class="list-group list-group-flush">
+                            {% for anexo in anexos_pedido %}
+                            <div class="list-group-item px-0 py-2">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-{% if anexo.original_name.endswith('.pdf') %}pdf{% elif 'image' in anexo.type %}image{% else %}alt{% endif %} text-primary me-3"></i>
+                                        <div>
+                                            <small class="d-block">{{ anexo.original_name }}</small>
+                                            <small class="text-muted">{{ (anexo.size / 1024)|round|int }} KB • {{ anexo.upload_date if anexo.upload_date else 'Data não informada' }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group w-100 w-sm-auto">
+                                        <a href="{{ url_for('analista.download_anexo', pedido_id=pedido.id, filename=anexo.filename) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="visualizarAnexo('{{ anexo.original_name }}')" title="Visualizar">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Diagnósticos Anteriores -->
+                {% if diagnosticos_anteriores %}
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="h6 mb-0"><i class="fas fa-history me-2"></i> Histórico do Paciente</h4>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <div class="list-group list-group-flush">
+                            {% for diagnostico in diagnosticos_anteriores[:3] %}
+                            <div class="list-group-item px-0 py-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <small class="d-block text-muted">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            {{ diagnostico.data_consulta }}
+                                        </small>
+                                        <small class="d-block mt-1 text-truncate" style="max-width: 200px;">
+                                            {{ diagnostico.diagnostico[:100] }}...
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-info">Antigo</span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                {{ diagnosticos_anteriores|length }} diagnóstico(s) anterior(es)
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Área de Análise (Lado Direito) -->
+            <div class="col-12 col-lg-8">
+                <!-- Card de Upload e Análise -->
+                <div class="card mb-3 mb-md-4">
+                    <div class="card-header bg-info">
+                        <h4 class="h6 mb-0"><i class="fas fa-file-medical me-2"></i> Análise de Exame</h4>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <form id="analiseForm" enctype="multipart/form-data" class="needs-validation" novalidate>
+                            <div class="row g-2 g-md-3">
+                                <div class="col-md-6">
+                                    <label for="imagem" class="form-label">
+                                        <i class="fas fa-upload me-1"></i> Upload de Imagem
+                                    </label>
+                                    <input class="form-control form-control-sm" type="file" id="imagem" name="imagem" accept="image/*" required>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        PNG, JPG, JPEG, GIF, BMP, WEBP (Máx: 10MB)
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <label for="tipo_analise" class="form-label">
+                                        <i class="fas fa-cogs me-1"></i> Tipo de Análise
+                                    </label>
+                                    <select class="form-select form-select-sm" id="tipo_analise" name="tipo_analise" required>
+                                        <option value="">Selecione</option>
+                                        <option value="completa" selected>Análise Completa</option>
+                                        <option value="rapida">Análise Rápida</option>
+                                        <option value="detect_anomalies">Detectar Anomalias</option>
+                                        <option value="compare_previous">Comparar com Anterior</option>
+                                        <option value="detailed_report">Relatório Detalhado</option>
+                                    </select>
+                                    <div class="form-text">
+                                        Escolha o tipo de análise
+                                    </div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <label for="observacoes_analista" class="form-label">
+                                        <i class="fas fa-comment-medical me-1"></i> Observações
+                                    </label>
+                                    <textarea class="form-control form-control-sm" id="observacoes_analista" name="observacoes_analista" rows="2" placeholder="Informações relevantes para a análise..."></textarea>
+                                    <div class="form-text">
+                                        Adicione informações importantes
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-2 mt-md-3">
+                                {% if gemini_available %}
+                                <button type="submit" class="btn btn-primary" id="btnAnalisarIA">
+                                    <i class="fas fa-robot me-2"></i> Analisar com IA (Gemini)
+                                </button>
+                                {% else %}
+                                <button type="button" class="btn btn-secondary disabled" id="btnAnalisarIA" disabled>
+                                    <i class="fas fa-robot me-2"></i> API Gemini não configurada
+                                </button>
+                                {% endif %}
+                                <button type="button" class="btn btn-outline-warning" id="btnAnaliseLocal">
+                                    <i class="fas fa-user-md me-2"></i> Análise Manual
+                                </button>
+                                <button type="button" class="btn btn-outline-info" id="btnLimparForm">
+                                    <i class="fas fa-broom me-2"></i> Limpar Formulário
+                                </button>
+                            </div>
+                            
+                            <!-- Informações da API -->
+                            <div class="row mt-2 mt-md-3">
+                                <div class="col-12 col-md-6 mb-2 mb-md-0">
+                                    {% if gemini_available %}
+                                    <div class="alert alert-info p-2 small mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-check-circle me-2 text-success"></i>
+                                            <div>
+                                                <strong>Gemini Disponível</strong>
+                                                <br><small>{{ MODEL_NAME or 'Modelo padrão' }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="alert alert-warning p-2 small mb-0">
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                                            <div>
+                                                <strong>API Gemini não disponível</strong>
+                                                <br><small>Configure a chave da API</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12 col-md-6 text-md-end">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary w-100 w-md-auto" id="btnInstrucoesIA">
+                                        <i class="fas fa-question-circle me-1"></i> Instruções IA
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        
+                        <!-- Informações da imagem atual -->
+                        <div class="mt-3 mt-md-4 pt-2 pt-md-3 border-top" id="infoImagem" style="display: none;">
+                            <h6 class="mb-2"><i class="fas fa-image me-2"></i> Imagem Carregada</h6>
+                            <div class="row align-items-center">
+                                <div class="col-8 col-md-8">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-file-image text-primary me-2"></i>
+                                        <div>
+                                            <small class="d-block" id="nomeImagemCarregada">-</small>
+                                            <small class="text-muted">
+                                                <span id="tamanhoImagem">-</span> • 
+                                                <span id="dimensoesImagem">-</span>
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4 col-md-4 text-end">
+                                    <span class="badge bg-success" id="statusCarregado">
+                                        <i class="fas fa-check me-1"></i> Carregada
+                                    </span>
+                                </div>
+                            </div>
+                            <div id="previewContainer" class="mt-2 text-center" style="display: none;">
+                                <img id="previewImagem" class="img-fluid rounded shadow">
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerImagem()">
+                                        <i class="fas fa-trash me-1"></i> Remover Imagem
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Resultados -->
+                <div class="card">
+                    <div class="card-header bg-success">
+                        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                            <h4 class="h6 mb-0"><i class="fas fa-stethoscope me-2"></i> Resultados da Análise</h4>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-light text-dark me-2" id="statusGemini">
+                                    {% if gemini_available %}<i class="fas fa-robot text-success me-1"></i>IA Disponível{% else %}<i class="fas fa-user-md text-warning me-1"></i>Modo Manual{% endif %}
+                                </span>
+                                <button class="btn btn-sm btn-outline-light" id="btnRefreshResultados" title="Atualizar">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <div id="areaResultados">
+                            {% if pedido.resultado_analise %}
+                            <!-- Análise Existente -->
+                            <div class="alert alert-info py-2 mb-3 animate-fade-in">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                                    <div>
+                                        <h5 class="h6 mb-0">
+                                            <i class="fas fa-history me-1"></i> Análise realizada em: 
+                                            <strong>{{ pedido.data_conclusao or now.strftime('%d/%m/%Y %H:%M') }}</strong>
+                                        </h5>
+                                        <small class="text-muted">Por {{ session.get('user_name', 'Analista') }}</small>
+                                    </div>
+                                    <div class="btn-group w-100 w-sm-auto">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="exportarResultado()" title="Exportar">
+                                            <i class="fas fa-download"></i> <span class="d-none d-sm-inline">Exportar</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning" onclick="editarResultado()" title="Editar">
+                                            <i class="fas fa-edit"></i> <span class="d-none d-sm-inline">Editar</span>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="limparResultado()" title="Limpar">
+                                            <i class="fas fa-trash"></i> <span class="d-none d-sm-inline">Limpar</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="receita-medica" id="receitaContent">
+                                {% for linha in pedido.resultado_analise.split('\n') %}
+                                    {% if linha.strip() %}
+                                        {% if linha.startswith('⚠️') or 'ERRO' in linha %}
+                                            <div class="alert alert-warning p-2 p-md-3 mb-3">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                {{ linha }}
+                                            </div>
+                                        {% elif linha.startswith('📋') %}
+                                            <h5 class="text-primary mb-2 mb-md-3">{{ linha }}</h5>
+                                        {% elif linha.startswith('# ') %}
+                                            <h4 class="text-primary border-bottom pb-2 mt-3 mt-md-4 mb-2 mb-md-3">{{ linha[2:] }}</h4>
+                                        {% elif linha.startswith('## ') %}
+                                            <h5 class="text-secondary mt-2 mt-md-3 mb-2">{{ linha[3:] }}</h5>
+                                        {% elif linha.startswith('### ') %}
+                                            <h6 class="text-dark fw-bold mt-2 mb-1">{{ linha[4:] }}</h6>
+                                        {% elif linha.startswith('- ') %}
+                                            <div class="d-flex align-items-start mb-1">
+                                                <i class="fas fa-circle text-primary me-2 mt-1" style="font-size: 0.5em"></i>
+                                                <span>{{ linha[2:] }}</span>
+                                            </div>
+                                        {% elif linha.startswith('**') and linha.endswith('**') %}
+                                            <p class="fw-bold text-dark mb-2">{{ linha[2:-2] }}</p>
+                                        {% else %}
+                                            <p class="mb-2">{{ linha }}</p>
+                                        {% endif %}
+                                    {% else %}
+                                        <br>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <!-- Sem Análise -->
+                            <div class="text-center text-muted py-4 py-md-5" id="semResultado">
+                                <div class="mb-3 mb-md-4">
+                                    <i class="fas fa-microscope fa-3x fa-4x-md text-light"></i>
+                                </div>
+                                <h5 class="h6 mb-2 mb-md-3 text-gray-800">Nenhuma análise realizada</h5>
+                                <p class="small mb-3 mb-md-4 text-gray-600">Faça o upload de uma imagem para iniciar a análise</p>
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-12 col-md-6">
+                                        <div class="card border-primary h-100">
+                                            <div class="card-body text-center p-3 p-md-4">
+                                                <div class="mb-2 mb-md-3">
+                                                    <i class="fas fa-robot fa-2x fa-3x-md text-primary"></i>
+                                                </div>
+                                                <h6 class="card-title text-primary">Análise com IA</h6>
+                                                <p class="card-text small text-muted">Análise automatizada usando Gemini AI</p>
+                                                <div class="mt-2 mt-md-3">
+                                                    <span class="badge {% if gemini_available %}bg-success{% else %}bg-secondary{% endif %}">
+                                                        {% if gemini_available %}
+                                                            <i class="fas fa-check me-1"></i> Disponível
+                                                        {% else %}
+                                                            <i class="fas fa-times me-1"></i> Indisponível
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <div class="card border-warning h-100">
+                                            <div class="card-body text-center p-3 p-md-4">
+                                                <div class="mb-2 mb-md-3">
+                                                    <i class="fas fa-user-md fa-2x fa-3x-md text-warning"></i>
+                                                </div>
+                                                <h6 class="card-title text-warning">Análise Manual</h6>
+                                                <p class="card-text small text-muted">Análise tradicional pelo analista</p>
+                                                <div class="mt-2 mt-md-3">
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i> Sempre disponível
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mt-3 mt-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 w-md-auto" onclick="mostrarExemplosAnalise()">
+                                        <i class="fas fa-eye me-2"></i> Ver Exemplos de Análise
+                                    </button>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Formulário para Resultados Finais -->
+                        {% if pedido.status == 'em_analise' %}
+                        <div class="mt-4 mt-md-5 pt-3 pt-md-4 border-top" id="formResultadosFinais" style="display: none;">
+                            <h5 class="mb-3 mb-md-4">
+                                <i class="fas fa-flag-checkered me-2 text-success"></i>
+                                Resultados Finais da Análise
+                            </h5>
+                            <form method="POST" id="formConcluirAnalise" onsubmit="return validarFormulario()">
+                                <input type="hidden" name="acao" value="concluir">
+                                
+                                <div class="mb-3 mb-md-4">
+                                    <label for="resultado_analise" class="form-label">
+                                        <i class="fas fa-file-alt me-1 text-primary"></i> Resultado da Análise *
+                                    </label>
+                                    <textarea class="form-control" id="resultado_analise" name="resultado_analise" 
+                                              rows="6" placeholder="Descreva detalhadamente os resultados encontrados..." required>{{ pedido.resultado_analise or '' }}</textarea>
+                                    <div class="form-text">
+                                        Descreva todos os achados relevantes
+                                    </div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatarTexto('resultado_analise')">
+                                            <i class="fas fa-bold me-1"></i> Formatar
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="inserirTemplate('resultado_analise')">
+                                            <i class="fas fa-magic me-1"></i> Template
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3 mb-md-4">
+                                    <label for="diagnostico_analista" class="form-label">
+                                        <i class="fas fa-diagnoses me-1 text-danger"></i> Diagnóstico *
+                                    </label>
+                                    <textarea class="form-control" id="diagnostico_analista" name="diagnostico_analista" 
+                                              rows="4" placeholder="Forneça o diagnóstico principal..." required>{{ pedido.diagnostico_analista or '' }}</textarea>
+                                    <div class="form-text">
+                                        Diagnóstico principal baseado nos achados
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3 mb-md-4">
+                                    <label for="recomendacoes_analista" class="form-label">
+                                        <i class="fas fa-clipboard-list me-1 text-success"></i> Recomendações
+                                    </label>
+                                    <textarea class="form-control" id="recomendacoes_analista" name="recomendacoes_analista" 
+                                              rows="3" placeholder="Recomendações para o médico ou paciente...">{{ pedido.recomendacoes_analista or '' }}</textarea>
+                                    <div class="form-text">
+                                        Recomendações de tratamento ou acompanhamento
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info border-start border-5 border-info">
+                                    <div class="d-flex">
+                                        <i class="fas fa-info-circle me-2 me-md-3 mt-1 text-info"></i>
+                                        <div>
+                                            <strong class="d-block mb-1 mb-md-2">Atenção!</strong>
+                                            <p class="mb-1 small">Após concluir, o pedido será marcado como concluído.</p>
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-check-circle me-1"></i> Verifique todos os dados antes de enviar.
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-check-circle me-2"></i> Concluir e Enviar
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="salvarRascunho()">
+                                        <i class="fas fa-save me-2"></i> Salvar Rascunho
+                                    </button>
+                                    <button type="button" class="btn btn-outline-danger" onclick="cancelarAnalise()">
+                                        <i class="fas fa-times me-2"></i> Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Resultados da IA -->
+    <div class="modal fade" id="modalResultadoIA" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-robot me-2"></i> Resultado da Análise IA
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <!-- Imagem -->
+                        <div class="col-12 col-md-5">
+                            <h6><i class="fas fa-image me-1"></i> Imagem Analisada</h6>
+                            <div id="imagemPreview" class="text-center mb-3">
+                                <div class="placeholder-glow">
+                                    <div class="placeholder col-12" style="height: 200px; border-radius: 10px;"></div>
+                                </div>
+                            </div>
+                            <div class="card border">
+                                <div class="card-body p-2 p-md-3">
+                                    <div class="row small g-2">
+                                        <div class="col-12 mb-2">
+                                            <strong><i class="fas fa-file me-1"></i> Arquivo:</strong><br>
+                                            <span id="nomeArquivo" class="text-truncate d-block">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong><i class="fas fa-weight me-1"></i> Tamanho:</strong><br>
+                                            <span id="tamanhoArquivo">-</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong><i class="fas fa-file-code me-1"></i> Formato:</strong><br>
+                                            <span id="formatoArquivo">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3" id="geminiWarning" style="display: none;">
+                                <div class="d-flex">
+                                    <i class="fas fa-exclamation-triangle me-2 mt-1"></i>
+                                    <div>
+                                        <strong>Aviso:</strong>
+                                        <p class="mb-0 small" id="warningText"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Diagnóstico -->
+                        <div class="col-12 col-md-7">
+                            <h6><i class="fas fa-stethoscope me-1"></i> Diagnóstico Gerado</h6>
+                            <div id="diagnosticoIA" class="diagnostico-ia">
+                                <div class="text-center py-4 py-md-5">
+                                    <div class="spinner-border text-primary mb-3" role="status">
+                                        <span class="visually-hidden">Carregando...</span>
+                                    </div>
+                                    <h5 class="text-primary mb-2">Processando análise...</h5>
+                                    <p class="text-muted small">Esta operação pode levar alguns segundos</p>
+                                    <div class="progress mt-3" style="height: 6px;">
+                                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                                <div class="small text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    <span id="tempoAnalise">Tempo estimado: 10-30 segundos</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-info me-2" id="statusAnalise">Processando...</span>
+                                    <span class="badge bg-warning" id="apiVersionWarning" style="display: none;">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> API Antiga
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="btn-group-modal w-100">
+                        <button class="btn btn-outline-primary" id="btnCopiarDiagnostico">
+                            <i class="fas fa-copy me-1"></i> Copiar
+                        </button>
+                        <button class="btn btn-success" id="btnConcluirAgora">
+                            <i class="fas fa-flag-checkered me-1"></i> Análise Concluída
+                        </button>
+                        <button class="btn btn-outline-success" id="btnUsarDiagnostico">
+                            <i class="fas fa-check me-1"></i> Usar Resultado
+                        </button>
+                        <button class="btn btn-outline-warning" id="btnTestarNovaAPI">
+                            <i class="fas fa-vial me-1"></i> Testar API
+                        </button>
+                        <button class="btn btn-outline-info" id="btnMelhorarTexto">
+                            <i class="fas fa-wand-magic-sparkles me-1"></i> Melhorar
+                        </button>
+                        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Fechar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Instruções Gemini -->
+    <div class="modal fade" id="modalInstrucoesGemini" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-cog me-2"></i> Configurar API Gemini
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="text-warning mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Problema detectado: Versão desatualizada da API Gemini
+                    </h6>
+                    
+                    <div class="alert alert-danger">
+                        <div class="d-flex">
+                            <i class="fas fa-exclamation-circle me-2 me-md-3 mt-1"></i>
+                            <div>
+                                <strong class="d-block mb-1">Erro na API:</strong>
+                                <code class="d-block bg-dark text-light p-2 rounded mt-1 small">Models.get() takes 1 positional argument but 2 were given</code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h6 class="mt-3 mt-md-4 mb-2 mb-md-3">Solução Passo a Passo:</h6>
+                    <ol class="list-group list-group-numbered">
+                        <li class="list-group-item d-flex justify-content-between align-items-start p-2 p-md-3">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Abra o terminal/CMD</div>
+                                <small>Windows: CMD ou PowerShell | Linux/Mac: Terminal</small>
+                            </div>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start p-2 p-md-3">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Execute os comandos:</div>
+                                <div class="bg-dark text-light p-2 p-md-3 rounded mt-2">
+                                    <code class="d-block">pip uninstall google-genai -y</code><br>
+                                    <code class="d-block">pip install google-genai==0.3.0</code>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start p-2 p-md-3">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Reinicie a aplicação Flask</div>
+                                <small>Pare e inicie novamente o servidor</small>
+                            </div>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start p-2 p-md-3">
+                            <div class="ms-2 me-auto">
+                                <div class="fw-bold">Configure sua chave de API</div>
+                                <small>No arquivo <code>.env</code> adicione:</small>
+                                <div class="bg-dark text-light p-2 p-md-3 rounded mt-2">
+                                    <code class="d-block">GEMINI_API_KEY=sua_chave_aqui</code><br>
+                                    <small class="text-light-50">Obtenha sua chave em: <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-info">Google AI Studio</a></small>
+                                </div>
+                            </div>
+                        </li>
+                    </ol>
+                    
+                    <div class="alert alert-info mt-3 mt-md-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle me-2 me-md-3 mt-1"></i>
+                            <div>
+                                <strong class="d-block mb-1">Nota Importante:</strong>
+                                <p class="mb-0 small">Enquanto não configurar o Gemini corretamente, use a <strong>Análise Manual</strong> disponível na página.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-light border mt-3">
+                        <h6 class="mb-2"><i class="fas fa-lightbulb me-2 text-warning"></i>Dica Rápida</h6>
+                        <p class="small mb-0">Teste se está funcionando com: <code class="d-block d-sm-inline">python -c "import google.genai; print(google.genai.__version__)"</code></p>
+                        <p class="small mb-0 mt-1">Versão esperada: <code>0.3.0</code></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-warning" onclick="testarGeminiAposConfig()">
+                        <i class="fas fa-vial me-1"></i> Testar após configurar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exemplos de Análise -->
+    <div class="modal fade" id="modalExemplosAnalise" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i> Exemplos de Análise
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="accordion" id="accordionExemplos">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                                    Exemplo 1: Radiografia de Tórax
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#accordionExemplos">
+                                <div class="accordion-body">
+                                    <pre class="bg-light p-2 p-md-3 rounded small">📋 RELATÓRIO DE RADIOGRAFIA DE TÓRAX
+
+PACIENTE: João da Silva, 45 anos, masculino
+
+IMPRESSÃO DIAGNÓSTICA:
+1. Pneumonia bacteriana no lobo inferior direito
+2. Derrame pleural discreto à direita
+3. Coração com dimensões normais
+
+DESCRIÇÃO:
+- Pulmões: Infiltrado alveolar no lobo inferior direito...
+- Mediastino: Normal...
+- Ossos: Sem fraturas visíveis...
+
+RECOMENDAÇÕES:
+1. Antibioticoterapia conforme protocolo
+2. Nova radiografia em 7 dias
+3. Avaliação clínica diária
+
+Analista: Dr. Carlos Mendes
+Data: 15/03/2024</pre>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                                    Exemplo 2: Ultrassom Abdominal
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExemplos">
+                                <div class="accordion-body">
+                                    <pre class="bg-light p-2 p-md-3 rounded small">📋 RELATÓRIO DE ULTRASSOM ABDOMINAL
+
+CONCLUSÕES PRINCIPAIS:
+1. Colelitíase múltipla
+2. Fígado com esteatose grau II
+3. Rim direito com cálculo de 8mm
+
+RECOMENDAÇÕES:
+- Dieta hipolipídica
+- Controle em 6 meses
+- Avaliação cirúrgica para colelitíase</pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Estado global da aplicação
+        const APP_STATE = {
+            geminiAvailable: {{ gemini_available|tojson|default(false) }},
+            pedidoId: {{ pedido.id|tojson|default(0) }},
+            pedidoStatus: {{ pedido.status|tojson|default('pendente') }},
+            analistaNome: {{ session.get('user_name', 'Analista')|tojson|default('Analista') }},
+            pacienteNome: {{ pedido.paciente_nome|tojson|default('Paciente') }},
+            pacienteIdade: {{ pedido.paciente_idade|tojson|default('') }},
+            pacienteGenero: {{ pedido.paciente_genero|tojson|default('') }},
+            modeloGemini: {{ MODEL_NAME|tojson|default('gemini-pro-vision') }},
+            pedidoUrgencia: {{ pedido.urgencia|tojson|default('normal') }},
+            rascunhoSalvo: false,
+            isMobile: window.innerWidth <= 768
+        };
+
+        // Detectar mobile
+        window.addEventListener('resize', function() {
+            APP_STATE.isMobile = window.innerWidth <= 768;
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Sistema de Análise Médica - Pedido #' + APP_STATE.pedidoId);
+            inicializarAplicacao();
+        });
+
+        function inicializarAplicacao() {
+            // Verificar estado do Gemini
+            verificarEstadoGemini();
+            
+            // Configurar listeners
+            configurarEventListeners();
+            
+            // Carregar rascunho salvo
+            carregarRascunhoSalvo();
+            
+            // Inicializar validação de formulário
+            inicializarValidacaoFormulario();
+            
+            // Configurar preview de imagem
+            configurarPreviewImagem();
+        }
+
+        function verificarEstadoGemini() {
+            const btnIA = document.getElementById('btnAnalisarIA');
+            const statusGemini = document.getElementById('statusGemini');
+            
+            if (!APP_STATE.geminiAvailable) {
+                if (btnIA) {
+                    btnIA.disabled = true;
+                    btnIA.className = 'btn btn-secondary disabled';
+                    btnIA.innerHTML = '<i class="fas fa-robot me-2"></i> API Gemini com problemas';
+                }
+                
+                if (statusGemini) {
+                    statusGemini.innerHTML = '<i class="fas fa-exclamation-triangle text-danger me-1"></i>API com Erro';
+                }
+            }
+        }
+
+        function configurarEventListeners() {
+            // Botão de configuração do Gemini
+            const btnConfigurarGemini = document.getElementById('btnConfigurarGemini');
+            if (btnConfigurarGemini) {
+                btnConfigurarGemini.addEventListener('click', mostrarInstrucoesGemini);
+            }
+
+            // Botão para testar Gemini
+            const btnTestarGemini = document.getElementById('btnTestarGemini');
+            if (btnTestarGemini) {
+                btnTestarGemini.addEventListener('click', testarConexaoGemini);
+            }
+
+            // Análise com IA
+            const formAnaliseImagem = document.getElementById('analiseForm');
+            if (formAnaliseImagem) {
+                formAnaliseImagem.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    await analisarImagemComIA();
+                });
+            }
+
+            // Análise manual
+            const btnAnaliseLocal = document.getElementById('btnAnaliseLocal');
+            if (btnAnaliseLocal) {
+                btnAnaliseLocal.addEventListener('click', gerarAnaliseManual);
+            }
+
+            // Concluir análise
+            const btnConcluirAnalise = document.getElementById('btnConcluirAnalise');
+            if (btnConcluirAnalise) {
+                btnConcluirAnalise.addEventListener('click', function() {
+                    const formResultados = document.getElementById('formResultadosFinais');
+                    if (formResultados) {
+                        formResultados.style.display = 'block';
+                        formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        
+                        // Preencher campos se existirem dados
+                        if (APP_STATE.rascunhoSalvo) {
+                            document.getElementById('resultado_analise').value = localStorage.getItem(`rascunho_resultado_${APP_STATE.pedidoId}`) || '';
+                            document.getElementById('diagnostico_analista').value = localStorage.getItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`) || '';
+                            document.getElementById('recomendacoes_analista').value = localStorage.getItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`) || '';
+                        }
+                    }
+                });
+            }
+
+            // Botão de refresh
+            const btnRefreshResultados = document.getElementById('btnRefreshResultados');
+            if (btnRefreshResultados) {
+                btnRefreshResultados.addEventListener('click', function() {
+                    location.reload();
+                });
+            }
+
+            // Botão de instruções IA
+            const btnInstrucoesIA = document.getElementById('btnInstrucoesIA');
+            if (btnInstrucoesIA) {
+                btnInstrucoesIA.addEventListener('click', mostrarDicasAnalise);
+            }
+
+            // Botão limpar formulário
+            const btnLimparForm = document.getElementById('btnLimparForm');
+            if (btnLimparForm) {
+                btnLimparForm.addEventListener('click', limparFormularioAnalise);
+            }
+
+            // Upload de resultados
+            const btnUploadResultados = document.getElementById('btnUploadResultados');
+            if (btnUploadResultados) {
+                btnUploadResultados.addEventListener('click', function() {
+                    document.getElementById('imagem').click();
+                });
+            }
+
+            // Salvar rascunho
+            const btnSalvarRascunho = document.getElementById('btnSalvarRascunho');
+            if (btnSalvarRascunho) {
+                btnSalvarRascunho.addEventListener('click', salvarRascunho);
+            }
+        }
+
+        function configurarPreviewImagem() {
+            const fileInput = document.getElementById('imagem');
+            const infoImagem = document.getElementById('infoImagem');
+            const nomeImagemCarregada = document.getElementById('nomeImagemCarregada');
+            const tamanhoImagem = document.getElementById('tamanhoImagem');
+            const dimensoesImagem = document.getElementById('dimensoesImagem');
+            const previewContainer = document.getElementById('previewContainer');
+            const previewImagem = document.getElementById('previewImagem');
+
+            if (fileInput) {
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files[0]) {
+                        const file = this.files[0];
+                        
+                        // Validar tamanho
+                        const maxSize = 10 * 1024 * 1024; // 10MB
+                        if (file.size > maxSize) {
+                            mostrarToast(`Arquivo muito grande. Máximo: ${formatBytes(maxSize)}`, 'warning');
+                            this.value = '';
+                            return;
+                        }
+                        
+                        // Atualizar informações
+                        nomeImagemCarregada.textContent = file.name;
+                        tamanhoImagem.textContent = formatBytes(file.size);
+                        
+                        // Mostrar preview
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            previewImagem.src = e.target.result;
+                            previewContainer.style.display = 'block';
+                            
+                            // Obter dimensões da imagem
+                            const img = new Image();
+                            img.onload = function() {
+                                dimensoesImagem.textContent = `${this.width} × ${this.height}px`;
+                            };
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                        
+                        infoImagem.style.display = 'block';
+                    }
+                });
+            }
+        }
+
+        async function analisarImagemComIA() {
+            try {
+                // Verificar se Gemini está disponível
+                if (!APP_STATE.geminiAvailable) {
+                    mostrarToast('API Gemini não configurada. Use a análise manual.', 'warning');
+                    mostrarInstrucoesGemini();
+                    return;
+                }
+
+                // Validar arquivo
+                const fileInput = document.getElementById('imagem');
+                if (!fileInput.files || !fileInput.files.length) {
+                    mostrarToast('Selecione uma imagem para análise', 'warning');
+                    fileInput.focus();
+                    return;
+                }
+
+                const file = fileInput.files[0];
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                if (file.size > maxSize) {
+                    mostrarToast(`Arquivo muito grande. Máximo: ${formatBytes(maxSize)}`, 'warning');
+                    return;
+                }
+
+                // Validar tipo de arquivo
+                if (!file.type.startsWith('image/')) {
+                    mostrarToast('Arquivo deve ser uma imagem', 'warning');
+                    return;
+                }
+
+                // Obter dados do formulário
+                const tipoAnalise = document.getElementById('tipo_analise').value;
+                if (!tipoAnalise) {
+                    mostrarToast('Selecione o tipo de análise', 'warning');
+                    return;
+                }
+
+                const observacoes = document.getElementById('observacoes_analista').value;
+
+                // Preparar form data
+                const formData = new FormData();
+                formData.append('imagem', file);
+                formData.append('tipo_analise', tipoAnalise);
+                formData.append('observacoes_analista', observacoes);
+                formData.append('detectar_api', 'true');
+
+                // Mostrar loading
+                const btnAnalisar = document.getElementById('btnAnalisarIA');
+                const originalText = btnAnalisar.innerHTML;
+                btnAnalisar.disabled = true;
+                btnAnalisar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processando...';
+
+                // Abrir modal
+                const modal = new bootstrap.Modal(document.getElementById('modalResultadoIA'));
+                modal.show();
+
+                // Atualizar informações no modal
+                atualizarInfoModal(file);
+
+                // Enviar requisição
+                const startTime = Date.now();
+                const response = await fetch(`/analista/api/analisar_imagem/${APP_STATE.pedidoId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const endTime = Date.now();
+                const tempoDecorrido = ((endTime - startTime) / 1000).toFixed(1);
+
+                // Processar resposta
+                processarRespostaAnalise(data, tempoDecorrido);
+
+            } catch (error) {
+                console.error('Erro na análise:', error);
+                mostrarErroAnalise(error);
+            } finally {
+                // Restaurar botão
+                const btnAnalisar = document.getElementById('btnAnalisarIA');
+                if (btnAnalisar) {
+                    btnAnalisar.disabled = false;
+                    btnAnalisar.innerHTML = '<i class="fas fa-robot me-2"></i> Analisar com IA (Gemini)';
+                }
+            }
+        }
+
+        function atualizarInfoModal(file) {
+            // Atualizar informações do arquivo
+            const nomeArquivo = document.getElementById('nomeArquivo');
+            const tamanhoArquivo = document.getElementById('tamanhoArquivo');
+            const formatoArquivo = document.getElementById('formatoArquivo');
+            const tempoAnalise = document.getElementById('tempoAnalise');
+
+            if (nomeArquivo) nomeArquivo.textContent = file.name;
+            if (tamanhoArquivo) tamanhoArquivo.textContent = formatBytes(file.size);
+            if (formatoArquivo) {
+                const ext = file.name.split('.').pop().toUpperCase();
+                formatoArquivo.textContent = ext || 'Desconhecido';
+            }
+            if (tempoAnalise) tempoAnalise.textContent = 'Processando...';
+
+            // Mostrar prévia da imagem
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imagemPreview = document.getElementById('imagemPreview');
+                if (imagemPreview) {
+                    imagemPreview.innerHTML = `
+                        <img src="${e.target.result}" 
+                             alt="Imagem analisada" 
+                             class="img-fluid rounded shadow">
+                    `;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processarRespostaAnalise(data, tempoDecorrido) {
+            const diagnosticoIA = document.getElementById('diagnosticoIA');
+            const statusAnalise = document.getElementById('statusAnalise');
+            const tempoAnalise = document.getElementById('tempoAnalise');
+            const geminiWarning = document.getElementById('geminiWarning');
+            const warningText = document.getElementById('warningText');
+            const apiVersionWarning = document.getElementById('apiVersionWarning');
+
+            // Atualizar status
+            if (statusAnalise) {
+                if (data.warning) {
+                    statusAnalise.className = 'badge bg-warning';
+                    statusAnalise.textContent = 'API Desatualizada';
+                    if (apiVersionWarning) apiVersionWarning.style.display = 'inline-block';
+                } else {
+                    statusAnalise.className = 'badge bg-success';
+                    statusAnalise.textContent = 'Concluído';
+                }
+            }
+
+            // Atualizar tempo
+            if (tempoAnalise) {
+                tempoAnalise.innerHTML = `<i class="fas fa-clock me-1"></i> ${tempoDecorrido} segundos`;
+            }
+
+            // Mostrar avisos
+            if (data.warning && geminiWarning && warningText) {
+                geminiWarning.style.display = 'block';
+                warningText.textContent = data.warning;
+            }
+
+            // Mostrar diagnóstico
+            if (diagnosticoIA) {
+                diagnosticoIA.innerHTML = formatarDiagnosticoIA(data.diagnostico || 'Nenhum diagnóstico gerado', data.warning);
+            }
+
+            // Configurar botões do modal
+            configurarBotoesModal(data.diagnostico || '');
+        }
+
+        function formatarDiagnosticoIA(texto, warning) {
+            if (!texto) return '<p class="text-muted text-center py-4 py-md-5">Nenhum diagnóstico disponível</p>';
+            
+            let html = texto
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/### (.*?)(<br>|$)/g, '<h6 class="text-secondary mt-2 mt-md-3">$1</h6>')
+                .replace(/## (.*?)(<br>|$)/g, '<h5 class="text-primary mt-2 mt-md-3">$1</h5>')
+                .replace(/# (.*?)(<br>|$)/g, '<h4 class="text-primary border-bottom pb-2 mt-2 mt-md-3">$1</h4>')
+                .replace(/📋 (.*?)(<br>|$)/g, '<h5 class="text-primary mb-2">📋 $1</h5>')
+                .replace(/⚠️ (.*?)(<br>|$)/g, '<div class="alert alert-warning p-2 p-md-3 mb-3"><i class="fas fa-exclamation-triangle me-2"></i> $1</div>')
+                .replace(/✅ (.*?)(<br>|$)/g, '<div class="alert alert-success p-2 p-md-3 mb-3"><i class="fas fa-check-circle me-2"></i> $1</div>');
+            
+            // Adicionar aviso se existir
+            if (warning) {
+                html += `
+                    <div class="alert alert-warning mt-3 p-2 p-md-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Aviso da API:</strong> ${warning}
+                        <div class="mt-2">
+                            <button class="btn btn-sm btn-outline-warning w-100 w-md-auto" onclick="mostrarInstrucoesGemini()">
+                                <i class="fas fa-cog me-1"></i> Ver instruções
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            return html;
+        }
+
+        function configurarBotoesModal(diagnostico) {
+            // Botão copiar
+            const btnCopiar = document.getElementById('btnCopiarDiagnostico');
+            if (btnCopiar) {
+                btnCopiar.onclick = function() {
+                    navigator.clipboard.writeText(diagnostico)
+                        .then(() => mostrarToast('Diagnóstico copiado!', 'success'))
+                        .catch(() => mostrarToast('Erro ao copiar', 'danger'));
+                };
+            }
+
+            // Botão "ANÁLISE CONCLUÍDA"
+            const btnConcluirAgora = document.getElementById('btnConcluirAgora');
+            if (btnConcluirAgora) {
+                btnConcluirAgora.onclick = function() {
+                    // Preencher todos os campos automaticamente
+                    const resultadoField = document.getElementById('resultado_analise');
+                    const diagnosticoField = document.getElementById('diagnostico_analista');
+                    const recomendacoesField = document.getElementById('recomendacoes_analista');
+                    
+                    if (resultadoField) {
+                        resultadoField.value = diagnostico;
+                    }
+                    
+                    // Extrair diagnóstico principal do texto
+                    const diagnosticoPrincipal = extrairDiagnosticoPrincipal(diagnostico);
+                    if (diagnosticoField) {
+                        diagnosticoField.value = diagnosticoPrincipal || diagnostico.split('\n')[0] || diagnostico.substring(0, 200);
+                    }
+                    
+                    // Extrair recomendações do texto
+                    const recomendacoes = extrairRecomendacoes(diagnostico);
+                    if (recomendacoesField && recomendacoes) {
+                        recomendacoesField.value = recomendacoes;
+                    }
+                    
+                    // Fechar modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalResultadoIA'));
+                    if (modal) modal.hide();
+                    
+                    // Mostrar formulário de conclusão
+                    const formResultados = document.getElementById('formResultadosFinais');
+                    if (formResultados) {
+                        formResultados.style.display = 'block';
+                        setTimeout(() => {
+                            formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 500);
+                    }
+                    
+                    // Marcar como concluído
+                    mostrarToast('Diagnóstico preenchido automaticamente! Verifique e conclua a análise.', 'success');
+                    
+                    // Atualizar status
+                    const statusGemini = document.getElementById('statusGemini');
+                    if (statusGemini) {
+                        statusGemini.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>ANÁLISE CONCLUÍDA';
+                        statusGemini.className = 'badge bg-success';
+                    }
+                    
+                    // Salvar rascunho automaticamente
+                    salvarRascunho();
+                };
+            }
+
+            // Botão usar
+            const btnUsar = document.getElementById('btnUsarDiagnostico');
+            if (btnUsar) {
+                btnUsar.onclick = function() {
+                    const resultadoField = document.getElementById('resultado_analise');
+                    if (resultadoField) {
+                        resultadoField.value = diagnostico;
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalResultadoIA'));
+                        if (modal) modal.hide();
+                        
+                        mostrarToast('Diagnóstico copiado para o formulário!', 'success');
+                        
+                        // Mostrar formulário de resultados
+                        const formResultados = document.getElementById('formResultadosFinais');
+                        if (formResultados) {
+                            formResultados.style.display = 'block';
+                            setTimeout(() => {
+                                formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 500);
+                        }
+                    }
+                };
+            }
+
+            // Botão testar nova API
+            const btnTestarNovaAPI = document.getElementById('btnTestarNovaAPI');
+            if (btnTestarNovaAPI) {
+                btnTestarNovaAPI.onclick = mostrarInstrucoesGemini;
+            }
+
+            // Botão melhorar texto
+            const btnMelhorarTexto = document.getElementById('btnMelhorarTexto');
+            if (btnMelhorarTexto) {
+                btnMelhorarTexto.onclick = function() {
+                    if (APP_STATE.geminiAvailable) {
+                        mostrarToast('Funcionalidade em desenvolvimento', 'info');
+                    } else {
+                        mostrarToast('API Gemini não disponível', 'warning');
+                        mostrarInstrucoesGemini();
+                    }
+                };
+            }
+        }
+
+        // Funções auxiliares
+        function extrairDiagnosticoPrincipal(texto) {
+            const linhas = texto.split('\n');
+            for (let linha of linhas) {
+                if (linha.includes('DIAGNÓSTICO:') || linha.includes('DIAGNOSTICO:') || 
+                    linha.includes('IMPRESSÃO DIAGNÓSTICA:') || linha.includes('CONCLUSÃO:')) {
+                    return linha.replace(/^.*?(DIAGNÓSTICO|DIAGNOSTICO|IMPRESSÃO DIAGNÓSTICA|CONCLUSÃO):\s*/i, '');
+                }
+            }
+            
+            // Se não encontrar, pegar a primeira linha após o título
+            for (let i = 0; i < linhas.length; i++) {
+                if (linhas[i].trim() && !linhas[i].includes('📋') && !linhas[i].includes('**')) {
+                    return linhas[i].substring(0, 200);
+                }
+            }
+            
+            return texto.substring(0, 200);
+        }
+
+        function extrairRecomendacoes(texto) {
+            const linhas = texto.split('\n');
+            let emRecomendacoes = false;
+            const recomendacoes = [];
+            
+            for (let linha of linhas) {
+                if (linha.includes('RECOMENDAÇÕES:') || linha.includes('RECOMENDACOES:')) {
+                    emRecomendacoes = true;
+                    continue;
+                }
+                
+                if (emRecomendacoes) {
+                    if (linha.includes('---') || linha.includes('**') || linha.includes('ANALISTA:')) {
+                        break;
+                    }
+                    if (linha.trim()) {
+                        recomendacoes.push(linha.trim());
+                    }
+                }
+            }
+            
+            return recomendacoes.join('\n') || 'Baseado na análise, siga as orientações médicas padrão para o diagnóstico apresentado.';
+        }
+
+        function mostrarErroAnalise(error) {
+            const diagnosticoIA = document.getElementById('diagnosticoIA');
+            const statusAnalise = document.getElementById('statusAnalise');
+            
+            if (diagnosticoIA) {
+                diagnosticoIA.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5><i class="fas fa-exclamation-circle me-2"></i> Erro na análise</h5>
+                        <p class="small">${error.message || 'Erro desconhecido'}</p>
+                        <hr>
+                        <p class="small mb-2">Possíveis soluções:</p>
+                        <ul class="small">
+                            <li>Verifique a conexão com a internet</li>
+                            <li>Configure a API Gemini corretamente</li>
+                            <li>Use a análise manual como alternativa</li>
+                        </ul>
+                        <div class="mt-3 d-flex flex-column flex-sm-row gap-2">
+                            <button class="btn btn-sm btn-outline-warning" onclick="mostrarInstrucoesGemini()">
+                                <i class="fas fa-cog me-1"></i> Configurar API
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="gerarAnaliseManual()">
+                                <i class="fas fa-user-md me-1"></i> Análise Manual
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (statusAnalise) {
+                statusAnalise.className = 'badge bg-danger';
+                statusAnalise.textContent = 'Erro';
+            }
+            
+            mostrarToast('Erro na análise: ' + error.message, 'danger');
+        }
+
+        // Funções Auxiliares
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        function mostrarToast(message, type = 'info') {
+            const toastId = 'toast-' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${type}" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            let container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(container);
+            }
+            
+            container.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function() {
+                toastEl.remove();
+            });
+        }
+
+        // Funções Globais
+        window.mostrarInstrucoesGemini = function() {
+            const modal = new bootstrap.Modal(document.getElementById('modalInstrucoesGemini'));
+            modal.show();
+        };
+
+        window.testarConexaoGemini = async function() {
+            try {
+                mostrarToast('Testando conexão com Gemini API...', 'info');
+                
+                const response = await fetch('/analista/api/gemini-status');
+                const data = await response.json();
+                
+                if (data.gemini_available) {
+                    mostrarToast(`Gemini disponível: ${data.model_name}`, 'success');
+                } else {
+                    mostrarToast('Gemini não disponível. Verifique a configuração.', 'warning');
+                    mostrarInstrucoesGemini();
+                }
+            } catch (error) {
+                mostrarToast('Erro ao testar Gemini: ' + error.message, 'danger');
+            }
+        };
+
+        window.gerarAnaliseManual = function() {
+            const fileInput = document.getElementById('imagem');
+            if (!fileInput.files || !fileInput.files.length) {
+                mostrarToast('Selecione uma imagem para análise', 'warning');
+                fileInput.focus();
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            const tipoAnalise = document.getElementById('tipo_analise').value;
+            if (!tipoAnalise) {
+                mostrarToast('Selecione o tipo de análise', 'warning');
+                return;
+            }
+
+            const observacoes = document.getElementById('observacoes_analista').value;
+            
+            // Obter dados do paciente
+            const dadosPaciente = document.getElementById('dadosPaciente');
+            const pacienteIdade = dadosPaciente ? dadosPaciente.dataset.pacienteIdade : 'Não informada';
+            const pacienteGenero = dadosPaciente ? dadosPaciente.dataset.pacienteGenero : 'Não informado';
+            const tipoExame = dadosPaciente ? dadosPaciente.dataset.tipoExame : 'Não especificado';
+            const descricao = dadosPaciente ? dadosPaciente.dataset.descricao : '';
+            
+            // Gerar template de análise manual
+            const diagnosticoManual = `
+📋 **RELATÓRIO DE ANÁLISE MÉDICA - MODO MANUAL**
+
+**DATA DA ANÁLISE:** ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+**PEDIDO:** #${APP_STATE.pedidoId}
+**PACIENTE:** ${APP_STATE.pacienteNome}
+**IDADE:** ${pacienteIdade}
+**GÊNERO:** ${pacienteGenero}
+**TIPO DE EXAME:** ${tipoExame}
+**DESCRIÇÃO CLÍNICA:** ${descricao || 'Não informada'}
+**OBSERVAÇÕES DO ANALISTA:** ${observacoes || 'Nenhuma'}
+**ARQUIVO ANALISADO:** ${file.name}
+**TIPO DE ANÁLISE:** ${tipoAnalise}
+
+**CONTEXTO CLÍNICO:**
+- Paciente apresenta ${descricao ? descricao.toLowerCase() : 'condição clínica não especificada'}
+- Exame solicitado por ${APP_STATE.pacienteGenero === 'Masculino' ? 'o médico' : 'a médica'}
+- Urgência: ${APP_STATE.pedidoUrgencia || 'Normal'}
+
+**METODOLOGIA DA ANÁLISE:**
+1. Avaliação visual completa da imagem
+2. Identificação de estruturas anatômicas
+3. Busca por anomalias ou padrões incomuns
+4. Comparação com imagens de referência
+5. Consideração do contexto clínico fornecido
+
+**ACHADOS DA ANÁLISE:**
+
+**1. ESTRUTURAS IDENTIFICADAS:**
+- [Descrever estruturas normais identificadas]
+- [Mencionar qualidade técnica da imagem]
+- [Observar posicionamento e técnica]
+
+**2. ANOMALIAS DETECTADAS:**
+- [Listar todas as anomalias encontradas]
+- [Descrever localização e características]
+- [Fornecer medidas quando aplicável]
+
+**3. ACHADOS RELEVANTES:**
+- [Destacar achados significativos]
+- [Classificar por relevância clínica]
+- [Mencionar padrões ou sinais característicos]
+
+**4. AUSÊNCIA DE ACHADOS:**
+- [Mencionar achados que não foram encontrados]
+- [Esclarecer quando a ausência é significativa]
+
+**IMPRESSÃO DIAGNÓSTICA:**
+[Fornecer diagnóstico principal baseado nos achados]
+
+**DIAGNÓSTICOS DIFERENCIAIS:**
+1. [Primeira possibilidade diagnóstica]
+2. [Segunda possibilidade diagnóstica]
+3. [Terceira possibilidade diagnóstica]
+
+**RECOMENDAÇÕES:**
+
+**1. PARA O MÉDICO ASSISTENTE:**
+- [Recomendações específicas para conduta]
+- [Exames complementares sugeridos]
+- [Encaminhamentos necessários]
+
+**2. PARA O PACIENTE:**
+- [Orientações gerais]
+- [Sinais de alerta para retorno]
+- [Cuidados específicos]
+
+**3. PRÓXIMOS PASSOS:**
+- [Plano de acompanhamento]
+- [Prazos para reavaliação]
+- [Critérios para intervenção]
+
+**NÍVEL DE URGÊNCIA:**
+[Classificar como: URGENTE, ALTA PRIORIDADE ou ROTINA]
+
+**COMENTÁRIOS ADICIONAIS:**
+[Espaço para observações complementares]
+
+---
+**ANALISTA RESPONSÁVEL:** ${APP_STATE.analistaNome}
+**DATA E HORA:** ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+**CRM/COREN/REGISTRO:** [Inserir registro profissional]
+
+*Este é um template de análise. Preencha todas as seções com base na avaliação da imagem.*
+            `;
+            
+            // Preencher campo de resultado
+            const resultadoField = document.getElementById('resultado_analise');
+            if (resultadoField) {
+                resultadoField.value = diagnosticoManual;
+                mostrarToast('Template de análise manual gerado!', 'success');
+                
+                // Mostrar formulário de resultados
+                const formResultados = document.getElementById('formResultadosFinais');
+                if (formResultados) {
+                    formResultados.style.display = 'block';
+                    setTimeout(() => {
+                        formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 500);
+                }
+            }
+        };
+
+        window.exportarResultado = function() {
+            const resultado = document.getElementById('receitaContent')?.innerText || 
+                            document.getElementById('resultado_analise')?.value || 
+                            'Nenhum resultado disponível';
+            
+            const blob = new Blob([resultado], { type: 'text/plain;charset=utf-8' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resultado_analise_pedido_${APP_STATE.pedidoId}_${new Date().toISOString().slice(0,10)}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            mostrarToast('Resultado exportado com sucesso!', 'success');
+        };
+
+        window.editarResultado = function() {
+            const resultadoExistente = document.getElementById('receitaContent')?.innerText;
+            if (resultadoExistente) {
+                const resultadoField = document.getElementById('resultado_analise');
+                if (resultadoField) {
+                    resultadoField.value = resultadoExistente;
+                    
+                    const formResultados = document.getElementById('formResultadosFinais');
+                    if (formResultados) {
+                        formResultados.style.display = 'block';
+                        formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            }
+        };
+
+        window.limparResultado = function() {
+            if (confirm('Tem certeza que deseja limpar o resultado da análise?')) {
+                const resultadoField = document.getElementById('resultado_analise');
+                const diagnosticoField = document.getElementById('diagnostico_analista');
+                const recomendacoesField = document.getElementById('recomendacoes_analista');
+                
+                if (resultadoField) resultadoField.value = '';
+                if (diagnosticoField) diagnosticoField.value = '';
+                if (recomendacoesField) recomendacoesField.value = '';
+                
+                // Limpar rascunho do localStorage
+                localStorage.removeItem(`rascunho_resultado_${APP_STATE.pedidoId}`);
+                localStorage.removeItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`);
+                localStorage.removeItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`);
+                localStorage.removeItem(`rascunho_timestamp_${APP_STATE.pedidoId}`);
+                APP_STATE.rascunhoSalvo = false;
+                
+                mostrarToast('Resultado limpo!', 'info');
+            }
+        };
+
+        window.validarFormulario = function() {
+            const resultado = document.getElementById('resultado_analise')?.value.trim() || '';
+            const diagnostico = document.getElementById('diagnostico_analista')?.value.trim() || '';
+            
+            if (!resultado || !diagnostico) {
+                mostrarToast('Resultado e diagnóstico são obrigatórios!', 'warning');
+                return false;
+            }
+            
+            if (resultado.length < 50) {
+                mostrarToast('O resultado deve ter pelo menos 50 caracteres.', 'warning');
+                return false;
+            }
+            
+            if (diagnostico.length < 20) {
+                mostrarToast('O diagnóstico deve ter pelo menos 20 caracteres.', 'warning');
+                return false;
+            }
+            
+            return true;
+        };
+
+        window.salvarRascunho = function() {
+            const resultado = document.getElementById('resultado_analise')?.value.trim() || '';
+            const diagnostico = document.getElementById('diagnostico_analista')?.value.trim() || '';
+            const recomendacoes = document.getElementById('recomendacoes_analista')?.value.trim() || '';
+            
+            if (!resultado && !diagnostico && !recomendacoes) {
+                mostrarToast('Nenhum dado para salvar.', 'info');
+                return;
+            }
+            
+            // Salvar no localStorage
+            localStorage.setItem(`rascunho_resultado_${APP_STATE.pedidoId}`, resultado);
+            localStorage.setItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`, diagnostico);
+            localStorage.setItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`, recomendacoes);
+            localStorage.setItem(`rascunho_timestamp_${APP_STATE.pedidoId}`, new Date().toISOString());
+            
+            APP_STATE.rascunhoSalvo = true;
+            mostrarToast('Rascunho salvo localmente!', 'success');
+        };
+
+        function carregarRascunhoSalvo() {
+            const resultado = localStorage.getItem(`rascunho_resultado_${APP_STATE.pedidoId}`);
+            const diagnostico = localStorage.getItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`);
+            const recomendacoes = localStorage.getItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`);
+            const timestamp = localStorage.getItem(`rascunho_timestamp_${APP_STATE.pedidoId}`);
+            
+            if (resultado || diagnostico || recomendacoes) {
+                APP_STATE.rascunhoSalvo = true;
+                
+                // Atualizar campos se existirem
+                const resultadoField = document.getElementById('resultado_analise');
+                const diagnosticoField = document.getElementById('diagnostico_analista');
+                const recomendacoesField = document.getElementById('recomendacoes_analista');
+                
+                if (resultadoField && resultado) resultadoField.value = resultado;
+                if (diagnosticoField && diagnostico) diagnosticoField.value = diagnostico;
+                if (recomendacoesField && recomendacoes) recomendacoesField.value = recomendacoes;
+                
+                // Mostrar notificação
+                if (timestamp) {
+                    const data = new Date(timestamp);
+                    mostrarToast(`Rascunho carregado (salvo em ${data.toLocaleTimeString()})`, 'info');
+                }
+            }
+        }
+
+        window.cancelarAnalise = function() {
+            if (confirm('Tem certeza que deseja cancelar a análise? Os dados não salvos serão perdidos.')) {
+                // Limpar formulário
+                const resultadoField = document.getElementById('resultado_analise');
+                const diagnosticoField = document.getElementById('diagnostico_analista');
+                const recomendacoesField = document.getElementById('recomendacoes_analista');
+                
+                if (resultadoField) resultadoField.value = '';
+                if (diagnosticoField) diagnosticoField.value = '';
+                if (recomendacoesField) recomendacoesField.value = '';
+                
+                // Esconder formulário
+                const formResultados = document.getElementById('formResultadosFinais');
+                if (formResultados) {
+                    formResultados.style.display = 'none';
+                }
+                
+                mostrarToast('Análise cancelada', 'info');
+            }
+        };
+
+        window.removerImagem = function() {
+            const fileInput = document.getElementById('imagem');
+            const infoImagem = document.getElementById('infoImagem');
+            const previewContainer = document.getElementById('previewContainer');
+            
+            if (fileInput) fileInput.value = '';
+            if (infoImagem) infoImagem.style.display = 'none';
+            if (previewContainer) previewContainer.style.display = 'none';
+            
+            mostrarToast('Imagem removida', 'info');
+        };
+
+        window.formatarTexto = function(campoId) {
+            const campo = document.getElementById(campoId);
+            if (!campo) return;
+            
+            const texto = campo.value;
+            const selecao = texto.substring(campo.selectionStart, campo.selectionEnd);
+            
+            if (selecao) {
+                // Formatar texto selecionado
+                const novoTexto = texto.substring(0, campo.selectionStart) + 
+                                '**' + selecao + '**' + 
+                                texto.substring(campo.selectionEnd);
+                campo.value = novoTexto;
+            } else {
+                // Se não houver seleção, adicionar formatação no cursor
+                const cursorPos = campo.selectionStart;
+                const novoTexto = texto.substring(0, cursorPos) + '**texto**' + texto.substring(cursorPos);
+                campo.value = novoTexto;
+            }
+            
+            campo.focus();
+        };
+
+        window.inserirTemplate = function(campoId) {
+            const campo = document.getElementById(campoId);
+            if (!campo) return;
+            
+            const template = `📋 **TÍTULO DA ANÁLISE**
+
+**DATA:** ${new Date().toLocaleDateString('pt-BR')}
+**PACIENTE:** ${APP_STATE.pacienteNome}
+**ID:** #${APP_STATE.pedidoId}
+
+**ACHADOS:**
+- Achado 1: Descrição detalhada
+- Achado 2: Descrição detalhada
+- Achado 3: Descrição detalhada
+
+**IMPRESSÃO DIAGNÓSTICA:**
+Diagnóstico principal aqui.
+
+**RECOMENDAÇÕES:**
+1. Recomendação 1
+2. Recomendação 2
+3. Recomendação 3
+
+**ANALISTA:** ${APP_STATE.analistaNome}
+**DATA:** ${new Date().toLocaleDateString('pt-BR')}`;
+            
+            campo.value = template;
+            mostrarToast('Template inserido!', 'success');
+        };
+
+        window.mostrarExemplosAnalise = function() {
+            const modal = new bootstrap.Modal(document.getElementById('modalExemplosAnalise'));
+            modal.show();
+        };
+
+        window.mostrarDicasAnalise = function() {
+            const dicas = [
+                "Dica 1: Sempre revise o contexto clínico do paciente antes da análise.",
+                "Dica 2: Use termos médicos precisos, mas explique quando necessário.",
+                "Dica 3: Estruture seu relatório com títulos claros e seções organizadas.",
+                "Dica 4: Inclua sempre o nível de urgência baseado nos achados.",
+                "Dica 5: Faça recomendações específicas e acionáveis.",
+                "Dica 6: Verifique se a imagem tem qualidade suficiente para análise.",
+                "Dica 7: Compare com exames anteriores quando disponíveis.",
+                "Dica 8: Documente achados normais também, isso é importante."
+            ];
+            
+            const dicaAleatoria = dicas[Math.floor(Math.random() * dicas.length)];
+            mostrarToast(dicaAleatoria, 'info');
+        };
+
+        window.limparFormularioAnalise = function() {
+            if (confirm('Limpar todo o formulário de análise?')) {
+                document.getElementById('imagem').value = '';
+                document.getElementById('tipo_analise').value = 'completa';
+                document.getElementById('observacoes_analista').value = '';
+                document.getElementById('infoImagem').style.display = 'none';
+                document.getElementById('previewContainer').style.display = 'none';
+                
+                mostrarToast('Formulário limpo', 'success');
+            }
+        };
+
+        window.visualizarAnexo = function(nomeArquivo) {
+            mostrarToast(`Visualizando: ${nomeArquivo}`, 'info');
+            // Implementar visualização de anexo
+        };
+
+        window.testarGeminiAposConfig = function() {
+            mostrarToast('Configure a API Gemini e reinicie a aplicação.', 'info');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalInstrucoesGemini'));
+            if (modal) modal.hide();
+        };
+
+        function inicializarValidacaoFormulario() {
+            // Validação Bootstrap
+            const forms = document.querySelectorAll('.needs-validation');
+            Array.from(forms).forEach(form => {
+                form.addEventListener('submit', event => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        
+                        // Mostrar mensagens de erro amigáveis
+                        const invalidFields = form.querySelectorAll(':invalid');
+                        if (invalidFields.length > 0) {
+                            const firstInvalid = invalidFields[0];
+                            const label = firstInvalid.previousElementSibling?.textContent || 'Campo';
+                            mostrarToast(`Preencha corretamente: ${label}`, 'warning');
+                        }
+                    }
+                     form.classList.add('was-validated');
+                }, false);
+            });
+        }
+
+        // Prevenir zoom em inputs no mobile
+        if (APP_STATE.isMobile) {
+            const inputs = document.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                input.addEventListener('focus', function() {
+                    document.querySelector('meta[name="viewport"]').setAttribute('content', 
+                        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+                });
+                input.addEventListener('blur', function() {
+                    document.querySelector('meta[name="viewport"]').setAttribute('content', 
+                        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes');
+                });
+            });
+        }
+    </script>
+</body>
+</html>

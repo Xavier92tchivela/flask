@@ -1,0 +1,14 @@
+2026-02-07 14:43:35,440 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): generativelanguage.googleapis.com:443
+2026-02-07 14:43:36,388 - urllib3.connectionpool - DEBUG - https://generativelanguage.googleapis.com:443 "GET /v1beta/tunedModels HTTP/1.1" 200 None
+2026-02-07 14:43:36,597 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:50017
+ * Running on http://192.168.8.157:50017
+2026-02-07 14:43:36,598 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2026-02-07 14:43:36,600 - werkzeug - INFO -  * Restarting with stat
+2026-02-07 14:43:38,376 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): generativelanguage.googleapis.com:443
+2026-02-07 14:43:39,343 - urllib3.connectionpool - DEBUG - https://generativelanguage.googleapis.com:443 "GET /v1beta/tunedModels HTTP/1.1" 200 None
+2026-02-07 14:43:39,579 - werkzeug - WARNING -  * Debugger is active!
+2026-02-07 14:43:39,586 - werkzeug - INFO -  * Debugger PIN: 928-884-353
+2026-02-07 14:45:37,937 - werkzeug - INFO -  * Detected change in 'c:\\Users\\dell\\Videos\\DOCTORIAv7\\app.py', reloading
+2026-02-07 14:45:38,274 - werkzeug - INFO -  * Restarting with stat

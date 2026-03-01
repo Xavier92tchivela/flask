@@ -1,0 +1,134 @@
+{
+  "nome_doenca": "Malária Não Complicada",
+  "codigo_cid": "B50-B54",
+  "protocolo": "OMS 2024",
+  "medicamentos": [
+    {
+      "id": "MAL001",
+      "nome": "Artemeter + Lumefantrina",
+      "apresentacoes": [
+        {
+          "tipo": "comprimido",
+          "dosagem": "20/120mg",
+          "fator_equivalencia": 1
+        },
+        {
+          "tipo": "comprimido",
+          "dosagem": "40/240mg",
+          "fator_equivalencia": 2
+        }
+      ],
+      "posologia_base": {
+        "adulto": "4 comprimidos (20/120mg) por dose",
+        "crianca_5_15kg": "1 comprimido por dose",
+        "crianca_15_25kg": "2 comprimidos por dose",
+        "crianca_25_35kg": "3 comprimidos por dose"
+      },
+      "esquema": {
+        "tipo": "6 doses",
+        "intervalo": "0h, 8h, 24h, 36h, 48h, 60h",
+        "duracao_dias": 3
+      },
+      "frequencia": "2x ao dia",
+      "via": "oral",
+      "contraindicacoes": [
+        "Hipersensibilidade conhecida",
+        "Primeiro trimestre de gestação (avaliar risco/benefício)"
+      ],
+      "efeitos_colaterais": [
+        "Náuseas",
+        "Cefaleia",
+        "Tontura"
+      ],
+      "seguro_gestante": "avaliar_risco",
+      "pediatrico": true,
+      "interacoes_medicamentosas": [
+        "Evitar com medicamentos que prolongam intervalo QT"
+      ],
+      "observacoes": "Primeira linha OMS para malária não complicada"
+    },
+    {
+      "id": "MAL002",
+      "nome": "Artesunato + Amodiaquina",
+      "apresentacoes": [
+        {
+          "tipo": "comprimido",
+          "dosagem": "50/135mg",
+          "fator_equivalencia": 1
+        },
+        {
+          "tipo": "comprimido",
+          "dosagem": "100/270mg",
+          "fator_equivalencia": 2
+        }
+      ],
+      "posologia_base": {
+        "adulto": "4mg/kg/dia de artesunato",
+        "crianca": "4mg/kg/dia de artesunato"
+      },
+      "esquema": {
+        "tipo": "3 dias",
+        "intervalo": "1x ao dia",
+        "duracao_dias": 3
+      },
+      "frequencia": "1x ao dia",
+      "via": "oral",
+      "contraindicacoes": [
+        "Hipersensibilidade",
+        "Problemas hepáticos graves"
+      ],
+      "efeitos_colaterais": [
+        "Bradicardia",
+        "Náuseas",
+        "Vômitos"
+      ],
+      "seguro_gestante": "nao_recomendado",
+      "pediatrico": true,
+      "observacoes": "Alternativa à artemeter-lumefantrina"
+    },
+    {
+      "id": "MAL003",
+      "nome": "Dihidroartemisinina + Piperaquina",
+      "apresentacoes": [
+        {
+          "tipo": "comprimido",
+          "dosagem": "40/320mg",
+          "fator_equivalencia": 1
+        }
+      ],
+      "posologia_base": {
+        "adulto": "2-4 comprimidos/dia",
+        "crianca": "Baseado no peso"
+      },
+      "esquema": {
+        "tipo": "3 dias",
+        "intervalo": "1x ao dia",
+        "duracao_dias": 3
+      },
+      "frequencia": "1x ao dia",
+      "via": "oral",
+      "contraindicacoes": [
+        "Hipersensibilidade"
+      ],
+      "efeitos_colaterais": [
+        "Cefaleia",
+        "Tontura",
+        "Náuseas"
+      ],
+      "seguro_gestante": "avaliar_risco",
+      "pediatrico": true,
+      "observacoes": "ACT de dose única diária"
+    }
+  ],
+  "combinacoes_possiveis": [
+    {
+      "id": "COMB_MAL_001",
+      "medicamentos": ["MAL001", "MAL004"],
+      "descricao": "Artemeter-Lumefantrina + Primaquina",
+      "indicacao": "Malária por P. vivax",
+      "observacoes": "Primaquina apenas após teste G6PD"
+    }
+  ],
+  "ultima_atualizacao": "2024-02-26",
+  "fonte": "OMS - Diretrizes para tratamento da malária 2024"
+}

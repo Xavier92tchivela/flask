@@ -1,0 +1,74 @@
+{
+  "versao": "1.0.0",
+  "ultima_atualizacao": "2024-02-26",
+  "categorias": [
+    {
+      "nome": "MALÁRIA",
+      "pasta": "01_MALARIA",
+      "arquivos": [
+        "malaria_nao_complicada.json",
+        "malaria_grave.json",
+        "malaria_gestante.json",
+        "malaria_combinacoes.json"
+      ],
+      "medicamentos_index": [
+        "Artemeter-Lumefantrina",
+        "Artesunato-Amodiaquina",
+        "Dihidroartemisinina-Piperaquina",
+        "Artesunato IV",
+        "Artemeter IM",
+        "Quinina",
+        "Primaquina"
+      ]
+    },
+    {
+      "nome": "INFECÇÕES BACTERIANAS",
+      "pasta": "02_INFECCOES_BACTERIANAS",
+      "arquivos": [
+        "pneumonia.json",
+        "tuberculose.json",
+        "febre_tifoide.json",
+        "infeccao_urinaria.json",
+        "combinacoes_antibioticos.json"
+      ]
+    },
+    {
+      "nome": "DOENÇAS CRÔNICAS",
+      "pasta": "03_DOENCAS_CRONICAS",
+      "arquivos": [
+        "hipertensao.json",
+        "diabetes.json",
+        "combinacoes_cronicas.json"
+      ]
+    },
+    {
+      "nome": "CARÊNCIAS NUTRICIONAIS",
+      "pasta": "04_CARENCIAS_NUTRICIONAIS",
+      "arquivos": [
+        "anemia.json",
+        "suplementacao.json"
+      ]
+    },
+    {
+      "nome": "ARBOVIROSES",
+      "pasta": "05_DENGUE_E_ARBOVIROSES",
+      "arquivos": [
+        "dengue.json",
+        "chikungunya.json"
+      ]
+    },
+    {
+      "nome": "GRAVIDEZ",
+      "pasta": "06_GRAVIDEZ",
+      "arquivos": [
+        "prenatal.json",
+        "medicamentos_seguros.json"
+      ]
+    }
+  ],
+  "estatisticas": {
+    "total_medicamentos": 45,
+    "total_combinacoes": 23,
+    "total_protocolos": 12
+  }
+}

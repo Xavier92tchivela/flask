@@ -1,0 +1,703 @@
+{% extends "base.html" %}
+
+{% block title %}Analisar Pedido #{{ pedido.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-2 text-gray-800">
+                <i class="fas fa-search me-2"></i>Análise de Pedido
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('analista.dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('analista.pedidos') }}">Pedidos</a></li>
+                    <li class="breadcrumb-item active">Pedido #{{ pedido.id }}</li>
+                </ol>
+            </nav>
+        </div>
+        
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('analista.pedidos') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            {% if pedido.status == 'pendente' %}
+            <form method="POST" class="d-inline">
+                <input type="hidden" name="acao" value="iniciar_analise">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-play"></i> Iniciar Análise
+                </button>
+            </form>
+            {% elif pedido.status == 'em_analise' %}
+            <button type="button" class="btn btn-primary" onclick="concluirAnalise()">
+                <i class="fas fa-check"></i> Concluir Análise
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alertas de Status -->
+    <div class="row mb-4">
+        <div class="col-12">
+            {% if pedido.status == 'pendente' %}
+            <div class="alert alert-warning d-flex align-items-center">
+                <i class="fas fa-clock fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Pedido Pendente</h5>
+                    <p class="mb-0">Este pedido está aguardando início da análise.</p>
+                </div>
+            </div>
+            {% elif pedido.status == 'em_analise' %}
+            <div class="alert alert-info d-flex align-items-center">
+                <i class="fas fa-search fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Análise em Andamento</h5>
+                    <p class="mb-0">Você está analisando este pedido. Não esqueça de concluir.</p>
+                </div>
+            </div>
+            {% elif pedido.status == 'concluido' %}
+            <div class="alert alert-success d-flex align-items-center">
+                <i class="fas fa-check-circle fa-2x me-3"></i>
+                <div>
+                    <h5 class="alert-heading mb-1">Análise Concluída</h5>
+                    <p class="mb-0">Este pedido já foi analisado e está aguardando aprovação do médico.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Coluna Esquerda: Informações do Pedido -->
+        <div class="col-lg-4 mb-4">
+            <!-- Informações do Paciente -->
+            <div class="card shadow h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-user-injured me-1"></i> Informações do Paciente
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="small text-muted mb-1">Nome do Paciente</label>
+                        <p class="mb-3"><strong>{{ pedido.paciente_nome }}</strong></p>
+                        
+                        <label class="small text-muted mb-1">Data de Nascimento</label>
+                        <p class="mb-3">{{ pedido.paciente_data_nascimento or 'Não informado' }}</p>
+                        
+                        <label class="small text-muted mb-1">Gênero</label>
+                        <p class="mb-3">{{ pedido.paciente_genero or 'Não informado' }}</p>
+                        
+                        <label class="small text-muted mb-1">Endereço</label>
+                        <p class="mb-3">{{ pedido.paciente_endereco or 'Não informado' }}</p>
+                        
+                        <label class="small text-muted mb-1">Telefone</label>
+                        <p class="mb-0">{{ pedido.paciente_telefone or 'Não informado' }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Central: Informações da Consulta e Análise -->
+        <div class="col-lg-4 mb-4">
+            <!-- Informações da Consulta -->
+            <div class="card shadow h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-calendar-check me-1"></i> Informações da Consulta
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="small text-muted mb-1">Médico Solicitante</label>
+                        <p class="mb-3">
+                            <strong>{{ pedido.medico_nome }}</strong>
+                            <br><small class="text-muted">{{ pedido.medico_especialidade }} | CRM: {{ pedido.medico_crm }}</small>
+                        </p>
+                        
+                        <label class="small text-muted mb-1">Data da Consulta</label>
+                        <p class="mb-3">{{ pedido.data_consulta.strftime('%d/%m/%Y %H:%M') if pedido.data_consulta else 'Não informado' }}</p>
+                        
+                        <label class="small text-muted mb-1">Observações da Consulta</label>
+                        <p class="mb-3">{{ pedido.observacoes_consulta or 'Nenhuma observação' }}</p>
+                        
+                        <label class="small text-muted mb-1">Tipo de Exame</label>
+                        <p class="mb-0">
+                            <span class="badge bg-primary">{{ pedido.tipo_exame or 'Não especificado' }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Urgência e Status -->
+        <div class="col-lg-4 mb-4">
+            <!-- Status e Urgência -->
+            <div class="card shadow h-100">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-exclamation-triangle me-1"></i> Status e Prioridade
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="small text-muted mb-1">Urgência</label>
+                        <div class="mb-3">
+                            {% if pedido.urgencia == 'urgente' %}
+                            <span class="badge bg-danger p-2 fs-6">
+                                <i class="fas fa-exclamation-triangle"></i> URGENTE
+                            </span>
+                            {% elif pedido.urgencia == 'alta' %}
+                            <span class="badge bg-warning text-dark p-2 fs-6">
+                                <i class="fas fa-exclamation-circle"></i> ALTA PRIORIDADE
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary p-2 fs-6">
+                                <i class="fas fa-info-circle"></i> NORMAL
+                            </span>
+                            {% endif %}
+                        </div>
+                        
+                        <label class="small text-muted mb-1">Status do Pedido</label>
+                        <div class="mb-3">
+                            {% if pedido.status == 'pendente' %}
+                            <span class="badge bg-warning text-dark p-2 fs-6">PENDENTE</span>
+                            {% elif pedido.status == 'em_analise' %}
+                            <span class="badge bg-info p-2 fs-6">EM ANÁLISE</span>
+                            {% elif pedido.status == 'concluido' %}
+                            <span class="badge bg-success p-2 fs-6">CONCLUÍDO</span>
+                            {% endif %}
+                        </div>
+                        
+                        <label class="small text-muted mb-1">Data de Solicitação</label>
+                        <p class="mb-3">{{ pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M') if pedido.data_solicitacao else 'Não informado' }}</p>
+                        
+                        <label class="small text-muted mb-1">Tempo Decorrido</label>
+                        <p class="mb-0">
+                            {% if pedido.data_solicitacao %}
+                                {% set tempo_decorrido = (now - pedido.data_solicitacao).total_seconds() %}
+                                {% if tempo_decorrido > 86400 %}
+                                    {{ "%.0f"|format(tempo_decorrido/86400) }} dias
+                                {% elif tempo_decorrido > 3600 %}
+                                    {{ "%.0f"|format(tempo_decorrido/3600) }} horas
+                                {% else %}
+                                    {{ "%.0f"|format(tempo_decorrido/60) }} minutos
+                                {% endif %}
+                            {% else %}
+                                Não informado
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Descrição e Observações -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-file-alt me-1"></i> Descrição e Observações
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="small text-muted mb-1">Descrição do Exame</label>
+                            <div class="border rounded p-3 mb-3 bg-light">
+                                {{ pedido.descricao or 'Nenhuma descrição fornecida' }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small text-muted mb-1">Observações do Médico</label>
+                            <div class="border rounded p-3 mb-3 bg-light">
+                                {{ pedido.observacoes or 'Nenhuma observação adicional' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Seção de Análise (somente se status for 'em_analise') -->
+    {% if pedido.status == 'em_analise' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-microscope me-1"></i> Realizar Análise
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <!-- Anexos Existentes -->
+                    {% if anexos %}
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-paperclip me-1"></i> Anexos Disponíveis
+                            <span class="badge bg-primary ms-2">{{ anexos|length }}</span>
+                        </h6>
+                        <div class="row">
+                            {% for anexo in anexos %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card border">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="me-3">
+                                                {% if anexo.tipo and 'image' in anexo.tipo %}
+                                                <i class="fas fa-file-image fa-2x text-primary"></i>
+                                                {% else %}
+                                                <i class="fas fa-file fa-2x text-secondary"></i>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-1 small">{{ anexo.nome[:30] }}{% if anexo.nome|length > 30 %}...{% endif %}</h6>
+                                                <p class="mb-0 small text-muted">
+                                                    {% if anexo.tamanho %}
+                                                        {{ "%.2f"|format(anexo.tamanho/1024) }} KB
+                                                    {% endif %}
+                                                    • {{ anexo.data }}
+                                                </p>
+                                            </div>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="{{ url_for('analista.download_anexo', pedido_id=pedido.id, nome_arquivo=anexo.arquivo) }}">
+                                                            <i class="fas fa-download"></i> Baixar
+                                                        </a>
+                                                    </li>
+                                                    {% if 'image' in (anexo.tipo or '') %}
+                                                    <li>
+                                                        <a class="dropdown-item" href="#" onclick="analisarImagem('{{ anexo.arquivo }}', '{{ pedido.id }}')">
+                                                            <i class="fas fa-search"></i> Analisar com IA
+                                                        </a>
+                                                    </li>
+                                                    {% endif %}
+                                                </ul>
+                                            </div>
+                                        </div>
+                                        {% if anexo.analisado_ia %}
+                                        <div class="mt-2">
+                                            <span class="badge bg-success small">
+                                                <i class="fas fa-robot"></i> Analisado por IA
+                                            </span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Upload de Novos Anexos -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-upload me-1"></i> Adicionar Novos Anexos
+                        </h6>
+                        <form method="POST" enctype="multipart/form-data" id="formUploadAnexos">
+                            <input type="hidden" name="acao" value="upload_anexo">
+                            <div class="mb-3">
+                                <label class="form-label">Selecione arquivos de exame</label>
+                                <input class="form-control" type="file" name="anexos" multiple accept="image/*,.pdf,.doc,.docx">
+                                <div class="form-text">Formatos aceitos: imagens (JPG, PNG, GIF), PDF, DOC. Tamanho máximo: 10MB por arquivo.</div>
+                            </div>
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Análise com IA -->
+                    <div class="mb-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-robot me-1"></i> Análise Assistida por IA
+                        </h6>
+                        <div class="alert alert-info">
+                            <p class="mb-2">
+                                <i class="fas fa-info-circle"></i> 
+                                Use a IA para auxiliar na análise das imagens de exame.
+                                A IA irá fornecer uma análise preliminar que você pode ajustar.
+                            </p>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <form id="formAnaliseIA" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label class="form-label">Selecionar imagem para análise</label>
+                                        <input class="form-control" type="file" id="imagemAnalise" accept="image/*" required>
+                                        <div class="form-text">A IA funciona apenas com imagens (JPG, PNG, GIF)</div>
+                                    </div>
+                                    <button type="button" class="btn btn-primary w-100" onclick="analisarImagemUpload()" id="btnAnalisarIA">
+                                        <i class="fas fa-robot"></i> Analisar com IA
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="resultadoAnaliseIA" class="d-none">
+                                    <h6 class="mb-2">Resultado da Análise IA</h6>
+                                    <div class="border rounded p-3 bg-light" style="max-height: 200px; overflow-y: auto;" id="textoAnaliseIA">
+                                        <!-- Resultado da IA aparecerá aqui -->
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-success mt-2" onclick="usarAnaliseIA()">
+                                        <i class="fas fa-check"></i> Usar esta Análise
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulário de Conclusão -->
+                    <div class="border-top pt-4">
+                        <h6 class="mb-3">
+                            <i class="fas fa-edit me-1"></i> Preencher Diagnóstico
+                        </h6>
+                        <form id="formDiagnostico" method="POST">
+                            <input type="hidden" name="acao" value="concluir">
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Diagnóstico do Analista *</label>
+                                <textarea class="form-control" name="diagnostico" rows="6" 
+                                          placeholder="Descreva o diagnóstico baseado na análise dos exames..." 
+                                          id="campoDiagnostico" required>{{ pedido.diagnostico_analista or '' }}</textarea>
+                                <div class="form-text">
+                                    Inclua: achados relevantes, interpretação, conclusão diagnóstica.
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Recomendações</label>
+                                <textarea class="form-control" name="recomendacoes" rows="4" 
+                                          placeholder="Recomendações para o médico (exames complementares, tratamentos, etc.)..."
+                                          id="campoRecomendacoes">{{ pedido.recomendacoes_analista or '' }}</textarea>
+                                <div class="form-text">
+                                    Orientações e sugestões para o médico responsável.
+                                </div>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-secondary" onclick="salvarRascunho()">
+                                    <i class="fas fa-save"></i> Salvar Rascunho
+                                </button>
+                                <button type="submit" class="btn btn-success" id="btnConcluir">
+                                    <i class="fas fa-check-circle"></i> Concluir Análise
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Seção de Resultado (somente se status for 'concluido') -->
+    {% if pedido.status == 'concluido' %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h6 class="m-0 font-weight-bold">
+                        <i class="fas fa-file-medical-alt me-1"></i> Resultado da Análise
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <h6>Diagnóstico</h6>
+                            <div class="border rounded p-4 bg-light mb-4">
+                                {{ pedido.diagnostico_analista|safe or 'Nenhum diagnóstico fornecido' }}
+                            </div>
+                            
+                            {% if pedido.recomendacoes_analista %}
+                            <h6>Recomendações</h6>
+                            <div class="border rounded p-4 bg-light">
+                                {{ pedido.recomendacoes_analista|safe }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">Status da Aprovação</h6>
+                                    <div class="mb-3">
+                                        {% if pedido.status_aprovacao == 'pendente' %}
+                                        <span class="badge bg-warning text-dark p-2 fs-6 w-100">
+                                            <i class="fas fa-clock"></i> AGUARDANDO APROVAÇÃO
+                                        </span>
+                                        <p class="mt-2 small">Aguardando revisão do médico solicitante.</p>
+                                        {% elif pedido.status_aprovacao == 'aprovado' %}
+                                        <span class="badge bg-success p-2 fs-6 w-100">
+                                            <i class="fas fa-check-circle"></i> APROVADO
+                                        </span>
+                                        <p class="mt-2 small">Análise aprovada pelo médico.</p>
+                                        {% elif pedido.status_aprovacao == 'rejeitado' %}
+                                        <span class="badge bg-danger p-2 fs-6 w-100">
+                                            <i class="fas fa-times-circle"></i> REJEITADO
+                                        </span>
+                                        <p class="mt-2 small">Análise rejeitada pelo médico.</p>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if pedido.observacoes_medico %}
+                                    <div class="mt-3">
+                                        <h6>Observações do Médico</h6>
+                                        <div class="border rounded p-3 bg-light">
+                                            {{ pedido.observacoes_medico }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="mt-3">
+                                        <h6>Informações</h6>
+                                        <p class="small mb-1">
+                                            <i class="fas fa-user-md"></i> Analista: {{ pedido.analista_nome or 'Você' }}
+                                        </p>
+                                        <p class="small mb-1">
+                                            <i class="fas fa-calendar"></i> Concluído em: 
+                                            {{ pedido.data_conclusao.strftime('%d/%m/%Y %H:%M') if pedido.data_conclusao else 'N/A' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Análise IA em Progresso -->
+<div class="modal fade" id="modalAnaliseIA" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-robot"></i> Análise com IA
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="progressoAnalise">
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Analisando...</span>
+                        </div>
+                        <h5 class="mt-3">Analisando imagem com IA</h5>
+                        <p class="text-muted">Isso pode levar alguns segundos...</p>
+                        <div class="progress mt-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div id="resultadoAnaliseModal" class="d-none">
+                    <!-- Resultado aparecerá aqui -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary d-none" id="btnUsarAnaliseModal">Usar Análise</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let diagnosticoIAAtual = null;
+
+// Função para analisar imagem via upload
+function analisarImagemUpload() {
+    const input = document.getElementById('imagemAnalise');
+    const btn = document.getElementById('btnAnalisarIA');
+    
+    if (!input.files || input.files.length === 0) {
+        alert('Por favor, selecione uma imagem para análise.');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('imagem', input.files[0]);
+    
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analisando...';
+    btn.disabled = true;
+    
+    fetch(`/analista/analisar-imagem/{{ pedido.id }}`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        btn.innerHTML = '<i class="fas fa-robot"></i> Analisar com IA';
+        btn.disabled = false;
+        
+        if (data.error) {
+            alert('Erro na análise: ' + data.error);
+        } else {
+            diagnosticoIAAtual = data.diagnostico;
+            
+            // Mostrar resultado na seção lateral
+            document.getElementById('resultadoAnaliseIA').classList.remove('d-none');
+            document.getElementById('textoAnaliseIA').innerHTML = data.diagnostico;
+            
+            // Rolar até o resultado
+            document.getElementById('resultadoAnaliseIA').scrollIntoView({ behavior: 'smooth' });
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        btn.innerHTML = '<i class="fas fa-robot"></i> Analisar com IA';
+        btn.disabled = false;
+        alert('Erro de conexão. Tente novamente.');
+    });
+}
+
+// Função para analisar imagem existente
+function analisarImagem(nomeArquivo, pedidoId) {
+    // Implementar análise de imagem existente
+    alert('Funcionalidade em desenvolvimento');
+}
+
+// Função para usar análise da IA no diagnóstico
+function usarAnaliseIA() {
+    if (diagnosticoIAAtual) {
+        const campoDiagnostico = document.getElementById('campoDiagnostico');
+        if (campoDiagnostico) {
+            campoDiagnostico.value = diagnosticoIAAtual;
+            alert('Análise da IA copiada para o campo de diagnóstico!');
+        }
+    }
+}
+
+// Função para salvar rascunho
+function salvarRascunho() {
+    const diagnostico = document.getElementById('campoDiagnostico').value;
+    const recomendacoes = document.getElementById('campoRecomendacoes').value;
+    
+    if (!diagnostico.trim()) {
+        alert('Por favor, preencha o diagnóstico antes de salvar.');
+        return;
+    }
+    
+    // Salvar no localStorage
+    localStorage.setItem('rascunho_diagnostico_{{ pedido.id }}', diagnostico);
+    localStorage.setItem('rascunho_recomendacoes_{{ pedido.id }}', recomendacoes);
+    
+    alert('Rascunho salvo localmente!');
+}
+
+// Função para carregar rascunho salvo
+function carregarRascunho() {
+    const diagnostico = localStorage.getItem('rascunho_diagnostico_{{ pedido.id }}');
+    const recomendacoes = localStorage.getItem('rascunho_recomendacoes_{{ pedido.id }}');
+    
+    if (diagnostico) {
+        document.getElementById('campoDiagnostico').value = diagnostico;
+    }
+    if (recomendacoes) {
+        document.getElementById('campoRecomendacoes').value = recomendacoes;
+    }
+}
+
+// Função para concluir análise
+function concluirAnalise() {
+    const diagnostico = document.getElementById('campoDiagnostico').value;
+    
+    if (!diagnostico.trim()) {
+        alert('Por favor, preencha o campo de diagnóstico.');
+        return;
+    }
+    
+    if (confirm('Tem certeza que deseja concluir esta análise?\n\nApós conclusão, o médico será notificado para revisão.')) {
+        document.getElementById('formDiagnostico').submit();
+    }
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar rascunho salvo
+    carregarRascunho();
+    
+    // Configurar form de upload
+    const formUpload = document.getElementById('formUploadAnexos');
+    if (formUpload) {
+        formUpload.addEventListener('submit', function() {
+            const btn = this.querySelector('button[type="submit"]');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+            btn.disabled = true;
+        });
+    }
+    
+    // Configurar form de diagnóstico
+    const formDiagnostico = document.getElementById('formDiagnostico');
+    if (formDiagnostico) {
+        formDiagnostico.addEventListener('submit', function() {
+            const btn = this.querySelector('#btnConcluir');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Concluindo...';
+            btn.disabled = true;
+        });
+    }
+    
+    // Auto-save a cada 30 segundos
+    if (document.getElementById('campoDiagnostico')) {
+        setInterval(salvarRascunho, 30000);
+    }
+});
+</script>
+
+<style>
+.card {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.card-header {
+    border-bottom: 1px solid #e3e6f0;
+    background-color: #fff;
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.form-control, .form-select {
+    border-radius: 0.375rem;
+}
+
+.btn {
+    border-radius: 0.375rem;
+}
+
+.alert {
+    border-radius: 0.375rem;
+    border: none;
+}
+
+.modal-content {
+    border-radius: 10px;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.progress {
+    height: 0.5rem;
+    border-radius: 0.25rem;
+}
+</style>
+{% endblock %}

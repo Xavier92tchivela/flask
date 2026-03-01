@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Visualizar Receita #{{ receita[0] if receita else '' }}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        /* RESET E VARIÁVEIS */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #f8961e;
+            --dark: #1e1e2f;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --border-radius: 16px;
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        body {
+            background-color: #f1f5f9;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 12px;
+            min-height: 100vh;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            padding: 0;
+            width: 100%;
+        }
+
+        /* CARD PRINCIPAL */
+        .receita-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* HEADER - VERSÃO MOBILE */
+        .receita-header {
+            background: linear-gradient(145deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 20px 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .receita-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(45deg);
+            pointer-events: none;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header-content h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-content h2 i {
+            font-size: 1.8rem;
+        }
+
+        .header-content p {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .header-badge {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* INFO SECTIONS - MOBILE FIRST */
+        .info-section {
+            background: var(--light);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .info-section h5 {
+            color: var(--primary);
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(67, 97, 238, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-section h5 i {
+            font-size: 1.1rem;
+            width: 24px;
+        }
+
+        .info-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .info-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            color: var(--gray);
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--dark);
+            line-height: 1.4;
+            word-break: break-word;
+        }
+
+        .info-value strong {
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        /* BADGES */
+        .badge-status {
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .badge-ativa {
+            background: linear-gradient(145deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .badge-cancelada {
+            background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .badge-pdf {
+            background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+        }
+
+        /* CARDS DE CONTEÚDO */
+        .receita-content {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 14px;
+            padding: 18px 16px;
+            margin-top: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+        }
+
+        .receita-content h4 {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .receita-content h4 i {
+            font-size: 1.2rem;
+            width: 28px;
+            color: var(--primary);
+        }
+
+        /* ESTILOS PARA CONTEÚDO DAS RECEITAS */
+        .diagnostico-conteudo,
+        .prescricao-conteudo,
+        .recomendacoes-conteudo {
+            font-size: 0.9rem;
+            line-height: 1.6;
+            color: #334155;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .diagnostico-conteudo h1,
+        .diagnostico-conteudo h2,
+        .diagnostico-conteudo h3,
+        .diagnostico-conteudo h4 {
+            font-size: 1rem;
+            color: var(--primary);
+            margin: 16px 0 8px;
+            border: none;
+            padding: 0;
+        }
+
+        .diagnostico-conteudo p,
+        .prescricao-conteudo p,
+        .recomendacoes-conteudo p {
+            margin-bottom: 10px;
+        }
+
+        .diagnostico-conteudo ul,
+        .diagnostico-conteudo ol,
+        .prescricao-conteudo ul,
+        .prescricao-conteudo ol,
+        .recomendacoes-conteudo ul,
+        .recomendacoes-conteudo ol {
+            padding-left: 20px;
+            margin: 8px 0 12px;
+        }
+
+        .diagnostico-conteudo li,
+        .prescricao-conteudo li,
+        .recomendacoes-conteudo li {
+            margin-bottom: 4px;
+        }
+
+        .diagnostico-conteudo strong,
+        .prescricao-conteudo strong,
+        .recomendacoes-conteudo strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* MEDICAMENTOS */
+        .medicamento-destaque {
+            background: #ecfdf5;
+            padding: 3px 10px;
+            border-radius: 30px;
+            color: #059669;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border: 1px solid #a7f3d0;
+            display: inline-block;
+            margin: 2px 0;
+            white-space: nowrap;
+        }
+
+        .medicamento-item {
+            background: #f8fafc;
+            border-left: 4px solid #10b981;
+            padding: 14px;
+            margin-bottom: 10px;
+            border-radius: 10px;
+        }
+
+        .medicamento-nome {
+            font-weight: 700;
+            color: #059669;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .medicamento-detalhe {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 4px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .medicamento-detalhe i {
+            color: #94a3b8;
+            width: 18px;
+            font-size: 0.8rem;
+            margin-top: 3px;
+        }
+
+        /* ALERTAS */
+        .alert-box {
+            background: #fee2e2;
+            border-left: 4px solid #dc2626;
+            padding: 14px 16px;
+            border-radius: 10px;
+            margin: 16px 0 0;
+            font-size: 0.9rem;
+        }
+
+        .alert-box i {
+            color: #dc2626;
+            margin-right: 8px;
+        }
+
+        .alert-box strong {
+            color: #991b1b;
+        }
+
+        /* ASSINATURA */
+        .assinatura {
+            margin-top: 30px;
+            padding: 20px 0 10px;
+            border-top: 2px dashed #d1d5db;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .assinatura-content {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .assinatura .nome-medico {
+            font-weight: 700;
+            color: var(--dark);
+            font-size: 1rem;
+        }
+
+        .assinatura .crm {
+            color: var(--gray);
+            font-size: 0.85rem;
+        }
+
+        .assinatura .digital {
+            font-size: 0.75rem;
+            color: var(--primary);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .assinatura .digital i {
+            font-size: 0.9rem;
+        }
+
+        /* BOTÕES DE AÇÃO */
+        .btn-group-action {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin: 24px 0 16px;
+        }
+
+        .btn-action {
+            padding: 14px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            border: none;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+        }
+
+        .btn-pdf {
+            background: linear-gradient(145deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .btn-print {
+            background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+        }
+
+        .btn-back {
+            background: #e9ecef;
+            color: #1e293b;
+        }
+
+        /* FOOTER */
+        .receita-footer {
+            background: #f1f5f9;
+            padding: 16px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+            margin-top: 8px;
+        }
+
+        .footer-text {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .footer-text i {
+            color: #ef4444;
+            margin: 0 4px;
+        }
+
+        /* SEPARADORES */
+        hr {
+            margin: 20px 0;
+            border: none;
+            border-top: 1px solid #e9ecef;
+            opacity: 0.7;
+        }
+
+        /* UTILITÁRIOS */
+        .text-small {
+            font-size: 0.75rem;
+        }
+
+        .text-muted {
+            color: var(--gray) !important;
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        /* IMPRESSÃO */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .no-print,
+            .btn-group-action,
+            .receita-footer {
+                display: none !important;
+            }
+
+            .receita-card {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                border-radius: 0;
+            }
+
+            .receita-header {
+                background: #f8f9fa !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .badge-ativa,
+            .badge-cancelada {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+
+        /* TABLETS */
+        @media (min-width: 576px) {
+            body {
+                padding: 20px;
+            }
+
+            .header-content h2 {
+                font-size: 1.8rem;
+            }
+
+            .info-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+
+            .info-item {
+                margin-bottom: 0;
+            }
+
+            .btn-group-action {
+                flex-direction: row;
+                justify-content: center;
+            }
+
+            .btn-action {
+                width: auto;
+                min-width: 160px;
+                padding: 12px 24px;
+            }
+        }
+
+        /* TABLETS GRANDES E DESKTOP */
+        @media (min-width: 768px) {
+            .receita-header {
+                padding: 24px 30px;
+            }
+
+            .header-content h2 {
+                font-size: 2rem;
+            }
+
+            .info-section {
+                padding: 20px;
+            }
+
+            .info-label {
+                font-size: 0.75rem;
+            }
+
+            .info-value {
+                font-size: 1rem;
+            }
+
+            .receita-content {
+                padding: 25px;
+            }
+
+            .assinatura {
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
+            }
+
+            .assinatura-content {
+                align-items: flex-start;
+            }
+
+            .assinatura .digital {
+                margin-top: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="receita-card">
+            <!-- Cabeçalho -->
+            <div class="receita-header">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                    <div class="header-content">
+                        <h2>
+                            <i class="fas fa-prescription"></i>
+                            Receita Médica
+                        </h2>
+                        <p>Documento válido em todo território nacional</p>
+                    </div>
+                    <div class="header-badge">
+                        <i class="fas fa-qrcode"></i>
+                        #{{ receita[0] if receita else '000' }}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Corpo da Receita -->
+            <div class="receita-body p-3 p-sm-4">
+                <!-- Informações da Receita -->
+                <div class="info-section">
+                    <h5><i class="fas fa-info-circle"></i> Informações da Receita</h5>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Nº da Receita</span>
+                            <span class="info-value"><strong>#{{ receita[0] if receita else 'N/A' }}</strong></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Data de Emissão</span>
+                            <span class="info-value">{{ formatar_data(receita[6]) if receita and receita[6] else 'N/A' }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status</span>
+                            <span class="info-value">
+                                <span class="badge-status {% if receita and receita[5] == 'ativa' %}badge-ativa{% else %}badge-cancelada{% endif %}">
+                                    <i class="fas fa-circle" style="font-size: 0.4rem;"></i>
+                                    {{ receita[5]|upper if receita and receita[5] else 'N/A' }}
+                                </span>
+                            </span>
+                        </div>
+                        {% if receita and receita[8] %}
+                        <div class="info-item">
+                            <span class="info-label">PDF</span>
+                            <span class="info-value">
+                                <span class="badge-pdf">
+                                    <i class="fas fa-check-circle me-1"></i> Disponível
+                                </span>
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Informações do Médico -->
+                <div class="info-section">
+                    <h5><i class="fas fa-user-md"></i> Médico Responsável</h5>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Nome</span>
+                            <span class="info-value">{{ receita[11] if receita and receita[11] else 'N/A' }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Especialidade</span>
+                            <span class="info-value">{{ receita[12] if receita and receita[12] else 'N/A' }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">CRM</span>
+                            <span class="info-value">{{ receita[13] if receita and receita[13] else 'N/A' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Informações da Consulta -->
+                <div class="info-section">
+                    <h5><i class="fas fa-calendar-alt"></i> Consulta</h5>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Data da Consulta</span>
+                            <span class="info-value">{{ formatar_data(receita[10], '%d/%m/%Y às %H:%M') if receita and receita[10] else 'N/A' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Diagnóstico -->
+                {% if diagnostico_html %}
+                <div class="receita-content">
+                    <h4><i class="fas fa-stethoscope"></i> Diagnóstico</h4>
+                    <div class="diagnostico-conteudo">
+                        {{ diagnostico_html|safe }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Prescrição -->
+                {% if prescricao_html %}
+                <div class="receita-content">
+                    <h4><i class="fas fa-prescription-bottle-alt"></i> Prescrição</h4>
+                    <div class="prescricao-conteudo">
+                        {{ prescricao_html|safe }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Recomendações -->
+                {% if recomendacoes_html %}
+                <div class="receita-content">
+                    <h4><i class="fas fa-clipboard-list"></i> Recomendações</h4>
+                    <div class="recomendacoes-conteudo">
+                        {{ recomendacoes_html|safe }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Assinatura -->
+                <div class="assinatura">
+                    <div class="assinatura-content">
+                        <span class="nome-medico">{{ receita[11] if receita and receita[11] else 'Médico Responsável' }}</span>
+                        <span class="crm">CRM: {{ receita[13] if receita and receita[13] else 'N/A' }}</span>
+                    </div>
+                    <div class="digital">
+                        <i class="fas fa-certificate"></i>
+                        <span>Assinatura Digital - Documento eletrônico válido</span>
+                    </div>
+                </div>
+                
+                <!-- Botões de Ação -->
+                <div class="btn-group-action no-print">
+                    {% if receita and receita[7] and receita[8] %}
+                    <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita[0]) }}" 
+                       class="btn-action btn-pdf">
+                        <i class="fas fa-download"></i> Download PDF
+                    </a>
+                    {% endif %}
+                    
+                    <button onclick="window.print()" class="btn-action btn-print">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                    
+                    <a href="{{ url_for('paciente.minhas_receitas') }}" class="btn-action btn-back">
+                        <i class="fas fa-arrow-left"></i> Voltar
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Rodapé -->
+            <div class="receita-footer no-print">
+                <p class="footer-text">
+                    <i class="fas fa-heart"></i> Esta receita foi emitida digitalmente e possui validade legal em todo território nacional
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Função para ajustar elementos no mobile
+            function adjustForMobile() {
+                const width = window.innerWidth;
+                const contentDivs = document.querySelectorAll('.diagnostico-conteudo, .prescricao-conteudo, .recomendacoes-conteudo');
+                
+                if (width <= 576) {
+                    contentDivs.forEach(div => {
+                        div.style.fontSize = '0.85rem';
+                    });
+                } else {
+                    contentDivs.forEach(div => {
+                        div.style.fontSize = '0.9rem';
+                    });
+                }
+            }
+
+            adjustForMobile();
+            window.addEventListener('resize', adjustForMobile);
+
+            // Destacar medicamentos na prescrição
+            const prescricao = document.querySelector('.prescricao-conteudo');
+            if (prescricao) {
+                const medicamentos = ['mg', 'ml', 'g', 'comprimido', 'cápsula', 'gotas', 'xarope', 'solução', 'drágea'];
+                let html = prescricao.innerHTML;
+                medicamentos.forEach(med => {
+                    const regex = new RegExp(`\\b(\\d+)\\s*(${med})\\b`, 'gi');
+                    html = html.replace(regex, '<span class="medicamento-destaque">$1 $2</span>');
+                });
+                prescricao.innerHTML = html;
+            }
+
+            // Adicionar feedback tátil para botões em mobile
+            if ('ontouchstart' in window) {
+                document.querySelectorAll('.btn-action').forEach(btn => {
+                    btn.addEventListener('touchstart', function() {
+                        this.style.opacity = '0.8';
+                    });
+                    btn.addEventListener('touchend', function() {
+                        this.style.opacity = '1';
+                    });
+                });
+            }
+        });
+
+        // Função de impressão
+        function imprimirReceita() {
+            window.print();
+        }
+    </script>
+
+    <style>
+        /* Melhorias adicionais para mobile */
+        @media (max-width: 360px) {
+            .header-content h2 {
+                font-size: 1.3rem;
+            }
+            
+            .header-badge {
+                font-size: 0.75rem;
+                padding: 6px 12px;
+            }
+            
+            .info-section {
+                padding: 12px;
+            }
+            
+            .info-label {
+                font-size: 0.65rem;
+            }
+            
+            .info-value {
+                font-size: 0.85rem;
+            }
+            
+            .badge-status {
+                padding: 4px 10px;
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Ajuste para toque */
+        .btn-action {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-action:focus {
+            outline: none;
+        }
+
+        /* Animações suaves */
+        .info-section, .receita-content {
+            transition: all 0.3s ease;
+        }
+
+        .info-section:active {
+            background: #f3f4f6;
+        }
+    </style>
+</body>
+</html>

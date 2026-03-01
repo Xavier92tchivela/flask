@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Revisar Análise{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-clipboard-check me-2"></i> Revisar Análise - Pedido #{{ pedido.id }}
+        </h2>
+        <a href="{{ url_for('medico.pedidos_analise') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Informações do Pedido -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Informações do Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>Paciente:</strong> {{ pedido.paciente_nome }}</p>
+                        <p class="mb-1"><strong>Idade:</strong> {{ pedido.paciente_idade or 'Não informada' }}</p>
+                        <p class="mb-1"><strong>Gênero:</strong> {{ pedido.paciente_genero or 'Não informado' }}</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="mb-1"><strong>Tipo de Exame:</strong> {{ pedido.tipo_exame }}</p>
+                        <p class="mb-1"><strong>Urgência:</strong> 
+                            <span class="badge bg-{% if pedido.urgencia == 'urgente' %}danger{% elif pedido.urgencia == 'alta' %}warning{% else %}info{% endif %}">
+                                {{ pedido.urgencia }}
+                            </span>
+                        </p>
+                        <p class="mb-1"><strong>Status:</strong> 
+                            <span class="badge bg-{% if pedido.status_aprovacao == 'aprovado' %}success{% elif pedido.status_aprovacao == 'reprovado' %}danger{% else %}warning{% endif %}">
+                                {{ pedido.status_aprovacao }}
+                            </span>
+                        </p>
+                    </div>
+                    
+                    {% if pedido.descricao %}
+                    <div class="mb-3">
+                        <h6 class="border-bottom pb-1">Descrição:</h6>
+                        <p class="small mb-0">{{ pedido.descricao }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.observacoes_medico %}
+                    <div class="alert alert-warning">
+                        <h6><i class="fas fa-exclamation-circle me-2"></i> Observações do Médico</h6>
+                        <p class="mb-0 small">{{ pedido.observacoes_medico }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Informações Técnicas -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-secondary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-cogs me-2"></i> Informações Técnicas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="small">
+                        <p class="mb-1"><strong>ID do Pedido:</strong> #{{ pedido.id }}</p>
+                        <p class="mb-1"><strong>Status Análise:</strong> 
+                            {% if pedido.status == 'concluido' %}
+                                <span class="badge bg-success">Concluído</span>
+                            {% elif pedido.status == 'em_analise' %}
+                                <span class="badge bg-info">Em Análise</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ pedido.status }}</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-1"><strong>Médico Solicitante:</strong> {{ medico.nome }}</p>
+                        <p class="mb-1"><strong>Especialidade:</strong> {{ medico.especialidade }}</p>
+                        <p class="mb-1"><strong>CRM:</strong> {{ medico.crm }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botões de Ação -->
+            <div class="card shadow">
+                <div class="card-header bg-info text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-tasks me-2"></i> Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('medico.ver_detalhes_pedido', pedido_id=pedido.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-eye me-2"></i> Ver Detalhes Completos
+                        </a>
+                        
+                        {% if pedido.status_aprovacao == 'aprovado' %}
+                        <a href="{{ url_for('medico.gerar_receita', pedido_id=pedido.id) }}" 
+                           class="btn btn-success">
+                            <i class="fas fa-file-prescription me-2"></i> Gerar Receita
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Resultado da Análise -->
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-file-medical-alt me-2"></i> Resultado da Análise</h5>
+                </div>
+                <div class="card-body">
+                    {% if pedido.resultado_analise %}
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2 text-primary">
+                            <i class="fas fa-microscope me-2"></i> Resultado Detalhado da Análise
+                        </h6>
+                        <div class="p-3 bg-light rounded border">
+                            {{ pedido.resultado_analise|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.diagnostico_analista %}
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2 text-danger">
+                            <i class="fas fa-diagnoses me-2"></i> Diagnóstico do Analista
+                        </h6>
+                        <div class="p-3 bg-light rounded border">
+                            {{ pedido.diagnostico_analista|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.recomendacoes_analista %}
+                    <div class="mb-4">
+                        <h6 class="border-bottom pb-2 text-success">
+                            <i class="fas fa-clipboard-list me-2"></i> Recomendações do Analista
+                        </h6>
+                        <div class="p-3 bg-light rounded border">
+                            {{ pedido.recomendacoes_analista|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Formulário de Revisão -->
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark py-3">
+                    <h5 class="mb-0"><i class="fas fa-user-md me-2"></i> Avaliação do Médico</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('medico.salvar_revisao', pedido_id=pedido.id) }}">
+                        <div class="mb-4">
+                            <label for="observacoes_medico" class="form-label">
+                                <i class="fas fa-comment-medical me-2"></i> Suas Observações
+                            </label>
+                            <textarea class="form-control" id="observacoes_medico" name="observacoes_medico" 
+                                      rows="3" placeholder="Digite suas observações sobre a análise...">{{ pedido.observacoes_medico or '' }}</textarea>
+                            <div class="form-text">
+                                Opcional: adicione comentários sobre a análise realizada.
+                            </div>
+                        </div>
+                        
+                        <!-- Status de Aprovação -->
+                        <div class="mb-4">
+                            <label class="form-label">
+                                <i class="fas fa-check-circle me-2"></i> Status da Aprovação
+                            </label>
+                            <div class="row">
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="status_aprovacao" 
+                                               id="status_aprovado" value="aprovado" checked>
+                                        <label class="form-check-label text-success fw-bold" for="status_aprovado">
+                                            <i class="fas fa-check me-1"></i> Aprovar
+                                        </label>
+                                        <div class="form-text small">
+                                            Aceitar análise e liberar para receita
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="status_aprovacao" 
+                                               id="status_reprovado" value="reprovado">
+                                        <label class="form-check-label text-danger fw-bold" for="status_reprovado">
+                                            <i class="fas fa-times me-1"></i> Reprovar
+                                        </label>
+                                        <div class="form-text small">
+                                            Rejeitar e retornar para análise
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-4 mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="status_aprovacao" 
+                                               id="status_ajustar" value="ajustar">
+                                        <label class="form-check-label text-warning fw-bold" for="status_ajustar">
+                                            <i class="fas fa-edit me-1"></i> Ajustar
+                                        </label>
+                                        <div class="form-text small">
+                                            Aprovar com ajustes manuais
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Botões de Ação -->
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <button type="submit" name="acao" value="salvar" 
+                                        class="btn btn-primary w-100">
+                                    <i class="fas fa-save me-2"></i> Salvar Revisão
+                                </button>
+                                <small class="form-text d-block text-center mt-1">
+                                    Salva sem alterar status
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <button type="submit" name="acao" value="concluir" 
+                                        class="btn btn-success w-100">
+                                    <i class="fas fa-check-circle me-2"></i> Concluir Revisão
+                                </button>
+                                <small class="form-text d-block text-center mt-1">
+                                    Salva e aplica status selecionado
+                                </small>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <a href="{{ url_for('medico.pedidos_analise') }}" 
+                                   class="btn btn-outline-secondary w-100">
+                                    <i class="fas fa-times me-2"></i> Cancelar
+                                </a>
+                                <small class="form-text d-block text-center mt-1">
+                                    Volta sem salvar
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-4">
+                            <div class="d-flex">
+                                <i class="fas fa-info-circle me-3 mt-1"></i>
+                                <div>
+                                    <strong class="d-block mb-2">Orientações:</strong>
+                                    <ul class="mb-0">
+                                        <li><strong>Aprovar:</strong> O diagnóstico será aceito e você poderá gerar uma receita</li>
+                                        <li><strong>Reprovar:</strong> O pedido retornará para o analista com suas observações</li>
+                                        <li><strong>Ajustar:</strong> Você poderá editar o diagnóstico antes de aprovar</li>
+                                        <li><strong>Salvar:</strong> Apenas salva as observações sem alterar o status</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-light.rounded {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: #f8f9fa !important;
+}
+
+.card {
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.btn {
+    border-radius: 6px;
+}
+
+.form-check-input:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.alert {
+    border-radius: 8px;
+    border-left: 4px solid;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar validação do formulário
+    const form = document.querySelector('form');
+    const btnConcluir = document.querySelector('button[name="acao"][value="concluir"]');
+    
+    if (btnConcluir) {
+        btnConcluir.addEventListener('click', function(e) {
+            const statusSelecionado = document.querySelector('input[name="status_aprovacao"]:checked');
+            
+            if (statusSelecionado) {
+                const status = statusSelecionado.value;
+                
+                if (status === 'reprovado') {
+                    if (!confirm('Tem certeza que deseja REPROVAR esta análise? O pedido será retornado ao analista.')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+                
+                if (status === 'aprovado') {
+                    if (!confirm('Deseja APROVAR esta análise? Após aprovar, você poderá gerar uma receita.')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

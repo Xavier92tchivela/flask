@@ -1,0 +1,103 @@
+{
+  "nome_doenca": "Malária Grave",
+  "codigo_cid": "B50.9",
+  "protocolo": "OMS 2024 - Emergência Médica",
+  "medicamentos": [
+    {
+      "id": "MAL101",
+      "nome": "Artesunato Injetável",
+      "apresentacoes": [
+        {
+          "tipo": "ampola",
+          "dosagem": "60mg",
+          "diluente": "1ml de bicarbonato de sódio 5%"
+        }
+      ],
+      "posologia_base": {
+        "adulto": "2.4mg/kg IV/IM",
+        "crianca": "2.4mg/kg IV/IM",
+        "esquema": "0h, 12h, 24h, depois 1x/dia"
+      },
+      "frequencia": "Conforme esquema",
+      "via": "intravenosa ou intramuscular",
+      "contraindicacoes": [
+        "Hipersensibilidade conhecida"
+      ],
+      "efeitos_colaterais": [
+        "Reações no local da injeção",
+        "Nefrotoxicidade (raro)",
+        "Neutropenia (raro)"
+      ],
+      "seguro_gestante": true,
+      "pediatrico": true,
+      "preparo": "Dissolver com bicarbonato, agitar, aplicar IM ou diluir para IV",
+      "observacoes": "USO HOSPITALAR OBRIGATÓRIO - Padrão ouro para malária grave"
+    },
+    {
+      "id": "MAL102",
+      "nome": "Artemeter Intramuscular",
+      "apresentacoes": [
+        {
+          "tipo": "ampola",
+          "dosagem": "80mg/ml"
+        }
+      ],
+      "posologia_base": {
+        "adulto": "3.2mg/kg no dia 1, depois 1.6mg/kg",
+        "crianca": "3.2mg/kg no dia 1, depois 1.6mg/kg"
+      },
+      "esquema": {
+        "tipo": "Mínimo 3 dias",
+        "intervalo": "1x ao dia"
+      },
+      "via": "intramuscular profunda",
+      "contraindicacoes": [
+        "Hipersensibilidade"
+      ],
+      "efeitos_colaterais": [
+        "Dor no local",
+        "Febre"
+      ],
+      "seguro_gestante": "avaliar_risco",
+      "pediatrico": true,
+      "observacoes": "Alternativa quando artesunato IV não disponível"
+    },
+    {
+      "id": "MAL103",
+      "nome": "Quinina Injetável",
+      "apresentacoes": [
+        {
+          "tipo": "ampola",
+          "dosagem": "300mg/ml"
+        }
+      ],
+      "posologia_base": {
+        "adulto": "20mg/kg ataque, depois 10mg/kg 8/8h",
+        "crianca": "20mg/kg ataque, depois 10mg/kg 8/8h"
+      },
+      "frequencia": "8/8 horas",
+      "via": "intravenosa lenta (4h) ou IM",
+      "contraindicacoes": [
+        "Hipersensibilidade",
+        "Deficiência G6PD",
+        "Miastenia gravis"
+      ],
+      "efeitos_colaterais": [
+        "Cinchonismo",
+        "Hipoglicemia",
+        "Arritmias"
+      ],
+      "seguro_gestante": true,
+      "pediatrico": true,
+      "monitoramento": "Glicemia, ECG, níveis séricos",
+      "observacoes": "Segunda linha - usar quando artemisininas não disponíveis"
+    }
+  ],
+  "fluxo_tratamento": {
+    "passo1": "Artesunato IV imediatamente",
+    "passo2": "Completar 24h de tratamento parenteral",
+    "passo3": "Quando via oral possível: ACT por 3 dias",
+    "passo4": "Se P. vivax: Primaquina 0.5mg/kg/dia por 14 dias após G6PD"
+  },
+  "ultima_atualizacao": "2024-02-26"
+}

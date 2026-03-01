@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Gerar Receita{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-prescription me-2"></i> Gerar Receita Médica
+        </h2>
+        <a href="{{ url_for('medico.dashboard') }}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Informações do Paciente -->
+        <div class="col-lg-4">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-user-injured me-2"></i> Informações do Paciente</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="mb-2"><strong>Nome:</strong> {{ consulta[9] }}</p>
+                        <p class="mb-2"><strong>Data Nascimento:</strong> 
+                            {% if consulta[22] %}
+                                {{ consulta[22].strftime('%d/%m/%Y') }}
+                            {% else %}
+                                Não informado
+                            {% endif %}
+                        </p>
+                        <p class="mb-2"><strong>Gênero:</strong> {{ consulta[23] or 'Não informado' }}</p>
+                        <p class="mb-0"><strong>Endereço:</strong> {{ consulta[24] or 'Não informado' }}</p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i> Informações da Consulta</h6>
+                        <p class="mb-1"><strong>Data:</strong> {{ consulta[3].strftime('%d/%m/%Y %H:%M') }}</p>
+                        <p class="mb-1"><strong>Status:</strong> 
+                            <span class="badge bg-{% if consulta[4] == 'realizada' %}success{% else %}warning{% endif %}">
+                                {{ consulta[4]|capitalize }}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Diagnóstico Aprovado -->
+            {% if diagnostico %}
+            <div class="card shadow">
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-diagnoses me-2"></i> Diagnóstico Aprovado</h5>
+                </div>
+                <div class="card-body">
+                    <div class="p-3 bg-light rounded">
+                        {% if diagnostico[0] %}
+                            {{ diagnostico[0]|replace('\n', '<br>')|safe }}
+                        {% elif diagnostico %}
+                            {{ diagnostico|replace('\n', '<br>')|safe }}
+                        {% endif %}
+                    </div>
+                    
+                    {% if diagnostico[1] %}
+                    <div class="mt-3">
+                        <h6>Recomendações do Analista:</h6>
+                        <div class="p-3 bg-light rounded">
+                            {{ diagnostico[1]|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Formulário da Receita -->
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-prescription-bottle-alt me-2"></i> Prescrição Médica</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="mb-4">
+                            <label for="diagnostico_final" class="form-label">
+                                <i class="fas fa-stethoscope me-2"></i> Diagnóstico Final *
+                            </label>
+                            <textarea class="form-control" id="diagnostico_final" name="diagnostico_final" 
+                                      rows="3" required placeholder="Digite o diagnóstico final...">
+                                {% if diagnostico and diagnostico[0] %}
+                                    {{ diagnostico[0] }}
+                                {% elif diagnostico %}
+                                    {{ diagnostico }}
+                                {% endif %}
+                            </textarea>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="prescricao" class="form-label">
+                                <i class="fas fa-pills me-2"></i> Prescrição Médica *
+                            </label>
+                            <textarea class="form-control" id="prescricao" name="prescricao" 
+                                      rows="6" required placeholder="Digite a prescrição médica (medicamentos, dosagens, frequência, duração)..."></textarea>
+                            <div class="form-text">
+                                Exemplo: Dipirona 500mg - 1 comprimido a cada 6 horas - 5 dias
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="recomendacoes" class="form-label">
+                                <i class="fas fa-heartbeat me-2"></i> Recomendações
+                            </label>
+                            <textarea class="form-control" id="recomendacoes" name="recomendacoes" 
+                                      rows="4" placeholder="Recomendações gerais, cuidados, retorno..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Importante:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>Revise cuidadosamente o diagnóstico antes de prosseguir</li>
+                                <li>Certifique-se de que a prescrição está clara e completa</li>
+                                <li>Verifique possíveis interações medicamentosas</li>
+                                <li>Defina data de retorno se necessário</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('medico.dashboard') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i> Gerar e Salvar Receita
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Modelo de Receita -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i> Modelo Sugerido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="p-3 bg-light rounded">
+                        <h6 class="border-bottom pb-2">Modelo de Receita:</h6>
+                        <pre class="mb-0">
+<b>Medicamentos:</b>
+1. Dipirona 500mg
+   - Dosagem: 1 comprimido
+   - Frequência: A cada 6 horas
+   - Duração: 5 dias
+   - Indicação: Dor e febre
+
+2. Amoxicilina 500mg
+   - Dosagem: 1 comprimido
+   - Frequência: A cada 8 horas
+   - Duração: 7 dias
+   - Indicação: Infecção bacteriana
+
+<b>Orientações:</b>
+- Tomar os medicamentos conforme prescrição
+- Evitar álcool durante o tratamento
+- Retornar em caso de piora dos sintomas
+- Agendar retorno em 7 dias
+
+<b>Data de Validade:</b> 30 dias
+                        </pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Formatação automática da prescrição
+    const prescricaoTextarea = document.getElementById('prescricao');
+    const modeloButton = document.getElementById('btnModelo');
+    
+    if (prescricaoTextarea) {
+        prescricaoTextarea.addEventListener('focus', function() {
+            if (!this.value.trim()) {
+                this.value = `Medicamentos:\n1. \n   - Dosagem: \n   - Frequência: \n   - Duração: \n   - Indicação: \n\nOrientações:\n- \n\nData de Validade: 30 dias`;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

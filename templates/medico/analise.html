@@ -1,0 +1,591 @@
+<!-- templates/medico_analise.html -->
+{% extends "base.html" %}
+
+{% block title %}Análise Médica{% endblock %}
+
+{% block content %}
+<!-- Adicionar dados para o JavaScript -->
+<div id="consultaData" 
+     data-consulta-id="{{ consulta[0] }}"
+     data-paciente-nome="{{ consulta[1] }}"
+     data-medico-nome="{{ session.user_name }}"
+     data-medico-crm="{{ session.crm or '' }}"
+     style="display: none;">
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="h4 mb-0">Análise de Exames e Diagnóstico</h2>
+<a href="{{ url_for('medico.dashboard') }}" class="btn btn-secondary btn-sm">
+    <i class="fas fa-arrow-left"></i> Voltar
+</a>
+</div>
+
+<!-- Adicione este alerta para mostrar erros -->
+<div class="alert alert-danger alert-dismissible fade show d-none" id="errorAlert">
+    <strong><i class="fas fa-exclamation-triangle"></i> Erro:</strong>
+    <span id="errorMessage"></span>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+
+<div class="row">
+    <!-- Coluna principal para dispositivos móveis -->
+    <div class="col-12 col-lg-6">
+        <!-- Card de informações do paciente -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-user-injured"></i> Informações do Paciente</h4>
+            </div>
+            <div class="card-body p-3">
+                <div class="row">
+                    <div class="col-12 col-sm-6 mb-2">
+                        <p class="mb-1"><strong>Nome:</strong> {{ consulta[1] }}</p>
+                        <p class="mb-1"><strong>Data:</strong> {{ consulta[3].strftime('%d/%m/%Y %H:%M') }}</p>
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <p class="mb-1"><strong>Status:</strong> 
+                            <span class="badge bg-{% if consulta[4] == 'realizada' %}success{% elif consulta[4] == 'cancelada' %}danger{% else %}warning{% endif %}">
+                                {{ consulta[4]|capitalize }}
+                            </span>
+                        </p>
+                        {% if consulta[5] %}
+                        <p class="mb-0"><strong>Observações:</strong> {{ consulta[5] }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card de upload de exames -->
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-file-medical"></i> Upload de Exames</h4>
+            </div>
+            <div class="card-body p-3">
+                <form method="POST" enctype="multipart/form-data" id="analiseForm">
+                    <div class="mb-3">
+                        <label for="imagem" class="form-label">Selecione a imagem do exame</label>
+                        <input class="form-control form-control-sm" type="file" id="imagem" name="imagem" accept="image/*" required>
+                        <div class="form-text">Formatos aceitos: JPG, PNG, GIF</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="tipo_exame" class="form-label">Tipo de Exame</label>
+                        <select class="form-select form-select-sm" id="tipo_exame" name="tipo_exame" required>
+                            <option value="">Selecione o tipo de exame</option>
+                            <option value="hemograma">Hemograma Completo</option>
+                            <option value="urina">Análise de Urina</option>
+                            <option value="bioquimica">Bioquímica Sanguínea</option>
+                            <option value="microbiologia">Microbiologia</option>
+                            <option value="histologia">Histologia</option>
+                            <option value="citologia">Citologia</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="observacoes_exame" class="form-label">Observações do Exame</label>
+                        <textarea class="form-control form-control-sm" id="observacoes_exame" name="observacoes_exame" rows="2" placeholder="Informações relevantes sobre o exame"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 py-2" id="btnAnalisarExame">
+                        <i class="fas fa-microscope"></i> Analisar Exame e Gerar Diagnóstico
+                    </button>
+
+                    <!-- Botão alternativo para quando a API falhar -->
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-outline-warning w-100 py-2" id="btnAnaliseLocal">
+                            <i class="fas fa-user-md"></i> Usar Análise Básica (Modo Offline)
+                        </button>
+                        <small class="text-muted d-block mt-1">Use quando houver problemas de conexão com a IA</small>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coluna de resultados para dispositivos móveis -->
+    <div class="col-12 col-lg-6">
+        <!-- Card de resultados da análise -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-stethoscope"></i> Resultados da Análise</h4>
+            </div>
+            <div class="card-body p-3">
+                <div id="areaResultados">
+                    {% if receita %}
+                    <div class="alert alert-info py-2 mb-3">
+                        <h5 class="h6 mb-0">Diagnóstico Gerado em: {{ datetime.now().strftime('%d/%m/%Y %H:%M') }}</h5>
+                    </div>
+                    <div class="receita-medica" id="receitaContent">
+                        {{ receita|safe }}
+                    </div>
+                    <div class="mt-3 d-flex flex-wrap gap-1" id="botoesAcao">
+                        <button class="btn btn-outline-primary btn-sm flex-fill" id="btnImprimir">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <button class="btn btn-outline-success btn-sm flex-fill" id="btnCopiar">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button class="btn btn-outline-info btn-sm flex-fill" id="btnReceita">
+                            <i class="fas fa-prescription"></i> Receita
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm flex-fill" id="btnChat">
+                            <i class="fas fa-comments"></i> IA
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm flex-fill" id="btnPDF">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button class="btn btn-success btn-sm flex-fill" id="btnSalvar">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4" id="semResultado">
+                        <i class="fas fa-microscope fa-2x mb-3"></i>
+                        <h5 class="h6">Nenhum diagnóstico gerado</h5>
+                        <p class="small">Faça o upload de uma imagem de exame para análise e geração do diagnóstico.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card de histórico de análises -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white py-2">
+                <h4 class="h6 mb-0"><i class="fas fa-history"></i> Histórico de Análises</h4>
+            </div>
+            <div class="card-body p-2">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item px-2 py-2">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 small">Hemograma Completo</h6>
+                            <small>15/05/2023</small>
+                        </div>
+                        <p class="mb-1 small">Resultados dentro dos parâmetros normais.</p>
+                    </div>
+                    <div class="list-group-item px-2 py-2">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1 small">Análise de Urina</h6>
+                            <small>10/04/2023</small>
+                        </div>
+                        <p class="mb-1 small">Leve presença de proteínas, recomenda-se repetir o exame.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para concordância com a receita -->
+<div class="modal fade" id="concordanciaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white py-2">
+                <h5 class="modal-title h6 mb-0"><i class="fas fa-clipboard-check"></i> Confirmar Concordância</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2">
+                <p class="mb-2">Dr(a). <strong>{{ session.user_name }}</strong>, você confirma que concorda com a receita médica gerada?</p>
+                <p class="text-muted small mb-2">Após confirmar, a receita será salva como aprovada.</p>
+                
+                <div class="mb-2">
+                    <label for="observacoesMedico" class="form-label small">Observações (opcional):</label>
+                    <textarea class="form-control form-control-sm" id="observacoesMedico" rows="2" placeholder="Digite suas observações sobre a receita..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnCancelarConcordancia">Cancelar</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnConfirmarConcordancia">
+                    <i class="fas fa-check"></i> Sim, Concordo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para discordância com a receita -->
+<div class="modal fade" id="discordanciaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h5 class="modal-title h6 mb-0"><i class="fas fa-exclamation-triangle"></i> Discordância</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-2">
+                <p class="mb-2">Dr(a). <strong>{{ session.user_name }}</strong>, você não concorda com a receita médica gerada?</p>
+                <p class="text-muted small mb-2">Você poderá discutir e ajustar a receita com a IA.</p>
+                
+                <div class="mb-2">
+                    <label for="observacoesDiscordancia" class="form-label small">Motivo da discordância (opcional):</label>
+                    <textarea class="form-control form-control-sm" id="observacoesDiscordancia" rows="2" placeholder="Digite o motivo da sua discordância..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnCancelarDiscordancia">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnConfirmarDiscordancia">
+                    <i class="fas fa-times"></i> Sim, Discordo
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para chat com a IA -->
+<div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white py-2">
+                <h5 class="modal-title h6 mb-0">
+                    <i class="fas fa-robot"></i> Discussão com IA
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="chat-container" style="height: 300px; overflow-y: auto; margin-bottom: 10px;" id="chatMessages">
+                    <div class="chat-message ai-message">
+                        <div class="message-header">
+                            <strong>Assistente IA</strong>
+                            <small class="text-muted">Agora</small>
+                        </div>
+                        <div class="message-content">
+                            Olá, Dr(a). {{ session.user_name }}. Estou aqui para discutir o diagnóstico e ajudar com qualquer dúvida ou ajuste.
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input">
+                    <textarea class="form-control form-control-sm" id="mensagemChat" rows="2" placeholder="Digite sua dúvida ou comentário..."></textarea>
+                    <div class="d-flex justify-content-between mt-2">
+                        <button class="btn btn-outline-secondary btn-sm" id="btnSugestoes">
+                            <i class="fas fa-lightbulb"></i> Sugestões
+                        </button>
+                        <button class="btn btn-primary btn-sm" id="btnEnviarChat">
+                            <i class="fas fa-paper-plane"></i> Enviar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnFecharChat">Fechar</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnFinalizarChat">
+                    <i class="fas fa-check"></i> Finalizar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para receita médica -->
+<div class="modal fade" id="receitaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white py-2">
+                <h5 class="modal-title h6 mb-0">
+                    <i class="fas fa-prescription"></i> Receita - 
+                    <span id="nomePacienteReceita">{{ consulta[1] }}</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div id="conteudoReceita"></div>
+                
+                <!-- SEÇÃO DE CONCORDÂNCIA/DISCORDÂNCIA COM BOTÕES EDITAR E PDF -->
+                <div id="secaoConcordancia" class="mt-3 p-2 bg-light rounded d-none">
+                    <h6 class="h6 mb-1"><i class="fas fa-user-md"></i> Avaliação Médica</h6>
+                    <p class="small mb-2">Após análise da receita generada, por favor declare sua concordância:</p>
+                    
+                    <!-- Linha 1: Ações Principais -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-center mb-2">
+                        <button class="btn btn-success btn-sm" id="btnConcordarModal">
+                            <i class="fas fa-check"></i> Concordar
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="btnDiscordarModal">
+                            <i class="fas fa-times"></i> Discordar
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm" id="btnImprimirModal">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>
+                        <button class="btn btn-warning btn-sm" id="btnEditarModal">
+                            <i class="fas fa-edit"></i> Editar
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" id="btnPDFModal">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                    </div>
+                    
+                    <!-- Linha 2: Ações Secundárias -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-center mt-2">
+                        <button class="btn btn-outline-info btn-sm" id="btnNovaReceitaModal">
+                            <i class="fas fa-prescription"></i> Nova Receita
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnChatModal">
+                            <i class="fas fa-comments"></i> Discussão IA
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" id="btnCopiarModal">
+                            <i class="fas fa-copy"></i> Copiar
+                        </button>
+                        <button class="btn btn-success btn-sm" id="btnSalvarModal">
+                            <i class="fas fa-save"></i> Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnFecharReceita">Fechar</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnImprimirDireto">
+                    <i class="fas fa-print"></i> Imprimir Direto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA EDIÇÃO DA RECEITA -->
+<div class="modal fade" id="editarReceitaModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark py-2">
+                <h5 class="modal-title h6 mb-0">
+                    <i class="fas fa-edit"></i> Editar Receita - {{ consulta[1] }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-2">
+                <div class="alert alert-info py-2 mb-2">
+                    <small><i class="fas fa-info-circle"></i> Edite o conteúdo da receita abaixo. O texto será formatado automaticamente ao salvar.</small>
+                </div>
+                <textarea class="form-control" id="editorReceita" rows="15" style="font-family: monospace; white-space: pre-wrap;" 
+                          placeholder="Digite ou edite a receita médica aqui..."></textarea>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <strong>Dicas de formatação:</strong><br>
+                        • Use quebras de linha para separar parágrafos<br>
+                        • Use "- item" ou "• item" para listas<br>
+                        • Linhas que terminam com ":" serão destacadas como títulos<br>
+                        • Linhas em MAIÚSCULAS serão automaticamente destacadas
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer py-2">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" id="btnCancelarEdicao">Cancelar</button>
+                <button type="button" class="btn btn-success btn-sm" id="btnSalvarEdicao">
+                    <i class="fas fa-save"></i> Salvar Alterações
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Estilos CSS permanecem aqui no template */
+.receita-medica-conteudo, .diagnostico-conteudo {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+.receita-cabecalho, .diagnostico-cabecalho {
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.receita-cabecalho h4, .diagnostico-cabecalho h4 {
+    color: #007bff;
+    margin-bottom: 10px;
+}
+
+.receita-corpo h5, .diagnostico-corpo h5 {
+    color: #2c3e50;
+    margin: 20px 0 10px 0;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+.item-lista {
+    margin: 8px 0;
+    padding-left: 10px;
+}
+
+.item-titulo {
+    font-weight: bold;
+    margin: 15px 0 8px 0;
+    color: #34495e;
+}
+
+.receita-rodape, .diagnostico-rodape {
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.assinatura {
+    text-align: right;
+    margin-top: 40px;
+}
+
+.assinatura p {
+    margin: 5px 0;
+}
+
+/* Remove qualquer estilo de interface do usuário que possa ter sido salvo anteriormente */
+.receita-medica-conteudo .alert,
+.receita-medica-conteudo .btn,
+.receita-medica-conteudo .modal,
+.diagnostico-conteudo .alert,
+.diagnostico-conteudo .btn,
+.diagnostico-conteudo .modal {
+    display: none !important;
+}
+
+/* Estilos existentes para chat */
+.chat-container {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.chat-message {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    max-width: 90%;
+    font-size: 0.9em;
+}
+
+.ai-message {
+    background-color: #e3f2fd;
+    margin-right: auto;
+    border-left: 4px solid #2196F3;
+}
+
+.doctor-message {
+    background-color: #d1ecf1;
+    margin-left: auto;
+    border-right: 4px solid #17a2b8;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 3px;
+    font-size: 0.8em;
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    padding-bottom: 3px;
+}
+
+.message-content {
+    line-height: 1.3;
+    margin-top: 5px;
+}
+
+.sugestoes-container {
+    margin-top: 8px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+}
+
+.sugestao-btn {
+    margin: 2px;
+    font-size: 0.8em;
+    white-space: normal;
+    text-align: left;
+    padding: 4px 8px;
+}
+
+.receita-medica {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    max-height: 400px;
+    overflow-y: auto;
+    font-size: 0.9em;
+}
+
+/* Estilo para o editor de receita */
+#editorReceita {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    background-color: #f8f9fa;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    padding: 15px;
+    min-height: 400px;
+}
+
+/* Destaque para o modal de edição */
+#editarReceitaModal .modal-body {
+    background-color: #f8f9fa;
+}
+
+/* Melhorar a aparência do texto no editor */
+#editorReceita:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 576px) {
+    .card-body {
+        padding: 10px !important;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    
+    .chat-container {
+        max-height: 250px;
+    }
+    
+    .receita-medica {
+        max-height: 300px;
+        padding: 10px;
+    }
+    
+    .modal-xl {
+        max-width: 95%;
+    }
+    
+    /* Ajustes para botões dentro do modal em mobile */
+    #secaoConcordancia .d-flex {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    #secaoConcordancia .btn {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    #editorReceita {
+        min-height: 300px;
+        font-size: 0.8em;
+    }
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/medico_analise.js') }}"></script>
+{% endblock %}

@@ -1,112 +1,493 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}DoctorCare{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>{% block title %}Sistema Médico - DoctorIA{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
+    
+    {% block head %}{% endblock %}
+    
+    <style>
+        /* ESTILOS RESPONSIVOS ADICIONAIS */
+        :root {
+            --header-height: 60px;
+            --footer-height: 60px;
+        }
+
+        /* Ajustes gerais para mobile */
+        @media (max-width: 768px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .container {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            h3 {
+                font-size: 1.3rem;
+            }
+            
+            /* Ajustes na navbar */
+            .navbar-brand {
+                font-size: 1.2rem;
+            }
+            
+            .navbar-brand i {
+                font-size: 1.3rem;
+            }
+            
+            .navbar-toggler {
+                padding: 0.25rem 0.5rem;
+                font-size: 1rem;
+            }
+            
+            /* Melhorar dropdown em mobile */
+            .dropdown-menu {
+                border: none;
+                background-color: rgba(255,255,255,0.95);
+                margin-top: 5px;
+            }
+            
+            .dropdown-item {
+                padding: 10px 20px;
+                font-size: 1rem;
+            }
+            
+            /* Ajustes no footer */
+            footer {
+                font-size: 0.9rem;
+                padding: 15px 0 !important;
+            }
+            
+            /* Ajustes nos alerts */
+            .alert {
+                padding: 12px 15px;
+                font-size: 0.95rem;
+            }
+            
+            .alert .btn-close {
+                font-size: 0.8rem;
+            }
+            
+            /* Espaçamento do conteúdo principal */
+            main.container {
+                min-height: calc(100vh - var(--header-height) - var(--footer-height) - 40px);
+                padding-top: 10px;
+                padding-bottom: 20px;
+            }
+        }
+
+        /* Ajustes para telas muito pequenas */
+        @media (max-width: 480px) {
+            body {
+                font-size: 13px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            h2 {
+                font-size: 1.3rem;
+            }
+            
+            h3 {
+                font-size: 1.1rem;
+            }
+            
+            .navbar-brand {
+                font-size: 1rem;
+            }
+            
+            .navbar-brand i {
+                font-size: 1.1rem;
+                margin-right: 5px !important;
+            }
+            
+            /* Ajustes nos ícones */
+            .nav-link i {
+                margin-right: 3px;
+            }
+            
+            /* Melhorar toques nos links */
+            .nav-link, .dropdown-item {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+            
+            /* Ajustes nos cards */
+            .card {
+                margin-bottom: 15px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+        }
+
+        /* Ajustes para tablets */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container {
+                max-width: 95%;
+            }
+        }
+
+        /* Melhorias de usabilidade em touch */
+        .nav-link, .dropdown-item, .btn, .navbar-toggler {
+            -webkit-tap-highlight-color: rgba(52, 152, 219, 0.3);
+            touch-action: manipulation;
+        }
+
+        /* Evitar zoom em inputs em mobile */
+        @media (max-width: 768px) {
+            input, select, textarea {
+                font-size: 16px !important; /* Evita zoom automático no iOS */
+            }
+        }
+
+        /* Animações suaves */
+        .navbar-collapse {
+            transition: all 0.3s ease;
+        }
+
+        /* Scroll suave no iOS */
+        * {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Melhorar visualização de tabelas em mobile */
+        .table-responsive {
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        /* Ajustes para o footer fixo */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        main {
+            flex: 1 0 auto;
+        }
+
+        footer {
+            flex-shrink: 0;
+        }
+    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Navbar Responsiva -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-heartbeat me-2"></i>DoctorCare
+            <a class="navbar-brand" href="{{ url_for('auth.index') }}">
+                <i class="fas fa-heartbeat me-2"></i>
+                <span class="d-none d-sm-inline">DoctorIA</span>
+                <span class="d-inline d-sm-none">DrIA</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            
+            <!-- Botão do menu mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    {% if 'user_id' in session %}
-                        <!-- Menu para Pacientes -->
-                        {% if session.user_type == 'paciente' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('paciente_dashboard') }}">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('minhas_consultas') }}">Minhas Consultas</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('agendar_consulta') }}">Nova Consulta</a>
-                            </li>
-                        
-                        <!-- Menu para Médicos -->
-                        {% elif session.user_type == 'medico' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('medico_dashboard') }}">Dashboard Médico</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('minhas_consultas') }}">Minhas Consultas</a>
-                            </li>
-                        
-                        <!-- Menu para Administradores -->
-                        {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('pacientes') }}">Pacientes</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('medicos') }}">Médicos</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('consultas_admin') }}">Consultas</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('agendamento_admin') }}">Agendamento</a>
-                            </li>
-                        {% endif %}
-                    {% endif %}
-                </ul>
-                
-                <ul class="navbar-nav">
-                    {% if 'user_id' in session %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-user me-1"></i> {{ session.user_name }}
-                            <span class="badge bg-secondary ms-1">{{ session.user_type|capitalize }}</span>
+                <ul class="navbar-nav ms-auto">
+                    {% if session.get('user_type') == 'medico' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('medico.dashboard') }}">
+                            <i class="fas fa-home me-1"></i> 
+                            <span class="d-inline">Dashboard</span>
                         </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#">
-                                <i class="fas fa-id-card me-2"></i>Perfil
-                            </a></li>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-calendar-alt me-1"></i> 
+                            <span class="d-none d-lg-inline">Consultas</span>
+                            <span class="d-inline d-lg-none">Agenda</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-users me-1"></i> 
+                            <span class="d-none d-lg-inline">Pacientes</span>
+                            <span class="d-inline d-lg-none">Pacs</span>
+                        </a>
+                    </li>
+                    
+                    {% elif session.get('user_type') == 'paciente' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.dashboard') }}">
+                            <i class="fas fa-home me-1"></i> 
+                            <span class="d-none d-sm-inline">Dashboard</span>
+                            <span class="d-inline d-sm-none">Início</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.minhas_consultas') }}">
+                            <i class="fas fa-calendar-alt me-1"></i> 
+                            <span class="d-none d-sm-inline">Minhas Consultas</span>
+                            <span class="d-inline d-sm-none">Consultas</span>
+                        </a>
+                    </li>
+                    
+                    {% elif session.get('user_type') == 'analista' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analista.dashboard') }}">
+                            <i class="fas fa-home me-1"></i> 
+                            <span class="d-none d-sm-inline">Dashboard</span>
+                            <span class="d-inline d-sm-none">Início</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analista.pedidos') }}">
+                            <i class="fas fa-file-medical me-1"></i> 
+                            <span class="d-none d-lg-inline">Pedidos de Exame</span>
+                            <span class="d-inline d-lg-none">Pedidos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analista.proximo_pedido') }}">
+                            <i class="fas fa-search me-1"></i> 
+                            <span class="d-none d-lg-inline">Analisar Próximo</span>
+                            <span class="d-inline d-lg-none">Analisar</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    <!-- Dropdown do usuário - Responsivo -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
+                           data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1"></i> 
+                            <span class="d-none d-sm-inline">{{ session.user_name or 'Usuário' }}</span>
+                            <span class="d-inline d-sm-none">
+                                {% if session.user_name %}
+                                    {{ session.user_name|truncate(10) }}
+                                {% else %}
+                                    User
+                                {% endif %}
+                            </span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            {% if session.get('user_type') == 'medico' %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('medico.perfil') }}">
+                                    <i class="fas fa-user-cog me-2"></i> Perfil
+                                </a>
+                            </li>
+                            
+                            {% elif session.get('user_type') == 'paciente' %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('paciente.perfil') }}">
+                                    <i class="fas fa-user-cog me-2"></i> Perfil
+                                </a>
+                            </li>
+                            
+                            {% elif session.get('user_type') == 'analista' %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('analista.perfil') }}">
+                                    <i class="fas fa-user-cog me-2"></i> Perfil
+                                </a>
+                            </li>
+                            {% endif %}
+                            
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">
-                                <i class="fas fa-sign-out-alt me-2"></i>Sair
-                            </a></li>
+                            
+                            {% if session.get('user_type') == 'analista' %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('analista.configuracoes') }}">
+                                    <i class="fas fa-cog me-2"></i> Configurações
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            {% endif %}
+                            
+                            <li>
+                                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Sair
+                                </a>
+                            </li>
                         </ul>
                     </li>
-                    {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">Registrar</a>
-                    </li>
-                    {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <!-- Main Content - Responsivo -->
+    <main class="container my-3 my-md-4">
+        <!-- Flash Messages - Responsivos -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                            <div class="flex-grow-1">{{ message }}</div>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-
+        
         {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer Responsivo -->
+    <footer class="bg-light border-top py-3 mt-auto">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-12 col-md-6 text-center text-md-start mb-2 mb-md-0">
+                    <p class="mb-0 text-muted small">
+                        <i class="fas fa-heartbeat text-danger me-1"></i>
+                        <span class="d-none d-sm-inline">DoctorIA - Sistema Médico</span>
+                        <span class="d-inline d-sm-none">DoctorIA</span>
+                        &copy; 2024
+                    </p>
+                </div>
+                <div class="col-12 col-md-6 text-center text-md-end">
+                    <p class="mb-0">
+                        <a href="#" class="text-muted text-decoration-none small me-2" data-bs-toggle="modal" data-bs-target="#termsModal">
+                            <i class="fas fa-file-contract me-1"></i>
+                            <span class="d-none d-sm-inline">Termos</span>
+                        </a>
+                        <a href="#" class="text-muted text-decoration-none small me-2" data-bs-toggle="modal" data-bs-target="#privacyModal">
+                            <i class="fas fa-shield-alt me-1"></i>
+                            <span class="d-none d-sm-inline">Privacidade</span>
+                        </a>
+                        <a href="#" class="text-muted text-decoration-none small">
+                            <i class="fas fa-question-circle me-1"></i>
+                            <span class="d-none d-sm-inline">Ajuda</span>
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modais Responsivos -->
+    <div class="modal fade" id="termsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Termos de Uso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Termos de uso do sistema...</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <div class="modal fade" id="privacyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-scrollable modal-fullscreen-sm-down">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Política de Privacidade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Política de privacidade do sistema...</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- JavaScript Personalizado -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <script>
+        // Scripts responsivos adicionais
+        document.addEventListener('DOMContentLoaded', function() {
+            // Fechar menu mobile ao clicar em um link
+            const navLinks = document.querySelectorAll('.navbar-nav .nav-link:not(.dropdown-toggle)');
+            const navbarCollapse = document.getElementById('navbarNav');
+            
+            if (navbarCollapse) {
+                navLinks.forEach(link => {
+                    link.addEventListener('click', () => {
+                        if (window.innerWidth < 992) {
+                            const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                            if (bsCollapse) {
+                                bsCollapse.hide();
+                            }
+                        }
+                    });
+                });
+            }
+            
+            // Ajustar altura do main para mobile
+            function adjustMainHeight() {
+                const main = document.querySelector('main');
+                const header = document.querySelector('nav');
+                const footer = document.querySelector('footer');
+                
+                if (main && header && footer) {
+                    const headerHeight = header.offsetHeight;
+                    const footerHeight = footer.offsetHeight;
+                    const windowHeight = window.innerHeight;
+                    
+                    main.style.minHeight = `calc(${windowHeight}px - ${headerHeight}px - ${footerHeight}px - 40px)`;
+                }
+            }
+            
+            // Executar no carregamento e redimensionamento
+            adjustMainHeight();
+            window.addEventListener('resize', adjustMainHeight);
+            
+            // Prevenir zoom em double-tap em links
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function (event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+        });
+    </script>
     
     {% block scripts %}{% endblock %}
 </body>

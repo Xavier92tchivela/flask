@@ -1,0 +1,116 @@
+{
+  "nome": "Tabela de Combinações para Malária",
+  "combinacoes": [
+    {
+      "id": "COMB001",
+      "nome": "Esquema Padrão para P. falciparum não complicada",
+      "medicamentos": [
+        {
+          "id": "MAL001",
+          "nome": "Artemeter-Lumefantrina",
+          "doses": "6 doses em 3 dias"
+        }
+      ],
+      "indicacao": "Malária por P. falciparum sensível",
+      "eficacia": ">95%",
+      "nivel_evidencia": "A"
+    },
+    {
+      "id": "COMB002",
+      "nome": "Esquema para P. vivax",
+      "medicamentos": [
+        {
+          "id": "MAL001",
+          "nome": "Artemeter-Lumefantrina",
+          "doses": "6 doses em 3 dias"
+        },
+        {
+          "id": "MAL004",
+          "nome": "Primaquina",
+          "doses": "0.5mg/kg/dia por 14 dias",
+          "condicao": "APÓS teste G6PD normal"
+        }
+      ],
+      "indicacao": "Malária por P. vivax",
+      "eficacia": ">95% para fase aguda, >90% para prevenção recaída",
+      "nivel_evidencia": "A",
+      "observacoes": "Primaquina elimina formas hipnozoítas"
+    },
+    {
+      "id": "COMB003",
+      "nome": "Esquema para malária grave",
+      "medicamentos": [
+        {
+          "id": "MAL101",
+          "nome": "Artesunato IV",
+          "doses": "Mínimo 24h parenteral"
+        },
+        {
+          "id": "MAL001",
+          "nome": "Artemeter-Lumefantrina",
+          "doses": "3 dias após via oral possível",
+          "condicao": "Quando paciente tolerar VO"
+        }
+      ],
+      "indicacao": "Malária grave",
+      "eficacia": "Reduz mortalidade em 35% vs Quinina",
+      "nivel_evidencia": "A"
+    },
+    {
+      "id": "COMB004",
+      "nome": "Esquema para gestante 1º trimestre",
+      "medicamentos": [
+        {
+          "id": "MAL103",
+          "nome": "Quinina",
+          "doses": "10mg/kg 8/8h por 7 dias"
+        },
+        {
+          "id": "ANT103",
+          "nome": "Clindamicina",
+          "doses": "20mg/kg/dia 8/8h por 7 dias"
+        }
+      ],
+      "indicacao": "Malária não complicada no 1º trimestre",
+      "eficacia": "85-90%",
+      "nivel_evidencia": "B"
+    },
+    {
+      "id": "COMB005",
+      "nome": "Quimioprofilaxia para gestantes em área endêmica",
+      "medicamentos": [
+        {
+          "id": "MAL301",
+          "nome": "Sulfadoxina-Pirimetamina",
+          "doses": "3 doses: 2º, 3º trimestre e parto",
+          "condicao": "TPI - Tratamento Preventivo Intermitente"
+        }
+      ],
+      "indicacao": "Prevenção em gestantes",
+      "eficacia": "Reduz anemia materna e baixo peso ao nascer",
+      "nivel_evidencia": "A"
+    },
+    {
+      "id": "COMB006",
+      "nome": "Esquema para casos resistentes",
+      "medicamentos": [
+        {
+          "id": "MAL102",
+          "nome": "Artesunato + Mefloquina",
+          "doses": "3 dias"
+        }
+      ],
+      "indicacao": "Falha terapêutica ou resistência",
+      "eficacia": ">90%",
+      "nivel_evidencia": "B"
+    }
+  ],
+  "algoritmo_escolha": {
+    "passo1": "Confirmar espécie (P. falciparum vs P. vivax)",
+    "passo2": "Avaliar gravidade (simples vs grave)",
+    "passo3": "Verificar gestante (trimestre)",
+    "passo4": "Testar G6PD antes de Primaquina",
+    "passo5": "Escolher combinação apropriada"
+  },
+  "ultima_atualizacao": "2024-02-26"
+}

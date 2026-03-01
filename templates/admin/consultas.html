@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Consultas - DoctorIA</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Date Range Picker -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <!-- jQuery (necessário para o datepicker) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --info-color: #3b82f6;
+            --dark-color: #2c3e50;
+            --light-bg: #f4f6f9;
+        }
+        
+        body {
+            background-color: var(--light-bg);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
+            color: white;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 14px 20px;
+            margin: 6px 12px;
+            border-radius: 12px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.12);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 12px;
+            width: 22px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 30px;
+        }
+        
+        .page-title {
+            margin-bottom: 30px;
+            color: var(--dark-color);
+            font-weight: 800;
+            font-size: 28px;
+        }
+        
+        .page-title i {
+            margin-right: 12px;
+            color: var(--primary-color);
+        }
+        
+        /* Stats Cards Melhorados */
+        .stats-card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s;
+            border: 1px solid rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .stats-card .stats-icon {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 48px;
+            opacity: 0.1;
+            color: var(--icon-color);
+        }
+        
+        .stats-card .stats-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 5px;
+        }
+        
+        .stats-card .stats-label {
+            font-size: 14px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        .stats-card.total {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            --icon-color: white;
+        }
+        
+        .stats-card.total .stats-number,
+        .stats-card.total .stats-label {
+            color: white;
+        }
+        
+        .stats-card.realizadas {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            --icon-color: white;
+        }
+        
+        .stats-card.realizadas .stats-number,
+        .stats-card.realizadas .stats-label {
+            color: white;
+        }
+        
+        .stats-card.pendentes {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --icon-color: white;
+        }
+        
+        .stats-card.pendentes .stats-number,
+        .stats-card.pendentes .stats-label {
+            color: white;
+        }
+        
+        .stats-card.canceladas {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --icon-color: white;
+        }
+        
+        .stats-card.canceladas .stats-number,
+        .stats-card.canceladas .stats-label {
+            color: white;
+        }
+        
+        /* Filtros */
+        .filter-section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .filter-label {
+            font-size: 13px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .filter-select, .filter-input {
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 10px 15px;
+            width: 100%;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .filter-select:focus, .filter-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+            outline: none;
+        }
+        
+        .btn-filter {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+        }
+        
+        .btn-clear {
+            background: white;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+        }
+        
+        .btn-clear:hover {
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+        
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px 25px;
+            border-radius: 24px 24px 0 0 !important;
+        }
+        
+        .card-header h5 {
+            margin: 0;
+            color: var(--dark-color);
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header h5 i {
+            color: var(--primary-color);
+            font-size: 1.4rem;
+        }
+        
+        .card-body {
+            padding: 0;
+        }
+        
+        /* Tabela */
+        .table {
+            margin: 0;
+        }
+        
+        .table thead th {
+            border-top: none;
+            border-bottom: 2px solid #e9ecef;
+            color: #6c757d;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 18px 15px;
+            background-color: #f8f9fa;
+        }
+        
+        .table tbody td {
+            padding: 18px 15px;
+            vertical-align: middle;
+            border-bottom: 1px solid #e9ecef;
+            color: #2c3e50;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(67, 97, 238, 0.02);
+        }
+        
+        /* Badges de Status */
+        .badge-status {
+            padding: 8px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .badge-agendada {
+            background: rgba(67, 97, 238, 0.1);
+            color: #4361ee;
+        }
+        
+        .badge-confirmada {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+        
+        .badge-realizada {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+        }
+        
+        .badge-cancelada {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+        
+        .badge-pendente {
+            background: rgba(100, 116, 139, 0.1);
+            color: #64748b;
+        }
+        
+        /* Botões de Ação */
+        .btn-action {
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin: 0 4px;
+            transition: all 0.3s;
+            border: none;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+        
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+        }
+        
+        .btn-view {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+        }
+        
+        .btn-pdf {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+        }
+        
+        /* Barra de Pesquisa */
+        .search-box {
+            background: white;
+            border-radius: 12px;
+            padding: 8px 16px;
+            border: 1px solid #e9ecef;
+            transition: all 0.3s;
+            width: 280px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .search-box:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+        }
+        
+        .search-box i {
+            color: #94a3b8;
+            margin-right: 10px;
+            font-size: 1rem;
+        }
+        
+        .search-box input {
+            border: none;
+            padding: 8px 0;
+            outline: none;
+            width: 100%;
+            font-size: 14px;
+        }
+        
+        /* Paginação */
+        .pagination {
+            margin-top: 25px;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .page-link {
+            color: #6c757d;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 8px 16px;
+            transition: all 0.3s;
+        }
+        
+        .page-link:hover {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+        
+        .page-item.active .page-link {
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            color: white;
+            border: none;
+        }
+        
+        /* Estado Vazio */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e0;
+            margin-bottom: 20px;
+        }
+        
+        .empty-state h5 {
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .empty-state p {
+            color: #94a3b8;
+            margin-bottom: 0;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+                padding: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .page-title {
+                font-size: 24px;
+            }
+            
+            .search-box {
+                width: 100%;
+                margin-top: 10px;
+            }
+            
+            .filter-section .row > div {
+                margin-bottom: 15px;
+            }
+            
+            .table thead {
+                display: none;
+            }
+            
+            .table tbody td {
+                display: block;
+                text-align: right;
+                padding: 12px 15px;
+                position: relative;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .table tbody td:before {
+                content: attr(data-label);
+                float: left;
+                font-weight: 600;
+                color: #64748b;
+            }
+            
+            .btn-action {
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-4">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-brain me-2" style="font-size: 2rem;"></i>
+                        Doctor<span style="font-weight: 300;">IA</span>
+                    </h4>
+                    <p class="text-white-50 small mb-4">Painel Administrativo</p>
+                    
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.medicos') }}">
+                            <i class="fas fa-user-md"></i> Médicos
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.analistas') }}">
+                            <i class="fas fa-microscope"></i> Analistas
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
+                            <i class="fas fa-users"></i> Pacientes
+                        </a>
+                        <a class="nav-link active" href="{{ url_for('admin.consultas') }}">
+                            <i class="fas fa-calendar-check"></i> Consultas
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.estatisticas') }}">
+                            <i class="fas fa-chart-bar"></i> Estatísticas
+                        </a>
+                        <hr class="bg-white-50">
+                        <a class="nav-link" href="{{ url_for('admin.logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Page Title -->
+                <div class="page-title">
+                    <i class="fas fa-calendar-check"></i>
+                    Gerenciar Consultas
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Stats Cards Melhorados -->
+                <div class="row mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="stats-card total">
+                            <div class="stats-icon">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="stats-number" id="totalConsultas">{{ consultas|length }}</div>
+                            <div class="stats-label">Total de Consultas</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="stats-card realizadas">
+                            <div class="stats-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stats-number" id="realizadasCount">0</div>
+                            <div class="stats-label">Realizadas</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="stats-card pendentes">
+                            <div class="stats-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="stats-number" id="pendentesCount">0</div>
+                            <div class="stats-label">Pendentes</div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="stats-card canceladas">
+                            <div class="stats-icon">
+                                <i class="fas fa-times-circle"></i>
+                            </div>
+                            <div class="stats-number" id="canceladasCount">0</div>
+                            <div class="stats-label">Canceladas</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Filter Section Melhorada -->
+                <div class="filter-section">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <div class="filter-label">Período</div>
+                            <input type="text" class="filter-input" id="dateRange" name="daterange" value="Últimos 30 dias">
+                        </div>
+                        <div class="col-md-2">
+                            <div class="filter-label">Status</div>
+                            <select class="filter-select" id="statusFilter">
+                                <option value="">Todos</option>
+                                <option value="agendada">Agendada</option>
+                                <option value="confirmada">Confirmada</option>
+                                <option value="realizada">Realizada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="filter-label">Médico</div>
+                            <input type="text" class="filter-input" id="medicoFilter" placeholder="Nome do médico...">
+                        </div>
+                        <div class="col-md-3">
+                            <div class="filter-label">Paciente</div>
+                            <input type="text" class="filter-input" id="pacienteFilter" placeholder="Nome do paciente...">
+                        </div>
+                        <div class="col-md-1">
+                            <div class="filter-label">&nbsp;</div>
+                            <button class="btn-filter" onclick="filterTable()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12 text-end">
+                            <button class="btn-clear" onclick="clearFilters()">
+                                <i class="fas fa-undo me-2"></i>Limpar Filtros
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Consultas Table -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>
+                            <i class="fas fa-list"></i>
+                            Lista de Consultas
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-success" onclick="exportToCSV()">
+                                <i class="fas fa-download me-1"></i>Exportar CSV
+                            </button>
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchInput" placeholder="Buscar consultas..." onkeyup="filterTable()">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table" id="consultasTable">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Paciente</th>
+                                        <th>Médico</th>
+                                        <th>Especialidade</th>
+                                        <th>Data/Hora</th>
+                                        <th>Status</th>
+                                        <th>Data Cadastro</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if consultas and consultas|length > 0 %}
+                                        {% for c in consultas %}
+                                        <tr>
+                                            <td data-label="ID">#{{ c[0] }}</td>
+                                            <td data-label="Paciente">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="fas fa-user text-success"></i>
+                                                    </div>
+                                                    <strong>{{ c[1] }}</strong>
+                                                </div>
+                                            </td>
+                                            <td data-label="Médico">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                                        <i class="fas fa-user-md text-primary"></i>
+                                                    </div>
+                                                    <strong>{{ c[2] }}</strong>
+                                                </div>
+                                            </td>
+                                            <td data-label="Especialidade">
+                                                <span class="badge bg-info">{{ c[6] }}</span>
+                                            </td>
+                                            <td data-label="Data/Hora">
+                                                <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                                                {{ c[3].strftime('%d/%m/%Y %H:%M') if c[3] else '' }}
+                                            </td>
+                                            <td data-label="Status">
+                                                {% if c[4] == 'agendada' %}
+                                                    <span class="badge-status badge-agendada">
+                                                        <i class="fas fa-clock"></i>Agendada
+                                                    </span>
+                                                {% elif c[4] == 'confirmada' %}
+                                                    <span class="badge-status badge-confirmada">
+                                                        <i class="fas fa-check-circle"></i>Confirmada
+                                                    </span>
+                                                {% elif c[4] == 'realizada' %}
+                                                    <span class="badge-status badge-realizada">
+                                                        <i class="fas fa-check-double"></i>Realizada
+                                                    </span>
+                                                {% elif c[4] == 'cancelada' %}
+                                                    <span class="badge-status badge-cancelada">
+                                                        <i class="fas fa-times-circle"></i>Cancelada
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge-status badge-pendente">
+                                                        <i class="fas fa-question-circle"></i>{{ c[4] }}
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td data-label="Data Cadastro">
+                                                <small>{{ c[5].strftime('%d/%m/%Y') if c[5] else '' }}</small>
+                                            </td>
+                                            <td data-label="Ações">
+                                                <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=c[0]) }}" class="btn-action btn-view" title="Ver Detalhes" target="_blank">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                {% if c[4] == 'realizada' %}
+                                                <button class="btn-action btn-pdf" onclick="gerarPDF({{ c[0] }})" title="Gerar PDF">
+                                                    <i class="fas fa-file-pdf"></i>
+                                                </button>
+                                                {% endif %}
+                                                {% if c[4] != 'cancelada' and c[4] != 'realizada' %}
+                                                <button class="btn-action btn-cancel" onclick="cancelarConsulta({{ c[0] }})" title="Cancelar">
+                                                    <i class="fas fa-ban"></i>
+                                                </button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="8" class="empty-state">
+                                                <i class="fas fa-calendar-times"></i>
+                                                <h5>Nenhuma consulta encontrada</h5>
+                                                <p>As consultas realizadas aparecerão aqui.</p>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        {% if consultas and consultas|length > 20 %}
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination">
+                                <li class="page-item disabled">
+                                    <a class="page-link" href="#" tabindex="-1">Anterior</a>
+                                </li>
+                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                <li class="page-item">
+                                    <a class="page-link" href="#">Próximo</a>
+                                </li>
+                            </ul>
+                        </nav>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    
+    <script>
+        // Initialize Date Range Picker
+        $(function() {
+            $('#dateRange').daterangepicker({
+                opens: 'left',
+                autoUpdateInput: true,
+                locale: {
+                    format: 'DD/MM/YYYY',
+                    separator: ' - ',
+                    applyLabel: 'Aplicar',
+                    cancelLabel: 'Cancelar',
+                    fromLabel: 'De',
+                    toLabel: 'Até',
+                    customRangeLabel: 'Personalizado',
+                    weekLabel: 'S',
+                    daysOfWeek: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+                    monthNames: ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'],
+                    firstDay: 1
+                },
+                ranges: {
+                    'Hoje': [moment(), moment()],
+                    'Ontem': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+                    'Últimos 7 dias': [moment().subtract(6, 'days'), moment()],
+                    'Últimos 30 dias': [moment().subtract(29, 'days'), moment()],
+                    'Este mês': [moment().startOf('month'), moment().endOf('month')],
+                    'Mês passado': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+                }
+            });
+        });
+        
+        // Update stats
+        function updateStats() {
+            const rows = document.querySelectorAll('#consultasTable tbody tr');
+            let realizadas = 0, pendentes = 0, canceladas = 0, total = 0;
+            
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    total++;
+                    const statusCell = row.cells[5];
+                    if (statusCell) {
+                        const status = statusCell.textContent.trim().toLowerCase();
+                        if (status.includes('realizada')) realizadas++;
+                        else if (status.includes('cancelada')) canceladas++;
+                        else pendentes++;
+                    }
+                }
+            });
+            
+            document.getElementById('totalConsultas').textContent = total;
+            document.getElementById('realizadasCount').textContent = realizadas;
+            document.getElementById('pendentesCount').textContent = pendentes;
+            document.getElementById('canceladasCount').textContent = canceladas;
+        }
+        
+        // Filter Table
+        function filterTable() {
+            const searchInput = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+            const medicoFilter = document.getElementById('medicoFilter').value.toLowerCase();
+            const pacienteFilter = document.getElementById('pacienteFilter').value.toLowerCase();
+            
+            const table = document.getElementById('consultasTable');
+            const rows = table.getElementsByTagName('tr');
+            
+            for (let i = 1; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                if (cells.length < 2) continue;
+                
+                const paciente = cells[1]?.textContent.toLowerCase() || '';
+                const medico = cells[2]?.textContent.toLowerCase() || '';
+                const status = cells[5]?.textContent.toLowerCase() || '';
+                const data = cells[4]?.textContent.toLowerCase() || '';
+                
+                let match = true;
+                
+                if (searchInput && !paciente.includes(searchInput) && !medico.includes(searchInput)) {
+                    match = false;
+                }
+                
+                if (statusFilter && !status.includes(statusFilter)) {
+                    match = false;
+                }
+                
+                if (medicoFilter && !medico.includes(medicoFilter)) {
+                    match = false;
+                }
+                
+                if (pacienteFilter && !paciente.includes(pacienteFilter)) {
+                    match = false;
+                }
+                
+                rows[i].style.display = match ? '' : 'none';
+            }
+            
+            updateStats();
+        }
+        
+        // Clear Filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('medicoFilter').value = '';
+            document.getElementById('pacienteFilter').value = '';
+            $('#dateRange').val('Últimos 30 dias');
+            filterTable();
+        }
+        
+        // Gerar PDF
+        function gerarPDF(consultaId) {
+            window.open(`/api/receita/pdf/${consultaId}`, '_blank');
+        }
+        
+        // Cancelar Consulta
+        function cancelarConsulta(consultaId) {
+            if (confirm('Tem certeza que deseja cancelar esta consulta?')) {
+                fetch(`/consulta/${consultaId}/cancelar`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Consulta cancelada com sucesso!');
+                        location.reload();
+                    } else {
+                        alert(data.error || 'Erro ao cancelar consulta');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    alert('Erro ao cancelar consulta');
+                });
+            }
+        }
+        
+        // Export to CSV
+        function exportToCSV() {
+            const rows = document.querySelectorAll('#consultasTable tbody tr');
+            const csv = [];
+            
+            // Header
+            csv.push('ID,Paciente,Médico,Especialidade,Data/Hora,Status,Data Cadastro');
+            
+            // Data
+            rows.forEach(row => {
+                if (row.style.display !== 'none') {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length > 1) {
+                        const rowData = [
+                            cells[0]?.textContent.replace('#', '') || '',
+                            cells[1]?.textContent.trim() || '',
+                            cells[2]?.textContent.trim() || '',
+                            cells[3]?.textContent.trim() || '',
+                            cells[4]?.textContent.trim() || '',
+                            cells[5]?.textContent.trim() || '',
+                            cells[6]?.textContent.trim() || ''
+                        ];
+                        csv.push(rowData.join(','));
+                    }
+                }
+            });
+            
+            const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `consultas_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+            
+            // Adicionar listeners para filtros
+            document.getElementById('statusFilter').addEventListener('change', filterTable);
+            document.getElementById('medicoFilter').addEventListener('keyup', filterTable);
+            document.getElementById('pacienteFilter').addEventListener('keyup', filterTable);
+            $('#dateRange').on('apply.daterangepicker', function(ev, picker) {
+                filterTable();
+            });
+        });
+    </script>
+</body>
+</html>

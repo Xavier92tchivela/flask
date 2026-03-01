@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block title %}Pedidos de Análise{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-microscope me-2"></i> Pedidos de Análise
+        </h2>
+        <div>
+            <a href="{{ url_for('medico.nova_analise') }}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-2"></i>Nova Análise
+            </a>
+            <a href="{{ url_for('medico.debug_sistema') }}" class="btn btn-warning btn-sm ms-2">
+                <i class="fas fa-bug me-2"></i>Debug
+            </a>
+            <a href="{{ url_for('medico.dashboard') }}" class="btn btn-secondary btn-sm ms-2">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações de Debug (só mostra se não houver pedidos) -->
+    {% if not pedidos or pedidos|length == 0 %}
+    <div class="alert alert-warning">
+        <h6><i class="fas fa-exclamation-triangle me-2"></i> Aviso: Nenhum pedido encontrado</h6>
+        <p class="mb-2">Possíveis causas:</p>
+        <ul class="mb-2">
+            <li>Você ainda não criou nenhum pedido de análise</li>
+            <li>Os filtros aplicados estão muito restritivos</li>
+            <li>Pode haver um problema na conexão com o banco de dados</li>
+        </ul>
+        <div class="mt-2">
+            <a href="{{ url_for('medico.debug_sistema') }}" class="btn btn-sm btn-outline-warning me-2">
+                <i class="fas fa-bug me-1"></i> Verificar Sistema
+            </a>
+            <a href="{{ url_for('medico.pedidos_analise') }}" class="btn btn-sm btn-outline-secondary me-2">
+                <i class="fas fa-redo me-1"></i> Limpar Filtros
+            </a>
+            <a href="{{ url_for('medico.nova_analise') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i> Criar Primeiro Pedido
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Informações do Médico -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="row">
+                <div class="col-md-6">
+                    <small class="text-muted">Médico:</small>
+                    <p class="mb-0"><strong>{{ medico.nome }}</strong> • {{ medico.especialidade }} • CRM: {{ medico.crm }}</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <small class="text-muted">ID do Médico:</small>
+                    <p class="mb-0"><code>{{ medico.id if medico.id else 'N/A' }}</code></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">Todos</option>
+                        <option value="pendente" {% if request.args.get('status') == 'pendente' %}selected{% endif %}>Pendente</option>
+                        <option value="em_analise" {% if request.args.get('status') == 'em_analise' %}selected{% endif %}>Em Análise</option>
+                        <option value="concluido" {% if request.args.get('status') == 'concluido' %}selected{% endif %}>Concluído</option>
+                        <option value="cancelado" {% if request.args.get('status') == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="urgencia" class="form-label">Urgência</label>
+                    <select class="form-select" id="urgencia" name="urgencia">
+                        <option value="">Todas</option>
+                        <option value="urgente" {% if request.args.get('urgencia') == 'urgente' %}selected{% endif %}>Urgente</option>
+                        <option value="alta" {% if request.args.get('urgencia') == 'alta' %}selected{% endif %}>Alta</option>
+                        <option value="normal" {% if request.args.get('urgencia') == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="baixa" {% if request.args.get('urgencia') == 'baixa' %}selected{% endif %}>Baixa</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status_aprovacao" class="form-label">Aprovação</label>
+                    <select class="form-select" id="status_aprovacao" name="status_aprovacao">
+                        <option value="">Todos</option>
+                        <option value="pendente" {% if request.args.get('status_aprovacao') == 'pendente' %}selected{% endif %}>Pendente</option>
+                        <option value="aprovado" {% if request.args.get('status_aprovacao') == 'aprovado' %}selected{% endif %}>Aprovado</option>
+                        <option value="rejeitado" {% if request.args.get('status_aprovacao') == 'rejeitado' %}selected{% endif %}>Rejeitado</option>
+                        <option value="ajustado" {% if request.args.get('status_aprovacao') == 'ajustado' %}selected{% endif %}>Ajustado</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Total</h5>
+                            <p class="card-text display-6 mb-0">{{ pedidos|length }}</p>
+                        </div>
+                        <i class="fas fa-clipboard-list fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Pendentes</h5>
+                            <p class="card-text display-6 mb-0">
+                                {{ pedidos|selectattr('status', 'equalto', 'pendente')|list|length }}
+                            </p>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Em Análise</h5>
+                            <p class="card-text display-6 mb-0">
+                                {{ pedidos|selectattr('status', 'equalto', 'em_analise')|list|length }}
+                            </p>
+                        </div>
+                        <i class="fas fa-microscope fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title mb-0">Concluídos</h5>
+                            <p class="card-text display-6 mb-0">
+                                {{ pedidos|selectattr('status', 'equalto', 'concluido')|list|length }}
+                            </p>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de pedidos -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Lista de Pedidos
+                <span class="badge bg-secondary ms-2">{{ pedidos|length }}</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if pedidos and pedidos|length > 0 %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Paciente</th>
+                            <th>Tipo de Exame</th>
+                            <th>Analista</th>
+                            <th>Data Solicitação</th>
+                            <th>Urgência</th>
+                            <th>Status</th>
+                            <th>Aprovação</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in pedidos %}
+                        <tr>
+                            <td>#{{ pedido.id }}</td>
+                            <td>
+                                <strong>{{ pedido.paciente_nome }}</strong>
+                                <br>
+                                <small class="text-muted">
+                                    {{ pedido.paciente_idade }}, {{ pedido.paciente_genero }}
+                                </small>
+                            </td>
+                            <td>{{ pedido.tipo_exame }}</td>
+                            <td>
+                                {% if pedido.analista_nome and pedido.analista_nome != 'Não atribuído' %}
+                                    {{ pedido.analista_nome }}
+                                {% else %}
+                                    <span class="text-muted">Não designado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ pedido.data_solicitacao if pedido.data_solicitacao else 'N/A' }}
+                            </td>
+                            <td>
+                                {% if pedido.urgencia == 'urgente' %}
+                                    <span class="badge bg-danger">Urgente</span>
+                                {% elif pedido.urgencia == 'alta' %}
+                                    <span class="badge bg-warning">Alta</span>
+                                {% elif pedido.urgencia == 'normal' %}
+                                    <span class="badge bg-info">Normal</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Baixa</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pedido.status == 'pendente' %}
+                                    <span class="badge bg-warning">Pendente</span>
+                                {% elif pedido.status == 'em_analise' %}
+                                    <span class="badge bg-info">Em Análise</span>
+                                {% elif pedido.status == 'concluido' %}
+                                    <span class="badge bg-success">Concluído</span>
+                                {% elif pedido.status == 'cancelado' %}
+                                    <span class="badge bg-danger">Cancelado</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ pedido.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pedido.status == 'concluido' %}
+                                    {% if pedido.status_aprovacao == 'pendente' %}
+                                        <span class="badge bg-primary">Aguardando Revisão</span>
+                                    {% elif pedido.status_aprovacao == 'aprovado' %}
+                                        <span class="badge bg-success">Aprovado</span>
+                                    {% elif pedido.status_aprovacao == 'rejeitado' %}
+                                        <span class="badge bg-danger">Rejeitado</span>
+                                    {% elif pedido.status_aprovacao == 'ajustado' %}
+                                        <span class="badge bg-warning">Ajustado</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ pedido.status_aprovacao }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button type="button" 
+                                            class="btn btn-info" 
+                                            onclick="verPedido({{ pedido.id }})"
+                                            title="Ver detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    {% if pedido.status == 'concluido' and pedido.status_aprovacao == 'pendente' %}
+                                        <a href="{{ url_for('medico.revisar_analise', pedido_id=pedido.id) }}" 
+                                           class="btn btn-primary" 
+                                           title="Revisar análise">
+                                            <i class="fas fa-check"></i>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h4>Nenhum pedido de análise encontrado</h4>
+                <p class="text-muted mb-4">
+                    {% if request.args.get('status') or request.args.get('urgencia') or request.args.get('status_aprovacao') %}
+                        Nenhum pedido encontrado com os filtros aplicados.
+                        <a href="{{ url_for('medico.pedidos_analise') }}" class="d-block mt-2">Limpar filtros</a>
+                    {% else %}
+                        Você ainda não solicitou nenhuma análise de exames.
+                    {% endif %}
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <a href="{{ url_for('medico.nova_analise') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Criar Novo Pedido
+                    </a>
+                    <a href="{{ url_for('medico.debug_sistema') }}" class="btn btn-warning">
+                        <i class="fas fa-bug me-2"></i>Verificar Sistema
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="card-footer text-muted">
+            <small>
+                <i class="fas fa-info-circle me-1"></i>
+                Total de {{ pedidos|length }} pedido(s) encontrado(s)
+                {% if medico %}
+                • Médico: {{ medico.nome }} (ID: {{ medico.id if medico.id else 'N/A' }})
+                {% endif %}
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver pedido -->
+<div class="modal fade" id="modalPedido" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-medical me-2"></i>
+                    Detalhes do Pedido <span id="pedidoId"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="pedidoDetalhes">
+                Carregando...
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table th {
+    background-color: #f8f9fa;
+}
+.card .display-6 {
+    font-size: 2.5rem;
+}
+</style>
+
+<script>
+function verPedido(pedidoId) {
+    // Atualizar ID no modal
+    document.getElementById('pedidoId').textContent = '#' + pedidoId;
+    
+    // Mostrar loading
+    document.getElementById('pedidoDetalhes').innerHTML = `
+        <div class="text-center py-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2">Carregando detalhes do pedido...</p>
+        </div>
+    `;
+    
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('modalPedido'));
+    modal.show();
+    
+    // Carregar detalhes via AJAX
+    fetch('/medico/api/detalhes-pedido/' + pedidoId)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('pedidoDetalhes').innerHTML = data.html;
+            } else {
+                document.getElementById('pedidoDetalhes').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar detalhes: ${data.error || 'Erro desconhecido'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            document.getElementById('pedidoDetalhes').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Erro de conexão: ${error}
+                </div>
+            `;
+        });
+}
+</script>
+{% endblock %}

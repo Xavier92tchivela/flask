@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Analista - DoctorIA</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-color: #2c3e50;
+        }
+        
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
+            color: white;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 14px 20px;
+            margin: 6px 12px;
+            border-radius: 12px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .sidebar .nav-link:hover {
+            background: rgba(255,255,255,0.12);
+            color: white;
+            transform: translateX(5px);
+        }
+        
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+        }
+        
+        .sidebar .nav-link i {
+            margin-right: 12px;
+            width: 22px;
+            text-align: center;
+        }
+        
+        .main-content {
+            padding: 30px;
+            background-color: #f4f6f9;
+        }
+        
+        .page-title {
+            margin-bottom: 30px;
+            color: var(--dark-color);
+            font-weight: 800;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .page-title i {
+            margin-right: 12px;
+            color: var(--warning-color);
+        }
+        
+        .page-title a {
+            color: var(--dark-color);
+            transition: all 0.3s;
+            margin-right: 15px;
+        }
+        
+        .page-title a:hover {
+            color: var(--warning-color);
+            transform: translateX(-3px);
+        }
+        
+        .form-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            padding: 35px;
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid rgba(0,0,0,0.03);
+        }
+        
+        .form-card h4 {
+            color: var(--dark-color);
+            margin-bottom: 30px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .form-card h4 i {
+            color: var(--warning-color);
+            font-size: 2rem;
+        }
+        
+        .form-label {
+            color: #6c757d;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .form-label i {
+            color: var(--warning-color);
+            font-size: 1rem;
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 14px;
+            padding: 12px 16px;
+            transition: all 0.3s;
+            font-size: 15px;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--warning-color);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+            outline: none;
+        }
+        
+        .form-control:hover, .form-select:hover {
+            border-color: #cbd5e0;
+        }
+        
+        .input-group-text {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            border-radius: 14px 0 0 14px;
+            color: var(--warning-color);
+            font-size: 1rem;
+            padding: 12px 16px;
+        }
+        
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 14px 14px 0;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            border: none;
+            padding: 14px 30px;
+            border-radius: 14px;
+            font-weight: 700;
+            width: 100%;
+            transition: all 0.3s;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-submit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(245, 158, 11, 0.3);
+        }
+        
+        .btn-cancel {
+            background: white;
+            color: #6c757d;
+            border: 2px solid #e9ecef;
+            padding: 12px 30px;
+            border-radius: 14px;
+            font-weight: 600;
+            width: 100%;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn-cancel:hover {
+            background: #f8f9fa;
+            border-color: var(--danger-color);
+            color: var(--danger-color);
+        }
+        
+        .text-muted {
+            color: #94a3b8 !important;
+            font-size: 13px;
+            margin-top: 5px;
+            display: block;
+        }
+        
+        hr {
+            margin: 30px 0;
+            border: 1px solid #e9ecef;
+            opacity: 0.5;
+        }
+        
+        .alert {
+            border-radius: 14px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .alert-success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+        
+        .alert-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+        
+        .alert-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+        
+        .info-box {
+            background: #fef3c7;
+            border-left: 4px solid var(--warning-color);
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .info-box i {
+            color: var(--warning-color);
+            font-size: 1.5rem;
+        }
+        
+        .info-box p {
+            margin: 0;
+            color: #92400e;
+        }
+
+        /* Estilo para o campo de telefone com indicador de Angola */
+        .angola-phone-input {
+            display: flex;
+            align-items: center;
+        }
+        
+        .angola-flag {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            border-radius: 14px 0 0 14px;
+            padding: 12px 16px;
+            color: #2c3e50;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .angola-flag img {
+            width: 20px;
+            height: 15px;
+            object-fit: cover;
+            border-radius: 3px;
+        }
+        
+        .angola-flag span {
+            font-size: 14px;
+        }
+        
+        .phone-field {
+            border-left: none;
+            border-radius: 0 14px 14px 0;
+            flex: 1;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                min-height: auto;
+                padding: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .page-title {
+                font-size: 24px;
+            }
+            
+            .form-card {
+                padding: 25px;
+            }
+            
+            .form-card h4 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 px-0 sidebar">
+                <div class="p-4">
+                    <h4 class="text-white mb-4">
+                        <i class="fas fa-brain me-2" style="font-size: 2rem;"></i>
+                        Doctor<span style="font-weight: 300;">IA</span>
+                    </h4>
+                    <p class="text-white-50 small mb-4">Painel Administrativo</p>
+                    
+                    <nav class="nav flex-column">
+                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.medicos') }}">
+                            <i class="fas fa-user-md"></i> Médicos
+                        </a>
+                        <a class="nav-link active" href="{{ url_for('admin.analistas') }}">
+                            <i class="fas fa-microscope"></i> Analistas
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
+                            <i class="fas fa-users"></i> Pacientes
+                        </a>
+                        <a class="nav-link" href="{{ url_for('admin.consultas') }}">
+                            <i class="fas fa-calendar-check"></i> Consultas
+                        </a>
+                        <hr class="bg-white-50">
+                        <a class="nav-link" href="{{ url_for('admin.logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Sair
+                        </a>
+                    </nav>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 main-content">
+                <!-- Page Title -->
+                <div class="page-title">
+                    <a href="{{ url_for('admin.analistas') }}" class="text-decoration-none">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <i class="fas fa-user-plus"></i>
+                    Cadastrar Novo Analista
+                </div>
+                
+                <!-- Info Box -->
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i>
+                    <p><strong>Analistas de Exames</strong> - Responsáveis por analisar exames e emitir laudos. Preencha todos os campos obrigatórios.</p>
+                </div>
+                
+                <!-- Flash Messages -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
+                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Form Card -->
+                <div class="form-card">
+                    <h4>
+                        <i class="fas fa-microscope"></i>
+                        Informações do Analista
+                    </h4>
+                    
+                    <form method="POST" action="{{ url_for('admin.cadastrar_analista') }}">
+                        <!-- Dados de Login -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-user"></i>
+                                    Nome Completo
+                                </label>
+                                <input type="text" class="form-control" name="nome" required 
+                                       placeholder="Nome completo do analista"
+                                       value="{{ request.form.nome if request.form.nome else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope"></i>
+                                    Email
+                                </label>
+                                <input type="email" class="form-control" name="email" required 
+                                       placeholder="analista@exemplo.com"
+                                       value="{{ request.form.email if request.form.email else '' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-lock"></i>
+                                    Senha
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-key"></i>
+                                    </span>
+                                    <input type="password" class="form-control" name="senha" required 
+                                           placeholder="••••••••">
+                                </div>
+                                <small class="text-muted">Mínimo 6 caracteres</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-phone"></i>
+                                    Telefone (Angola)
+                                </label>
+                                <div class="angola-phone-input">
+                                    <div class="angola-flag">
+                                        <span>+244</span>
+                                    </div>
+                                    <input type="text" class="form-control phone-field" name="telefone" 
+                                           placeholder="923 456 789"
+                                           value="{{ request.form.telefone if request.form.telefone else '' }}">
+                                </div>
+                                <small class="text-muted">Formato: 923 456 789 (9 dígitos)</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Dados Profissionais -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-flask"></i>
+                                    Especialidade
+                                </label>
+                                <select class="form-select" name="especialidade" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Radiologia" {% if request.form.especialidade == 'Radiologia' %}selected{% endif %}>Radiologia</option>
+                                    <option value="Patologia" {% if request.form.especialidade == 'Patologia' %}selected{% endif %}>Patologia</option>
+                                    <option value="Cardiologia" {% if request.form.especialidade == 'Cardiologia' %}selected{% endif %}>Cardiologia</option>
+                                    <option value="Neurologia" {% if request.form.especialidade == 'Neurologia' %}selected{% endif %}>Neurologia</option>
+                                    <option value="Hematologia" {% if request.form.especialidade == 'Hematologia' %}selected{% endif %}>Hematologia</option>
+                                    <option value="Microbiologia" {% if request.form.especialidade == 'Microbiologia' %}selected{% endif %}>Microbiologia</option>
+                                    <option value="Bioquímica" {% if request.form.especialidade == 'Bioquímica' %}selected{% endif %}>Bioquímica</option>
+                                    <option value="Análises Clínicas" {% if request.form.especialidade == 'Análises Clínicas' %}selected{% endif %}>Análises Clínicas</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-id-card"></i>
+                                    Registro Profissional
+                                </label>
+                                <input type="text" class="form-control" name="registro_profissional" 
+                                       placeholder="CRP/CRBM 12345"
+                                       value="{{ request.form.registro_profissional if request.form.registro_profissional else '' }}">
+                                <small class="text-muted">Opcional</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Experiência e Carga Horária -->
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-briefcase"></i>
+                                    Experiência
+                                </label>
+                                <textarea class="form-control" name="experiencia" rows="3" 
+                                          placeholder="Descreva a experiência profissional do analista...">{{ request.form.experiencia if request.form.experiencia else '' }}</textarea>
+                                <small class="text-muted">Opcional</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-4">
+                                <div class="mb-4">
+                                    <label class="form-label">
+                                        <i class="fas fa-clock"></i>
+                                        Carga Horária Semanal
+                                    </label>
+                                    <input type="number" class="form-control" name="carga_horaria" 
+                                           min="20" max="60" step="5"
+                                           value="{{ request.form.carga_horaria if request.form.carga_horaria else 40 }}">
+                                </div>
+                                
+                                <div class="form-check form-switch mt-4">
+                                    <input class="form-check-input" type="checkbox" name="is_supervisor" 
+                                           id="isSupervisor" {% if request.form.is_supervisor %}checked{% endif %}>
+                                    <label class="form-check-label" for="isSupervisor">
+                                        <strong>É Supervisor?</strong>
+                                    </label>
+                                    <small class="text-muted d-block">Supervisores podem gerenciar outros analistas</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr>
+                        
+                        <!-- Botões -->
+                        <div class="d-grid gap-3">
+                            <button type="submit" class="btn-submit">
+                                <i class="fas fa-save"></i>
+                                Cadastrar Analista
+                            </button>
+                            <a href="{{ url_for('admin.analistas') }}" class="btn-cancel">
+                                <i class="fas fa-times"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Auto-uppercase para registro profissional
+        document.querySelector('input[name="registro_profissional"]').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+        
+        // Máscara para telefone de Angola (formato: 923 456 789)
+        document.querySelector('input[name="telefone"]').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // Limitar a 9 dígitos (números angolanos têm 9 dígitos)
+            if (value.length > 9) value = value.slice(0, 9);
+            
+            // Aplicar máscara: 923 456 789
+            if (value.length > 6) {
+                value = value.replace(/^(\d{3})(\d{3})(\d{1,3})/, '$1 $2 $3');
+            } else if (value.length > 3) {
+                value = value.replace(/^(\d{3})(\d{1,3})/, '$1 $2');
+            }
+            
+            e.target.value = value;
+        });
+        
+        // Validação do formulário
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const senha = document.querySelector('input[name="senha"]').value;
+            const nome = document.querySelector('input[name="nome"]').value;
+            const email = document.querySelector('input[name="email"]').value;
+            const especialidade = document.querySelector('select[name="especialidade"]').value;
+            const telefone = document.querySelector('input[name="telefone"]').value.replace(/\D/g, '');
+            
+            if (senha.length < 6) {
+                e.preventDefault();
+                alert('A senha deve ter pelo menos 6 caracteres!');
+                return false;
+            }
+            
+            if (!email.includes('@') || !email.includes('.')) {
+                e.preventDefault();
+                alert('Por favor, insira um email válido!');
+                return false;
+            }
+            
+            if (!especialidade) {
+                e.preventDefault();
+                alert('Por favor, selecione uma especialidade!');
+                return false;
+            }
+            
+            // Validar telefone se foi preenchido
+            if (telefone.length > 0 && telefone.length !== 9) {
+                e.preventDefault();
+                alert('O telefone de Angola deve ter 9 dígitos!');
+                return false;
+            }
+            
+            return true;
+        });
+        
+        // Adicionar placeholder para mostrar o formato esperado
+        const telefoneInput = document.querySelector('input[name="telefone"]');
+        telefoneInput.addEventListener('focus', function() {
+            if (!this.value) {
+                this.placeholder = '923 456 789';
+            }
+        });
+        
+        // Remover espaços extras antes de enviar
+        document.querySelector('form').addEventListener('submit', function() {
+            const telefoneField = document.querySelector('input[name="telefone"]');
+            telefoneField.value = telefoneField.value.trim();
+        });
+    </script>
+</body>
+</html>

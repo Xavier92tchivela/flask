@@ -3,251 +3,824 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro - Sistema Médico</title>
+    <title>Cadastro de Paciente - Sistema Médico</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .register-container {
-            min-height: 100vh;
-            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1932&q=80');
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(rgba(44, 62, 80, 0.9), rgba(44, 62, 80, 0.9)), 
+                        url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1932&q=80');
             background-size: cover;
             background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px;
         }
-        
+
         .register-card {
             background: white;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 500px;
+            max-width: 600px;
             overflow: hidden;
+            animation: slideUp 0.5s ease-out;
         }
-        
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .register-header {
             background-color: #3498db;
             color: white;
-            padding: 25px;
+            padding: 30px;
             text-align: center;
         }
-        
-        .register-body {
-            padding: 25px;
+
+        .register-header h4 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
         }
-        
-        .form-control:focus {
+
+        .register-header p {
+            opacity: 0.9;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+
+        .register-header i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .register-body {
+            padding: 35px 30px;
+        }
+
+        .form-label {
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-label i {
+            color: #3498db;
+            margin-right: 8px;
+            width: 18px;
+        }
+
+        .input-group {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .input-group:focus-within {
             border-color: #3498db;
             box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
         }
-        
+
+        .input-group-text {
+            background: #f8f9fa;
+            border: none;
+            color: #3498db;
+            padding: 12px 15px;
+        }
+
+        .form-control, .form-select {
+            border: none;
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            background: white;
+        }
+
+        .form-control:focus, .form-select:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
         .btn-register {
             background-color: #3498db;
-            border-color: #3498db;
+            border: none;
             color: white;
-            padding: 10px;
-            font-weight: 500;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            width: 100%;
+            transition: all 0.3s;
+            cursor: pointer;
+            margin-top: 20px;
         }
-        
+
         .btn-register:hover {
             background-color: #2980b9;
-            border-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
         }
-        
-        .step-indicator {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            position: relative;
+
+        .btn-register:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
-        
-        .step {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background-color: #e9ecef;
+
+        .back-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+
+        .back-home .btn-outline-light {
+            border-radius: 30px;
+            padding: 8px 20px;
+            font-weight: 500;
+            backdrop-filter: blur(5px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .back-home .btn-outline-light:hover {
+            background: white;
+            color: #2c3e50;
+            border-color: white;
+        }
+
+        .divider {
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            z-index: 2;
+            margin: 25px 0 15px;
         }
-        
-        .step.active {
-            background-color: #3498db;
-            color: white;
-        }
-        
-        .step-indicator::before {
+
+        .divider::before,
+        .divider::after {
             content: "";
-            position: absolute;
-            top: 15px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background-color: #e9ecef;
-            z-index: 1;
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .divider span {
+            padding: 0 15px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .login-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Validação */
+        .is-invalid {
+            border-color: #dc3545 !important;
+        }
+
+        .is-valid {
+            border-color: #28a745 !important;
+        }
+
+        .invalid-feedback {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .was-validated .form-control:invalid ~ .invalid-feedback,
+        .was-validated .input-group:has(.form-control:invalid) ~ .invalid-feedback {
+            display: block;
+        }
+
+        /* Força da senha */
+        .password-strength {
+            height: 4px;
+            margin: 8px 0 0;
+            border-radius: 2px;
+            transition: all 0.3s;
+            background: #e0e0e0;
+        }
+
+        .password-strength.weak {
+            background: #dc3545;
+            width: 33%;
+        }
+
+        .password-strength.medium {
+            background: #f39c12;
+            width: 66%;
+        }
+
+        .password-strength.strong {
+            background: #28a745;
+            width: 100%;
+        }
+
+        /* Match de senha */
+        .password-match {
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .password-match.match {
+            color: #28a745;
+        }
+
+        .password-match.no-match {
+            color: #dc3545;
+        }
+
+        /* Alertas */
+        .alert {
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Termos */
+        .terms-link {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .terms-link:hover {
+            text-decoration: underline;
+        }
+
+        .form-check-input:checked {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+
+        /* Grid */
+        .row {
+            margin: 0 -10px;
+        }
+
+        .col-md-6 {
+            padding: 0 10px;
+        }
+
+        /* Espaçamento */
+        .mb-3 {
+            margin-bottom: 20px !important;
+        }
+
+        .mb-4 {
+            margin-bottom: 25px !important;
+        }
+
+        /* Texto informativo */
+        .text-muted {
+            color: #7f8c8d !important;
+            font-size: 0.85rem;
+            margin-top: 5px;
+        }
+
+        .info-badge {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 20px;
+            border-left: 4px solid #3498db;
+        }
+
+        .info-badge i {
+            color: #3498db;
+            margin-right: 8px;
+        }
+
+        .info-badge small {
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        /* Responsividade */
+        @media (max-width: 576px) {
+            body {
+                padding: 20px 15px;
+            }
+
+            .register-body {
+                padding: 25px 20px;
+            }
+
+            .register-header {
+                padding: 25px;
+            }
+
+            .register-header h4 {
+                font-size: 1.5rem;
+            }
+
+            .back-home {
+                top: 10px;
+                left: 10px;
+            }
+
+            .back-home .btn-outline-light {
+                padding: 5px 15px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="register-container">
-        <div class="register-card">
-            <div class="register-header">
-                <h4><i class="fas fa-hospital me-2"></i> Sistema Médico</h4>
-                <p class="mb-0">Crie sua conta</p>
-            </div>
+    <!-- Botão para voltar à página inicial -->
+    <div class="back-home">
+        <a href="{{ url_for('auth.index') }}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Início
+        </a>
+    </div>
+    
+    <div class="register-card">
+        <div class="register-header">
+            <i class="fas fa-user-injured"></i>
+            <h4>Cadastro de Paciente</h4>
+            <p class="mb-0">Preencha seus dados para criar sua conta</p>
+        </div>
+        
+        <div class="register-body">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
             
-            <div class="register-body">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+            <!-- FORMULÁRIO DE CADASTRO DE PACIENTE -->
+            <form method="POST" action="{{ url_for('auth.register') }}" id="registerForm" novalidate>
+                <!-- Campo hidden para identificar que é paciente -->
+                <input type="hidden" name="tipo" value="paciente">
                 
-                <div class="step-indicator mb-4">
-                    <div class="step active">1</div>
-                    <div class="step">2</div>
-                    <div class="step">3</div>
+                <!-- Nome Completo -->
+                <div class="mb-4">
+                    <label for="nome" class="form-label">
+                        <i class="fas fa-user"></i>Nome Completo
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-user"></i></span>
+                        <input type="text" class="form-control" id="nome" name="nome" 
+                               required placeholder="Digite seu nome completo"
+                               minlength="3" maxlength="100">
+                    </div>
+                    <div class="invalid-feedback">Por favor, insira seu nome completo.</div>
                 </div>
                 
-                <form method="POST" action="{{ url_for('register') }}">
-                    <h5 class="mb-3">Informações Pessoais</h5>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="nome" class="form-label">Nome Completo</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-user"></i></span>
-                                <input type="text" class="form-control" id="nome" name="nome" required>
-                            </div>
+                <!-- Email e Telefone (Angola) -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope"></i>Email
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   required placeholder="seu@email.com">
                         </div>
-                        <div class="col-md-6">
-                            <label for="tipo" class="form-label">Tipo de Usuário</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-user-tag"></i></span>
-                                <select class="form-select" id="tipo" name="tipo" required>
-                                    <option value="">Selecione...</option>
-                                    <option value="paciente">Paciente</option>
-                                    <option value="medico">Médico</option>
-                                </select>
-                            </div>
-                        </div>
+                        <div class="invalid-feedback">Por favor, insira um email válido.</div>
                     </div>
                     
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="email" class="form-label">Email</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                                <input type="email" class="form-control" id="email" name="email" required>
-                            </div>
+                    <div class="col-md-6">
+                        <label for="telefone" class="form-label">
+                            <i class="fas fa-phone"></i>Telefone (Angola)
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                            <input type="tel" class="form-control" id="telefone" name="telefone" 
+                                   required placeholder="923 456 789">
                         </div>
-                        <div class="col-md-6">
-                            <label for="telefone" class="form-label">Telefone</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-phone"></i></span>
-                                <input type="tel" class="form-control" id="telefone" name="telefone" required>
-                            </div>
+                        <div class="invalid-feedback" id="telefone-feedback">
+                            Número inválido. Digite 9 dígitos começando com 9 (móvel) ou 2 (fixo).
                         </div>
+                        <small class="text-muted">Formato: 9 dígitos (ex: 923 456 789)</small>
+                    </div>
+                </div>
+                
+                <!-- Senha e Confirmar Senha -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock"></i>Senha
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   required placeholder="Mínimo 6 caracteres" minlength="6">
+                        </div>
+                        <div class="password-strength" id="passwordStrength"></div>
+                        <div class="invalid-feedback">A senha deve ter pelo menos 6 caracteres.</div>
                     </div>
                     
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="password" class="form-label">Senha</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                <input type="password" class="form-control" id="password" name="password" required>
-                            </div>
+                    <div class="col-md-6">
+                        <label for="confirm_password" class="form-label">
+                            <i class="fas fa-check-circle"></i>Confirmar Senha
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-check-circle"></i></span>
+                            <input type="password" class="form-control" id="confirm_password" 
+                                   name="confirm_password" required placeholder="Digite novamente">
                         </div>
-                        <div class="col-md-6">
-                            <label for="confirm_password" class="form-label">Confirmar Senha</label>
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                            </div>
+                        <div class="password-match" id="senhaMatch"></div>
+                        <div class="invalid-feedback">As senhas não coincidem.</div>
+                    </div>
+                </div>
+                
+                <!-- Data de Nascimento e Gênero -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="data_nascimento" class="form-label">
+                            <i class="fas fa-calendar"></i>Data de Nascimento
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-calendar"></i></span>
+                            <input type="date" class="form-control" id="data_nascimento" 
+                                   name="data_nascimento" required>
                         </div>
+                        <div class="invalid-feedback">Por favor, informe sua data de nascimento.</div>
                     </div>
                     
-                    <div id="medico-fields" class="mb-3" style="display: none;">
-                        <h5 class="mb-3">Informações Profissionais</h5>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="especialidade" class="form-label">Especialidade</label>
-                                <input type="text" class="form-control" id="especialidade" name="especialidade">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="crm" class="form-label">CRM</label>
-                                <input type="text" class="form-control" id="crm" name="crm">
-                            </div>
+                    <div class="col-md-6">
+                        <label for="genero" class="form-label">
+                            <i class="fas fa-venus-mars"></i>Gênero
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-venus-mars"></i></span>
+                            <select class="form-select" id="genero" name="genero" required>
+                                <option value="">Selecione...</option>
+                                <option value="masculino">Masculino</option>
+                                <option value="feminino">Feminino</option>
+                                <option value="outro">Outro</option>
+                                <option value="prefiro_nao_informar">Prefiro não informar</option>
+                            </select>
                         </div>
+                        <div class="invalid-feedback">Por favor, selecione seu gênero.</div>
                     </div>
-                    
-                    <div id="paciente-fields" class="mb-3" style="display: none;">
-                        <h5 class="mb-3">Informações de Saúde</h5>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="data_nascimento" class="form-label">Data de Nascimento</label>
-                                <input type="date" class="form-control" id="data_nascimento" name="data_nascimento">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="genero" class="form-label">Gênero</label>
-                                <select class="form-select" id="genero" name="genero">
-                                    <option value="">Selecione...</option>
-                                    <option value="masculino">Masculino</option>
-                                    <option value="feminino">Feminino</option>
-                                    <option value="outro">Outro</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="endereco" class="form-label">Endereço</label>
-                            <textarea class="form-control" id="endereco" name="endereco" rows="2"></textarea>
-                        </div>
+                </div>
+                
+                <!-- Endereço -->
+                <div class="mb-4">
+                    <label for="endereco" class="form-label">
+                        <i class="fas fa-map-marker-alt"></i>Endereço
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-map-marker-alt"></i></span>
+                        <textarea class="form-control" id="endereco" name="endereco" 
+                                  rows="2" placeholder="Rua, número, bairro, cidade" required></textarea>
                     </div>
+                    <div class="invalid-feedback">Por favor, informe seu endereço.</div>
+                </div>
+                
+                <!-- Termos de Uso -->
+                <div class="mb-4 form-check">
+                    <input type="checkbox" class="form-check-input" id="terms" required>
+                    <label class="form-check-label" for="terms">
+                        Aceito os <a href="#" class="terms-link" data-bs-toggle="modal" 
+                                   data-bs-target="#termsModal">termos de uso</a> e 
+                        <a href="#" class="terms-link" data-bs-toggle="modal" 
+                           data-bs-target="#privacyModal">política de privacidade</a>
+                    </label>
+                    <div class="invalid-feedback">Você deve aceitar os termos para continuar.</div>
+                </div>
+                
+                <!-- Botão de Cadastro -->
+                <button type="submit" class="btn-register" id="btnSubmit">
+                    <i class="fas fa-user-plus me-2"></i>Criar Conta
+                </button>
+                
+                <div class="divider">
+                    <span>JÁ TEM UMA CONTA?</span>
+                </div>
+                
+                <!-- Link para Login -->
+                <div class="text-center">
+                    <p><a href="{{ url_for('auth.login') }}" class="login-link">Faça login aqui</a></p>
+                </div>
+                
+                <!-- Informação sobre médicos e analistas -->
+                <div class="info-badge">
+                    <i class="fas fa-info-circle"></i>
+                    <small>
+                        <strong>Médicos e analistas:</strong> O cadastro deve ser realizado pelo administrador do sistema.
+                    </small>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Termos de Uso -->
+    <div class="modal fade" id="termsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Termos de Uso</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="fw-bold mb-3">1. Aceitação dos Termos</h6>
+                    <p class="mb-4">Ao acessar e usar este sistema médico, você concorda em cumprir estes termos de uso.</p>
                     
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="terms" required>
-                        <label class="form-check-label" for="terms">Aceito os termos de uso e política de privacidade</label>
-                    </div>
+                    <h6 class="fw-bold mb-3">2. Uso Adequado</h6>
+                    <p class="mb-4">O sistema deve ser utilizado apenas para fins legítimos de gestão médica e de saúde.</p>
                     
-                    <button type="submit" class="btn btn-register w-100">Criar Conta</button>
+                    <h6 class="fw-bold mb-3">3. Responsabilidades</h6>
+                    <p class="mb-4">Os dados inseridos no sistema são de responsabilidade do usuário.</p>
                     
-                    <div class="text-center mt-3">
-                        <p>Já tem uma conta? <a href="{{ url_for('login') }}">Faça login</a></p>
-                    </div>
-                </form>
+                    <h6 class="fw-bold mb-3">4. Privacidade</h6>
+                    <p class="mb-4">Respeitamos a confidencialidade das informações médicas conforme a legislação aplicável.</p>
+                    
+                    <h6 class="fw-bold mb-3">5. Limitações</h6>
+                    <p class="mb-0">Este é um projeto demonstrativo e não substitui sistemas profissionais de saúde.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
             </div>
         </div>
     </div>
 
+    <!-- Modal Política de Privacidade -->
+    <div class="modal fade" id="privacyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Política de Privacidade</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="fw-bold mb-3">Coleta de Dados</h6>
+                    <p class="mb-4">Coletamos apenas os dados necessários para o funcionamento do sistema.</p>
+                    
+                    <h6 class="fw-bold mb-3">Uso dos Dados</h6>
+                    <p class="mb-4">Os dados são utilizados apenas para fins de demonstração do sistema.</p>
+                    
+                    <h6 class="fw-bold mb-3">Segurança</h6>
+                    <p class="mb-4">Implementamos medidas de segurança para proteger suas informações.</p>
+                    
+                    <h6 class="fw-bold mb-3">Confidencialidade</h6>
+                    <p class="mb-4">Os dados médicos são tratados com confidencialidade.</p>
+                    
+                    <h6 class="fw-bold mb-3">Compartilhamento</h6>
+                    <p class="mb-0">Não compartilhamos seus dados com terceiros.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script>
-        // Mostrar/ocultar campos específicos com base no tipo de usuário
-        document.getElementById('tipo').addEventListener('change', function() {
-            const tipo = this.value;
-            document.getElementById('medico-fields').style.display = tipo === 'medico' ? 'block' : 'none';
-            document.getElementById('paciente-fields').style.display = tipo === 'paciente' ? 'block' : 'none';
+        // Função para validar telefone de Angola
+        function validarTelefoneAngola(telefone) {
+            // Remove espaços e outros caracteres não numéricos
+            const numeroLimpo = telefone.replace(/\s+/g, '');
+            
+            // Verifica se tem exatamente 9 dígitos e começa com 2 ou 9
+            const padraoAngola = /^[29]\d{8}$/;
+            return padraoAngola.test(numeroLimpo);
+        }
+
+        // Formatar telefone de Angola enquanto digita
+        document.getElementById('telefone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+            
+            // Limita a 9 dígitos
+            if (value.length > 9) {
+                value = value.substring(0, 9);
+            }
+            
+            // Formata como XXX XXX XXX (formato Angola)
+            if (value.length > 6) {
+                value = value.replace(/^(\d{3})(\d{3})(\d{0,3})$/, '$1 $2 $3');
+            } else if (value.length > 3) {
+                value = value.replace(/^(\d{3})(\d{0,3})$/, '$1 $2');
+            }
+            
+            e.target.value = value;
+            
+            // Validação em tempo real
+            const telefoneInput = e.target;
+            const feedback = document.getElementById('telefone-feedback');
+            
+            if (value.trim() === '') {
+                telefoneInput.classList.remove('is-valid', 'is-invalid');
+                feedback.style.display = 'none';
+            } else if (validarTelefoneAngola(value)) {
+                telefoneInput.classList.remove('is-invalid');
+                telefoneInput.classList.add('is-valid');
+                feedback.style.display = 'none';
+            } else {
+                telefoneInput.classList.remove('is-valid');
+                telefoneInput.classList.add('is-invalid');
+                feedback.style.display = 'block';
+            }
         });
 
-        // Validação de confirmação de senha
-        document.getElementById('confirm_password').addEventListener('input', function() {
-            const password = document.getElementById('password').value;
-            const confirmPassword = this.value;
+        // Verificar força da senha
+        document.getElementById('password').addEventListener('input', function() {
+            const senha = this.value;
+            const strengthBar = document.getElementById('passwordStrength');
             
-            if (password !== confirmPassword) {
-                this.setCustomValidity('As senhas não coincidem');
+            strengthBar.className = 'password-strength';
+            
+            if (senha.length === 0) {
+                strengthBar.style.width = '0';
+                return;
+            }
+            
+            let forca = 0;
+            
+            if (senha.length >= 6) forca++;
+            if (senha.length >= 8) forca++;
+            if (/[A-Z]/.test(senha)) forca++;
+            if (/[0-9]/.test(senha)) forca++;
+            if (/[^A-Za-z0-9]/.test(senha)) forca++;
+            
+            if (forca <= 2) {
+                strengthBar.classList.add('weak');
+            } else if (forca <= 4) {
+                strengthBar.classList.add('medium');
+            } else {
+                strengthBar.classList.add('strong');
+            }
+            
+            verificarConfirmacaoSenha();
+        });
+
+        // Verificar confirmação de senha
+        document.getElementById('confirm_password').addEventListener('input', verificarConfirmacaoSenha);
+        
+        function verificarConfirmacaoSenha() {
+            const senha = document.getElementById('password').value;
+            const confirmar = document.getElementById('confirm_password').value;
+            const matchDiv = document.getElementById('senhaMatch');
+            const btnSubmit = document.getElementById('btnSubmit');
+            
+            if (confirmar.length === 0) {
+                matchDiv.textContent = '';
+                matchDiv.className = 'password-match';
+                btnSubmit.disabled = false;
+                return;
+            }
+            
+            if (senha === confirmar) {
+                matchDiv.textContent = '✓ As senhas coincidem';
+                matchDiv.className = 'password-match match';
+                btnSubmit.disabled = false;
+            } else {
+                matchDiv.textContent = '✗ As senhas não coincidem';
+                matchDiv.className = 'password-match no-match';
+                btnSubmit.disabled = true;
+            }
+        }
+
+        // Validação de email
+        document.getElementById('email').addEventListener('input', function() {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(this.value)) {
+                this.setCustomValidity('Email inválido');
+                this.classList.add('is-invalid');
             } else {
                 this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
             }
+        });
+
+        // Validação da data de nascimento
+        document.getElementById('data_nascimento').addEventListener('change', function() {
+            const hoje = new Date();
+            const dataNasc = new Date(this.value);
+            
+            if (dataNasc > hoje) {
+                this.setCustomValidity('Data não pode ser no futuro');
+                this.classList.add('is-invalid');
+            } else {
+                this.setCustomValidity('');
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Validação do formulário antes do envio
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const senha = document.getElementById('password').value;
+            const confirmar = document.getElementById('confirm_password').value;
+            const telefone = document.getElementById('telefone').value;
+            const terms = document.getElementById('terms');
+            
+            // Validar telefone de Angola
+            if (!validarTelefoneAngola(telefone)) {
+                e.preventDefault();
+                document.getElementById('telefone').classList.add('is-invalid');
+                document.getElementById('telefone-feedback').style.display = 'block';
+                return false;
+            }
+            
+            if (senha !== confirmar) {
+                e.preventDefault();
+                document.getElementById('confirm_password').classList.add('is-invalid');
+                return false;
+            }
+            
+            if (!terms.checked) {
+                e.preventDefault();
+                terms.classList.add('is-invalid');
+                return false;
+            }
+            
+            this.classList.add('was-validated');
+        });
+
+        // Mostrar/ocultar senha
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('nome').focus();
+            
+            // Adicionar botão de mostrar senha
+            const passwordFields = ['password', 'confirm_password'];
+            
+            passwordFields.forEach(fieldId => {
+                const input = document.getElementById(fieldId);
+                const group = input.closest('.input-group');
+                
+                if (group) {
+                    const showBtn = document.createElement('span');
+                    showBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                    showBtn.className = 'input-group-text';
+                    showBtn.style.cursor = 'pointer';
+                    showBtn.style.backgroundColor = '#f8f9fa';
+                    showBtn.title = 'Mostrar senha';
+                    
+                    showBtn.addEventListener('click', function() {
+                        if (input.type === 'password') {
+                            input.type = 'text';
+                            this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                            this.title = 'Ocultar senha';
+                        } else {
+                            input.type = 'password';
+                            this.innerHTML = '<i class="fas fa-eye"></i>';
+                            this.title = 'Mostrar senha';
+                        }
+                    });
+                    
+                    group.appendChild(showBtn);
+                }
+            });
         });
     </script>
 </body>

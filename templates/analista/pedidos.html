@@ -1,0 +1,983 @@
+{% extends "base.html" %}
+
+{% block title %}Pedidos de Análise - Analista{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-3">
+    <!-- Cabeçalho Responsivo -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 mb-md-4">
+        <h2 class="h5 h4-md mb-0">
+            <i class="fas fa-clipboard-list me-2"></i> Meus Pedidos de Análise
+        </h2>
+        <div class="d-flex flex-column flex-sm-row gap-2 w-100 w-md-auto">
+            <a href="{{ url_for('analista.dashboard') }}" class="btn btn-outline-secondary btn-sm w-100 w-sm-auto">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+            <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-primary btn-sm w-100 w-sm-auto">
+                <i class="fas fa-plus-circle me-1"></i> Atribuir Próximo
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros Responsivos -->
+    <div class="card mb-3 mb-md-4">
+        <div class="card-body p-3">
+            <form method="GET" class="row g-2">
+                <div class="col-12 col-md-4">
+                    <label for="status" class="form-label small mb-1">Status</label>
+                    <select class="form-select form-select-sm" id="status" name="status">
+                        <option value="">Todos os Status</option>
+                        <option value="pendente" {% if status_filter == 'pendente' %}selected{% endif %}>Pendentes</option>
+                        <option value="em_analise" {% if status_filter == 'em_analise' %}selected{% endif %}>Em Análise</option>
+                        <option value="concluido" {% if status_filter == 'concluido' %}selected{% endif %}>Concluídos</option>
+                        <option value="cancelado" {% if status_filter == 'cancelado' %}selected{% endif %}>Cancelados</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label for="urgencia" class="form-label small mb-1">Urgência</label>
+                    <select class="form-select form-select-sm" id="urgencia" name="urgencia">
+                        <option value="">Todas</option>
+                        <option value="urgente" {% if urgencia_filter == 'urgente' %}selected{% endif %}>Urgente</option>
+                        <option value="alta" {% if urgencia_filter == 'alta' %}selected{% endif %}>Alta</option>
+                        <option value="normal" {% if urgencia_filter == 'normal' %}selected{% endif %}>Normal</option>
+                        <option value="baixa" {% if urgencia_filter == 'baixa' %}selected{% endif %}>Baixa</option>
+                    </select>
+                </div>
+                <div class="col-6 col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-filter me-1"></i> <span class="d-none d-sm-inline">Filtrar</span>
+                    </button>
+                </div>
+                <div class="col-6 col-md-2 d-flex align-items-end">
+                    <a href="{{ url_for('analista.pedidos') }}" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-redo me-1"></i> <span class="d-none d-sm-inline">Limpar</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas Responsivos -->
+    <div class="row g-2 g-md-3 mb-3 mb-md-4">
+        <div class="col-6 col-xl-3 mb-2 mb-md-0">
+            <div class="card border-start border-primary h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Pendentes</div>
+                            <div class="h5 h4-md mb-0">{{ pedidos|selectattr('status', 'equalto', 'pendente')|list|length }}</div>
+                        </div>
+                        <div class="text-primary">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-xl-3 mb-2 mb-md-0">
+            <div class="card border-start border-info h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Em Análise</div>
+                            <div class="h5 h4-md mb-0">{{ pedidos|selectattr('status', 'equalto', 'em_analise')|list|length }}</div>
+                        </div>
+                        <div class="text-info">
+                            <i class="fas fa-microscope fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-xl-3">
+            <div class="card border-start border-success h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Concluídos</div>
+                            <div class="h5 h4-md mb-0">{{ pedidos|selectattr('status', 'equalto', 'concluido')|list|length }}</div>
+                        </div>
+                        <div class="text-success">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-6 col-xl-3">
+            <div class="card border-start border-warning h-100">
+                <div class="card-body p-2 p-md-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small">Urgentes</div>
+                            <div class="h5 h4-md mb-0">{{ pedidos|selectattr('urgencia', 'equalto', 'urgente')|list|length }}</div>
+                        </div>
+                        <div class="text-warning">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabela de Pedidos Responsiva -->
+    <div class="card">
+        <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 py-2 py-md-3">
+            <h5 class="mb-0 small">
+                <i class="fas fa-list me-2"></i> Pedidos Atribuídos
+            </h5>
+            <span class="badge bg-primary">{{ pedidos|length }} pedido(s)</span>
+        </div>
+        <div class="card-body p-0">
+            {% if pedidos %}
+            <!-- Versão Mobile: Cards (SEM ID) -->
+            <div class="d-block d-md-none">
+                {% for pedido in pedidos %}
+                <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %} hover-bg-light">
+                    <!-- Cabeçalho do Card -->
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1 fw-bold">{{ pedido.paciente_nome|truncate(25) }}</h6>
+                            {% if pedido.paciente_data_nascimento %}
+                            <small class="text-muted d-block">
+                                <i class="fas fa-calendar-alt me-1"></i>{{ pedido.paciente_data_nascimento }} • {{ pedido.paciente_genero }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        <div class="text-end ms-2">
+                            <span class="badge bg-{% if pedido.urgencia == 'urgente' %}danger{% elif pedido.urgencia == 'alta' %}warning{% elif pedido.urgencia == 'normal' %}info{% else %}secondary{% endif %} mb-1 d-block">
+                                <i class="fas fa-{% if pedido.urgencia == 'urgente' %}exclamation-triangle{% elif pedido.urgencia == 'alta' %}arrow-up{% elif pedido.urgencia == 'normal' %}circle{% else %}arrow-down{% endif %} me-1"></i>
+                                {{ pedido.urgencia|upper }}
+                            </span>
+                            <span class="badge bg-{% if pedido.status == 'pendente' %}warning{% elif pedido.status == 'em_analise' %}info{% elif pedido.status == 'concluido' %}success{% else %}secondary{% endif %} d-block">
+                                <i class="fas fa-{% if pedido.status == 'pendente' %}hourglass{% elif pedido.status == 'em_analise' %}microscope{% elif pedido.status == 'concluido' %}check{% else %}ban{% endif %} me-1"></i>
+                                {{ pedido.status|replace('_', ' ')|title }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Detalhes do Exame -->
+                    <div class="mb-2 p-2 bg-light rounded-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-vial text-primary me-2"></i>
+                            <div>
+                                <span class="fw-semibold small">{{ pedido.tipo_exame }}</span>
+                                {% if pedido.descricao %}
+                                <small class="text-muted d-block">{{ pedido.descricao|truncate(40) }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Médico e Data -->
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted d-block">
+                                <i class="fas fa-user-md me-1"></i> {{ pedido.medico_nome|truncate(20) }}
+                            </small>
+                            <small class="text-muted d-block">
+                                <i class="fas fa-calendar me-1"></i> {{ pedido.data_solicitacao }}
+                            </small>
+                        </div>
+                        
+                        <!-- Botão de Ação -->
+                        <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
+                           class="btn btn-{% if pedido.status == 'pendente' %}primary{% elif pedido.status == 'em_analise' %}info{% else %}outline-primary{% endif %} btn-sm px-3"
+                           style="min-width: 80px;">
+                            {% if pedido.status == 'pendente' %}
+                            <i class="fas fa-play me-1"></i> Iniciar
+                            {% elif pedido.status == 'em_analise' %}
+                            <i class="fas fa-edit me-1"></i> Analisar
+                            {% else %}
+                            <i class="fas fa-eye me-1"></i> Ver
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Versão Desktop: Tabela (SEM ID) -->
+            <div class="table-responsive d-none d-md-block">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="px-3 py-2">Paciente</th>
+                            <th class="px-3 py-2">Médico</th>
+                            <th class="px-3 py-2">Exame</th>
+                            <th class="px-3 py-2">Urgência</th>
+                            <th class="px-3 py-2">Status</th>
+                            <th class="px-3 py-2">Data Solicitação</th>
+                            <th class="px-3 py-2 text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pedido in pedidos %}
+                        <tr class="align-middle">
+                            <td class="px-3 py-2">
+                                <div class="fw-semibold">{{ pedido.paciente_nome }}</div>
+                                {% if pedido.paciente_data_nascimento %}
+                                <small class="text-muted d-block">{{ pedido.paciente_data_nascimento }} • {{ pedido.paciente_genero }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2">
+                                <div>{{ pedido.medico_nome }}</div>
+                                {% if pedido.medico_especialidade %}
+                                <small class="text-muted">{{ pedido.medico_especialidade }}</small>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2">
+                                <div class="fw-semibold">{{ pedido.tipo_exame }}</div>
+                                {% if pedido.descricao %}
+                                <small class="text-muted d-block" style="max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ pedido.descricao }}">
+                                    {{ pedido.descricao|truncate(40) }}
+                                </small>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-2">
+                                <span class="badge bg-{% if pedido.urgencia == 'urgente' %}danger{% elif pedido.urgencia == 'alta' %}warning{% elif pedido.urgencia == 'normal' %}info{% else %}secondary{% endif %}">
+                                    <i class="fas fa-{% if pedido.urgencia == 'urgente' %}exclamation-triangle{% elif pedido.urgencia == 'alta' %}arrow-up{% elif pedido.urgencia == 'normal' %}circle{% else %}arrow-down{% endif %} me-1"></i>
+                                    {{ pedido.urgencia|upper }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2">
+                                <span class="badge bg-{% if pedido.status == 'pendente' %}warning{% elif pedido.status == 'em_analise' %}info{% elif pedido.status == 'concluido' %}success{% else %}secondary{% endif %}">
+                                    <i class="fas fa-{% if pedido.status == 'pendente' %}hourglass{% elif pedido.status == 'em_analise' %}microscope{% elif pedido.status == 'concluido' %}check{% else %}ban{% endif %} me-1"></i>
+                                    {{ pedido.status|replace('_', ' ')|title }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-2">
+                                <small><i class="fas fa-calendar-alt me-1"></i>{{ pedido.data_solicitacao }}</small>
+                            </td>
+                            <td class="px-3 py-2 text-end">
+                                <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
+                                   class="btn btn-{% if pedido.status == 'pendente' %}primary{% elif pedido.status == 'em_analise' %}info{% else %}outline-primary{% endif %} btn-sm">
+                                    {% if pedido.status == 'pendente' %}
+                                    <i class="fas fa-play me-1"></i> Iniciar
+                                    {% elif pedido.status == 'em_analise' %}
+                                    <i class="fas fa-edit me-1"></i> Analisar
+                                    {% else %}
+                                    <i class="fas fa-eye me-1"></i> Ver
+                                    {% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 py-md-5">
+                <div class="mb-3 mb-md-4">
+                    <div class="empty-state-icon mx-auto">
+                        <i class="fas fa-inbox fa-3x fa-4x-md text-muted"></i>
+                    </div>
+                </div>
+                <h5 class="h6 text-muted mb-2">Nenhum pedido encontrado</h5>
+                <p class="text-muted small mb-3 mb-md-4">Não há pedidos atribuídos a você no momento.</p>
+                <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus-circle me-2"></i> Atribuir Próximo Pedido
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* ===== ESTILOS MOBILE FIRST ===== */
+
+/* Reset e ajustes base */
+* {
+    -webkit-tap-highlight-color: transparent;
+    box-sizing: border-box;
+}
+
+body {
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Container adjustments */
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+    
+    .card {
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    
+    .card-body {
+        padding: 12px;
+    }
+    
+    .card-header {
+        padding: 12px 12px 8px 12px;
+        background-color: #f8f9fa;
+    }
+}
+
+/* ===== TYPOGRAPHY ===== */
+.h4-md {
+    font-size: 1.2rem;
+}
+
+.h5-md {
+    font-size: 1rem;
+}
+
+.h6-md {
+    font-size: 0.9rem;
+}
+
+@media (max-width: 576px) {
+    .h4 {
+        font-size: 1.1rem;
+    }
+    
+    .h5 {
+        font-size: 0.95rem;
+    }
+    
+    .small {
+        font-size: 0.75rem;
+    }
+    
+    .text-muted {
+        color: #6c757d !important;
+    }
+}
+
+/* ===== BOTÕES ===== */
+.btn-sm {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+@media (max-width: 576px) {
+    .btn-sm {
+        padding: 0.6rem 1rem;
+        font-size: 0.9rem;
+        width: 100%;
+        border-radius: 10px;
+    }
+    
+    .btn-group {
+        display: flex;
+        width: 100%;
+    }
+    
+    .btn-group .btn {
+        flex: 1;
+        border-radius: 0;
+    }
+    
+    .btn-group .btn:first-child {
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+    }
+    
+    .btn-group .btn:last-child {
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+    }
+    
+    .btn:active {
+        transform: scale(0.98);
+        opacity: 0.8;
+    }
+}
+
+/* ===== BADGES ===== */
+.badge {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge i {
+    font-size: 0.65rem;
+}
+
+@media (max-width: 576px) {
+    .badge {
+        font-size: 0.65rem;
+        padding: 0.35rem 0.5rem;
+        border-radius: 16px;
+    }
+    
+    .badge-sm {
+        font-size: 0.6rem;
+        padding: 0.25rem 0.4rem;
+    }
+    
+    .d-block.badge {
+        width: fit-content;
+        margin-left: auto;
+    }
+}
+
+/* ===== CARDS MOBILE ===== */
+.hover-bg-light:hover {
+    background-color: #f8f9fa;
+}
+
+@media (max-width: 576px) {
+    .border-bottom {
+        border-bottom: 1px solid rgba(0,0,0,0.08) !important;
+    }
+    
+    .border-top {
+        border-top: 1px solid rgba(0,0,0,0.08) !important;
+    }
+    
+    .p-3 {
+        padding: 1rem !important;
+    }
+    
+    .bg-light {
+        background-color: #f8f9fc !important;
+    }
+    
+    .rounded-2 {
+        border-radius: 12px !important;
+    }
+    
+    /* Ícones maiores para touch */
+    .fas, .far, .fal {
+        font-size: 1rem;
+    }
+    
+    .fa-2x {
+        font-size: 1.4rem;
+    }
+}
+
+/* ===== CARDS DE ESTATÍSTICA ===== */
+.border-start {
+    border-left: 4px solid transparent;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+.border-start.border-primary {
+    border-left-color: #0d6efd;
+    background: linear-gradient(90deg, rgba(13,110,253,0.02) 0%, rgba(255,255,255,1) 100%);
+}
+
+.border-start.border-info {
+    border-left-color: #0dcaf0;
+    background: linear-gradient(90deg, rgba(13,202,240,0.02) 0%, rgba(255,255,255,1) 100%);
+}
+
+.border-start.border-success {
+    border-left-color: #198754;
+    background: linear-gradient(90deg, rgba(25,135,84,0.02) 0%, rgba(255,255,255,1) 100%);
+}
+
+.border-start.border-warning {
+    border-left-color: #ffc107;
+    background: linear-gradient(90deg, rgba(255,193,7,0.02) 0%, rgba(255,255,255,1) 100%);
+}
+
+@media (max-width: 576px) {
+    .border-start {
+        border-left-width: 6px !important;
+        border-radius: 16px;
+    }
+    
+    .card-body.p-2 {
+        padding: 0.75rem !important;
+    }
+    
+    .card-body .h5 {
+        font-size: 1.3rem;
+        font-weight: 600;
+    }
+    
+    .text-muted.small {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .fa-2x {
+        font-size: 1.8rem;
+    }
+}
+
+/* ===== FORMULÁRIOS ===== */
+.form-select-sm, .form-control-sm {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+    min-height: 44px;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.25rem;
+}
+
+@media (max-width: 576px) {
+    .form-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .form-select-sm, .form-control-sm {
+        font-size: 0.9rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 12px;
+    }
+    
+    /* Prevenir zoom automático no iOS */
+    select, input, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* ===== TABELA DESKTOP ===== */
+.table {
+    font-size: 0.85rem;
+}
+
+.table th {
+    font-weight: 600;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border-bottom-width: 1px;
+}
+
+.table td {
+    vertical-align: middle;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.table tbody tr:hover {
+    background-color: #f8f9fc;
+}
+
+/* ===== EMPTY STATE ===== */
+.empty-state-icon {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 50%;
+    margin: 0 auto;
+}
+
+@media (max-width: 576px) {
+    .empty-state-icon {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .fa-3x {
+        font-size: 2rem;
+    }
+    
+    .py-5 {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+}
+
+/* ===== SCROLLBAR PERSONALIZADA ===== */
+.table-responsive {
+    scrollbar-width: thin;
+    scrollbar-color: #0d6efd #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #0d6efd;
+    border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #0b5ed7;
+}
+
+/* ===== ANIMAÇÕES ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.border-bottom {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* ===== TOUCH OPTIMIZATIONS ===== */
+@media (hover: none) and (pointer: coarse) {
+    .btn:hover {
+        transform: none;
+    }
+    
+    .btn:active {
+        opacity: 0.7;
+        transform: scale(0.98);
+    }
+    
+    a, .btn, .badge {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Área de toque maior */
+    .btn-sm {
+        min-height: 48px;
+        padding: 0.7rem 1rem;
+    }
+    
+    .badge {
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* ===== SAFE AREA SUPPORT ===== */
+@supports (padding: max(0px)) {
+    .container-fluid {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+}
+
+/* ===== DARK MODE SUPPORT ===== */
+@media (prefers-color-scheme: dark) {
+    .bg-light {
+        background-color: #2d2d2d !important;
+    }
+    
+    .text-muted {
+        color: #aaa !important;
+    }
+    
+    .border-bottom {
+        border-color: #404040 !important;
+    }
+}
+
+/* ===== LOADING STATE ===== */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-loading:after {
+    content: '';
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    top: 50%;
+    left: 50%;
+    margin-left: -0.5rem;
+    margin-top: -0.5rem;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ===== ACESSIBILIDADE ===== */
+.btn:focus-visible,
+a:focus-visible {
+    outline: 3px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* ===== GRID IMPROVEMENTS ===== */
+@media (max-width: 576px) {
+    .row {
+        margin-left: -6px;
+        margin-right: -6px;
+    }
+    
+    .col-6 {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+    
+    .gap-2 {
+        gap: 0.5rem !important;
+    }
+    
+    .gap-1 {
+        gap: 0.25rem !important;
+    }
+}
+
+/* ===== CARD ACTIONS ===== */
+@media (max-width: 576px) {
+    .btn-outline-primary, .btn-primary, .btn-info {
+        border-radius: 25px;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+        border: none;
+    }
+    
+    .btn-info {
+        background: linear-gradient(135deg, #0dcaf0 0%, #0bb5d4 100%);
+        border: none;
+        color: white;
+    }
+    
+    .bg-light.rounded-2 {
+        background: linear-gradient(135deg, #f8f9fa 0%, #f1f4f9 100%) !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ===== DETECTAR MOBILE =====
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // ===== OTIMIZAÇÕES PARA TOUCH =====
+        
+        // Adicionar feedback tátil aos botões
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('touchstart', function() {
+                this.style.opacity = '0.7';
+            });
+            btn.addEventListener('touchend', function() {
+                this.style.opacity = '1';
+            });
+        });
+        
+        // Ajustar altura mínima para elementos clicáveis
+        const clickables = document.querySelectorAll('.btn, .badge, a');
+        clickables.forEach(el => {
+            if (el.offsetHeight < 44) {
+                el.style.minHeight = '44px';
+                el.style.display = 'inline-flex';
+                el.style.alignItems = 'center';
+            }
+        });
+        
+        // ===== GESTOS DE SWIPE =====
+        let touchstartX = 0;
+        let touchendX = 0;
+        
+        document.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        
+        document.addEventListener('touchend', e => {
+            touchendX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+        
+        function handleSwipe() {
+            const swipeThreshold = 100;
+            const currentUrl = new URL(window.location.href);
+            
+            if (touchendX < touchstartX - swipeThreshold) {
+                // Swipe left - próximo
+                console.log('Swipe left detected');
+                // Adicione lógica de navegação se necessário
+            }
+            if (touchendX > touchstartX + swipeThreshold) {
+                // Swipe right - anterior
+                console.log('Swipe right detected');
+                // Adicione lógica de navegação se necessário
+            }
+        }
+    }
+    
+    // ===== LOADING STATE PARA BOTÕES =====
+    const actionLinks = document.querySelectorAll('a.btn[href]');
+    actionLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (!this.classList.contains('disabled') && !isMobile) {
+                this.classList.add('btn-loading');
+                setTimeout(() => {
+                    this.classList.remove('btn-loading');
+                }, 500);
+            }
+        });
+    });
+    
+    // ===== TOOLTIPS PARA TEXTO TRUNCADO =====
+    const truncatedElements = document.querySelectorAll('[style*="text-overflow: ellipsis"]');
+    truncatedElements.forEach(el => {
+        if (el.offsetWidth < el.scrollWidth) {
+            el.setAttribute('title', el.textContent);
+        }
+    });
+    
+    // ===== SCROLL SUAVE PARA ÂNCORAS =====
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+    
+    // ===== PERFORMANCE DE SCROLL =====
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                const header = document.querySelector('.card-header');
+                if (header) {
+                    if (window.scrollY > 10) {
+                        header.classList.add('shadow-sm');
+                    } else {
+                        header.classList.remove('shadow-sm');
+                    }
+                }
+                ticking = false;
+            });
+            ticking = true;
+        }
+    });
+    
+    // ===== PREVENIR ZOOM EM INPUTS (iOS) =====
+    document.addEventListener('touchstart', function(event) {
+        if (event.target.nodeName === 'SELECT' || 
+            event.target.nodeName === 'INPUT' || 
+            event.target.nodeName === 'TEXTAREA') {
+            event.target.style.fontSize = '16px';
+        }
+    }, { passive: true });
+});
+
+// ===== FUNÇÃO PARA ATUALIZAR FILTROS =====
+function aplicarFiltros() {
+    const status = document.getElementById('status').value;
+    const urgencia = document.getElementById('urgencia').value;
+    
+    const url = new URL(window.location.href);
+    if (status) url.searchParams.set('status', status);
+    else url.searchParams.delete('status');
+    
+    if (urgencia) url.searchParams.set('urgencia', urgencia);
+    else url.searchParams.delete('urgencia');
+    
+    window.location.href = url.toString();
+}
+
+// ===== DEBOUNCE PARA EVITAR MÚLTIPLAS REQUISIÇÕES =====
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// ===== TOAST PARA FEEDBACK =====
+function showToast(message, type = 'success') {
+    const toastContainer = document.querySelector('.toast-container') || (() => {
+        const container = document.createElement('div');
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(container);
+        return container;
+    })();
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body small">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+
+// ===== ATUALIZAR CONTADORES EM TEMPO REAL =====
+function atualizarContadores() {
+    const rows = document.querySelectorAll('tbody tr');
+    const pendentes = Array.from(rows).filter(row => 
+        row.querySelector('.badge.bg-warning')
+    ).length;
+    
+    const emAnalise = Array.from(rows).filter(row => 
+        row.querySelector('.badge.bg-info')
+    ).length;
+    
+    // Atualizar se necessário
+    console.log(`Pendentes: ${pendentes}, Em análise: ${emAnalise}`);
+}
+
+// Chamar atualização quando necessário
+if (document.querySelector('tbody')) {
+    atualizarContadores();
+}
+</script>
+{% endblock %}

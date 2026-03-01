@@ -1,0 +1,94 @@
+{
+  "nome": "Farmácia Virtual DoctorIA",
+  "versao": "2.0.0",
+  "descricao": "Base completa de medicamentos de primeira linha",
+  "ultima_atualizacao": "2024-02-26",
+  "medicamentos_por_categoria": {
+    "MALARIA": {
+      "primeira_linha": [
+        "Artemeter-Lumefantrina",
+        "Artesunato-Amodiaquina",
+        "Artesunato IV",
+        "Primaquina"
+      ],
+      "segunda_linha": [
+        "Quinina",
+        "Doxiciclina",
+        "Clindamicina"
+      ],
+      "combinacoes": [
+        "ACT + Primaquina",
+        "Artesunato IV + ACT",
+        "Quinina + Clindamicina"
+      ]
+    },
+    "PNEUMONIA": {
+      "primeira_linha": [
+        "Amoxicilina",
+        "Azitromicina",
+        "Ceftriaxona"
+      ],
+      "combinacoes": [
+        "Amoxicilina + Ácido Clavulânico"
+      ]
+    },
+    "TUBERCULOSE": {
+      "primeira_linha": [
+        "Rifampicina",
+        "Isoniazida",
+        "Pirazinamida",
+        "Etambutol"
+      ],
+      "combinacoes": [
+        "RHZE",
+        "RH"
+      ]
+    },
+    "HIPERTENSAO": {
+      "primeira_linha": [
+        "Hidroclorotiazida",
+        "Losartana",
+        "Anlodipino",
+        "Enalapril"
+      ],
+      "combinacoes": [
+        "Losartana + HCTZ",
+        "Enalapril + HCTZ"
+      ]
+    },
+    "DIABETES": {
+      "primeira_linha": [
+        "Metformina",
+        "Glibenclamida",
+        "Insulina NPH",
+        "Insulina Regular"
+      ]
+    },
+    "ANEMIA": {
+      "primeira_linha": [
+        "Sulfato Ferroso",
+        "Ácido Fólico",
+        "Hidroxicobalamina"
+      ]
+    },
+    "DENGUE": {
+      "primeira_linha": [
+        "Paracetamol",
+        "Hidratação Oral"
+      ]
+    },
+    "GRAVIDEZ": {
+      "suplementacao": [
+        "Sulfato Ferroso",
+        "Ácido Fólico",
+        "Carbonato de Cálcio"
+      ]
+    }
+  },
+  "alertas_importantes": {
+    "gravidez": "Primaquina, Doxiciclina, Tetraciclina são CONTRAINDICADOS",
+    "g6pd": "Primaquina requer TESTE OBRIGATÓRIO",
+    "criancas": "Ajustar doses por peso corporal",
+    "dengue": "AAS, Ibuprofeno, Diclofenaco são CONTRAINDICADOS"
+  }
+}

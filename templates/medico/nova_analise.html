@@ -1,0 +1,483 @@
+<!-- templates/medico/nova_analise.html -->
+{% extends "base.html" %}
+
+{% block title %}Nova Análise{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-3">
+    <!-- Cabeçalho - Responsivo -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4">
+        <h2 class="h5 h4-md mb-2 mb-md-0">
+            <i class="fas fa-microscope me-2 text-primary"></i> Nova Análise
+        </h2>
+        <div class="d-flex gap-2 w-100 w-md-auto">
+            <a href="{{ url_for('medico.pedidos_analise') }}" class="btn btn-outline-secondary btn-sm flex-fill flex-md-grow-0">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Mensagens Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' if category == 'warning' else 'info-circle' }} me-2"></i>
+                        <span class="small">{{ message }}</span>
+                    </div>
+                    <button type="button" class="btn-close btn-sm" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Card Principal -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-check me-2 text-primary"></i> 
+                <span class="d-none d-sm-inline">Selecione uma Consulta para Análise</span>
+                <span class="d-inline d-sm-none">Consultas Disponíveis</span>
+            </h5>
+        </div>
+        <div class="card-body p-2 p-md-3">
+            {% if consultas %}
+                <!-- Visualização Mobile (Cards) -->
+                <div class="d-block d-md-none">
+                    {% for consulta in consultas %}
+                    <div class="consulta-card p-3 mb-3 border rounded-3 shadow-sm">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1 fw-bold">{{ consulta.paciente_nome }}</h6>
+                                <div class="d-flex align-items-center mb-1">
+                                    <i class="fas fa-calendar-alt text-primary me-2 small"></i>
+                                    <small>{{ consulta.data_hora }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex gap-2 mt-3">
+                            <a href="{{ url_for('medico.salvar_analise', consulta_id=consulta.id) }}" 
+                               class="btn btn-primary btn-sm flex-fill"
+                               onclick="event.preventDefault(); document.getElementById('form-{{ consulta.id }}').submit();">
+                                <i class="fas fa-plus-circle me-1"></i> Solicitar
+                            </a>
+                            <a href="{{ url_for('medico.analise', consulta_id=consulta.id) }}" 
+                               class="btn btn-outline-info btn-sm flex-fill">
+                                <i class="fas fa-eye me-1"></i> Ver
+                            </a>
+                        </div>
+                        
+                        <!-- Formulário oculto para enviar os dados -->
+                        <form id="form-{{ consulta.id }}" action="{{ url_for('medico.salvar_analise') }}" method="POST" style="display: none;">
+                            <input type="hidden" name="consulta_id" value="{{ consulta.id }}">
+                            <input type="hidden" name="paciente_id" value="{{ consulta.paciente_id }}">
+                            <input type="hidden" name="tipo_exame" value="">
+                            <input type="hidden" name="descricao" value="">
+                            <input type="hidden" name="observacoes" value="">
+                            <input type="hidden" name="urgencia" value="normal">
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Visualização Desktop (Tabela) -->
+                <div class="d-none d-md-block">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Paciente</th>
+                                    <th>Data da Consulta</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for consulta in consultas %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-circle bg-primary bg-opacity-10 me-2">
+                                                <span class="text-primary">{{ consulta.paciente_nome[:1] }}</span>
+                                            </div>
+                                            <div>
+                                                <strong>{{ consulta.paciente_nome }}</strong>
+                                                {% if consulta.paciente_id %}
+                                                <br><small class="text-muted">ID: {{ consulta.paciente_id }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <strong>{{ consulta.data_hora }}</strong>
+                                    </td>
+                                    <td class="text-end">
+                                        <a href="{{ url_for('medico.salvar_analise', consulta_id=consulta.id) }}" 
+                                           class="btn btn-sm btn-primary me-2"
+                                           onclick="event.preventDefault(); document.getElementById('form-desktop-{{ consulta.id }}').submit();">
+                                            <i class="fas fa-plus-circle me-1"></i> Solicitar
+                                        </a>
+                                        <a href="{{ url_for('medico.analise', consulta_id=consulta.id) }}" 
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye me-1"></i> Ver
+                                        </a>
+                                        
+                                        <!-- Formulário oculto para desktop -->
+                                        <form id="form-desktop-{{ consulta.id }}" action="{{ url_for('medico.salvar_analise') }}" method="POST" style="display: none;">
+                                            <input type="hidden" name="consulta_id" value="{{ consulta.id }}">
+                                            <input type="hidden" name="paciente_id" value="{{ consulta.paciente_id }}">
+                                            <input type="hidden" name="tipo_exame" value="">
+                                            <input type="hidden" name="descricao" value="">
+                                            <input type="hidden" name="observacoes" value="">
+                                            <input type="hidden" name="urgencia" value="normal">
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Link para criar análise completa -->
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('medico.nova_analise_completa') }}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-file-medical me-2"></i> Criar análise completa
+                    </a>
+                </div>
+                
+            {% else %}
+                <!-- Nenhuma consulta disponível -->
+                <div class="text-center py-4 py-md-5">
+                    <div class="mb-3 mb-md-4">
+                        <div class="icon-circle bg-light text-muted mx-auto">
+                            <i class="fas fa-calendar-times fa-3x"></i>
+                        </div>
+                    </div>
+                    <h5 class="h6 h5-md">Nenhuma consulta disponível</h5>
+                    <p class="text-muted small mb-3">Todas as suas consultas já têm pedidos de análise ou foram canceladas.</p>
+                    <div class="d-flex flex-column flex-sm-row justify-content-center gap-2">
+                        <a href="{{ url_for('medico.dashboard') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-arrow-left me-2"></i> Voltar ao Dashboard
+                        </a>
+                        <a href="{{ url_for('medico.consultas') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-calendar-check me-2"></i> Ver Consultas
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Card de Informações -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2 text-info"></i> Informações Importantes
+            </h5>
+        </div>
+        <div class="card-body p-3">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="d-flex">
+                        <div class="info-icon me-3 text-success">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold">Quando solicitar análise:</h6>
+                            <ul class="small text-muted ps-3 mb-0">
+                                <li>Exames laboratoriais complexos</li>
+                                <li>Interpretação especializada</li>
+                                <li>Confirmação de diagnóstico</li>
+                                <li>Análise de exames externos</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex">
+                        <div class="info-icon me-3 text-warning">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold">Prazos de análise:</h6>
+                            <ul class="small text-muted ps-3 mb-0">
+                                <li><strong>Urgente:</strong> 24-48 horas</li>
+                                <li><strong>Alta:</strong> 3-5 dias</li>
+                                <li><strong>Normal:</strong> 5-7 dias</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Mobile First Styles */
+.avatar-circle {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+@media (min-width: 768px) {
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+}
+
+.icon-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .icon-circle i {
+        font-size: 2rem;
+    }
+}
+
+.info-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .info-icon {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .info-icon i {
+        font-size: 1.5rem;
+    }
+}
+
+/* Cards de consulta para mobile */
+.consulta-card {
+    background-color: #fff;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.consulta-card:active {
+    background-color: #f8f9fa;
+    transform: scale(0.99);
+}
+
+.consulta-card:hover {
+    border-left-color: #0d6efd;
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.5rem;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-sm i {
+        font-size: 0.85rem;
+    }
+    
+    .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .card-header {
+        padding: 0.75rem !important;
+    }
+    
+    .h4-md {
+        font-size: 1.1rem;
+    }
+    
+    .h5-md {
+        font-size: 1rem;
+    }
+    
+    .small {
+        font-size: 0.7rem;
+    }
+    
+    .breadcrumb {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 375px) {
+    .consulta-card {
+        padding: 0.75rem !important;
+    }
+    
+    .btn-sm {
+        font-size: 0.7rem;
+        padding: 0.3rem;
+    }
+    
+    .small {
+        font-size: 0.65rem;
+    }
+    
+    .h4-md {
+        font-size: 1rem;
+    }
+}
+
+/* Touch optimizations */
+@media (max-width: 768px) {
+    .btn, 
+    .badge,
+    .consulta-card {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .btn:active {
+        transform: scale(0.97);
+    }
+    
+    .consulta-card:active {
+        background-color: #e9ecef;
+    }
+    
+    /* Área de clique maior */
+    .btn {
+        min-height: 38px;
+    }
+    
+    /* Prevenir zoom */
+    select, input, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Safe area support */
+@supports (padding: max(0px)) {
+    .container-fluid {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+}
+
+/* Melhorias de acessibilidade */
+.btn:focus-visible,
+a:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Animações */
+.consulta-card {
+    transition: all 0.2s ease;
+}
+
+.btn {
+    transition: all 0.2s ease;
+}
+
+/* Loading state */
+.btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página de nova análise carregada');
+    
+    // Adicionar loading state aos botões
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            if (!this.classList.contains('loading') && this.href && !this.href.includes('#')) {
+                this.classList.add('loading');
+            }
+        });
+    });
+});
+
+// Prevenir zoom em inputs no iOS
+document.addEventListener('touchstart', function(event) {
+    if (event.target.nodeName === 'SELECT' || event.target.nodeName === 'INPUT' || event.target.nodeName === 'TEXTAREA') {
+        event.target.style.fontSize = '16px';
+    }
+}, { passive: true });
+
+// Função para mostrar toast
+function showToast(message, type = 'success') {
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body small">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+</script>
+{% endblock %}

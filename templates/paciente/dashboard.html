@@ -1,0 +1,730 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard do Paciente{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="row g-0">
+        <!-- Sidebar com funcionalidades - Colapsada em mobile -->
+        <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse" id="sidebarMenu">
+            <div class="position-sticky pt-3">
+                <!-- Cabeçalho Sidebar -->
+                <div class="px-3 py-4 text-center border-bottom">
+                    <div class="rounded-circle bg-primary d-inline-flex align-items-center justify-content-center mb-3" 
+                         style="width: 60px; height: 60px;">
+                        <i class="fas fa-user-injured text-white fs-4"></i>
+                    </div>
+                    <h6 class="mb-0 fw-bold">{{ paciente_nome|truncate(15) }}</h6>
+                    <small class="text-muted">Paciente</small>
+                </div>
+
+                <!-- Menu Principal -->
+                <ul class="nav flex-column mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('paciente.dashboard') }}">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Dashboard
+                            <span class="badge bg-primary float-end">{{ stats.total_consultas }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.agendar_consulta') }}">
+                            <i class="fas fa-calendar-plus me-2"></i>
+                            Agendar Consulta
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.minhas_consultas') }}">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            Minhas Consultas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.perfil') }}">
+                            <i class="fas fa-user me-2"></i>
+                            Meu Perfil
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Filtros de Consultas -->
+                <h6 class="sidebar-heading px-3 mb-2 text-muted">
+                    <i class="fas fa-filter me-2"></i>Filtrar Consultas
+                </h6>
+                <ul class="nav flex-column mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.minhas_consultas') }}?status=agendada">
+                            <i class="fas fa-clock me-2 text-warning"></i>
+                            Agendadas
+                            <span class="badge bg-warning float-end">{{ consultas_agendadas or 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.minhas_consultas') }}?status=realizada">
+                            <i class="fas fa-check-circle me-2 text-success"></i>
+                            Realizadas
+                            <span class="badge bg-success float-end">{{ consultas_realizadas or 0 }}</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('paciente.minhas_consultas') }}?status=cancelada">
+                            <i class="fas fa-times-circle me-2 text-danger"></i>
+                            Canceladas
+                            <span class="badge bg-danger float-end">{{ consultas_canceladas or 0 }}</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Outras Funcionalidades -->
+                <h6 class="sidebar-heading px-3 mb-2 text-muted">
+                    <i class="fas fa-th-large me-2"></i>Outros
+                </h6>
+                <ul class="nav flex-column mb-4">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-file-medical me-2"></i>
+                            Meus Exames
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-pills me-2"></i>
+                            Meus Medicamentos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-question-circle me-2"></i>
+                            Ajuda
+                        </a>
+                    </li>
+                </ul>
+
+                <!-- Sair -->
+                <div class="px-3 py-3 border-top">
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger w-100">
+                        <i class="fas fa-sign-out-alt me-2"></i>Sair
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Conteúdo principal -->
+        <main class="col-md-9 col-lg-10 ms-sm-auto px-3 px-md-4 py-4">
+            <!-- Cabeçalho Mobile First -->
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center flex-wrap flex-md-nowrap pt-3 pb-3 mb-4 border-bottom">
+                <div class="mb-2 mb-md-0">
+                    <h1 class="h2 mb-0">
+                        <i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard
+                    </h1>
+                    <p class="text-muted mb-0">Bem-vindo, {{ paciente_nome|truncate(20) }}!</p>
+                </div>
+                <div class="btn-toolbar mb-2 mb-md-0 w-100 w-md-auto">
+                    <div class="btn-group w-100 w-md-auto">
+                        <a href="{{ url_for('paciente.agendar_consulta') }}" class="btn btn-primary flex-grow-1">
+                            <i class="fas fa-calendar-plus me-2"></i>Nova Consulta
+                        </a>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sidebarToggle">
+                            <i class="fas fa-bars"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cartões de Estatísticas - Layout responsivo -->
+            <div class="row g-3 g-md-4 mb-4">
+                <div class="col-6 col-xl-3">
+                    <div class="card bg-primary text-white shadow border-0 h-100">
+                        <div class="card-body p-3 p-md-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-white-50 mb-1 small">Consultas Totais</h6>
+                                    <h2 class="mb-0 fs-3 fs-md-2">{{ stats.total_consultas }}</h2>
+                                    <small class="d-none d-sm-inline">+2 esta semana</small>
+                                </div>
+                                <div class="rounded-circle bg-white-20 p-2 p-md-3">
+                                    <i class="fas fa-calendar-alt fa-1x fa-md-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="card bg-success text-white shadow border-0 h-100">
+                        <div class="card-body p-3 p-md-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-white-50 mb-1 small">Realizadas</h6>
+                                    <h2 class="mb-0 fs-3 fs-md-2">{{ consultas_realizadas or 0 }}</h2>
+                                    <small class="d-none d-sm-inline">80% comparecimento</small>
+                                </div>
+                                <div class="rounded-circle bg-white-20 p-2 p-md-3">
+                                    <i class="fas fa-check-circle fa-1x fa-md-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="card bg-warning text-white shadow border-0 h-100">
+                        <div class="card-body p-3 p-md-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-white-50 mb-1 small">Agendadas</h6>
+                                    <h2 class="mb-0 fs-3 fs-md-2">{{ consultas_agendadas or 0 }}</h2>
+                                    <small class="d-none d-sm-inline">{{ stats.consultas_hoje }} hoje</small>
+                                </div>
+                                <div class="rounded-circle bg-white-20 p-2 p-md-3">
+                                    <i class="fas fa-clock fa-1x fa-md-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-xl-3">
+                    <div class="card bg-info text-white shadow border-0 h-100">
+                        <div class="card-body p-3 p-md-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="card-title text-white-50 mb-1 small">Canceladas</h6>
+                                    <h2 class="mb-0 fs-3 fs-md-2">{{ consultas_canceladas or 0 }}</h2>
+                                    <small class="d-none d-sm-inline">20% cancelamento</small>
+                                </div>
+                                <div class="rounded-circle bg-white-20 p-2 p-md-3">
+                                    <i class="fas fa-times-circle fa-1x fa-md-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações do Paciente e Próximas Consultas -->
+            <div class="row g-3 g-md-4 mb-4">
+                <div class="col-lg-8">
+                    <div class="card shadow border-0 h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 fs-6 fs-md-5">
+                                    <i class="fas fa-user-circle text-primary me-2"></i>Informações Pessoais
+                                </h5>
+                                <a href="{{ url_for('paciente.perfil') }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit me-1"></i><span class="d-none d-sm-inline">Editar</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body p-3 p-md-4">
+                            <div class="row">
+                                <div class="col-12 col-md-6 mb-3">
+                                    <label class="small text-muted mb-1">Nome Completo</label>
+                                    <p class="mb-2 fw-bold text-break">{{ paciente_nome }}</p>
+                                </div>
+                                <div class="col-12 col-md-6 mb-3">
+                                    <label class="small text-muted mb-1">Email</label>
+                                    <p class="mb-2 text-break">{{ paciente_email }}</p>
+                                </div>
+                                <div class="col-6 col-md-6 mb-3">
+                                    <label class="small text-muted mb-1">Telefone</label>
+                                    <p class="mb-2">{{ paciente_telefone or 'Não informado' }}</p>
+                                </div>
+                                <div class="col-6 col-md-6 mb-3">
+                                    <label class="small text-muted mb-1">Data Nasc.</label>
+                                    <p class="mb-2">{{ paciente_data_nasc or 'Não informado' }}</p>
+                                </div>
+                                <div class="col-6 col-md-6 mb-3">
+                                    <label class="small text-muted mb-1">Gênero</label>
+                                    <p class="mb-2">{{ paciente_genero or 'Não informado' }}</p>
+                                </div>
+                                <div class="col-6 col-md-6 mb-3">
+                                    <label class="small text-muted mb-1">Endereço</label>
+                                    <p class="mb-2 text-truncate">{{ paciente_endereco or 'Não informado' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Próximas Consultas -->
+                <div class="col-lg-4">
+                    <div class="card shadow border-0 h-100">
+                        <div class="card-header bg-white py-3 border-bottom">
+                            <h5 class="mb-0 fs-6 fs-md-5">
+                                <i class="fas fa-calendar-day text-primary me-2"></i>Próximas Consultas
+                            </h5>
+                        </div>
+                        <div class="card-body p-3 p-md-4">
+                            {% if consultas %}
+                                {% set proxima = consultas[0] %}
+                                <div class="text-center mb-3">
+                                    <div class="mb-3">
+                                        <div class="display-6 fw-bold text-primary">{{ proxima.data_hora.split(' ')[1] if proxima.data_hora else '--:--' }}</div>
+                                        <div class="small text-muted">{{ proxima.data_hora.split(' ')[0] if proxima.data_hora else '--/--/----' }}</div>
+                                    </div>
+                                    <h6 class="mb-2 text-truncate">{{ proxima.medico_nome }}</h6>
+                                    <span class="badge bg-{{ proxima.status_class }} mb-3">{{ proxima.status|capitalize }}</span>
+                                    <div class="mt-3">
+                                        <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=proxima.id) }}" 
+                                           class="btn btn-sm btn-outline-primary w-100">
+                                            <i class="fas fa-eye me-1"></i>Ver Detalhes
+                                        </a>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-3">Nenhuma consulta agendada</p>
+                                    <a href="{{ url_for('paciente.agendar_consulta') }}" class="btn btn-primary btn-sm w-100">
+                                        Agendar Consulta
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Histórico de Consultas Recentes -->
+            <div class="card shadow border-0">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 fs-6 fs-md-5">
+                            <i class="fas fa-history text-primary me-2"></i>Histórico de Consultas
+                        </h5>
+                        <a href="{{ url_for('paciente.minhas_consultas') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-list me-1"></i><span class="d-none d-sm-inline">Ver Todas</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if consultas %}
+                    <!-- Visualização Mobile: Cards -->
+                    <div class="d-block d-md-none">
+                        {% for consulta in consultas[:5] %}
+                        <div class="border-bottom p-3 consulta-row" data-consulta-id="{{ consulta.id }}">
+                            <div class="d-flex align-items-center mb-2">
+                                <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                    <i class="fas fa-user-md text-primary"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-0">{{ consulta.medico_nome }}</h6>
+                                    <small class="text-muted">{{ consulta.especialidade }}</small>
+                                </div>
+                                <span class="badge bg-{{ consulta.status_class }} rounded-pill">
+                                    {{ consulta.status|capitalize }}
+                                </span>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Data/Hora</small>
+                                    <span>{{ consulta.data_hora.split(' ')[0] if consulta.data_hora else '' }}</span>
+                                    <small class="d-block">{{ consulta.data_hora.split(' ')[1] if consulta.data_hora else '' }}</small>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted d-block">Receita</small>
+                                    {% if consulta.receita %}
+                                    <span class="badge bg-success bg-opacity-10 text-success">
+                                        <i class="fas fa-prescription me-1"></i>Receitado
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                                        Não
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=consulta.id) }}" 
+                                   class="btn btn-sm btn-outline-primary flex-fill">
+                                    <i class="fas fa-eye me-1"></i>Detalhes
+                                </a>
+                                {% if consulta.status == 'agendada' %}
+                                <button type="button" class="btn btn-sm btn-outline-danger flex-fill" 
+                                        onclick="cancelarConsulta({{ consulta.id }})">
+                                    <i class="fas fa-times me-1"></i>Cancelar
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Visualização Desktop: Tabela -->
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0">Médico</th>
+                                    <th class="border-0">Data/Hora</th>
+                                    <th class="border-0">Status</th>
+                                    <th class="border-0">Receita</th>
+                                    <th class="border-0">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for consulta in consultas[:5] %}
+                                <tr class="consulta-row" data-consulta-id="{{ consulta.id }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                                <i class="fas fa-user-md text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0">{{ consulta.medico_nome }}</h6>
+                                                <small class="text-muted">{{ consulta.especialidade }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">{{ consulta.data_hora.split(' ')[0] if consulta.data_hora else '' }}</div>
+                                        <small class="text-muted">{{ consulta.data_hora.split(' ')[1] if consulta.data_hora else '' }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ consulta.status_class }} py-2 px-3 rounded-pill">
+                                            <i class="fas fa-{{ 'clock' if consulta.status == 'agendada' else 'check' if consulta.status == 'realizada' else 'times' }} me-1"></i>
+                                            {{ consulta.status|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if consulta.receita %}
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success py-2 px-3">
+                                            <i class="fas fa-prescription me-1"></i>Receitado
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary py-2 px-3">
+                                            Não
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=consulta.id) }}" 
+                                               class="btn btn-outline-primary" title="Detalhes">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if consulta.status == 'agendada' %}
+                                            <button type="button" class="btn btn-outline-danger" 
+                                                    onclick="cancelarConsulta({{ consulta.id }})" title="Cancelar">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>Nenhuma consulta encontrada</h5>
+                        <p class="text-muted">Você ainda não tem consultas registradas.</p>
+                        <a href="{{ url_for('paciente.agendar_consulta') }}" class="btn btn-primary">
+                            <i class="fas fa-calendar-plus me-2"></i>Agendar Primeira Consulta
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script>
+function cancelarConsulta(consultaId) {
+    if (confirm('Tem certeza que deseja cancelar esta consulta?')) {
+        fetch(`/paciente/consultas/${consultaId}/cancelar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Consulta cancelada com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro ao cancelar consulta: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Erro ao cancelar consulta.');
+        });
+    }
+}
+
+// Toggle sidebar em telas pequenas
+document.getElementById('sidebarToggle').addEventListener('click', function() {
+    document.getElementById('sidebarMenu').classList.toggle('show');
+});
+
+// Fechar sidebar ao clicar fora em mobile
+document.addEventListener('click', function(event) {
+    const sidebar = document.getElementById('sidebarMenu');
+    const toggle = document.getElementById('sidebarToggle');
+    
+    if (window.innerWidth < 768) {
+        if (!sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
+            sidebar.classList.remove('show');
+        }
+    }
+});
+
+// Ativar itens do menu
+document.addEventListener('DOMContentLoaded', function() {
+    const currentUrl = window.location.pathname;
+    const navLinks = document.querySelectorAll('.nav-link');
+    
+    navLinks.forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === currentUrl) {
+            link.classList.add('active');
+        }
+    });
+    
+    // Adicionar classes de hover nas linhas da tabela
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = '#f8f9fa';
+        });
+        row.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = '';
+        });
+    });
+
+    // Verificar consulta_id na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const consultaId = urlParams.get('consulta_id');
+    if (consultaId) {
+        console.log('Consulta ID detectado na URL:', consultaId);
+        const consultaRow = document.querySelector(`.consulta-row[data-consulta-id="${consultaId}"]`);
+        if (consultaRow) {
+            consultaRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            consultaRow.classList.add('table-success');
+            
+            setTimeout(() => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'alert alert-info alert-dismissible fade show mt-3 mx-3';
+                alertDiv.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    Consulta #${consultaId} selecionada. 
+                    <button type="button" class="btn-close float-end" data-bs-dismiss="alert"></button>
+                `;
+                const cardBody = document.querySelector('.card-body');
+                if (cardBody) {
+                    cardBody.insertBefore(alertDiv, cardBody.firstChild);
+                }
+            }, 500);
+        }
+    }
+});
+
+// Ajustar visualização ao redimensionar a tela
+window.addEventListener('resize', function() {
+    if (window.innerWidth >= 768) {
+        document.getElementById('sidebarMenu').classList.remove('show');
+    }
+});
+</script>
+
+<style>
+/* Estilos personalizados Mobile First */
+:root {
+    --primary-color: #4e73df;
+    --secondary-color: #858796;
+    --success-color: #1cc88a;
+    --warning-color: #f6c23e;
+    --danger-color: #e74a3b;
+    --info-color: #36b9cc;
+}
+
+/* Sidebar melhorada para mobile */
+.sidebar {
+    min-height: calc(100vh - 56px);
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    z-index: 1000;
+    transition: transform 0.3s ease-in-out;
+}
+
+@media (max-width: 767.98px) {
+    .sidebar {
+        position: fixed;
+        top: 56px;
+        left: 0;
+        bottom: 0;
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+        overflow-y: auto;
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    main {
+        width: 100%;
+        padding: 1rem !important;
+    }
+    
+    /* Ajustes para cards em mobile */
+    .card-body {
+        padding: 1rem;
+    }
+    
+    /* Melhorar legibilidade em telas pequenas */
+    .text-muted {
+        font-size: 0.875rem;
+    }
+    
+    /* Ajustar badges em mobile */
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.5rem;
+    }
+    
+    /* Botões full width em mobile */
+    .btn-group.w-100 > .btn {
+        font-size: 0.875rem;
+    }
+}
+
+/* Ajustes para telas médias */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .sidebar {
+        width: 240px;
+    }
+    
+    .card-title {
+        font-size: 0.875rem;
+    }
+    
+    .display-6 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Estilos gerais */
+.sidebar-heading {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+}
+
+.nav-link {
+    color: #3a3b45;
+    padding: 0.75rem 1rem;
+    border-left: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    color: var(--primary-color);
+    background-color: rgba(78, 115, 223, 0.1);
+    border-left-color: var(--primary-color);
+}
+
+.nav-link.active {
+    color: var(--primary-color);
+    background-color: rgba(78, 115, 223, 0.1);
+    border-left-color: var(--primary-color);
+    font-weight: 600;
+}
+
+.nav-link i {
+    width: 20px;
+    text-align: center;
+}
+
+.card {
+    border: none;
+    border-radius: 0.5rem;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+@media (hover: hover) {
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1) !important;
+    }
+}
+
+.bg-white-20 {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.badge.rounded-pill {
+    border-radius: 50rem !important;
+}
+
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.table th {
+    font-weight: 600;
+    color: #4e4e4e;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+}
+
+.border-bottom {
+    border-bottom: 1px solid #e3e6f0 !important;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Ajustes para touch devices */
+@media (pointer: coarse) {
+    .btn, .nav-link {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    .btn-group-sm > .btn {
+        min-height: 38px;
+        min-width: 38px;
+    }
+}
+
+/* Utilitários responsivos */
+.text-break {
+    word-break: break-word;
+}
+
+/* Melhorar legibilidade em mobile */
+@media (max-width: 576px) {
+    h1.h2 {
+        font-size: 1.5rem;
+    }
+    
+    .fs-6 {
+        font-size: 1rem !important;
+    }
+    
+    .display-6 {
+        font-size: 1.75rem;
+    }
+}
+</style>
+{% endblock %}

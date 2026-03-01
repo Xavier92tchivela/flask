@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar Consulta - DoctorIA{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h4 class="card-title mb-0">
+                    <i class="fas fa-calendar-plus me-2"></i>Agendar Nova Consulta
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- Mensagens flash -->
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <!-- Informações do Paciente -->
+                {% if session.user_type == 'paciente' and session.user_name %}
+                <div class="alert alert-info">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-user me-2"></i>Agendando consulta para:
+                    </h6>
+                    <p class="mb-0 fs-5">
+                        <strong>{{ session.user_name }}</strong>
+                        <span class="badge bg-secondary ms-2">Paciente</span>
+                    </p>
+                </div>
+                {% endif %}
+
+                <!-- Status dos Médicos -->
+                <div class="alert {% if medicos %}alert-success{% else %}alert-warning{% endif %} mb-3">
+                    <i class="fas {% if medicos %}fa-check-circle{% else %}fa-exclamation-triangle{% endif %} me-2"></i>
+                    <strong>Médicos Disponíveis:</strong> {{ medicos|length }} médico(s)
+                    {% if not medicos %}
+                    <br><small>Entre em contato com a administração para cadastrar médicos.</small>
+                    {% endif %}
+                </div>
+
+                <!-- Formulário -->
+                <form method="POST" action="{{ url_for('paciente.agendar_consulta') }}">
+                    <!-- Campo Médico -->
+                    <div class="mb-3">
+                        <label for="medico_id" class="form-label">
+                            <strong>Médico *</strong>
+                        </label>
+                        
+                        {% if medicos %}
+                        <select class="form-select" id="medico_id" name="medico_id" required>
+                            <option value="">Selecione um médico</option>
+                            {% for medico in medicos %}
+                            <option value="{{ medico[0] }}">
+                                <!-- Formatação do nome -->
+                                {% if medico[1].startswith('Dr.') or medico[1].startswith('Dra.') %}
+                                    {{ medico[1] }}
+                                {% else %}
+                                    Dr. {{ medico[1] }}
+                                {% endif %}
+                                - {{ medico[2] }}
+                                {% if medico|length > 3 and medico[3] and medico[3] != 'CRM não informado' %}
+                                    ({{ medico[3] }})
+                                {% endif %}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Escolha o médico especialista para sua consulta</div>
+                        {% else %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Não há médicos disponíveis para agendamento no momento.
+                            <br><small>Por favor, entre em contato com a administração do sistema.</small>
+                        </div>
+                        <select class="form-select" id="medico_id" name="medico_id" required disabled>
+                            <option value="">Nenhum médico disponível</option>
+                        </select>
+                        {% endif %}
+                    </div>
+
+                    <!-- Data -->
+                    <div class="mb-3">
+                        <label for="data_consulta" class="form-label">
+                            <strong>Data da Consulta *</strong>
+                        </label>
+                        <input type="date" class="form-control" id="data_consulta" name="data_consulta" required
+                               min="{{ data_minima }}" max="{{ data_maxima }}"
+                               value="{{ data_minima }}">
+                        <div class="form-text">
+                            Selecione a data desejada para a consulta (dias úteis: segunda a sexta)
+                        </div>
+                    </div>
+
+                    <!-- Hora -->
+                    <div class="mb-3">
+                        <label for="hora_consulta" class="form-label">
+                            <strong>Horário *</strong>
+                        </label>
+                        <select class="form-select" id="hora_consulta" name="hora_consulta" required>
+                            <option value="">Selecione um horário</option>
+                            {% for hora in horarios %}
+                            <option value="{{ hora }}">{{ hora }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Horário de funcionamento: 8:00 às 17:30
+                        </div>
+                    </div>
+
+                    <!-- Observações -->
+                    <div class="mb-4">
+                        <label for="observacoes" class="form-label">
+                            <strong>Observações e Sintomas</strong>
+                        </label>
+                        <textarea class="form-control" id="observacoes" name="observacoes" rows="4" 
+                                  placeholder="Descreva os sintomas, motivo da consulta ou qualquer informação relevante..."></textarea>
+                        <div class="form-text">
+                            Informações que ajudarão o médico a preparar melhor sua consulta
+                        </div>
+                    </div>
+
+                    <!-- Botões -->
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('paciente.dashboard') }}" 
+                           class="btn btn-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary" {% if not medicos %}disabled{% endif %}>
+                            <i class="fas fa-calendar-check me-2"></i>Agendar Consulta
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Informações Úteis -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle me-2"></i>Informações Importantes
+                </h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="fas fa-clock text-primary me-2"></i>
+                        <strong>Horário de Funcionamento:</strong> Segunda a Sexta, 8h às 17:30
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-calendar-check text-success me-2"></i>
+                        <strong>Confirmação:</strong> Você receberá uma confirmação por email
+                    </li>
+                    <li class="mb-2">
+                        <i class="fas fa-user-md text-info me-2"></i>
+                        <strong>Médicos Disponíveis:</strong> {{ medicos|length }} médico(s)
+                    </li>
+                    <li class="mb-0">
+                        <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                        <strong>Cancelamento:</strong> Cancelamentos devem ser feitos com 24h de antecedência
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos do formulário
+    const dataField = document.getElementById('data_consulta');
+    const horaField = document.getElementById('hora_consulta');
+    const form = document.querySelector('form');
+    
+    // Configurar data mínima
+    if (dataField) {
+        const today = new Date().toISOString().split('T')[0];
+        dataField.min = today;
+        
+        // Verificar se é fim de semana e ajustar
+        dataField.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const dayOfWeek = selectedDate.getDay();
+            
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('Consultas disponíveis apenas de segunda a sexta-feira.');
+                this.value = '';
+            }
+        });
+    }
+    
+    // Validação do formulário
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const medicoField = document.getElementById('medico_id');
+            const dataField = document.getElementById('data_consulta');
+            const horaField = document.getElementById('hora_consulta');
+            
+            // Validações básicas
+            if (!medicoField.value) {
+                e.preventDefault();
+                alert('Por favor, selecione um médico.');
+                return false;
+            }
+            
+            if (!dataField.value) {
+                e.preventDefault();
+                alert('Por favor, selecione uma data.');
+                return false;
+            }
+            
+            if (!horaField.value) {
+                e.preventDefault();
+                alert('Por favor, selecione um horário.');
+                return false;
+            }
+            
+            // Verificar se a data não é no passado
+            const selectedDate = new Date(dataField.value);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (selectedDate < today) {
+                e.preventDefault();
+                alert('Por favor, selecione uma data futura.');
+                return false;
+            }
+            
+            return true;
+        });
+    }
+    
+    // Sugerir próxima data útil se o campo estiver vazio
+    if (dataField && !dataField.value) {
+        const today = new Date();
+        const nextWeekday = new Date(today);
+        
+        // Se for sábado, ir para segunda
+        if (today.getDay() === 6) {
+            nextWeekday.setDate(today.getDate() + 2);
+        }
+        // Se for domingo, ir para segunda
+        else if (today.getDay() === 0) {
+            nextWeekday.setDate(today.getDate() + 1);
+        }
+        // Se for sexta após 17h, ir para segunda
+        else if (today.getDay() === 5 && today.getHours() >= 17) {
+            nextWeekday.setDate(today.getDate() + 3);
+        }
+        // Se for dia útil após 17h, ir para amanhã
+        else if (today.getHours() >= 17) {
+            nextWeekday.setDate(today.getDate() + 1);
+            
+            // Ajustar se amanhã for fim de semana
+            if (nextWeekday.getDay() === 0) {
+                nextWeekday.setDate(nextWeekday.getDate() + 1); // Segunda
+            } else if (nextWeekday.getDay() === 6) {
+                nextWeekday.setDate(nextWeekday.getDate() + 2); // Segunda
+            }
+        }
+        
+        // Formatar como YYYY-MM-DD
+        const formattedDate = nextWeekday.toISOString().split('T')[0];
+        dataField.value = formattedDate;
+    }
+    
+    // Sugerir próximo horário disponível
+    if (horaField && !horaField.value) {
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        
+        // Se for antes das 8h, sugerir 8:00
+        if (currentHour < 8) {
+            horaField.value = '08:00';
+        }
+        // Se for depois das 17h, sugerir 8:00 do próximo dia
+        else if (currentHour >= 17 || (currentHour === 17 && currentMinute >= 30)) {
+            horaField.value = '08:00';
+        }
+        else {
+            // Sugerir próxima meia hora
+            let nextHour = currentHour;
+            let nextMinute = currentMinute < 30 ? 30 : 0;
+            
+            if (nextMinute === 0) {
+                nextHour += 1;
+            }
+            
+            // Ajustar formato
+            const formattedHour = nextHour.toString().padStart(2, '0');
+            const formattedMinute = nextMinute.toString().padStart(2, '0');
+            
+            horaField.value = `${formattedHour}:${formattedMinute}`;
+        }
+    }
+});
+</script>
+{% endblock %}

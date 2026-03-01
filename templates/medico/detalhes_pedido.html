@@ -1,0 +1,1220 @@
+<!-- templates/medico/ver_pedido.html -->
+{% extends "base.html" %}
+
+{% block title %}Detalhes do Pedido #{{ pedido.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2 mt-md-4 px-2 px-md-3">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+                <ol class="breadcrumb bg-light p-2 p-md-3 rounded-3 shadow-sm">
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.dashboard') }}" class="text-decoration-none"><i class="fas fa-home me-1"></i><span class="d-none d-sm-inline">Dashboard</span></a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.pedidos_analise') }}" class="text-decoration-none"><i class="fas fa-microscope me-1"></i><span class="d-none d-sm-inline">Pedidos</span></a></li>
+                    <li class="breadcrumb-item active fw-bold"><span class="d-none d-sm-inline">Pedido </span>#{{ pedido.id }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row g-2 g-md-3">
+        <div class="col-12 col-lg-8">
+            <!-- Card Principal do Pedido -->
+            <div class="card shadow-lg border-0 mb-3 mb-md-4">
+                <div class="card-header bg-gradient-primary text-white py-2 py-md-3 rounded-top-3">
+                    <div class="d-flex flex-column flex-sm-row align-items-start align-items-sm-center justify-content-between">
+                        <h5 class="mb-2 mb-sm-0 fw-bold h6 h5-md">
+                            <i class="fas fa-microscope me-2"></i>Pedido #{{ pedido.id }}
+                        </h5>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% if pedido.urgencia == 'urgente' %}
+                            <span class="badge bg-danger px-2 py-1 px-md-3 py-md-2 rounded-pill shadow-sm">
+                                <i class="fas fa-exclamation-triangle me-1"></i>Urgente
+                            </span>
+                            {% elif pedido.urgencia == 'alta' %}
+                            <span class="badge bg-warning text-dark px-2 py-1 px-md-3 py-md-2 rounded-pill shadow-sm">
+                                <i class="fas fa-exclamation-circle me-1"></i>Alta
+                            </span>
+                            {% elif pedido.urgencia == 'normal' %}
+                            <span class="badge bg-info text-dark px-2 py-1 px-md-3 py-md-2 rounded-pill shadow-sm">
+                                <i class="fas fa-check-circle me-1"></i>Normal
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary px-2 py-1 px-md-3 py-md-2 rounded-pill shadow-sm">
+                                <i class="fas fa-clock me-1"></i>Baixa
+                            </span>
+                            {% endif %}
+                            
+                            <span class="badge bg-{{ 'success' if pedido.status == 'concluido' else 'warning text-dark' }} px-2 py-1 px-md-3 py-md-2 rounded-pill shadow-sm">
+                                <i class="fas fa-{{ 'check-circle' if pedido.status == 'concluido' else 'hourglass-half' }} me-1"></i>
+                                {{ pedido.status|upper }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-2 p-md-4">
+                    <!-- Informações do Paciente e Pedido em Cards Responsivos -->
+                    <div class="row g-2 g-md-4 mb-3 mb-md-4">
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                        <i class="fas fa-user me-2"></i>Paciente
+                                    </h6>
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-user-circle"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Nome</small>
+                                            <span class="small">{{ pedido.paciente_nome }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if pedido.paciente_idade %}
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-calendar-alt"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Idade</small>
+                                            <span class="small">{{ pedido.paciente_idade }} anos</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if pedido.paciente_genero %}
+                                    <div class="info-item d-flex">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-{{ 'mars' if pedido.paciente_genero == 'M' else 'venus' }}"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Gênero</small>
+                                            <span class="small">{% if pedido.paciente_genero == 'M' %}Masculino{% elif pedido.paciente_genero == 'F' %}Feminino{% else %}{{ pedido.paciente_genero }}{% endif %}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                        <i class="fas fa-flask me-2"></i>Detalhes
+                                    </h6>
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-calendar-plus"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Solicitado em</small>
+                                            <span class="small">{{ pedido.data_solicitacao }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if pedido.data_conclusao %}
+                                    <div class="info-item d-flex mb-2 mb-md-3">
+                                        <div class="info-icon me-2 me-md-3 text-success" style="width: 20px;">
+                                            <i class="fas fa-calendar-check"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Concluído em</small>
+                                            <span class="small text-success">{{ pedido.data_conclusao }}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="info-item d-flex">
+                                        <div class="info-icon me-2 me-md-3 text-primary" style="width: 20px;">
+                                            <i class="fas fa-vial"></i>
+                                        </div>
+                                        <div class="info-content flex-grow-1">
+                                            <small class="text-muted d-block">Tipo de Exame</small>
+                                            <span class="small">{{ pedido.tipo_exame }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== NOVA SEÇÃO: SINAIS VITAIS DO PACIENTE ===== -->
+                    {% if sinais_vitais %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-danger border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-heartbeat me-2"></i>Sinais Vitais
+                            </h6>
+                            
+                            <div class="row g-2 g-md-3">
+                                <!-- Pressão Arterial -->
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="bg-white p-2 p-md-3 rounded-3 border h-100">
+                                        <small class="text-muted d-block mb-1">Pressão Arterial</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-heart-pulse text-danger me-2"></i>
+                                            <strong>{{ sinais_vitais.pressao_arterial or '---' }}</strong>
+                                        </div>
+                                        {% if sinais_vitais.classificacoes and sinais_vitais.classificacoes.pa %}
+                                        <span class="badge bg-{{ sinais_vitais.classificacoes.pa.status }} mt-1 d-inline-block">
+                                            {{ sinais_vitais.classificacoes.pa.classificacao }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Frequência Cardíaca -->
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="bg-white p-2 p-md-3 rounded-3 border h-100">
+                                        <small class="text-muted d-block mb-1">Frequência Cardíaca</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-heart text-danger me-2"></i>
+                                            <strong>{{ sinais_vitais.frequencia_cardiaca or '---' }} bpm</strong>
+                                        </div>
+                                        {% if sinais_vitais.classificacoes and sinais_vitais.classificacoes.fc %}
+                                        <span class="badge bg-{{ sinais_vitais.classificacoes.fc.status }} mt-1 d-inline-block">
+                                            {{ sinais_vitais.classificacoes.fc.classificacao }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Frequência Respiratória -->
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="bg-white p-2 p-md-3 rounded-3 border h-100">
+                                        <small class="text-muted d-block mb-1">Frequência Respiratória</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-lungs text-primary me-2"></i>
+                                            <strong>{{ sinais_vitais.frequencia_respiratoria or '---' }} rpm</strong>
+                                        </div>
+                                        {% if sinais_vitais.classificacoes and sinais_vitais.classificacoes.fr %}
+                                        <span class="badge bg-{{ sinais_vitais.classificacoes.fr.status }} mt-1 d-inline-block">
+                                            {{ sinais_vitais.classificacoes.fr.classificacao }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Temperatura -->
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="bg-white p-2 p-md-3 rounded-3 border h-100">
+                                        <small class="text-muted d-block mb-1">Temperatura</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-thermometer-half text-warning me-2"></i>
+                                            <strong>{{ sinais_vitais.temperatura or '---' }} °C</strong>
+                                        </div>
+                                        {% if sinais_vitais.classificacoes and sinais_vitais.classificacoes.temp %}
+                                        <span class="badge bg-{{ sinais_vitais.classificacoes.temp.status }} mt-1 d-inline-block">
+                                            {{ sinais_vitais.classificacoes.temp.classificacao }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Saturação de Oxigênio -->
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="bg-white p-2 p-md-3 rounded-3 border h-100">
+                                        <small class="text-muted d-block mb-1">Saturação O2</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-wind text-info me-2"></i>
+                                            <strong>{{ sinais_vitais.saturacao_oxigenio or '---' }}%</strong>
+                                        </div>
+                                        {% if sinais_vitais.classificacoes and sinais_vitais.classificacoes.spo2 %}
+                                        <span class="badge bg-{{ sinais_vitais.classificacoes.spo2.status }} mt-1 d-inline-block">
+                                            {{ sinais_vitais.classificacoes.spo2.classificacao }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Glicemia -->
+                                <div class="col-6 col-md-4 col-lg-3">
+                                    <div class="bg-white p-2 p-md-3 rounded-3 border h-100">
+                                        <small class="text-muted d-block mb-1">Glicemia</small>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-droplet text-success me-2"></i>
+                                            <strong>{{ sinais_vitais.glicemia or '---' }}</strong>
+                                        </div>
+                                        {% if sinais_vitais.classificacoes and sinais_vitais.classificacoes.glicemia %}
+                                        <span class="badge bg-{{ sinais_vitais.classificacoes.glicemia.status }} mt-1 d-inline-block">
+                                            {{ sinais_vitais.classificacoes.glicemia.classificacao }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <!-- Data da Aferição -->
+                                <div class="col-12">
+                                    <div class="bg-light p-2 p-md-3 rounded-3">
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-clock me-1"></i>Data da aferição: 
+                                            <strong>{{ sinais_vitais.data_afericao }}</strong>
+                                        </small>
+                                        {% if sinais_vitais.observacoes %}
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="fas fa-comment me-1"></i>Obs: {{ sinais_vitais.observacoes }}
+                                        </small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ===== SEÇÃO DE SINTOMAS DO PACIENTE ===== -->
+                    {% if pedido.sintomas_lista and pedido.sintomas_lista|length > 0 %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-info border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-thermometer-half me-2"></i>Sintomas
+                            </h6>
+                            <div class="d-flex flex-wrap gap-1 gap-md-2">
+                                {% for sintoma in pedido.sintomas_lista %}
+                                <span class="badge bg-info text-white p-2 p-md-3 m-1" style="font-size: 0.85rem; border-radius: 30px;">
+                                    <i class="fas fa-check-circle me-1"></i>{{ sintoma }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- ===== SEÇÃO DE DIAGNÓSTICO ESTILIZADA RESPONSIVA ===== -->
+                    <div class="diagnostico-container mb-4 mb-md-5">
+                        <div class="diagnostico-header p-2 p-md-4">
+                            <div class="d-flex align-items-center">
+                                <div class="diagnostico-icon me-2 me-md-3" style="width: 40px; height: 40px;">
+                                    <i class="fas fa-stethoscope"></i>
+                                </div>
+                                <div>
+                                    <h4 class="mb-1 h6 h5-md">Relatório de Análise</h4>
+                                    <p class="text-muted mb-0 small">
+                                        <i class="fas fa-microscope me-1"></i>{{ pedido.tipo_exame|truncate(20) }}
+                                        <span class="mx-1 d-none d-sm-inline">|</span>
+                                        <span class="d-block d-sm-inline mt-1 mt-sm-0">
+                                            <i class="fas fa-calendar-alt me-1"></i>{{ pedido.data_conclusao or pedido.data_solicitacao }}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Descrição do Pedido -->
+                        {% if pedido.descricao %}
+                        <div class="diagnostico-secao p-2 p-md-4">
+                            <div class="secao-titulo small fw-bold">
+                                <i class="fas fa-file-alt me-2"></i>
+                                <span>Descrição</span>
+                            </div>
+                            <div class="secao-conteudo small">
+                                {{ pedido.descricao|replace('\n', '<br>')|safe }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Observações do Médico -->
+                        {% if pedido.observacoes %}
+                        <div class="diagnostico-secao p-2 p-md-4" style="border-left-color: #17a2b8;">
+                            <div class="secao-titulo small fw-bold">
+                                <i class="fas fa-notes-medical me-2" style="color: #17a2b8;"></i>
+                                <span>Observações</span>
+                            </div>
+                            <div class="secao-conteudo small">
+                                {{ pedido.observacoes }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Resultado da Análise -->
+                        {% if pedido.resultado_analise %}
+                        <div class="diagnostico-secao p-2 p-md-4" style="border-left-color: #fd7e14;">
+                            <div class="secao-titulo small fw-bold">
+                                <i class="fas fa-chart-line me-2" style="color: #fd7e14;"></i>
+                                <span>Resultado</span>
+                            </div>
+                            <div class="secao-conteudo resultado-analise small p-2 p-md-3">
+                                {{ pedido.resultado_analise|replace('\n', '<br>')|safe }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Diagnóstico do Analista -->
+                        {% if pedido.diagnostico_analista %}
+                        <div class="diagnostico-secao p-2 p-md-4" style="border-left-color: #28a745;">
+                            <div class="secao-titulo small fw-bold">
+                                <i class="fas fa-stethoscope me-2" style="color: #28a745;"></i>
+                                <span>Diagnóstico</span>
+                            </div>
+                            <div class="secao-conteudo diagnostico-principal small p-2 p-md-3">
+                                {{ pedido.diagnostico_analista }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Recomendações do Analista -->
+                        {% if pedido.recomendacoes_analista %}
+                        <div class="diagnostico-secao p-2 p-md-4" style="border-left-color: #6f42c1;">
+                            <div class="secao-titulo small fw-bold">
+                                <i class="fas fa-notes-medical me-2" style="color: #6f42c1;"></i>
+                                <span>Recomendações</span>
+                            </div>
+                            <div class="secao-conteudo small">
+                                {{ pedido.recomendacoes_analista }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Status de Aprovação -->
+                        {% if pedido.status == 'concluido' %}
+                        <div class="diagnostico-footer p-2 p-md-4">
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                                <div class="d-flex align-items-center mb-2 mb-sm-0">
+                                    <div class="status-badge {{ 'aprovado' if pedido.status_aprovacao == 'aprovado' else 'pendente' }} me-2 p-1 p-md-2">
+                                        <i class="fas fa-{{ 'check-circle' if pedido.status_aprovacao == 'aprovado' else 'clock' }} me-1"></i>
+                                        {{ pedido.status_aprovacao|upper }}
+                                    </div>
+                                    {% if pedido.observacoes_medico %}
+                                    <span class="text-muted small">
+                                        <i class="fas fa-comment me-1"></i>Obs
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                {% if pedido.analista_nome and pedido.analista_nome != 'Não atribuído' %}
+                                <div class="text-start text-sm-end">
+                                    <small class="text-muted d-block">Analista</small>
+                                    <strong class="small">{{ pedido.analista_nome }}</strong>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- ===== SEÇÃO DE RECEITAS COM BOTÃO EDITAR ===== -->
+                    {% if receitas and receitas|length > 0 %}
+                    <div class="receitas-container mt-4 mt-md-5">
+                        <h5 class="receitas-titulo h6 h5-md mb-3">
+                            <i class="fas fa-prescription me-2"></i>
+                            Receitas
+                        </h5>
+                        
+                        {% for receita in receitas %}
+                        <div class="receita-card mb-3">
+                            <div class="receita-card-header p-2 p-md-3">
+                                <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                                    <div class="mb-2 mb-sm-0">
+                                        <span class="receita-id small fw-bold">Receita #{{ receita.id }}</span>
+                                        <span class="receita-data small d-block d-sm-inline mt-1 mt-sm-0 ms-0 ms-sm-3">
+                                            <i class="far fa-calendar-alt me-1"></i>{{ receita.created_at }}
+                                        </span>
+                                    </div>
+                                    <span class="receita-status status-{{ receita.status }} badge-sm">
+                                        <i class="fas fa-circle me-1"></i>{{ receita.status|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="receita-card-body p-2 p-md-3">
+                                {% if receita.diagnostico %}
+                                <div class="receita-diagnostico mb-2">
+                                    <div class="receita-label small fw-bold">
+                                        <i class="fas fa-stethoscope me-2"></i>Diagnóstico
+                                    </div>
+                                    <div class="receita-valor small">
+                                        {{ receita.diagnostico }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if receita.prescricao %}
+                                <div class="receita-prescricao mb-2">
+                                    <div class="receita-label small fw-bold">
+                                        <i class="fas fa-pills me-2"></i>Prescrição
+                                    </div>
+                                    <div class="receita-valor prescricao-texto small p-2">
+                                        {{ receita.prescricao|replace('\n', '<br>')|safe }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if receita.recomendacoes %}
+                                <div class="receita-recomendacoes">
+                                    <div class="receita-label small fw-bold">
+                                        <i class="fas fa-heartbeat me-2"></i>Recomendações
+                                    </div>
+                                    <div class="receita-valor small">
+                                        {{ receita.recomendacoes }}
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="receita-card-footer p-2 p-md-3">
+                                <div class="d-flex flex-wrap gap-1 justify-content-end">
+                                    <a href="{{ url_for('medico.editar_receita', receita_id=receita.id) }}" 
+                                       class="btn-receita btn-editar btn-sm flex-fill flex-md-grow-0">
+                                        <i class="fas fa-edit me-1"></i>Editar
+                                    </a>
+                                    
+                                    <a href="{{ url_for('medico.ver_receita', receita_id=receita.id) }}" 
+                                       class="btn-receita btn-visualizar btn-sm flex-fill flex-md-grow-0">
+                                        <i class="fas fa-eye me-1"></i>Ver
+                                    </a>
+                                    
+                                    {% if receita.pdf_gerado and receita.receita_pdf_path %}
+                                    <a href="{{ url_for('medico.download_receita_pdf', receita_id=receita.id) }}" 
+                                       class="btn-receita btn-download btn-sm flex-fill flex-md-grow-0">
+                                        <i class="fas fa-file-pdf me-1"></i>PDF
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('medico.gerar_pdf_receita_rota', receita_id=receita.id) }}" 
+                                       class="btn-receita btn-pdf btn-sm flex-fill flex-md-grow-0">
+                                        <i class="fas fa-file-pdf me-1"></i>Gerar PDF
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Anexos -->
+                    {% if pedido.anexos and pedido.anexos|length > 0 %}
+                    <div class="card border-0 bg-light mt-3 mt-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold">
+                                <i class="fas fa-paperclip me-2"></i>Anexos ({{ pedido.anexos|length }})
+                            </h6>
+                            <div class="list-group">
+                                {% for anexo in pedido.anexos %}
+                                <a href="{{ url_for('static', filename='uploads/' + anexo) }}" target="_blank" 
+                                   class="list-group-item list-group-item-action d-flex align-items-center p-2 p-md-3">
+                                    <i class="fas fa-file-{{ 'image' if anexo.endswith(('.jpg','.png','.jpeg','.gif')) else 'pdf' if anexo.endswith('.pdf') else 'alt' }} me-2 me-md-3 text-primary"></i>
+                                    <span class="flex-grow-1 small">{{ anexo|truncate(30) }}</span>
+                                    <i class="fas fa-download text-muted"></i>
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <!-- Card de Ações - Sticky apenas em desktop -->
+            <div class="card shadow-lg border-0 mb-3 mb-md-4 sticky-lg-top" style="top: 20px; z-index: 1000;">
+                <div class="card-header bg-gradient-primary text-white py-2 py-md-3 rounded-top-3">
+                    <h6 class="mb-0 fw-bold small h6-md"><i class="fas fa-cog me-2"></i>Ações</h6>
+                </div>
+                <div class="card-body p-2 p-md-4">
+                    <div class="d-grid gap-2 gap-md-3">
+                        {% if pedido.tem_resultado %}
+                        <a href="{{ url_for('medico.revisar_analise', pedido_id=pedido.id) }}" 
+                           class="btn btn-warning btn-sm btn-md py-2">
+                            <i class="fas fa-check-circle me-2"></i>Revisar
+                        </a>
+                        {% endif %}
+
+                        {% if pedido.status == 'concluido' and pedido.status_aprovacao == 'aprovado' %}
+                            {% if gemini_available %}
+                            <a href="{{ url_for('medico.gerar_receita', pedido_id=pedido.id) }}" 
+                               class="btn btn-success btn-sm btn-md py-2">
+                                <i class="fas fa-prescription me-2"></i>Gerar Receita
+                            </a>
+                            {% else %}
+                            <button class="btn btn-secondary btn-sm btn-md py-2" disabled>
+                                <i class="fas fa-exclamation-triangle me-2"></i>IA Indisponível
+                            </button>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if pedido.status == 'pendente' and pedido.pertence_medico %}
+                        <form action="{{ url_for('medico.cancelar_pedido', pedido_id=pedido.id) }}" method="POST">
+                            <button type="submit" class="btn btn-danger btn-sm btn-md w-100 py-2" 
+                                    onclick="return confirm('Tem certeza que deseja cancelar este pedido?');">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </button>
+                        </form>
+                        {% endif %}
+
+                        <a href="{{ url_for('medico.pedidos_analise') }}" class="btn btn-outline-secondary btn-sm btn-md py-2">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informações Adicionais -->
+            <div class="card shadow-lg border-0 mt-3 mt-md-4">
+                <div class="card-header bg-gradient-secondary text-white py-2 py-md-3 rounded-top-3">
+                    <h6 class="mb-0 fw-bold small h6-md"><i class="fas fa-info-circle me-2"></i>Informações</h6>
+                </div>
+                <div class="card-body p-2 p-md-4">
+                    <div class="info-item d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                        <small class="text-muted">Criado em</small>
+                        <strong class="small">{{ pedido.criado_em }}</strong>
+                    </div>
+                    
+                    {% if pedido.atualizado_em and pedido.atualizado_em != pedido.criado_em %}
+                    <div class="info-item d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                        <small class="text-muted">Atualizado em</small>
+                        <strong class="small">{{ pedido.atualizado_em }}</strong>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="info-item d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                        <small class="text-muted">Médico</small>
+                        <strong class="small">{{ pedido.medico_nome }}</strong>
+                    </div>
+                    
+                    <div class="info-item d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                        <small class="text-muted">Anexos</small>
+                        <strong class="small">{{ pedido.total_anexos }}</strong>
+                    </div>
+                    
+                    {% if receitas %}
+                    <div class="info-item d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                        <small class="text-muted">Receitas</small>
+                        <strong class="small">{{ receitas|length }}</strong>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.sintomas_lista and pedido.sintomas_lista|length > 0 %}
+                    <div class="info-item d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Sintomas</small>
+                        <strong class="small">{{ pedido.sintomas_lista|length }}</strong>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Mobile First Styles */
+
+/* ===== ESTILOS DO DIAGNÓSTICO RESPONSIVOS ===== */
+.diagnostico-container {
+    background: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+}
+
+.diagnostico-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+@media (min-width: 768px) {
+    .diagnostico-header {
+        padding: 24px;
+    }
+}
+
+.diagnostico-icon {
+    width: 35px;
+    height: 35px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1rem;
+}
+
+@media (min-width: 768px) {
+    .diagnostico-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        font-size: 1.5rem;
+    }
+}
+
+.diagnostico-secao {
+    padding: 12px;
+    border-left: 3px solid #007bff;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+}
+
+@media (min-width: 768px) {
+    .diagnostico-secao {
+        padding: 24px;
+        border-left-width: 4px;
+    }
+}
+
+.secao-titulo {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    .secao-titulo {
+        font-size: 1rem;
+        margin-bottom: 12px;
+        letter-spacing: 0.5px;
+    }
+}
+
+.secao-conteudo {
+    color: #212529;
+    line-height: 1.6;
+    font-size: 0.85rem;
+    padding-left: 20px;
+}
+
+@media (min-width: 768px) {
+    .secao-conteudo {
+        font-size: 1rem;
+        padding-left: 28px;
+        line-height: 1.8;
+    }
+}
+
+.resultado-analise {
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    border: 1px solid #e9ecef;
+}
+
+@media (min-width: 768px) {
+    .resultado-analise {
+        border-radius: 8px;
+        padding: 20px !important;
+    }
+}
+
+.diagnostico-principal {
+    font-weight: 500;
+    color: #28a745;
+    background: #f0fff4;
+    border-radius: 6px;
+    border: 1px solid #c3e6cb;
+}
+
+.diagnostico-footer {
+    background: #f8f9fa;
+    padding: 12px;
+    border-top: 1px solid #dee2e6;
+}
+
+@media (min-width: 768px) {
+    .diagnostico-footer {
+        padding: 20px 24px;
+        border-top-width: 2px;
+    }
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.7rem;
+}
+
+@media (min-width: 768px) {
+    .status-badge {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+.status-badge.aprovado {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-badge.pendente {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+/* ===== ESTILOS DAS RECEITAS RESPONSIVOS ===== */
+.receitas-container {
+    margin-top: 30px;
+    padding-top: 15px;
+    border-top: 1px dashed #dee2e6;
+}
+
+@media (min-width: 768px) {
+    .receitas-container {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top-width: 2px;
+    }
+}
+
+.receitas-titulo {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 16px;
+}
+
+@media (min-width: 768px) {
+    .receitas-titulo {
+        font-size: 1.5rem;
+        margin-bottom: 24px;
+    }
+}
+
+.receita-card {
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .receita-card {
+        border-radius: 12px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+}
+
+.receita-card-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 10px 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+@media (min-width: 768px) {
+    .receita-card-header {
+        padding: 16px 20px;
+    }
+}
+
+.receita-id {
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    margin-right: 10px;
+}
+
+@media (min-width: 768px) {
+    .receita-id {
+        font-size: 1.1rem;
+        margin-right: 15px;
+    }
+}
+
+.receita-data {
+    color: #6c757d;
+    font-size: 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .receita-data {
+        font-size: 0.9rem;
+    }
+}
+
+.receita-status {
+    padding: 3px 8px;
+    border-radius: 15px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.receita-status.status-ativa {
+    background: #d4edda;
+    color: #155724;
+}
+
+.receita-status.status-inativa {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.receita-card-body {
+    padding: 12px;
+}
+
+@media (min-width: 768px) {
+    .receita-card-body {
+        padding: 20px;
+    }
+}
+
+.receita-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: #6c757d;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+@media (min-width: 768px) {
+    .receita-label {
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+        letter-spacing: 0.5px;
+    }
+}
+
+.receita-valor {
+    color: #212529;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+}
+
+@media (min-width: 768px) {
+    .receita-valor {
+        line-height: 1.6;
+        margin-bottom: 16px;
+        font-size: 0.95rem;
+    }
+}
+
+.prescricao-texto {
+    background: #f8f9fa;
+    border-radius: 6px;
+    border-left: 3px solid #28a745;
+    font-family: 'Courier New', monospace;
+}
+
+@media (min-width: 768px) {
+    .prescricao-texto {
+        border-radius: 8px;
+        border-left-width: 4px;
+        padding: 15px !important;
+    }
+}
+
+.receita-card-footer {
+    background: #f8f9fa;
+    padding: 10px 12px;
+    border-top: 1px solid #dee2e6;
+}
+
+@media (min-width: 768px) {
+    .receita-card-footer {
+        padding: 15px 20px;
+    }
+}
+
+.btn-receita {
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+}
+
+@media (min-width: 768px) {
+    .btn-receita {
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        min-height: auto;
+    }
+}
+
+.btn-editar {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.btn-visualizar {
+    background: #e7f5ff;
+    color: #007bff;
+    border: 1px solid #b8daff;
+}
+
+.btn-download, .btn-pdf {
+    background: #f8d7da;
+    color: #dc3545;
+    border: 1px solid #f5c6cb;
+}
+
+/* ===== ESTILOS GLOBAIS RESPONSIVOS ===== */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+.bg-gradient-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+
+.info-item {
+    transition: all 0.2s ease;
+}
+
+.info-item:hover {
+    transform: translateX(3px);
+}
+
+@media (min-width: 768px) {
+    .info-item:hover {
+        transform: translateX(5px);
+    }
+}
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+@media (min-width: 768px) {
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1) !important;
+    }
+}
+
+/* Ajustes para mobile */
+@media (max-width: 768px) {
+    .badge {
+        font-size: 0.65rem;
+        padding: 0.3rem 0.5rem;
+    }
+    
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.5rem;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-sm i {
+        font-size: 0.85rem;
+    }
+    
+    .card-body {
+        padding: 0.75rem !important;
+    }
+    
+    .h5-md {
+        font-size: 1rem;
+    }
+    
+    .h6-md {
+        font-size: 0.9rem;
+    }
+    
+    .small {
+        font-size: 0.7rem;
+    }
+    
+    .border-bottom {
+        border-width: 1px;
+    }
+    
+    .list-group-item {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .breadcrumb {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 375px) {
+    .container-fluid {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+    
+    .btn-sm {
+        font-size: 0.7rem;
+        padding: 0.3rem;
+    }
+    
+    .badge {
+        font-size: 0.6rem;
+    }
+    
+    .small {
+        font-size: 0.65rem;
+    }
+    
+    .receita-id {
+        font-size: 0.8rem;
+    }
+}
+
+/* Touch optimizations */
+@media (max-width: 768px) {
+    .btn, 
+    .badge,
+    .list-group-item,
+    .btn-receita {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .btn:active,
+    .btn-receita:active {
+        transform: scale(0.97);
+    }
+    
+    .list-group-item:active {
+        background-color: #e9ecef;
+    }
+    
+    /* Área de clique maior */
+    .btn-receita {
+        min-height: 38px;
+    }
+    
+    /* Prevenir zoom */
+    select, input, textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Safe area support */
+@supports (padding: max(0px)) {
+    .container-fluid {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+    }
+}
+
+/* Melhorias de acessibilidade */
+.btn:focus-visible,
+a:focus-visible {
+    outline: 2px solid #0d6efd;
+    outline-offset: 2px;
+}
+
+/* Loading state */
+.btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #fff;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Sticky apenas em desktop */
+@media (min-width: 992px) {
+    .sticky-lg-top {
+        position: sticky;
+        top: 20px;
+        z-index: 1000;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Página de detalhes do pedido carregada');
+    
+    // Ajustar sticky para mobile
+    function adjustSticky() {
+        const stickyCard = document.querySelector('.sticky-lg-top');
+        if (stickyCard) {
+            if (window.innerWidth < 992) {
+                stickyCard.classList.remove('sticky-lg-top');
+            } else {
+                stickyCard.classList.add('sticky-lg-top');
+            }
+        }
+    }
+    
+    adjustSticky();
+    window.addEventListener('resize', adjustSticky);
+    
+    // Feedback visual para botões
+    const buttons = document.querySelectorAll('.btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            if (!this.classList.contains('loading') && !this.href && this.tagName !== 'A') {
+                this.classList.add('loading');
+                setTimeout(() => {
+                    this.classList.remove('loading');
+                }, 500);
+            }
+        });
+    });
+});
+
+// Prevenir zoom em inputs no iOS
+document.addEventListener('touchstart', function(event) {
+    if (event.target.nodeName === 'SELECT' || event.target.nodeName === 'INPUT' || event.target.nodeName === 'TEXTAREA') {
+        event.target.style.fontSize = '16px';
+    }
+}, { passive: true });
+
+// Toast para feedback
+function showToast(message, type = 'success') {
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    const toastId = 'toast-' + Date.now();
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body small">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
+    toast.show();
+    
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        this.remove();
+    });
+}
+</script>
+{% endblock %}
