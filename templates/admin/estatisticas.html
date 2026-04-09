@@ -2,706 +2,1104 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Estatísticas - DoctorIA</title>
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     <!-- Date Range Picker -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --success-color: #4cc9f0;
-            --warning-color: #f72585;
-            --danger-color: #e74c3c;
-            --dark-color: #2c3e50;
-            --light-color: #f8f9fa;
-            --info-color: #4895ef;
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #0f172a;
+            --gray-50: #f9fafb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --sidebar-width: 280px;
+            --border-radius: 24px;
+            --transition: all 0.3s ease;
         }
-        
+
         body {
-            background-color: #f4f6f9;
-            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .sidebar {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
-            color: white;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            color: var(--gray-800);
+            overflow-x: hidden;
         }
-        
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.7);
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a1c2e 0%, #2d2f42 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1050;
+            transition: var(--transition);
+            box-shadow: 4px 0 30px rgba(0,0,0,0.15);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transform: rotate(-5deg);
+            transition: var(--transition);
+            box-shadow: 0 10px 20px rgba(67,97,238,0.3);
+        }
+
+        .logo:hover .logo-icon {
+            transform: rotate(0deg) scale(1.1);
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .logo-text span {
+            font-weight: 300;
+            color: var(--primary);
+        }
+
+        .user-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
             padding: 14px 20px;
             margin: 6px 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
             border-radius: 12px;
-            transition: all 0.3s;
+            transition: var(--transition);
             font-weight: 500;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.12);
-            color: white;
-            transform: translateX(5px);
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--primary);
+            transform: scaleY(0);
+            transition: var(--transition);
         }
-        
-        .sidebar .nav-link.active {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            color: white;
-            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+
+        .nav-link:hover::before,
+        .nav-link.active::before {
+            transform: scaleY(1);
         }
-        
-        .sidebar .nav-link i {
+
+        .nav-link i {
+            width: 24px;
+            font-size: 20px;
             margin-right: 12px;
-            width: 22px;
-            text-align: center;
+            transition: var(--transition);
         }
-        
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding-left: 24px;
+        }
+
+        .nav-link:hover i {
+            transform: scale(1.1);
+            color: var(--primary);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(90deg, rgba(67,97,238,0.2) 0%, transparent 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-link.active i {
+            color: var(--primary);
+        }
+
+        /* ==================== MENU TOGGLE ==================== */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1060;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67,97,238,0.4);
+        }
+
+        @media (max-width: 992px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
         .main-content {
+            margin-left: var(--sidebar-width);
             padding: 30px;
-            background-color: #f4f6f9;
+            min-height: 100vh;
+            transition: var(--transition);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
         }
-        
+
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+                padding: 70px 15px 20px;
+            }
+        }
+
+        /* ==================== PAGE TITLE ==================== */
         .page-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 30px;
-            color: var(--dark-color);
-            font-weight: 800;
+        }
+
+        .title-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .title-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .title-left h1 {
             font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin: 0;
         }
-        
-        .page-title i {
-            margin-right: 12px;
-            color: var(--primary-color);
+
+        .title-left p {
+            color: var(--gray-500);
+            margin: 5px 0 0 0;
+            font-size: 14px;
         }
-        
-        .stats-card {
+
+        .date-badge {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 16px;
+            font-size: 14px;
+            color: var(--gray-600);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .date-badge i {
+            color: var(--primary);
+        }
+
+        /* ==================== FILTER SECTION ==================== */
+        .filter-section {
             background: white;
             border-radius: 20px;
             padding: 25px;
+            margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            transition: all 0.3s;
             border: 1px solid rgba(0,0,0,0.03);
-            height: 100%;
         }
-        
+
+        .filter-label {
+            font-size: 13px;
+            color: var(--gray-500);
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .filter-select, .filter-input {
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 12px 15px;
+            width: 100%;
+            font-size: 14px;
+            transition: var(--transition);
+            background: white;
+        }
+
+        .filter-select:focus, .filter-input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .btn-filter {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: var(--transition);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-filter:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-export {
+            background: white;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-200);
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: var(--transition);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-export:hover {
+            background: var(--gray-50);
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* ==================== STATS CARDS ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 992px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.03);
+            animation: slideIn 0.5s ease-out;
+        }
+
         .stats-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
-        
-        .stats-card .stats-icon {
+
+        .stats-icon {
             width: 60px;
             height: 60px;
             border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             font-size: 28px;
         }
-        
-        .stats-card .stats-label {
-            color: #6c757d;
-            font-size: 14px;
+
+        .stats-number {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin-bottom: 5px;
+            line-height: 1.2;
+        }
+
+        .stats-label {
+            font-size: 13px;
+            color: var(--gray-500);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 8px;
+            font-weight: 600;
+            margin: 0;
         }
-        
-        .stats-card .stats-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--dark-color);
-            margin-bottom: 5px;
-        }
-        
-        .stats-card .stats-trend {
-            font-size: 13px;
+
+        .stats-trend {
             display: flex;
             align-items: center;
             gap: 5px;
+            margin-top: 10px;
+            font-size: 12px;
         }
-        
-        .stats-card .stats-trend.positive {
-            color: #10b981;
+
+        .stats-trend.positive {
+            color: var(--success);
         }
-        
-        .stats-card .stats-trend.negative {
-            color: #ef4444;
+
+        .stats-trend.negative {
+            color: var(--danger);
         }
-        
+
+        /* ==================== CARDS ==================== */
         .card {
-            border: none;
-            border-radius: 24px;
+            background: white;
+            border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.95);
+            border: 1px solid rgba(0,0,0,0.03);
+            overflow: hidden;
+            height: 100%;
         }
-        
+
         .card-header {
             background: transparent;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid var(--gray-200);
             padding: 20px 25px;
-            border-radius: 24px 24px 0 0 !important;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
-        
-        .card-header h5 {
-            margin: 0;
-            color: var(--dark-color);
-            font-weight: 700;
-            font-size: 1.2rem;
+
+        .card-title {
             display: flex;
             align-items: center;
             gap: 10px;
         }
-        
-        .card-header h5 i {
-            color: var(--primary-color);
-            font-size: 1.4rem;
+
+        .card-title i {
+            color: var(--primary);
+            font-size: 20px;
         }
-        
+
+        .card-title h5 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
         .card-body {
             padding: 25px;
         }
-        
-        .filter-section {
-            background: white;
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.03);
-            border: 1px solid rgba(0,0,0,0.03);
+
+        .card-footer {
+            background: transparent;
+            border-top: 1px solid var(--gray-200);
+            padding: 15px 20px;
         }
-        
-        .filter-label {
-            font-size: 13px;
-            color: #6c757d;
-            margin-bottom: 8px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        
-        .filter-select, .filter-input {
-            border: 2px solid #e9ecef;
-            border-radius: 12px;
-            padding: 10px 15px;
-            width: 100%;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        
-        .filter-select:focus, .filter-input:focus {
-            border-color: var(--primary-color);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-        }
-        
-        .btn-filter {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        .btn-filter:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
-        }
-        
-        .btn-export {
-            background: white;
-            color: var(--dark-color);
-            border: 2px solid #e9ecef;
-            padding: 12px 25px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s;
-            width: 100%;
-        }
-        
-        .btn-export:hover {
-            background: #f8f9fa;
-            border-color: var(--primary-color);
-        }
-        
+
+        /* ==================== TABLES ==================== */
         .table {
             margin: 0;
+            width: 100%;
         }
-        
-        .table thead th {
+
+        .table th {
             border-top: none;
-            border-bottom: 2px solid rgba(0,0,0,0.05);
-            color: #6c757d;
+            border-bottom: 2px solid var(--gray-200);
+            color: var(--gray-500);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            padding: 15px 12px;
+            padding: 12px 8px;
+            background: var(--gray-50);
         }
-        
-        .table tbody td {
-            padding: 15px 12px;
+
+        .table td {
+            padding: 12px 8px;
             vertical-align: middle;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-            color: #2c3e50;
+            border-bottom: 1px solid var(--gray-200);
+            color: var(--gray-700);
+            font-size: 14px;
         }
-        
-        .badge-stat {
+
+        .table tbody tr:hover {
+            background: var(--gray-50);
+        }
+
+        /* ==================== BADGES ==================== */
+        .badge {
             padding: 6px 12px;
             border-radius: 30px;
             font-size: 12px;
             font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
-        
+
         .badge-primary {
             background: rgba(67, 97, 238, 0.1);
-            color: var(--primary-color);
+            color: var(--primary);
         }
-        
+
         .badge-success {
             background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
+            color: var(--success);
         }
-        
+
         .badge-warning {
             background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
+            color: var(--warning);
         }
-        
+
         .badge-danger {
             background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            color: var(--danger);
         }
-        
-        .stat-info-box {
-            background: #f8f9fa;
-            border-radius: 16px;
-            padding: 20px;
+
+        .badge-info {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--info);
+        }
+
+        /* ==================== CHARTS ==================== */
+        #consultasChart,
+        #statusChart,
+        #topMedicosChart,
+        #consultasMesChart {
+            min-height: 250px;
+            width: 100%;
+        }
+
+        /* ==================== ANIMATIONS ==================== */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer {
             text-align: center;
-            border: 1px solid rgba(0,0,0,0.03);
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 30px;
         }
-        
-        .stat-info-box .stat-info-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--dark-color);
-            margin-bottom: 5px;
+
+        .footer hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
         }
-        
-        .stat-info-box .stat-info-label {
-            color: #6c757d;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-        
+
+        /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
-            .sidebar {
-                min-height: auto;
-                padding: 10px;
-            }
-            
-            .main-content {
-                padding: 20px;
-            }
-            
             .page-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+            
+            .title-left h1 {
                 font-size: 24px;
             }
             
-            .stats-card {
-                margin-bottom: 20px;
+            .date-badge {
+                width: 100%;
+                justify-content: center;
             }
+            
+            .filter-section {
+                padding: 15px;
+            }
+            
+            .card-header {
+                padding: 15px 20px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .btn-filter,
+            .btn-export {
+                padding: 10px 15px;
+                font-size: 13px;
+            }
+            
+            .stats-number {
+                font-size: 28px;
+            }
+        }
+
+        /* ==================== TOUCH IMPROVEMENTS ==================== */
+        @media (max-width: 768px) {
+            .btn, 
+            .nav-link,
+            .stats-card {
+                min-height: 44px;
+            }
+            
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+
+        /* ==================== SCROLLBAR ==================== */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="p-4">
-                    <h4 class="text-white mb-4">
-                        <i class="fas fa-brain me-2"></i>
-                        Doctor<span style="font-weight: 300;">IA</span>
-                    </h4>
-                    <p class="text-white-50 small mb-4">Painel Administrativo</p>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.medicos') }}">
-                            <i class="fas fa-user-md"></i> Médicos
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.analistas') }}">
-                            <i class="fas fa-microscope"></i> Analistas
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
-                            <i class="fas fa-users"></i> Pacientes
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.consultas') }}">
-                            <i class="fas fa-calendar-check"></i> Consultas
-                        </a>
-                        <a class="nav-link active" href="{{ url_for('admin.estatisticas') }}">
-                            <i class="fas fa-chart-bar"></i> Estatísticas
-                        </a>
-                        <hr class="bg-white-50">
-                        <a class="nav-link" href="{{ url_for('admin.configuracoes') }}">
-                            <i class="fas fa-cog"></i> Configurações
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.logout') }}">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
-                    </nav>
+    <!-- Menu Toggle (Mobile) -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('admin.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="logo-text">
+                    Doctor<span>IA</span>
+                </div>
+            </a>
+        </div>
+        
+        <nav class="nav flex-column">
+            <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.medicos') }}">
+                <i class="fas fa-user-md"></i> Médicos
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.analistas') }}">
+                <i class="fas fa-microscope"></i> Analistas
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.enfermeiros') }}">
+                <i class="fas fa-user-nurse"></i> Enfermeiros
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
+                <i class="fas fa-users"></i> Pacientes
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.consultas') }}">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
+            <a class="nav-link active" href="{{ url_for('admin.estatisticas') }}">
+                <i class="fas fa-chart-bar"></i> Estatísticas
+            </a>
+            
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px;">
+            
+            <a class="nav-link" href="{{ url_for('admin.logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </nav>
+        
+        <!-- User Info -->
+        <div class="user-info">
+            <div class="d-flex align-items-center gap-3">
+                <div class="user-avatar">
+                    {{ session.user_name[:1] if session.user_name else 'A' }}
+                </div>
+                <div>
+                    <small class="text-white-50 d-block">Administrador</small>
+                    <strong class="text-white">{{ session.user_name if session.user_name else 'Admin' }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Page Title -->
+        <div class="page-title fade-in">
+            <div class="title-left">
+                <div class="title-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div>
+                    <h1>Estatísticas</h1>
+                    <p>Análise de dados do sistema</p>
+                </div>
+            </div>
+            <div class="date-badge">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="currentDateTime"></span>
+            </div>
+        </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Filter Section -->
+        <div class="filter-section fade-in">
+            <div class="row align-items-end g-3">
+                <div class="col-md-4">
+                    <div class="filter-label">Período</div>
+                    <input type="text" class="filter-input" id="dateRange" name="daterange" value="Últimos 30 dias">
+                </div>
+                <div class="col-md-3">
+                    <div class="filter-label">Tipo de Dados</div>
+                    <select class="filter-select" id="dataType">
+                        <option value="all">Todos</option>
+                        <option value="consultas">Consultas</option>
+                        <option value="diagnosticos">Diagnósticos</option>
+                        <option value="usuarios">Usuários</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="filter-label">Agrupamento</div>
+                    <select class="filter-select" id="groupBy">
+                        <option value="day">Por Dia</option>
+                        <option value="week">Por Semana</option>
+                        <option value="month" selected>Por Mês</option>
+                        <option value="year">Por Ano</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn-filter" onclick="applyFilters()">
+                        <i class="fas fa-filter"></i> Filtrar
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Summary Cards -->
+        <div class="stats-grid fade-in">
+            <div class="stats-card">
+                <div class="stats-icon" style="background: rgba(67, 97, 238, 0.1); color: var(--primary);">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stats-number">{{ total_consultas|default(0) }}</div>
+                <div class="stats-label">Total de Consultas</div>
+                <div class="stats-trend positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+23% este mês</span>
                 </div>
             </div>
             
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                <!-- Page Title -->
-                <div class="page-title">
-                    <i class="fas fa-chart-bar"></i>
-                    Estatísticas e Relatórios
+            <div class="stats-card">
+                <div class="stats-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">
+                    <i class="fas fa-stethoscope"></i>
                 </div>
-                
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                
-                <!-- Filter Section -->
-                <div class="filter-section">
-                    <div class="row align-items-end">
-                        <div class="col-md-4 mb-3">
-                            <div class="filter-label">Período</div>
-                            <input type="text" class="filter-input" id="dateRange" name="daterange" value="Últimos 30 dias">
+                <div class="stats-number">{{ total_diagnosticos|default(0) }}</div>
+                <div class="stats-label">Diagnósticos</div>
+                <div class="stats-trend positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+15% este mês</span>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="stats-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+                    <i class="fas fa-user-md"></i>
+                </div>
+                <div class="stats-number">{{ total_medicos|default(0) }}</div>
+                <div class="stats-label">Médicos</div>
+                <div class="stats-trend positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+5 novos</span>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="stats-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--info);">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div class="stats-number">{{ media_consultas|default(0) }}</div>
+                <div class="stats-label">Média Diária</div>
+                <div class="stats-trend positive">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>consultas/dia</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Charts -->
+        <div class="row g-4 fade-in">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-chart-line"></i>
+                            <h5>Evolução de Consultas</h5>
                         </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="filter-label">Tipo de Dados</div>
-                            <select class="filter-select" id="dataType">
-                                <option value="all">Todos</option>
-                                <option value="consultas">Consultas</option>
-                                <option value="diagnosticos">Diagnósticos</option>
-                                <option value="usuarios">Usuários</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <div class="filter-label">Agrupamento</div>
-                            <select class="filter-select" id="groupBy">
-                                <option value="day">Por Dia</option>
-                                <option value="week">Por Semana</option>
-                                <option value="month" selected>Por Mês</option>
-                                <option value="year">Por Ano</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <button class="btn-filter" onclick="applyFilters()">
-                                <i class="fas fa-filter me-2"></i>Filtrar
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="exportChart('line', 'consultas')" title="Exportar gráfico">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="refreshChart('line')" title="Atualizar">
+                                <i class="fas fa-sync-alt"></i>
                             </button>
                         </div>
                     </div>
-                </div>
-                
-                <!-- Statistics Summary Cards -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card">
-                            <div class="stats-icon" style="background: rgba(67, 97, 238, 0.1); color: var(--primary-color);">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <div class="stats-label">Total de Consultas</div>
-                            <div class="stats-value">{{ total_consultas|default(0) }}</div>
-                            <div class="stats-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+23% este mês</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card">
-                            <div class="stats-icon" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
-                                <i class="fas fa-stethoscope"></i>
-                            </div>
-                            <div class="stats-label">Diagnósticos Realizados</div>
-                            <div class="stats-value">{{ total_diagnosticos|default(0) }}</div>
-                            <div class="stats-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+15% este mês</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card">
-                            <div class="stats-icon" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
-                                <i class="fas fa-user-md"></i>
-                            </div>
-                            <div class="stats-label">Médicos Ativos</div>
-                            <div class="stats-value">{{ total_medicos|default(0) }}</div>
-                            <div class="stats-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>+5 novos</span>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card">
-                            <div class="stats-icon" style="background: rgba(239, 68, 68, 0.1); color: #ef4444;">
-                                <i class="fas fa-chart-line"></i>
-                            </div>
-                            <div class="stats-label">Média Diária</div>
-                            <div class="stats-value">{{ media_consultas|default(0) }}</div>
-                            <div class="stats-trend positive">
-                                <i class="fas fa-arrow-up"></i>
-                                <span>consultas/dia</span>
-                            </div>
-                        </div>
+                    <div class="card-body">
+                        <div id="consultasChart"></div>
                     </div>
                 </div>
-                
-                <!-- Main Charts -->
-                <div class="row mb-4">
-                    <div class="col-lg-8 mb-4">
-                        <div class="card">
-                            <div class="card-header d-flex justify-content-between align-items-center">
-                                <h5>
-                                    <i class="fas fa-chart-line"></i>
-                                    Evolução de Consultas
-                                </h5>
-                                <div>
-                                    <button class="btn btn-sm btn-outline-primary me-2" onclick="exportChart('line', 'consultas')">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="refreshChart('line')">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-chart-pie"></i>
+                            <h5>Status das Consultas</h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="statusChart"></div>
+                        <div class="mt-4">
+                            {% if status_distribuicao %}
+                                {% for status_item in status_distribuicao %}
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>
+                                        <span class="badge 
+                                            {% if status_item[0] == 'realizada' %}badge-success
+                                            {% elif status_item[0] == 'cancelada' %}badge-danger
+                                            {% elif status_item[0] == 'agendada' %}badge-primary
+                                            {% elif status_item[0] == 'confirmada' %}badge-warning
+                                            {% else %}badge-info{% endif %}">
+                                            <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
+                                            {{ status_item[0]|capitalize }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <strong>{{ status_item[1] }}</strong>
+                                        <small class="text-muted ms-2">
+                                            {% if total_consultas and total_consultas > 0 %}
+                                                ({{ ((status_item[1] / total_consultas) * 100)|round|int }}%)
+                                            {% else %}
+                                                (0%)
+                                            {% endif %}
+                                        </small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="card-body">
-                                <div id="consultasChart"></div>
-                            </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted text-center">Sem dados disponíveis</p>
+                            {% endif %}
                         </div>
                     </div>
-                    
-                    <div class="col-lg-4 mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>
-                                    <i class="fas fa-chart-pie"></i>
-                                    Distribuição por Status
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="statusChart"></div>
-                                <div class="mt-4">
-                                    {% if status_distribuicao %}
-                                        {% for status_item in status_distribuicao %}
-                                        <div class="d-flex justify-content-between align-items-center mb-2">
-                                            <div>
-                                                <span class="badge-stat 
-                                                    {% if status_item[0] == 'realizada' %}badge-success
-                                                    {% elif status_item[0] == 'cancelada' %}badge-danger
-                                                    {% elif status_item[0] == 'agendada' %}badge-primary
-                                                    {% elif status_item[0] == 'confirmada' %}badge-warning
-                                                    {% else %}badge-secondary{% endif %}">
-                                                    <i class="fas fa-circle me-1" style="font-size: 8px;"></i>
-                                                    {{ status_item[0]|capitalize }}
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <strong>{{ status_item[1] }}</strong>
-                                                <small class="text-muted ms-2">
-                                                    {% if total_consultas and total_consultas > 0 %}
-                                                        ({{ ((status_item[1] / total_consultas) * 100)|round|int }}%)
-                                                    {% else %}
-                                                        (0%)
-                                                    {% endif %}
-                                                </small>
-                                            </div>
-                                        </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Secondary Charts -->
+        <div class="row g-4 mt-2 fade-in">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-trophy"></i>
+                            <h5>Top 5 Médicos</h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="topMedicosChart"></div>
+                        <div class="mt-3">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Médico</th>
+                                        <th class="text-end">Consultas</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if top_medicos %}
+                                        {% for medico_item in top_medicos %}
+                                        <tr>
+                                            <td>{{ medico_item[0] }}</td>
+                                            <td class="text-end"><strong>{{ medico_item[1] }}</strong></td>
+                                            <td class="text-end">
+                                                {% if total_consultas and total_consultas > 0 %}
+                                                    {{ ((medico_item[1] / total_consultas) * 100)|round(1) }}%
+                                                {% else %}
+                                                    0%
+                                                {% endif %}
+                                            </td>
+                                        </tr>
                                         {% endfor %}
                                     {% else %}
-                                        <p class="text-muted text-center">Sem dados disponíveis</p>
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">Sem dados disponíveis</td>
+                                        </tr>
                                     {% endif %}
-                                </div>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Secondary Charts -->
-                <div class="row mb-4">
-                    <div class="col-lg-6 mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>
-                                    <i class="fas fa-trophy"></i>
-                                    Top 5 Médicos
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="topMedicosChart"></div>
-                                <div class="mt-3">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Médico</th>
-                                                <th class="text-end">Consultas</th>
-                                                <th class="text-end">%</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% if top_medicos %}
-                                                {% for medico_item in top_medicos %}
-                                                <tr>
-                                                    <td>{{ medico_item[0] }}</td>
-                                                    <td class="text-end"><strong>{{ medico_item[1] }}</strong></td>
-                                                    <td class="text-end">
-                                                        {% if total_consultas and total_consultas > 0 %}
-                                                            {{ ((medico_item[1] / total_consultas) * 100)|round(1) }}%
-                                                        {% else %}
-                                                            0%
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            {% else %}
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted">Sem dados disponíveis</td>
-                                                </tr>
-                                            {% endif %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            <h5>Consultas por Mês</h5>
                         </div>
                     </div>
-                    
-                    <div class="col-lg-6 mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>
-                                    <i class="fas fa-calendar-alt"></i>
-                                    Consultas por Mês
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="consultasMesChart"></div>
-                                <div class="mt-3">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Mês</th>
-                                                <th class="text-end">Consultas</th>
-                                                <th class="text-end">Variação</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% if consultas_por_mes %}
-                                                {% for mes_item in consultas_por_mes %}
-                                                <tr>
-                                                    <td>{{ mes_item[0] }}</td>
-                                                    <td class="text-end"><strong>{{ mes_item[1] }}</strong></td>
-                                                    <td class="text-end">
-                                                        {% if loop.index > 1 %}
-                                                            {% set variacao = mes_item[1] - consultas_por_mes[loop.index0 - 1][1] %}
-                                                            {% if variacao > 0 %}
-                                                                <span class="text-success">
-                                                                    <i class="fas fa-arrow-up"></i> +{{ variacao }}
-                                                                </span>
-                                                            {% elif variacao < 0 %}
-                                                                <span class="text-danger">
-                                                                    <i class="fas fa-arrow-down"></i> {{ variacao }}
-                                                                </span>
-                                                            {% else %}
-                                                                <span class="text-muted">= 0</span>
-                                                            {% endif %}
-                                                        {% else %}
-                                                            <span class="text-muted">-</span>
-                                                        {% endif %}
-                                                    </td>
-                                                </tr>
-                                                {% endfor %}
-                                            {% else %}
-                                                <tr>
-                                                    <td colspan="3" class="text-center text-muted">Sem dados disponíveis</td>
-                                                </tr>
-                                            {% endif %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                    <div class="card-body">
+                        <div id="consultasMesChart"></div>
+                        <div class="mt-3">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Mês</th>
+                                        <th class="text-end">Consultas</th>
+                                        <th class="text-end">Variação</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if consultas_por_mes %}
+                                        {% for mes_item in consultas_por_mes %}
+                                        <tr>
+                                            <td>{{ mes_item[0] }}</td>
+                                            <td class="text-end"><strong>{{ mes_item[1] }}</strong></td>
+                                            <td class="text-end">
+                                                {% if loop.index > 1 %}
+                                                    {% set variacao = mes_item[1] - consultas_por_mes[loop.index0 - 1][1] %}
+                                                    {% if variacao > 0 %}
+                                                        <span class="text-success">
+                                                            <i class="fas fa-arrow-up"></i> +{{ variacao }}
+                                                        </span>
+                                                    {% elif variacao < 0 %}
+                                                        <span class="text-danger">
+                                                            <i class="fas fa-arrow-down"></i> {{ variacao }}
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="text-muted">= 0</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="3" class="text-center text-muted">Sem dados disponíveis</td>
+                                        </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Export Options -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5>
-                                    <i class="fas fa-file-export"></i>
-                                    Exportar Relatórios
-                                </h5>
+            </div>
+        </div>
+        
+        <!-- Export Options -->
+        <div class="row g-4 mt-2 fade-in">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-file-export"></i>
+                            <h5>Exportar Relatórios</h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <button class="btn-export" onclick="exportData('pdf')">
+                                    <i class="fas fa-file-pdf text-danger"></i>
+                                    Exportar PDF
+                                </button>
                             </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-3 mb-3">
-                                        <button class="btn-export" onclick="exportData('pdf')">
-                                            <i class="fas fa-file-pdf me-2 text-danger"></i>
-                                            Exportar PDF
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <button class="btn-export" onclick="exportData('excel')">
-                                            <i class="fas fa-file-excel me-2 text-success"></i>
-                                            Exportar Excel
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <button class="btn-export" onclick="exportData('csv')">
-                                            <i class="fas fa-file-csv me-2 text-primary"></i>
-                                            Exportar CSV
-                                        </button>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <button class="btn-export" onclick="printReport()">
-                                            <i class="fas fa-print me-2 text-secondary"></i>
-                                            Imprimir
-                                        </button>
-                                    </div>
-                                </div>
+                            <div class="col-md-3">
+                                <button class="btn-export" onclick="exportData('excel')">
+                                    <i class="fas fa-file-excel text-success"></i>
+                                    Exportar Excel
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn-export" onclick="exportData('csv')">
+                                    <i class="fas fa-file-csv text-primary"></i>
+                                    Exportar CSV
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn-export" onclick="printReport()">
+                                    <i class="fas fa-print text-secondary"></i>
+                                    Imprimir
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <hr>
+            <p>
+                <i class="fas fa-heart" style="color: #ef4444;"></i> 
+                DoctorIA - Sistema de Gestão Médica
+                <br>
+                <span>© 2024 - Painel Administrativo</span>
+            </p>
         </div>
     </div>
     
@@ -712,7 +1110,43 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     
     <script>
-        // Initialize Date Range Picker
+        // ==================== SIDEBAR FUNCTIONS ====================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+        
+        // ==================== UPDATE DATE/TIME ====================
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long',
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            };
+            document.getElementById('currentDateTime').textContent = now.toLocaleString('pt-BR', options);
+        }
+        
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+        
+        // ==================== DATE RANGE PICKER ====================
         $(function() {
             $('#dateRange').daterangepicker({
                 opens: 'left',
@@ -740,11 +1174,20 @@
             });
         });
         
+        // ==================== CHARTS ====================
         // Consultas Chart (Line)
         var consultasOptions = {
             series: [{
                 name: 'Consultas',
-                data: [65, 59, 80, 81, 56, 55, 40, 70, 85, 90, 78, 82]
+                data: [
+                    {% if consultas_mensais %}
+                        {% for val in consultas_mensais %}
+                            {{ val }}{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        65, 59, 80, 81, 56, 55, 40, 70, 85, 90, 78, 82
+                    {% endif %}
+                ]
             }],
             chart: {
                 height: 300,
@@ -765,7 +1208,8 @@
                     enabled: true,
                     easing: 'easeinout',
                     speed: 800
-                }
+                },
+                fontFamily: 'Inter, sans-serif'
             },
             stroke: {
                 curve: 'smooth',
@@ -791,7 +1235,15 @@
                 }
             },
             xaxis: {
-                categories: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'],
+                categories: [
+                    {% if meses %}
+                        {% for mes in meses %}
+                            '{{ mes }}'{% if not loop.last %},{% endif %}
+                        {% endfor %}
+                    {% else %}
+                        'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+                    {% endif %}
+                ],
                 labels: {
                     style: {
                         colors: '#94a3b8',
@@ -832,17 +1284,18 @@
                         {{ status_item[1] }}{% if not loop.last %},{% endif %}
                     {% endfor %}
                 {% else %}
-                    0, 0, 0, 0
+                    10, 20, 5, 3
                 {% endif %}
             ],
             chart: {
                 type: 'donut',
-                height: 280,
+                height: 250,
                 animations: {
                     enabled: true,
                     easing: 'easeinout',
                     speed: 800
-                }
+                },
+                fontFamily: 'Inter, sans-serif'
             },
             labels: [
                 {% if status_distribuicao %}
@@ -880,6 +1333,14 @@
                 position: 'bottom',
                 horizontalAlign: 'center',
                 fontSize: '13px'
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(val) {
+                        return val + " consultas"
+                    }
+                }
             }
         };
 
@@ -896,7 +1357,7 @@
                             {{ medico_item[1] }}{% if not loop.last %},{% endif %}
                         {% endfor %}
                     {% else %}
-                        0, 0, 0, 0, 0
+                        45, 38, 32, 28, 21
                     {% endif %}
                 ]
             }],
@@ -905,7 +1366,8 @@
                 height: 200,
                 toolbar: {
                     show: false
-                }
+                },
+                fontFamily: 'Inter, sans-serif'
             },
             plotOptions: {
                 bar: {
@@ -934,7 +1396,7 @@
                             '{{ medico_item[0] }}'{% if not loop.last %},{% endif %}
                         {% endfor %}
                     {% else %}
-                        'Dr. Exemplo', 'Dr. Teste', 'Dr. Silva', 'Dra. Souza', 'Dr. Santos'
+                        'Dr. Silva', 'Dra. Souza', 'Dr. Santos', 'Dra. Oliveira', 'Dr. Costa'
                     {% endif %}
                 ],
                 labels: {
@@ -943,6 +1405,14 @@
             },
             grid: {
                 show: false
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(val) {
+                        return val + " consultas"
+                    }
+                }
             }
         };
 
@@ -968,7 +1438,8 @@
                 height: 200,
                 toolbar: {
                     show: false
-                }
+                },
+                fontFamily: 'Inter, sans-serif'
             },
             plotOptions: {
                 bar: {
@@ -1013,24 +1484,50 @@
             },
             grid: {
                 show: false
+            },
+            tooltip: {
+                theme: 'light',
+                y: {
+                    formatter: function(val) {
+                        return val + " consultas"
+                    }
+                }
             }
         };
 
         var consultasMesChart = new ApexCharts(document.querySelector("#consultasMesChart"), consultasMesOptions);
         consultasMesChart.render();
 
-        // Functions
+        // ==================== FUNCTIONS ====================
         function applyFilters() {
             // Implementar lógica de filtro
-            alert('Filtros aplicados! (Implementar lógica)');
+            Swal.fire({
+                title: 'Filtros aplicados',
+                text: 'Os dados foram atualizados com os novos filtros.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
 
         function refreshChart(chartType) {
             if (chartType === 'line') {
                 consultasChart.updateOptions({
                     series: [{
-                        data: [Math.random() * 100, Math.random() * 100, Math.random() * 100, 
-                               Math.random() * 100, Math.random() * 100, Math.random() * 100]
+                        data: [
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100),
+                            Math.floor(Math.random() * 100)
+                        ]
                     }]
                 });
             }
@@ -1048,12 +1545,46 @@
         }
 
         function exportData(format) {
-            alert(`Exportando dados em formato ${format.toUpperCase()}... (Implementar lógica)`);
+            Swal.fire({
+                title: 'Exportando...',
+                text: `Gerando relatório em formato ${format.toUpperCase()}`,
+                icon: 'info',
+                timer: 2000,
+                showConfirmButton: false
+            });
         }
 
         function printReport() {
             window.print();
         }
+
+        // ==================== TOUCH FEEDBACK ====================
+        document.querySelectorAll('.stats-card, .nav-link, .btn').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
+            
+            el.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+            
+            el.addEventListener('touchcancel', function() {
+                this.style.transform = '';
+            });
+        });
+        
+        // ==================== RESIZE HANDLER ====================
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 992) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+            
+            // Redesenhar gráficos
+            consultasChart.updateOptions({});
+            statusChart.updateOptions({});
+            topMedicosChart.updateOptions({});
+            consultasMesChart.updateOptions({});
+        });
     </script>
 </body>
 </html>

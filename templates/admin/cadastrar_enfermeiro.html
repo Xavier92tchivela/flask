@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastrar Enfermeiro - DoctorIA</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --sidebar-width: 280px;
+            --border-radius: 24px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+            overflow-x: hidden;
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a1c2e 0%, #2d2f42 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .logo-text span {
+            font-weight: 300;
+            color: var(--primary);
+        }
+
+        .user-info {
+            padding: 20px;
+            margin: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 4px 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .nav-link i {
+            width: 24px;
+            margin-right: 12px;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        /* ==================== MENU TOGGLE ==================== */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1100;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 70px 15px 20px;
+            }
+        }
+
+        /* ==================== TOP BAR ==================== */
+        .top-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .page-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .page-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .page-title p {
+            color: var(--gray-500);
+            font-size: 14px;
+            margin: 5px 0 0 0;
+        }
+
+        /* ==================== FORM CARD ==================== */
+        .form-card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .form-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-header-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 30px;
+            color: white;
+        }
+
+        .form-header h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 5px;
+        }
+
+        .form-header p {
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .section-title i {
+            width: 30px;
+            height: 30px;
+            background: rgba(16, 185, 129, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .form-label i {
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 10px 15px;
+            transition: var(--transition);
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            outline: none;
+        }
+
+        /* Estilo para telefone de Angola */
+        .angola-phone-input {
+            display: flex;
+            align-items: center;
+        }
+        
+        .angola-prefix {
+            background: var(--primary);
+            color: white;
+            border: 2px solid var(--primary);
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            padding: 10px 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .angola-prefix i {
+            font-size: 16px;
+        }
+        
+        .phone-field {
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+            flex: 1;
+        }
+
+        .input-group-text {
+            background: white;
+            border: 2px solid var(--gray-200);
+            border-right: none;
+            border-radius: 12px 0 0 12px;
+            color: var(--primary);
+        }
+
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 12px 12px 0;
+        }
+
+        .text-muted {
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+
+        /* Validação de senha */
+        .password-strength {
+            margin-top: 5px;
+            height: 5px;
+            border-radius: 10px;
+            background: var(--gray-200);
+            overflow: hidden;
+        }
+
+        .password-strength-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .strength-weak { background: var(--danger); }
+        .strength-medium { background: var(--warning); }
+        .strength-strong { background: var(--success); }
+
+        .password-feedback {
+            font-size: 12px;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .password-feedback.valid {
+            color: var(--success);
+        }
+
+        .password-feedback.invalid {
+            color: var(--danger);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            transition: var(--transition);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16,185,129,0.3);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
+            padding: 12px 30px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .btn-secondary:hover {
+            background: var(--gray-50);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .alert {
+            border-radius: 12px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            border: none;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
+        }
+
+        /* ==================== FOOTER ==================== */
+        .footer {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 30px;
+        }
+
+        .footer hr {
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 70px 15px 20px;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
+            .form-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Menu Toggle -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('admin.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="logo-text">
+                    Doctor<span>IA</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="user-info">
+            <div class="user-avatar">
+                {{ session.user_name[:1] if session.user_name else 'A' }}
+            </div>
+            <div>
+                <div class="user-name">{{ session.user_name if session.user_name else 'Admin' }}</div>
+                <div class="user-role">Administrador</div>
+            </div>
+        </div>
+        
+        <nav>
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin.medicos') }}" class="nav-link">
+                <i class="fas fa-user-md"></i> Médicos
+            </a>
+            <a href="{{ url_for('admin.analistas') }}" class="nav-link">
+                <i class="fas fa-microscope"></i> Analistas
+            </a>
+            <a href="{{ url_for('admin.enfermeiros') }}" class="nav-link active">
+                <i class="fas fa-user-nurse"></i> Enfermeiros
+            </a>
+            <a href="{{ url_for('admin.pacientes') }}" class="nav-link">
+                <i class="fas fa-users"></i> Pacientes
+            </a>
+            <a href="{{ url_for('admin.consultas') }}" class="nav-link">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
+            <a href="{{ url_for('admin.estatisticas') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Estatísticas
+            </a>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px;">
+            <a href="{{ url_for('admin.logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-user-nurse"></i>
+                </div>
+                <div>
+                    <h1>Cadastrar Enfermeiro</h1>
+                    <p>Adicionar um novo profissional de enfermagem ao sistema</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Form Card -->
+        <div class="form-card">
+            <div class="form-header">
+                <div class="form-header-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2>Novo Enfermeiro</h2>
+                <p>Preencha os dados do profissional</p>
+            </div>
+
+            <form method="POST" action="{{ url_for('admin.cadastrar_enfermeiro') }}" id="cadastroForm">
+                <!-- Dados Pessoais -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-user"></i> Dados Pessoais
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-user"></i> Nome Completo
+                            </label>
+                            <input type="text" class="form-control" name="nome" required 
+                                   placeholder="Digite o nome completo">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-envelope"></i> Email
+                            </label>
+                            <input type="email" class="form-control" name="email" required 
+                                   placeholder="enfermeiro@exemplo.com">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-lock"></i> Senha
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-key"></i>
+                                </span>
+                                <input type="password" class="form-control" name="senha" id="senha" required 
+                                       placeholder="Mínimo 6 caracteres" minlength="6">
+                            </div>
+                            <div class="password-strength">
+                                <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                            </div>
+                            <div class="password-feedback" id="passwordFeedback"></div>
+                            <small class="text-muted">A senha deve ter pelo menos 6 caracteres</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-lock"></i> Confirmar Senha
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-check-circle"></i>
+                                </span>
+                                <input type="password" class="form-control" name="confirmar_senha" id="confirmarSenha" required 
+                                       placeholder="Confirme a senha">
+                            </div>
+                            <div class="password-feedback" id="confirmPasswordFeedback"></div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-phone"></i> Telefone (Angola)
+                            </label>
+                            <div class="angola-phone-input">
+                                <div class="angola-prefix">
+                                    <i class="fas fa-flag"></i> +244
+                                </div>
+                                <input type="text" class="form-control phone-field" name="telefone" id="telefone"
+                                       placeholder="923 456 789">
+                            </div>
+                            <small class="text-muted">Formato: 923 456 789 (9 dígitos)</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dados Profissionais -->
+                <div class="form-section">
+                    <div class="section-title">
+                        <i class="fas fa-briefcase"></i> Dados Profissionais
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-id-card"></i> COREN
+                            </label>
+                            <input type="text" class="form-control" name="coren" id="coren" required 
+                                   placeholder="Ex: 123456-EN" style="text-transform: uppercase;">
+                            <small class="text-muted">Número do registro no conselho</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-stethoscope"></i> Especialidade
+                            </label>
+                            <input type="text" class="form-control" name="especialidade" 
+                                   placeholder="Ex: Enfermagem Geral, UTI, etc.">
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <!-- Botões -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <button type="submit" class="btn-primary" id="submitBtn">
+                            <i class="fas fa-save"></i> Cadastrar Enfermeiro
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <a href="{{ url_for('admin.enfermeiros') }}" class="btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <hr>
+            <p>
+                <i class="fas fa-heart" style="color: #ef4444;"></i> 
+                DoctorIA - Sistema de Gestão Médica
+                <br>
+                <span>© 2024 - Painel Administrativo</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Toggle Sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Fechar sidebar ao clicar fora
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Auto-uppercase para COREN
+        document.getElementById('coren').addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+
+        // Máscara para telefone de Angola (9 dígitos)
+        document.getElementById('telefone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            // Limitar a 9 dígitos (números angolanos têm 9 dígitos)
+            if (value.length > 9) value = value.slice(0, 9);
+            
+            // Aplicar máscara: 923 456 789
+            if (value.length > 6) {
+                value = value.replace(/^(\d{3})(\d{3})(\d{1,3})/, '$1 $2 $3');
+            } else if (value.length > 3) {
+                value = value.replace(/^(\d{3})(\d{1,3})/, '$1 $2');
+            }
+            
+            e.target.value = value;
+        });
+
+        // Validação de força da senha
+        const senha = document.getElementById('senha');
+        const confirmar = document.getElementById('confirmarSenha');
+        const strengthBar = document.getElementById('passwordStrengthBar');
+        const passwordFeedback = document.getElementById('passwordFeedback');
+        const confirmFeedback = document.getElementById('confirmPasswordFeedback');
+
+        function checkPasswordStrength(password) {
+            let strength = 0;
+            
+            // Comprimento
+            if (password.length >= 6) strength += 1;
+            if (password.length >= 8) strength += 1;
+            
+            // Letras maiúsculas e minúsculas
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 1;
+            
+            // Números
+            if (/\d/.test(password)) strength += 1;
+            
+            // Caracteres especiais
+            if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength += 1;
+            
+            return Math.min(strength, 5);
+        }
+
+        function updatePasswordStrength() {
+            const password = senha.value;
+            const strength = checkPasswordStrength(password);
+            
+            // Atualizar barra de força
+            const percentage = (strength / 5) * 100;
+            strengthBar.style.width = percentage + '%';
+            
+            // Atualizar cor e texto
+            if (password.length === 0) {
+                strengthBar.style.backgroundColor = '';
+                passwordFeedback.innerHTML = '';
+                passwordFeedback.className = 'password-feedback';
+            } else if (strength <= 2) {
+                strengthBar.style.backgroundColor = '#ef4444';
+                passwordFeedback.innerHTML = '<i class="fas fa-exclamation-circle"></i> Senha fraca';
+                passwordFeedback.className = 'password-feedback invalid';
+            } else if (strength <= 4) {
+                strengthBar.style.backgroundColor = '#f59e0b';
+                passwordFeedback.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Senha média';
+                passwordFeedback.className = 'password-feedback';
+            } else {
+                strengthBar.style.backgroundColor = '#10b981';
+                passwordFeedback.innerHTML = '<i class="fas fa-check-circle"></i> Senha forte';
+                passwordFeedback.className = 'password-feedback valid';
+            }
+            
+            checkPasswordMatch();
+        }
+
+        function checkPasswordMatch() {
+            if (confirmar.value.length === 0) {
+                confirmFeedback.innerHTML = '';
+                confirmFeedback.className = 'password-feedback';
+            } else if (senha.value === confirmar.value) {
+                confirmFeedback.innerHTML = '<i class="fas fa-check-circle"></i> Senhas coincidem';
+                confirmFeedback.className = 'password-feedback valid';
+            } else {
+                confirmFeedback.innerHTML = '<i class="fas fa-exclamation-circle"></i> Senhas não coincidem';
+                confirmFeedback.className = 'password-feedback invalid';
+            }
+        }
+
+        senha.addEventListener('input', updatePasswordStrength);
+        confirmar.addEventListener('input', checkPasswordMatch);
+
+        // Validação do formulário
+        document.getElementById('cadastroForm').addEventListener('submit', function(e) {
+            const senhaValue = senha.value;
+            const confirmarValue = confirmar.value;
+            const corenValue = document.getElementById('coren').value;
+            const nomeValue = document.querySelector('input[name="nome"]').value;
+            const emailValue = document.querySelector('input[name="email"]').value;
+            const telefoneValue = document.getElementById('telefone').value.replace(/\D/g, '');
+            
+            // Validar nome
+            if (!nomeValue) {
+                e.preventDefault();
+                alert('Por favor, preencha o nome do enfermeiro!');
+                return false;
+            }
+            
+            // Validar email
+            if (!emailValue.includes('@') || !emailValue.includes('.')) {
+                e.preventDefault();
+                alert('Por favor, insira um email válido!');
+                return false;
+            }
+            
+            // Validar senha
+            if (senhaValue.length < 6) {
+                e.preventDefault();
+                alert('A senha deve ter pelo menos 6 caracteres!');
+                senha.focus();
+                return false;
+            }
+            
+            // Validar confirmação de senha
+            if (senhaValue !== confirmarValue) {
+                e.preventDefault();
+                alert('As senhas não coincidem!');
+                confirmar.focus();
+                return false;
+            }
+            
+            // Validar COREN
+            if (!corenValue) {
+                e.preventDefault();
+                alert('O COREN é obrigatório!');
+                document.getElementById('coren').focus();
+                return false;
+            }
+            
+            // Validar telefone de Angola (9 dígitos)
+            if (telefoneValue.length > 0 && telefoneValue.length !== 9) {
+                e.preventDefault();
+                alert('O telefone de Angola deve ter 9 dígitos!');
+                document.getElementById('telefone').focus();
+                return false;
+            }
+            
+            return true;
+        });
+
+        // Desabilitar botão de submit após envio
+        document.getElementById('cadastroForm').addEventListener('submit', function() {
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

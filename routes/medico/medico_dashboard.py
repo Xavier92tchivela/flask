@@ -1,142 +1,212 @@
-# routes/medico/dashboard.py
-from flask import render_template, session, flash, redirect, url_for
-from datetime import datetime
-import logging, traceback
+# routes/medico/medico_dashboard.py
+from datetime import datetime, timedelta
+from flask import render_template, session, jsonify
+import logging
+import traceback
 
 logger = logging.getLogger(__name__)
 
 def init_medico_dashboard(base):
-    """Inicializa rotas de dashboard do médico"""
+    """
+    Inicializa rotas do dashboard do médico
+    
+    Args:
+        base: Dicionário com funções base
+    
+    Returns:
+        Dicionário com as rotas do módulo
+    """
     
     medico_required = base['medico_required']
     obter_info_medico = base['obter_info_medico']
     execute_query = base['execute_query']
     formatar_data = base['formatar_data']
     
-    # ========== ROTA: DASHBOARD ==========
+    # ===== FUNÇÃO AUXILIAR PARA CONVERTER BYTES =====
+    def converter_bytes_para_string(valor):
+        """Converte bytes para string se necessário"""
+        if valor is None:
+            return ''
+        if isinstance(valor, bytes):
+            try:
+                return valor.decode('utf-8', errors='ignore')
+            except:
+                return str(valor)
+        return str(valor) if valor else ''
+    
+    @medico_required
     def dashboard():
+        """Dashboard principal do médico"""
         try:
+            print("\n" + "="*60)
+            print("CARREGANDO DASHBOARD DO MEDICO")
+            print("="*60)
+            
+            # Obter informações do médico
             medico_info = obter_info_medico()
             if not medico_info:
-                flash('Informações do médico não encontradas.', 'danger')
-                return redirect(url_for('auth.login'))
+                print("ERRO: Medico nao encontrado")
+                return render_template('medico/dashboard.html', 
+                                     error="Médico não encontrado",
+                                     consultas=[],
+                                     consultasHoje=0,
+                                     contadorResultados=0,
+                                     contadorAnalises=0,
+                                     contadorPedidos=0,
+                                     user=session)
             
             medico_id = medico_info.get('id')
+            print(f"Medico ID: {medico_id}")
+            print(f"Medico Nome: {medico_info.get('nome')}")
             
-            # Estatísticas básicas
-            contadores = {
-                'total_pedidos': 0, 'pedidos_pendentes': 0, 'pedidos_em_analise': 0,
-                'pedidos_concluidos': 0, 'resultados_pendentes': 0, 'consultas_hoje': 0,
-                'total_receitas': 0
-            }
+            # ===== 1. BUSCAR CONSULTAS PARA O DASHBOARD =====
+            print("\n[1] Buscando consultas do medico...")
             
-            if medico_id and medico_id > 0:
-                # Total de pedidos
-                result = execute_query("""
-                    SELECT COUNT(*) FROM pedidos_analise WHERE medico_id = %s
-                """, (medico_id,), fetch=True, one=True)
-                if result:
-                    contadores['total_pedidos'] = result[0]
-                
-                # Pedidos por status
-                status_counts = execute_query("""
-                    SELECT status, COUNT(*) FROM pedidos_analise 
-                    WHERE medico_id = %s GROUP BY status
-                """, (medico_id,), fetch=True)
-                
-                if status_counts:
-                    for s, c in status_counts:
-                        if s == 'pendente':
-                            contadores['pedidos_pendentes'] = c
-                        elif s == 'em_analise':
-                            contadores['pedidos_em_analise'] = c
-                        elif s == 'concluido':
-                            contadores['pedidos_concluidos'] = c
-                
-                # Resultados pendentes
-                resultados = execute_query("""
-                    SELECT COUNT(*) FROM pedidos_analise 
-                    WHERE medico_id = %s AND status = 'concluido' 
-                    AND status_aprovacao = 'pendente'
-                """, (medico_id,), fetch=True, one=True)
-                if resultados:
-                    contadores['resultados_pendentes'] = resultados[0]
-                
-                # Consultas hoje
-                hoje = datetime.now().strftime('%Y-%m-%d')
-                consultas = execute_query("""
-                    SELECT COUNT(*) FROM consultas 
-                    WHERE medico_id = %s AND DATE(data_hora) = %s
-                """, (medico_id, hoje), fetch=True, one=True)
-                if consultas:
-                    contadores['consultas_hoje'] = consultas[0]
-                
-                # Receitas
-                receitas = execute_query("""
-                    SELECT COUNT(*) FROM receita r
-                    JOIN consultas c ON r.consulta_id = c.id
-                    WHERE c.medico_id = %s
-                """, (medico_id,), fetch=True, one=True)
-                if receitas:
-                    contadores['total_receitas'] = receitas[0]
+            # Verificar total de consultas
+            total_consultas_db = execute_query("""
+                SELECT COUNT(*) FROM consultas WHERE medico_id = %s
+            """, (medico_id,), fetch=True, one=True)
             
-            # Consultas recentes
-            consultas_recentes = []
-            meses_contagem = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0}
+            print(f"Total de consultas no banco: {total_consultas_db[0] if total_consultas_db else 0}")
             
-            if medico_id and medico_id > 0:
-                consultas = execute_query("""
-                    SELECT c.id, c.data_hora, c.status, u.nome,
-                           MONTH(c.data_hora) as mes
-                    FROM consultas c
-                    JOIN pacientes p ON c.paciente_id = p.id
-                    JOIN usuarios u ON p.usuario_id = u.id
-                    WHERE c.medico_id = %s
-                    ORDER BY c.data_hora DESC LIMIT 10
-                """, (medico_id,), fetch=True)
+            # Buscar as 10 consultas mais recentes
+            consultas_raw = execute_query("""
+                SELECT 
+                    c.id,
+                    u.nome as paciente_nome,
+                    c.data_hora,
+                    c.status
+                FROM consultas c
+                JOIN pacientes p ON c.paciente_id = p.id
+                JOIN usuarios u ON p.usuario_id = u.id
+                WHERE c.medico_id = %s
+                ORDER BY c.data_hora DESC
+                LIMIT 10
+            """, (medico_id,), fetch=True) or []
+            
+            print(f"Consultas encontradas: {len(consultas_raw)}")
+            
+            if consultas_raw:
+                # Mostrar primeira consulta como exemplo
+                nome_paciente = converter_bytes_para_string(consultas_raw[0][1])
+                print(f"Primeira consulta: {nome_paciente} - {consultas_raw[0][2]} - {consultas_raw[0][3]}")
+            else:
+                print("Nenhuma consulta encontrada!")
                 
-                if consultas:
-                    for c in consultas:
-                        # Contar por mês
-                        if len(c) > 4 and c[4]:  # mes
-                            try:
-                                mes = int(c[4])
-                                if mes in meses_contagem:
-                                    meses_contagem[mes] += 1
-                            except:
-                                pass
-                        
-                        consultas_recentes.append({
-                            'id': c[0],
-                            'data_hora': formatar_data(c[1]),
-                            'status': c[2],
-                            'paciente_nome': c[3],
-                            'tem_analise_pendente': False,  # Você pode implementar lógica real
-                            'tem_resultado': False  # Você pode implementar lógica real
-                        })
+                # Debug: verificar se o médico existe
+                medico_check = execute_query("SELECT id FROM medicos WHERE id = %s", (medico_id,), fetch=True, one=True)
+                print(f"Medico existe? {medico_check}")
+                
+                # Verificar consultas de outros médicos
+                outras = execute_query("SELECT COUNT(*) FROM consultas", fetch=True, one=True)
+                print(f"Total no sistema: {outras[0] if outras else 0}")
+            
+            # Processar consultas
+            consultas = []
+            for c in consultas_raw:
+                paciente_nome = converter_bytes_para_string(c[1])
+                
+                # Formatar data
+                if c[2]:
+                    if isinstance(c[2], datetime):
+                        data_consulta = c[2].strftime('%d/%m/%Y')
+                        hora_consulta = c[2].strftime('%H:%M')
+                    else:
+                        data_consulta = str(c[2])[:10]
+                        hora_consulta = str(c[2])[11:16] if len(str(c[2])) > 16 else ''
+                else:
+                    data_consulta = ''
+                    hora_consulta = ''
+                
+                status_class = {
+                    'agendada': 'primary',
+                    'confirmada': 'info',
+                    'realizada': 'success',
+                    'cancelada': 'danger',
+                    'pendente': 'warning'
+                }.get(c[3], 'secondary')
+                
+                consultas.append({
+                    'id': c[0],
+                    'paciente_nome': paciente_nome,
+                    'data_consulta': data_consulta,
+                    'hora_consulta': hora_consulta,
+                    'status': c[3] or 'desconhecido',
+                    'status_class': status_class,
+                    'tem_analise_pendente': False,
+                    'tem_resultado': False
+                })
+            
+            print(f"Consultas processadas: {len(consultas)}")
+            
+            # ===== 2. BUSCAR CONTAGENS =====
+            print("\n[2] Buscando contagens...")
+            
+            hoje = datetime.now().strftime('%Y-%m-%d')
+            consultas_hoje = execute_query("""
+                SELECT COUNT(*) FROM consultas 
+                WHERE medico_id = %s AND DATE(data_hora) = %s
+            """, (medico_id, hoje), fetch=True, one=True)
+            
+            resultados_pendentes = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE medico_id = %s AND status = 'concluido' 
+                AND status_aprovacao = 'pendente'
+            """, (medico_id,), fetch=True, one=True)
+            
+            analises_solicitadas = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE medico_id = %s AND status IN ('pendente', 'em_analise')
+            """, (medico_id,), fetch=True, one=True)
+            
+            total_pedidos = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE medico_id = %s
+            """, (medico_id,), fetch=True, one=True)
+            
+            consultas_hoje_val = consultas_hoje[0] if consultas_hoje else 0
+            resultados_pendentes_val = resultados_pendentes[0] if resultados_pendentes else 0
+            analises_solicitadas_val = analises_solicitadas[0] if analises_solicitadas else 0
+            total_pedidos_val = total_pedidos[0] if total_pedidos else 0
+            
+            print(f"Consultas hoje: {consultas_hoje_val}")
+            print(f"Resultados pendentes: {resultados_pendentes_val}")
+            print(f"Analises solicitadas: {analises_solicitadas_val}")
+            print(f"Total pedidos: {total_pedidos_val}")
+            
+            # ===== 3. RENDERIZAR =====
+            print("\n[3] Renderizando template...")
+            print(f"Consultas para exibir: {len(consultas)}")
+            print("="*60 + "\n")
             
             return render_template('medico/dashboard.html',
-                                 consultas_recentes=consultas_recentes,
-                                 consultas=consultas_recentes,  # 👈 Adicionado para compatibilidade
-                                 contadores=contadores,
-                                 meses_contagem=meses_contagem,  # 👈 ADICIONADO!
-                                 user=session,
-                                 medico=medico_info)
+                                 consultas=consultas,
+                                 consultasHoje=consultas_hoje_val,
+                                 contadorResultados=resultados_pendentes_val,
+                                 contadorAnalises=analises_solicitadas_val,
+                                 contadorPedidos=total_pedidos_val,
+                                 user=session)
             
         except Exception as e:
-            logger.error(f"Erro no dashboard: {e}")
-            logger.error(traceback.format_exc())
-            flash('Erro ao carregar dashboard.', 'danger')
+            print("\nERRO NO DASHBOARD:")
+            print(f"Tipo: {type(e).__name__}")
+            print(f"Erro: {e}")
+            traceback.print_exc()
+            
             return render_template('medico/dashboard.html',
-                                 consultas_recentes=[],
-                                 consultas=[],  # 👈 Adicionado
-                                 contadores={},
-                                 meses_contagem={1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0},  # 👈 ADICIONADO
-                                 user=session,
-                                 medico={'nome': 'Erro'})
+                                 error=str(e),
+                                 consultas=[],
+                                 consultasHoje=0,
+                                 contadorResultados=0,
+                                 contadorAnalises=0,
+                                 contadorPedidos=0,
+                                 user=session)
     
     return {
         'routes': [
             {'rule': '/dashboard', 'view_func': dashboard, 'methods': ['GET']}
         ]
     }
+
+# Exportar a função
+__all__ = ['init_medico_dashboard']

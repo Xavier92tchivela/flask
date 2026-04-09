@@ -1,0 +1,338 @@
+<!-- templates/medico/ver_pedido.html -->
+{% extends "base.html" %}
+
+{% block title %}Detalhes do Pedido{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-3">
+    <!-- Cabeçalho com botão voltar -->
+    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 mb-md-4">
+        <div class="d-flex align-items-center">
+            <a href="{{ url_for('pedido_analise.meus_pedidos') }}" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h2 class="h5 h4-md mb-0">
+                <i class="fas fa-file-medical me-2"></i> Detalhes do Pedido
+            </h2>
+        </div>
+        <div class="mt-2 mt-sm-0">
+            <span class="badge bg-{{ 'success' if pedido.status == 'concluido' else 'danger' if pedido.status == 'cancelado' else 'info' if pedido.status == 'em_analise' else 'warning' }} p-2">
+                {{ pedido.status|title }}
+            </span>
+        </div>
+    </div>
+
+    <!-- Mensagens Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Informações do Pedido -->
+    <div class="row g-3">
+        <!-- Coluna Principal -->
+        <div class="col-12 col-lg-8">
+            <!-- Card de Informações Básicas -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Informações do Pedido</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Tipo de Exame</label>
+                            <p class="fw-bold mb-0">{{ pedido.tipo_exame }}</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Data da Solicitação</label>
+                            <p class="fw-bold mb-0">{{ pedido.data_solicitacao }}</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Urgência</label>
+                            <p class="mb-0">
+                                <span class="badge bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' if pedido.urgencia == 'alta' else 'secondary' if pedido.urgencia == 'baixa' else 'info' }}">
+                                    {{ pedido.urgencia|title }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Data de Conclusão</label>
+                            <p class="fw-bold mb-0">{{ pedido.data_conclusao or 'Pendente' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card do Paciente -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-user me-2"></i>Dados do Paciente</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Nome</label>
+                            <p class="fw-bold mb-0">{{ pedido.paciente_nome }}</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Data de Nascimento</label>
+                            <p class="fw-bold mb-0">{{ pedido.paciente_data_nascimento or 'Não informado' }}</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Sexo</label>
+                            <p class="fw-bold mb-0">{{ pedido.paciente_sexo or 'Não informado' }}</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Contato</label>
+                            <p class="fw-bold mb-0">{{ pedido.paciente_contato or 'Não informado' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card do Médico/Responsável -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-user-md me-2"></i>Médico Responsável</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">Nome</label>
+                            <p class="fw-bold mb-0">{{ pedido.medico_nome or 'Não informado' }}</p>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="text-muted small mb-1">CRM</label>
+                            <p class="fw-bold mb-0">{{ pedido.medico_crm or 'Não informado' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card da Amostra -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-flask me-2"></i>Informações da Amostra</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-4">
+                            <label class="text-muted small mb-1">Tipo de Amostra</label>
+                            <p class="fw-bold mb-0">{{ pedido.tipo_amostra or 'Não informado' }}</p>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="text-muted small mb-1">Data da Coleta</label>
+                            <p class="fw-bold mb-0">{{ pedido.data_coleta or 'Não informada' }}</p>
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label class="text-muted small mb-1">Responsável pela Coleta</label>
+                            <p class="fw-bold mb-0">{{ pedido.responsavel_coleta or 'Não informado' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Observações -->
+            {% if pedido.observacoes %}
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-comment me-2"></i>Observações</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">{{ pedido.observacoes }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Coluna Lateral -->
+        <div class="col-12 col-lg-4">
+            <!-- Card do Analista -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-microscope me-2"></i>Analista Responsável</h6>
+                </div>
+                <div class="card-body">
+                    {% if pedido.analista_nome %}
+                        <p class="fw-bold mb-1">{{ pedido.analista_nome }}</p>
+                        <p class="text-muted small mb-0">{{ pedido.analista_email or '' }}</p>
+                    {% else %}
+                        <p class="text-muted mb-0">Aguardando atribuição</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Timeline/Histórico -->
+            <div class="card shadow mb-3">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Histórico do Pedido</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item py-2">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <p class="small mb-0 fw-bold">Pedido criado</p>
+                                    <small class="text-muted">{{ pedido.data_solicitacao }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% if pedido.data_atribuicao %}
+                        <div class="list-group-item py-2">
+                            <div class="d-flex">
+                                <div class="me-2 text-info">
+                                    <i class="fas fa-user-check"></i>
+                                </div>
+                                <div>
+                                    <p class="small mb-0 fw-bold">Atribuído ao analista</p>
+                                    <small class="text-muted">{{ pedido.data_atribuicao }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if pedido.data_conclusao %}
+                        <div class="list-group-item py-2">
+                            <div class="d-flex">
+                                <div class="me-2 text-success">
+                                    <i class="fas fa-check-double"></i>
+                                </div>
+                                <div>
+                                    <p class="small mb-0 fw-bold">Pedido concluído</p>
+                                    <small class="text-muted">{{ pedido.data_conclusao }}</small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="card shadow">
+                <div class="card-header bg-white py-2 py-md-3">
+                    <h6 class="mb-0"><i class="fas fa-cog me-2"></i>Ações</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if pedido.status in ['pendente', 'em_analise'] %}
+                            <button class="btn btn-warning btn-sm" onclick="editarPedido({{ pedido.id }})">
+                                <i class="fas fa-edit me-2"></i> Editar Pedido
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="cancelarPedido({{ pedido.id }})">
+                                <i class="fas fa-times me-2"></i> Cancelar Pedido
+                            </button>
+                        {% endif %}
+                        
+                        {% if pedido.arquivos %}
+                            <button class="btn btn-outline-primary btn-sm" onclick="baixarArquivos({{ pedido.id }})">
+                                <i class="fas fa-download me-2"></i> Baixar Arquivos
+                            </button>
+                        {% endif %}
+                        
+                        <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i> Imprimir/Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulário para ações -->
+<form id="formAcao" method="POST" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+</form>
+
+<style>
+/* Ajustes responsivos */
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0.5rem !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.4rem 0.6rem;
+    }
+    
+    label {
+        font-size: 0.75rem;
+        margin-bottom: 0.2rem;
+    }
+    
+    p {
+        font-size: 0.9rem;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem;
+        font-size: 0.85rem;
+    }
+}
+
+/* Timeline */
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+/* Impressão */
+@media print {
+    .btn, .no-print {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #dee2e6;
+    }
+}
+</style>
+
+<script>
+function cancelarPedido(pedidoId) {
+    if (confirm('Tem certeza que deseja cancelar este pedido?')) {
+        const form = document.getElementById('formAcao');
+        form.action = `/pedido-analise/cancelar/${pedidoId}`;
+        form.submit();
+    }
+}
+
+function editarPedido(pedidoId) {
+    window.location.href = `/pedido-analise/editar/${pedidoId}`;
+}
+
+function baixarArquivos(pedidoId) {
+    window.location.href = `/pedido-analise/download/${pedidoId}`;
+}
+
+// Atualizar página automaticamente se necessário (para pedidos em andamento)
+{% if pedido.status == 'em_analise' %}
+setTimeout(function() {
+    location.reload();
+}, 30000); // Recarrega a cada 30 segundos
+{% endif %}
+</script>
+{% endblock %}

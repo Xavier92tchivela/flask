@@ -1,0 +1,498 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Detalhes da Aferição - Enfermeiro{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-3">
+    <!-- Breadcrumb Responsivo -->
+    <div class="row mb-3 mb-md-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small flex-nowrap overflow-auto pb-1" style="white-space: nowrap;">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="text-decoration-none">
+                            <i class="fas fa-home me-1"></i>
+                            <span class="d-none d-sm-inline">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" class="text-decoration-none">
+                            <i class="fas fa-heartbeat me-1"></i>
+                            <span class="d-none d-sm-inline">Sinais</span>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active text-truncate" aria-current="page">
+                        Aferição #{{ vital.id }}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Cabeçalho com Ações Mobile -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h4 class="mb-0">
+                    <i class="fas fa-heartbeat text-primary me-2"></i>
+                    <span class="d-none d-sm-inline">Detalhes da Aferição</span>
+                    <span class="d-sm-none">Aferição #{{ vital.id }}</span>
+                </h4>
+                <div class="btn-group" role="group">
+                    <a href="{{ url_for('enfermeiro.sinais_vitais.editar_sinais_vitais', vital_id=vital.id) }}" 
+                       class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i>
+                        <span class="d-none d-md-inline ms-1">Editar</span>
+                    </a>
+                    <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
+                       class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i>
+                        <span class="d-none d-md-inline ms-1">Voltar</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Paciente e Consulta - Cards Responsivos -->
+    <div class="row g-2 g-md-3 mb-4">
+        <!-- Card do Paciente -->
+        <div class="col-12 col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white py-2">
+                    <i class="fas fa-user me-2"></i>
+                    <span class="small fw-bold">PACIENTE</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center">
+                        <!-- Avatar - tamanho responsivo -->
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2 me-md-3 flex-shrink-0"
+                             style="width: 50px; height: 50px; font-size: 1.5rem;">
+                            {{ vital.paciente_nome[0] }}
+                        </div>
+                        <div class="min-width-0 flex-grow-1">
+                            <h5 class="mb-1 text-truncate">{{ vital.paciente_nome }}</h5>
+                            <p class="text-muted small mb-1">
+                                <i class="fas fa-id-card me-1"></i> ID: {{ vital.paciente_id }}
+                            </p>
+                            <div class="d-flex flex-wrap gap-2 small">
+                                {% if vital.data_nascimento %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-birthday-cake me-1"></i>
+                                    {{ vital.data_nascimento.strftime('%d/%m/%Y') }}
+                                    ({{ vital.idade }} anos)
+                                </span>
+                                {% endif %}
+                                {% if vital.genero %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-venus-mars me-1"></i>
+                                    {{ vital.genero|capitalize }}
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card da Consulta -->
+        <div class="col-12 col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-secondary text-white py-2">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    <span class="small fw-bold">CONSULTA</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2 small">
+                        <div class="col-6">
+                            <span class="text-muted">Data:</span><br>
+                            <span class="fw-bold">{{ vital.data_consulta.strftime('%d/%m/%Y') if vital.data_consulta else '--/--/----' }}</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Hora:</span><br>
+                            <span class="fw-bold">{{ vital.data_consulta.strftime('%H:%M') if vital.data_consulta else '--:--' }}</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">ID Consulta:</span><br>
+                            <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=vital.consulta_id) }}" 
+                               class="text-decoration-none fw-bold">
+                                #{{ vital.consulta_id }}
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Aferição:</span><br>
+                            <span class="fw-bold">{{ vital.data_afericao.strftime('%d/%m %H:%M') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sinais Vitais - Grid Responsivo (2 colunas no mobile, 4 no desktop) -->
+    <h5 class="mb-2 mb-md-3">
+        <i class="fas fa-heartbeat text-danger me-2"></i>
+        Sinais Vitais
+    </h5>
+    
+    <div class="row g-2 g-md-3 mb-4">
+        <!-- Pressão Arterial -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">Pressão Arterial</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.pressao_arterial }}</h3>
+                    <small class="text-muted">mmHg</small>
+                    {% if classificar_pressao %}
+                        {% set classificacao = classificar_pressao(vital.pressao_arterial) %}
+                        {% if classificacao %}
+                            <div class="mt-2">
+                                <span class="badge bg-{{ classificacao.class }} w-100 py-1">
+                                    {{ classificacao.text }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FC -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">FC</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.frequencia_cardiaca or '-' }}</h3>
+                    <small class="text-muted">bpm</small>
+                    {% if vital.frequencia_cardiaca %}
+                        <div class="mt-2">
+                            <span class="badge {% if vital.frequencia_cardiaca < 60 or vital.frequencia_cardiaca > 100 %}bg-warning{% else %}bg-success{% endif %} w-100 py-1">
+                                {% if vital.frequencia_cardiaca < 60 %}Bradicardia
+                                {% elif vital.frequencia_cardiaca > 100 %}Taquicardia
+                                {% else %}Normal{% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- FR -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">FR</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.frequencia_respiratoria or '-' }}</h3>
+                    <small class="text-muted">mpm</small>
+                    {% if vital.frequencia_respiratoria %}
+                        <div class="mt-2">
+                            <span class="badge {% if vital.frequencia_respiratoria < 12 or vital.frequencia_respiratoria > 20 %}bg-warning{% else %}bg-success{% endif %} w-100 py-1">
+                                {% if vital.frequencia_respiratoria < 12 %}Bradipneia
+                                {% elif vital.frequencia_respiratoria > 20 %}Taquipneia
+                                {% else %}Normal{% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Temperatura -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">Temperatura</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.temperatura or '-' }}</h3>
+                    <small class="text-muted">°C</small>
+                    {% if vital.temperatura %}
+                        <div class="mt-2">
+                            <span class="badge {% if vital.temperatura < 36 or vital.temperatura > 37.5 %}bg-warning{% else %}bg-success{% endif %} w-100 py-1">
+                                {% if vital.temperatura < 36 %}Hipotermia
+                                {% elif vital.temperatura > 37.5 %}Febre
+                                {% else %}Normal{% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sat O2 -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">Sat O2</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.saturacao_oxigenio or '-' }}</h3>
+                    <small class="text-muted">%</small>
+                    {% if vital.saturacao_oxigenio %}
+                        <div class="mt-2">
+                            <span class="badge {% if vital.saturacao_oxigenio < 95 %}bg-warning{% else %}bg-success{% endif %} w-100 py-1">
+                                {% if vital.saturacao_oxigenio < 90 %}Crítico
+                                {% elif vital.saturacao_oxigenio < 95 %}Baixo
+                                {% else %}Normal{% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Glicemia -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">Glicemia</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.glicemia or '-' }}</h3>
+                    <small class="text-muted">mg/dL</small>
+                    {% if vital.glicemia %}
+                        <div class="mt-2">
+                            <span class="badge {% if vital.glicemia < 70 or vital.glicemia > 140 %}bg-warning{% else %}bg-success{% endif %} w-100 py-1">
+                                {% if vital.glicemia < 70 %}Hipoglicemia
+                                {% elif vital.glicemia > 140 %}Hiperglicemia
+                                {% else %}Normal{% endif %}
+                            </span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Peso -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">Peso</div>
+                    <h3 class="mb-1 fw-bold">{{ vital.peso or '-' }}</h3>
+                    <small class="text-muted">kg</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Aferição -->
+        <div class="col-6 col-md-3">
+            <div class="card h-100 text-center shadow-sm border-0 bg-light">
+                <div class="card-body p-2 p-md-3">
+                    <div class="small text-muted mb-1">Aferição</div>
+                    <h5 class="mb-0 fw-bold">{{ vital.data_afericao.strftime('%d/%m') }}</h5>
+                    <h6 class="text-primary">{{ vital.data_afericao.strftime('%H:%M') }}</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Observações -->
+    {% if vital.observacoes %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light py-2">
+                    <i class="fas fa-notes-medical me-2 text-secondary"></i>
+                    <span class="fw-bold small">OBSERVAÇÕES</span>
+                </div>
+                <div class="card-body p-3">
+                    <p class="mb-0 small">{{ vital.observacoes }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ações e Informações - Layout Responsivo -->
+    <div class="row g-3">
+        <!-- Resumo da Aferição -->
+        <div class="col-12 col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-success text-white py-2">
+                    <i class="fas fa-clipboard-check me-2"></i>
+                    <span class="small fw-bold">RESUMO</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2 small">
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">Pressão:</span>
+                            <span class="fw-bold">{{ vital.pressao_arterial }}</span>
+                        </div>
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">FC:</span>
+                            <span class="fw-bold">{{ vital.frequencia_cardiaca or '-' }} bpm</span>
+                        </div>
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">FR:</span>
+                            <span class="fw-bold">{{ vital.frequencia_respiratoria or '-' }} mpm</span>
+                        </div>
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">Temp:</span>
+                            <span class="fw-bold">{{ vital.temperatura or '-' }} °C</span>
+                        </div>
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">Sat O2:</span>
+                            <span class="fw-bold">{{ vital.saturacao_oxigenio or '-' }}%</span>
+                        </div>
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">Glicemia:</span>
+                            <span class="fw-bold">{{ vital.glicemia or '-' }} mg/dL</span>
+                        </div>
+                        <div class="col-6 d-flex justify-content-between">
+                            <span class="text-muted">Peso:</span>
+                            <span class="fw-bold">{{ vital.peso or '-' }} kg</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Valores de Referência (visível apenas em desktop) -->
+        <div class="col-md-6 d-none d-md-block">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-info text-white py-2">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span class="small fw-bold">VALORES DE REFERÊNCIA</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2 small">
+                        <div class="col-6">
+                            <span class="text-muted">Pressão:</span>
+                            <span class="ms-2">&lt; 120x80</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">FC:</span>
+                            <span class="ms-2">60-100 bpm</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">FR:</span>
+                            <span class="ms-2">12-20 mpm</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Temp:</span>
+                            <span class="ms-2">36-37.5 °C</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Sat O2:</span>
+                            <span class="ms-2">≥ 95%</span>
+                        </div>
+                        <div class="col-6">
+                            <span class="text-muted">Glicemia:</span>
+                            <span class="ms-2">70-140 mg/dL</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botões de Ação Mobile (fixo no final) -->
+    <div class="row mt-4 d-md-none">
+        <div class="col-12">
+            <div class="d-grid gap-2">
+                <a href="{{ url_for('enfermeiro.sinais_vitais.editar_sinais_vitais', vital_id=vital.id) }}" class="btn btn-warning">
+                    <i class="fas fa-edit me-2"></i>
+                    Editar Registro
+                </a>
+                <button type="button" class="btn btn-outline-danger" onclick="confirmarExclusao({{ vital.id }})">
+                    <i class="fas fa-trash me-2"></i>
+                    Excluir Registro
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Estilos Mobile First */
+    .breadcrumb {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .breadcrumb::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .avatar {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .min-width-0 {
+        min-width: 0;
+    }
+    
+    /* Cards com altura automática */
+    .card {
+        border-radius: 12px;
+    }
+    
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+    }
+    
+    /* Badges com tamanho adequado para toque */
+    .badge {
+        padding: 0.5em 0.8em;
+        font-size: 0.75rem;
+    }
+    
+    /* Botões com área de toque maior */
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+    }
+    
+    /* Media Queries para tablets */
+    @media (min-width: 768px) {
+        .breadcrumb {
+            flex-wrap: wrap;
+            white-space: normal !important;
+        }
+        
+        .badge {
+            font-size: 0.85rem;
+        }
+        
+        h3 {
+            font-size: 2rem;
+        }
+    }
+    
+    /* Media Queries para desktop */
+    @media (min-width: 992px) {
+        .card {
+            border-radius: 10px;
+        }
+        
+        .avatar {
+            width: 60px !important;
+            height: 60px !important;
+            font-size: 1.8rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function confirmarExclusao(vitalId) {
+        Swal.fire({
+            title: 'Excluir registro?',
+            text: 'Esta ação não pode ser desfeita.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar',
+            // Mobile friendly
+            buttonsStyling: true,
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('enfermeiro.sinais_vitais.excluir_sinais_vitais', vital_id=0) }}".replace('0', vitalId);
+            }
+        });
+    }
+
+    // Detectar se é dispositivo mobile para ajustes
+    if (window.innerWidth < 768) {
+        document.body.classList.add('mobile-view');
+    }
+</script>
+{% endblock %}

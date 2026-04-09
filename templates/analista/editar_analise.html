@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Análise - Pedido #{{ pedido.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4">
+        <div>
+            <h2 class="h4 h3-md mb-0">
+                <i class="fas fa-edit me-2 text-warning"></i> Editar Análise
+            </h2>
+            <p class="text-muted mb-0 small">
+                <i class="fas fa-hashtag me-1"></i> Pedido #{{ pedido.id }} - 
+                <i class="fas fa-user me-1 ms-2"></i> {{ pedido.paciente_nome }}
+                {% if pedido.paciente_idade %}
+                <span class="badge bg-info ms-2">{{ pedido.paciente_idade }}</span>
+                {% endif %}
+            </p>
+        </div>
+        <div class="mt-2 mt-md-0">
+            <a href="{{ url_for('analista.ver_detalhes_pedido', pedido_id=pedido.id) }}" 
+               class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Informações do Pedido -->
+    <div class="row mb-3 mb-md-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body p-3">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Médico</small>
+                            <strong>{{ pedido.medico_nome or 'Não informado' }}</strong>
+                            <small class="d-block text-muted">{{ pedido.medico_especialidade or '' }}</small>
+                            <small class="d-block text-muted">CRM: {{ pedido.medico_crm or '' }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Paciente</small>
+                            <strong>{{ pedido.paciente_nome or 'Não informado' }}</strong>
+                            <small class="d-block text-muted">{{ pedido.paciente_genero or '' }}</small>
+                            <small class="d-block text-muted">Nasc: {{ pedido.paciente_data_nascimento or '' }}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Tipo de Exame</small>
+                            <strong>{{ pedido.tipo_exame or 'Não especificado' }}</strong>
+                            <span class="badge bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' if pedido.urgencia == 'alta' else 'info' }} d-inline-block mt-1">
+                                {{ pedido.urgencia|upper }}
+                            </span>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-muted d-block">Data Solicitação</small>
+                            <strong>{{ pedido.data_solicitacao or 'Não informada' }}</strong>
+                            <small class="d-block text-muted">Status: {{ pedido.status }}</small>
+                        </div>
+                    </div>
+                    {% if pedido.descricao %}
+                    <div class="mt-3 pt-2 border-top">
+                        <small class="text-muted d-block">Descrição:</small>
+                        <p class="mb-0 small">{{ pedido.descricao }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulário de Edição -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-warning text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-edit me-2"></i> Editando Análise
+            </h5>
+        </div>
+        <div class="card-body p-3 p-md-4">
+            <form method="POST" class="needs-validation" novalidate>
+                <!-- Resultado da Análise -->
+                <div class="mb-3 mb-md-4">
+                    <label for="resultado_analise" class="form-label">
+                        <i class="fas fa-file-alt me-1 text-primary"></i> Resultado da Análise <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="resultado_analise" name="resultado_analise" 
+                              rows="10" required>{{ pedido.resultado_analise or '' }}</textarea>
+                    <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Descreva detalhadamente os resultados encontrados na análise
+                    </div>
+                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="inserirTemplate('resultado_analise')">
+                            <i class="fas fa-magic me-1"></i> Template
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatarTexto('resultado_analise')">
+                            <i class="fas fa-bold me-1"></i> Negrito
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Diagnóstico -->
+                <div class="mb-3 mb-md-4">
+                    <label for="diagnostico_analista" class="form-label">
+                        <i class="fas fa-diagnoses me-1 text-danger"></i> Diagnóstico <span class="text-danger">*</span>
+                    </label>
+                    <textarea class="form-control" id="diagnostico_analista" name="diagnostico_analista" 
+                              rows="4" required>{{ pedido.diagnostico_analista or '' }}</textarea>
+                    <div class="form-text">
+                        Diagnóstico principal baseado nos achados
+                    </div>
+                </div>
+                
+                <!-- Recomendações -->
+                <div class="mb-4">
+                    <label for="recomendacoes_analista" class="form-label">
+                        <i class="fas fa-clipboard-list me-1 text-success"></i> Recomendações
+                    </label>
+                    <textarea class="form-control" id="recomendacoes_analista" name="recomendacoes_analista" 
+                              rows="3">{{ pedido.recomendacoes_analista or '' }}</textarea>
+                    <div class="form-text">
+                        Recomendações para o médico ou paciente
+                    </div>
+                </div>
+                
+                <!-- Alertas -->
+                <div class="alert alert-warning border-start border-5 border-warning mb-4">
+                    <div class="d-flex">
+                        <i class="fas fa-exclamation-triangle me-3 mt-1 text-warning"></i>
+                        <div>
+                            <strong>Atenção!</strong>
+                            <p class="mb-0 small">Ao salvar, a análise será atualizada com as novas informações. A data de conclusão será atualizada para o momento atual.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botões -->
+                <div class="d-flex flex-column flex-md-row gap-2">
+                    <button type="submit" class="btn btn-success flex-fill">
+                        <i class="fas fa-save me-2"></i> Salvar Alterações
+                    </button>
+                    <a href="{{ url_for('analista.ver_detalhes_pedido', pedido_id=pedido.id) }}" 
+                       class="btn btn-outline-secondary flex-fill">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Mobile Styles */
+@media (max-width: 768px) {
+    textarea {
+        font-size: 0.9rem;
+    }
+    
+    .btn {
+        padding: 0.7rem;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+}
+
+/* Touch improvements */
+@media (max-width: 576px) {
+    textarea {
+        min-height: 44px;
+    }
+    
+    .btn {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-sm {
+        min-height: 36px;
+        padding: 0.4rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-resize textareas
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+        // Trigger once to set initial height
+        setTimeout(() => {
+            textarea.style.height = 'auto';
+            textarea.style.height = (textarea.scrollHeight) + 'px';
+        }, 100);
+    });
+    
+    // Confirm before leaving with unsaved changes
+    let formModified = false;
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('textarea, input');
+    
+    inputs.forEach(input => {
+        input.addEventListener('input', () => {
+            formModified = true;
+        });
+    });
+    
+    window.addEventListener('beforeunload', (e) => {
+        if (formModified) {
+            e.preventDefault();
+            e.returnValue = 'Você tem alterações não salvas. Deseja realmente sair?';
+        }
+    });
+    
+    form.addEventListener('submit', () => {
+        formModified = false;
+    });
+});
+
+// Funções auxiliares
+function inserirTemplate(campoId) {
+    const campo = document.getElementById(campoId);
+    if (!campo) return;
+    
+    const template = `📋 **RELATÓRIO DE ANÁLISE**
+
+**DATA:** ${new Date().toLocaleDateString('pt-BR')}
+**PACIENTE:** {{ pedido.paciente_nome }}
+**PEDIDO:** #{{ pedido.id }}
+
+**ACHADOS:**
+- Achado 1: Descrição detalhada
+- Achado 2: Descrição detalhada
+- Achado 3: Descrição detalhada
+
+**IMPRESSÃO DIAGNÓSTICA:**
+Diagnóstico principal aqui.
+
+**RECOMENDAÇÕES:**
+1. Recomendação 1
+2. Recomendação 2
+3. Recomendação 3
+
+**ANALISTA:** {{ session.get('user_name', 'Analista') }}`;
+    
+    campo.value = template;
+    campo.style.height = 'auto';
+    campo.style.height = (campo.scrollHeight) + 'px';
+}
+
+function formatarTexto(campoId) {
+    const campo = document.getElementById(campoId);
+    if (!campo) return;
+    
+    const texto = campo.value;
+    const selecao = texto.substring(campo.selectionStart, campo.selectionEnd);
+    
+    if (selecao) {
+        // Formatar texto selecionado
+        const novoTexto = texto.substring(0, campo.selectionStart) + 
+                        '**' + selecao + '**' + 
+                        texto.substring(campo.selectionEnd);
+        campo.value = novoTexto;
+    } else {
+        // Se não houver seleção, adicionar formatação no cursor
+        const cursorPos = campo.selectionStart;
+        const novoTexto = texto.substring(0, cursorPos) + '**texto**' + texto.substring(cursorPos);
+        campo.value = novoTexto;
+    }
+    
+    campo.focus();
+}
+</script>
+{% endblock %}

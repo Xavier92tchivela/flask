@@ -3,7 +3,8 @@ from flask import render_template, request, redirect, url_for, flash, session, j
 from datetime import datetime
 import logging
 import traceback
-import uuid  # 👈 ADICIONADO PARA GERAR UUID
+import uuid
+from werkzeug.security import generate_password_hash  # 👈 IMPORTANTE: Adicionar esta linha
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ def init_analistas_routes(admin_bp, mysql):
             flash('Erro ao carregar lista de analistas.', 'danger')
             return render_template('admin/analistas.html', analistas=[], user=session)
     
-    # ---------- CADASTRAR ANALISTA (CORRIGIDO) ----------
+    # ---------- CADASTRAR ANALISTA (COM SENHA CRIPTOGRAFADA) ----------
     @admin_bp.route('/analistas/cadastrar', methods=['GET', 'POST'])
     @admin_required
     def cadastrar_analista():
@@ -135,11 +136,15 @@ def init_analistas_routes(admin_bp, mysql):
             try:
                 cur = mysql.connection.cursor()
                 
-                # Inserir na tabela usuarios com UUID
+                # 👇 GERAR HASH DA SENHA
+                senha_hash = generate_password_hash(senha)
+                logger.info(f"Senha criptografada gerada para {email}")
+                
+                # Inserir na tabela usuarios com UUID e senha HASH
                 cur.execute("""
                     INSERT INTO usuarios (uuid, nome, email, senha, tipo, ativo, criado_em)
                     VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                """, (user_uuid, nome, email, senha, 'analista', True))
+                """, (user_uuid, nome, email, senha_hash, 'analista', True))
                 
                 mysql.connection.commit()
                 usuario_id = cur.lastrowid
@@ -169,7 +174,7 @@ def init_analistas_routes(admin_bp, mysql):
                     'ativo', 
                     experiencia, 
                     carga_horaria, 
-                    datetime.now().date()  # 👈 Usando datetime.now().date() em vez de CURDATE()
+                    datetime.now().date()
                 ))
                 
                 mysql.connection.commit()
@@ -188,7 +193,7 @@ def init_analistas_routes(admin_bp, mysql):
         
         return render_template('admin/cadastrar_analista.html', user=session)
     
-    # ---------- EDITAR ANALISTA (CORRIGIDO) ----------
+    # ---------- EDITAR ANALISTA ----------
     @admin_bp.route('/analistas/<int:analista_id>/editar', methods=['GET', 'POST'])
     @admin_required
     def editar_analista(analista_id):
@@ -204,6 +209,7 @@ def init_analistas_routes(admin_bp, mysql):
             experiencia = request.form.get('experiencia', '').strip()
             carga_horaria = request.form.get('carga_horaria', 40)
             ativo = 1 if request.form.get('ativo') else 0
+            nova_senha = request.form.get('nova_senha', '').strip()
             
             # Log para debug
             logger.info(f"Editando analista ID {analista_id}: {nome}, {email}")
@@ -213,12 +219,30 @@ def init_analistas_routes(admin_bp, mysql):
                 return redirect(url_for('admin.editar_analista', analista_id=analista_id))
             
             try:
-                # Atualizar usuário
-                execute_query("""
-                    UPDATE usuarios 
-                    SET nome = %s, email = %s, ativo = %s
-                    WHERE id = %s AND tipo = 'analista'
-                """, (nome, email, ativo, analista_id))
+                # Se foi fornecida uma nova senha, atualizar com hash
+                if nova_senha:
+                    if len(nova_senha) < 6:
+                        flash('A nova senha deve ter pelo menos 6 caracteres.', 'danger')
+                        return redirect(url_for('admin.editar_analista', analista_id=analista_id))
+                    
+                    # 👇 GERAR HASH DA NOVA SENHA
+                    senha_hash = generate_password_hash(nova_senha)
+                    
+                    # Atualizar usuário com nova senha
+                    execute_query("""
+                        UPDATE usuarios 
+                        SET nome = %s, email = %s, senha = %s, ativo = %s
+                        WHERE id = %s AND tipo = 'analista'
+                    """, (nome, email, senha_hash, ativo, analista_id))
+                    
+                    logger.info(f"Senha atualizada para analista ID {analista_id}")
+                else:
+                    # Atualizar usuário sem alterar senha
+                    execute_query("""
+                        UPDATE usuarios 
+                        SET nome = %s, email = %s, ativo = %s
+                        WHERE id = %s AND tipo = 'analista'
+                    """, (nome, email, ativo, analista_id))
                 
                 # Atualizar analista
                 execute_query("""

@@ -405,7 +405,7 @@
                                                 <i class="fas fa-calendar-alt me-1"></i> Data de Nascimento
                                             </label>
                                             <input type="date" class="form-control" name="data_nascimento" 
-                                                   value="{{ data_nascimento.strftime('%Y-%m-%d') if data_nascimento else '' }}">
+                                                   value="{{ data_nascimento if data_nascimento else '' }}">
                                         </div>
 
                                         <div class="col-md-4 mb-3">
@@ -425,7 +425,7 @@
                                             <label class="form-label">
                                                 <i class="fas fa-phone me-1"></i> Telefone
                                             </label>
-                                            <input type="tel" class="form-control" name="telefone" 
+                                            <input type="tel" class="form-control" name="telefone" id="telefone"
                                                    value="{{ telefone or '' }}" placeholder="(11) 99999-9999">
                                         </div>
 
@@ -516,7 +516,11 @@
                                         <i class="fas fa-calendar-alt"></i> Data de Nascimento
                                     </div>
                                     <div class="info-value">
-                                        {{ data_nascimento.strftime('%d/%m/%Y') if data_nascimento else 'Não informada' }}
+                                        {% if data_nascimento %}
+                                            {{ data_nascimento.strftime('%d/%m/%Y') if data_nascimento is not string else data_nascimento }}
+                                        {% else %}
+                                            Não informada
+                                        {% endif %}
                                     </div>
                                 </div>
 
@@ -638,7 +642,7 @@
                 
                 textarea.attr('maxlength', maxLength);
                 
-                const counter = $('<small class="text-muted counter">' + textarea.val().length + '/' + maxLength + '</small>');
+                const counter = $('<small class="text-muted counter" style="display: block; margin-top: 5px;">' + textarea.val().length + '/' + maxLength + '</small>');
                 textarea.after(counter);
                 
                 textarea.on('input', function() {

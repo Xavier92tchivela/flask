@@ -1,0 +1,105 @@
+<!-- templates/medico/prescricoes.html -->
+{% extends "base.html" %}
+
+{% block title %}Prescrições - {{ internacao[2] }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-capsules me-2"></i>
+                        Prescrições - {{ internacao[2] }}
+                    </h5>
+                    <a href="{{ url_for('medico.prescrever_medicamento', internacao_id=internacao_id) }}" class="btn btn-sm btn-light">
+                        <i class="fas fa-plus me-1"></i> Nova Prescrição
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if prescricoes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Medicamento</th>
+                                        <th>Dosagem</th>
+                                        <th>Via</th>
+                                        <th>Frequência</th>
+                                        <th>Período</th>
+                                        <th>Status</th>
+                                        <th>Data</th>
+                                        <th>Ações</th>
+                                    </thead>
+                                <tbody>
+                                    {% for p in prescricoes %}
+                                    <tr class="{% if p.status == 'suspensa' %}table-secondary{% endif %}">
+                                        <td><strong>{{ p.medicamento }}</strong>\\
+                                        <td>{{ p.dosagem }}\\
+                                        <td>{{ p.via }}\\
+                                        <td>{{ p.frequencia }}<br><small class="text-muted">{{ p.horario_inicio }} - {{ p.horario_fim }}</small>\\
+                                        <td>{{ p.data_inicio }} até {{ p.data_fim }}\\
+                                        <td>
+                                            {% if p.status == 'ativa' %}
+                                                <span class="badge bg-success">Ativa</span>
+                                            {% elif p.status == 'suspensa' %}
+                                                <span class="badge bg-warning">Suspensa</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Finalizada</span>
+                                            {% endif %}
+                                         </td>
+                                        <td><small>{{ p.created_at }}</small></td>
+                                        <td>
+                                            {% if p.status == 'ativa' %}
+                                                <button class="btn btn-sm btn-warning" onclick="suspenderPrescricao({{ p.id }})">
+                                                    <i class="fas fa-pause me-1"></i> Suspender
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-capsules fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhuma prescrição</h5>
+                            <p class="text-muted">Clique em "Nova Prescrição" para prescrever medicamentos</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('medico.internados') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function suspenderPrescricao(prescricaoId) {
+        if (!confirm('Tem certeza que deseja suspender esta prescrição?')) return;
+        
+        fetch(`/medico/api/suspender-prescricao/${prescricaoId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao suspender prescrição');
+        });
+    }
+</script>
+{% endblock %}

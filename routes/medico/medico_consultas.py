@@ -19,6 +19,41 @@ def init_medico_consultas(base):
     execute_query = base['execute_query']
     formatar_data = base['formatar_data']
     
+    # ===== FUNÇÃO AUXILIAR PARA CONVERTER BYTES =====
+    def converter_bytes_para_string(valor):
+        """Converte bytes para string se necessário"""
+        if valor is None:
+            return ''
+        if isinstance(valor, bytes):
+            try:
+                return valor.decode('utf-8', errors='ignore')
+            except:
+                return str(valor)
+        return str(valor) if valor else ''
+    
+    def converter_toda_lista(consultas_lista):
+        """Converte todos os campos da lista de consultas para string"""
+        if not consultas_lista:
+            return []
+        
+        resultado = []
+        for consulta in consultas_lista:
+            nova_consulta = {}
+            for chave, valor in consulta.items():
+                if isinstance(valor, bytes):
+                    nova_consulta[chave] = converter_bytes_para_string(valor)
+                elif isinstance(valor, list):
+                    # Se for lista, converte cada item
+                    nova_consulta[chave] = [converter_bytes_para_string(item) if isinstance(item, bytes) else item for item in valor]
+                elif isinstance(valor, dict):
+                    # Se for dicionário, converte recursivamente
+                    nova_consulta[chave] = {k: converter_bytes_para_string(v) if isinstance(v, bytes) else v for k, v in valor.items()}
+                else:
+                    nova_consulta[chave] = valor
+            resultado.append(nova_consulta)
+        
+        return resultado
+    
     @medico_required
     def consultas():
         """Lista todas as consultas do médico com filtros"""
@@ -42,7 +77,7 @@ def init_medico_consultas(base):
             dia_semana = request.args.get('dia_semana', '')
             mes = request.args.get('mes', '')
             ano = request.args.get('ano', datetime.now().strftime('%Y'))
-            data_especifica = request.args.get('data', '')  # 👈 FILTRO POR DATA ESPECÍFICA
+            data_especifica = request.args.get('data', '')
             
             # Construir query base
             query = """
@@ -159,6 +194,13 @@ def init_medico_consultas(base):
             datas_dict = {}
             
             for c in consultas_raw:
+                # ===== CONVERSÃO DE BYTES =====
+                # Converter observacoes (campo 8)
+                observacoes = converter_bytes_para_string(c[8])
+                
+                # Converter sintomas (campo 9)
+                sintomas_raw = converter_bytes_para_string(c[9])
+                
                 # Calcular idade
                 idade = None
                 if c[2]:
@@ -173,10 +215,10 @@ def init_medico_consultas(base):
                     except:
                         idade = None
                 
-                # Processar sintomas
+                # Processar sintomas (agora é string)
                 sintomas_lista = []
-                if c[9]:
-                    sintomas_lista = [s.strip() for s in c[9].split(',') if s.strip()]
+                if sintomas_raw:
+                    sintomas_lista = [s.strip() for s in sintomas_raw.split(',') if s.strip()]
                 
                 # Extrair informações da data
                 data_consulta_obj = None
@@ -245,7 +287,7 @@ def init_medico_consultas(base):
                     'mes_abreviado': meses_abreviados.get(mes_consulta, '') if mes_consulta else '',
                     'ano': ano_consulta,
                     'status': c[7] or 'desconhecido',
-                    'observacoes': c[8] or '',
+                    'observacoes': observacoes,
                     'sintomas_lista': sintomas_lista,
                     'tem_sintomas': len(sintomas_lista) > 0,
                     'status_class': {
@@ -255,6 +297,9 @@ def init_medico_consultas(base):
                         'confirmada': 'info'
                     }.get(c[7], 'secondary')
                 })
+            
+            # CONVERTER TODA A LISTA PARA GARANTIR QUE NÃO HAJA BYTES
+            consultas = converter_toda_lista(consultas)
             
             # Ordenar datas e pegar as mais recentes (últimas 7)
             datas_disponiveis = sorted(datas_dict.values(), key=lambda x: x['data_iso'], reverse=True)[:7]
@@ -288,13 +333,13 @@ def init_medico_consultas(base):
                                  medico={'nome': medico_info.get('nome', 'Médico')},
                                  total_consultas=len(consultas),
                                  meses_contagem=meses_contagem,
-                                 meses_nomes=meses_nomes,  # 👈 ADICIONADO
-                                 dias_nomes=dias_nomes,    # 👈 ADICIONADO
+                                 meses_nomes=meses_nomes,
+                                 dias_nomes=dias_nomes,
                                  anos_disponiveis=anos_disponiveis,
                                  mes_selecionado=mes_selecionado,
                                  ano_selecionado=ano_selecionado,
                                  dias_contagem=dias_contagem,
-                                 datas_disponiveis=datas_disponiveis,  # 👈 ADICIONADO
+                                 datas_disponiveis=datas_disponiveis,
                                  request=request,
                                  user=session)
             

@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Sistema Médico</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Carregamento otimizado de CSS - apenas o necessário -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" media="all">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" media="all">
     <style>
+        /* CSS crítico inline para First Contentful Paint mais rápido */
         .login-container {
             min-height: 100vh;
-            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1932&q=80');
+            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), 
+                        url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1932&q=80');
             background-size: cover;
             background-position: center;
             display: flex;
@@ -26,17 +28,33 @@
             width: 100%;
             max-width: 400px;
             overflow: hidden;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         .login-header {
-            background-color: #3498db;
+            background: linear-gradient(135deg, #3498db 0%, #2c3e50 100%);
             color: white;
-            padding: 25px;
+            padding: 25px 20px;
             text-align: center;
         }
         
+        .login-header h4 {
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .login-header p {
+            margin-bottom: 0;
+            opacity: 0.9;
+        }
+        
         .login-body {
-            padding: 25px;
+            padding: 30px 25px;
         }
         
         .form-control:focus {
@@ -45,16 +63,22 @@
         }
         
         .btn-login {
-            background-color: #3498db;
-            border-color: #3498db;
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            border: none;
             color: white;
-            padding: 10px;
+            padding: 12px;
             font-weight: 500;
+            transition: all 0.15s ease;
+            border-radius: 8px;
         }
         
         .btn-login:hover {
-            background-color: #2980b9;
-            border-color: #2980b9;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+        }
+        
+        .btn-login:active {
+            transform: translateY(0);
         }
         
         .divider {
@@ -80,113 +104,316 @@
             position: absolute;
             top: 20px;
             left: 20px;
+            z-index: 10;
+        }
+        
+        .back-home .btn {
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+            border: none;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        .back-home .btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-2px);
+        }
+        
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Responsivo */
+        @media (max-width: 576px) {
+            .login-container {
+                padding: 10px;
+            }
+            
+            .login-header {
+                padding: 20px;
+            }
+            
+            .login-body {
+                padding: 20px;
+            }
+            
+            .back-home {
+                top: 10px;
+                left: 10px;
+            }
+        }
+        
+        .demo-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        
+        .demo-info summary {
+            cursor: pointer;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .demo-info summary:hover {
+            color: #3498db;
         }
     </style>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
 </head>
 <body>
     <!-- Botão para voltar à página inicial -->
     <div class="back-home">
-        <a href="{{ url_for('auth.index') }}" class="btn btn-outline-light">
-            <i class="fas fa-arrow-left me-2"></i>Voltar ao Início
+        <a href="{{ url_for('auth.index') }}" class="btn btn-sm">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
         </a>
     </div>
     
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <h4><i class="fas fa-hospital me-2"></i> Sistema Médico</h4>
-                <p class="mb-0">Acesse sua conta</p>
+                <h4><i class="fas fa-prescription-bottle-alt me-2"></i> DoctorIA</h4>
+                <p class="mb-0 small">Acesse sua conta</p>
             </div>
             
             <div class="login-body">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
+                <!-- Mensagens Flash -->
+                <div id="flashMessages">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
                 
-                <!-- FORMULÁRIO CORRIGIDO: usar auth.login -->
-                <form method="POST" action="{{ url_for('auth.login') }}">
+                <!-- FORMULÁRIO DE LOGIN -->
+                <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" novalidate>
                     <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" class="form-control" id="email" name="email" required placeholder="seu@email.com">
-                        </div>
+                        <label for="email" class="form-label small fw-bold">
+                            <i class="fas fa-envelope me-1 text-primary"></i>Email
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               required placeholder="seu@email.com" autocomplete="email"
+                               value="{{ request.form.email if request.form.email }}">
+                        <div class="invalid-feedback">Digite um email válido</div>
                     </div>
                     
                     <div class="mb-3">
-                        <label for="password" class="form-label">Senha</label>
+                        <label for="password" class="form-label small fw-bold">
+                            <i class="fas fa-lock me-1 text-primary"></i>Senha
+                        </label>
                         <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required placeholder="Sua senha">
+                            <input type="password" class="form-control" id="password" name="password" 
+                                   required placeholder="Sua senha" autocomplete="current-password">
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassword" tabindex="-1">
+                                <i class="fas fa-eye"></i>
+                            </button>
                         </div>
+                        <div class="invalid-feedback">Digite sua senha</div>
                     </div>
                     
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="remember">
-                        <label class="form-check-label" for="remember">Lembrar-me</label>
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label class="form-check-label small" for="remember">Lembrar-me</label>
+                        </div>
+                        <!-- CORREÇÃO AQUI: mudar para admin.recuperar_senha -->
+                        <a href="{{ url_for('admin.recuperar_senha') }}" class="small text-decoration-none">
+                            Esqueceu a senha?
+                        </a>
                     </div>
                     
-                    <button type="submit" class="btn btn-login w-100">
+                    <button type="submit" class="btn btn-login w-100" id="btnLogin">
                         <i class="fas fa-sign-in-alt me-2"></i>Entrar
                     </button>
                 </form>
                 
                 <div class="divider">
-                    <span>OU</span>
+                    <span>ou</span>
                 </div>
                 
                 <div class="text-center">
-                    <!-- LINK CORRIGIDO: usar auth.register -->
-                    <p>Não tem uma conta? <a href="{{ url_for('auth.register') }}">Cadastre-se agora</a></p>
-                    <p class="text-muted small mt-3">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Ao se cadastrar, você concorda com nossos Termos de Uso e Política de Privacidade
+                    <p class="small mb-2">Não tem uma conta?</p>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-outline-primary btn-sm w-100">
+                        <i class="fas fa-user-plus me-2"></i>Cadastre-se
+                    </a>
+                </div>
+                
+                <!-- Demo Info - Apenas para testes -->
+                <details class="demo-info">
+                    <summary><i class="fas fa-info-circle me-1"></i> Contas de demonstração</summary>
+                    <div class="mt-2">
+                        <p class="mb-1"><strong>👨‍⚕️ Médico:</strong> medico@hospital.com / senha123</p>
+                        <p class="mb-1"><strong>👩‍⚕️ Enfermeiro:</strong> enfermeiro@hospital.com / senha123</p>
+                        <p class="mb-1"><strong>💊 Farmacêutico:</strong> farmaceutico@hospital.com / senha123</p>
+                        <p class="mb-1"><strong>📊 Analista:</strong> analista@hospital.com / senha123</p>
+                        <p class="mb-0"><strong>👤 Paciente:</strong> paciente@hospital.com / senha123</p>
+                    </div>
+                </details>
+                
+                <div class="text-center mt-3">
+                    <p class="text-muted small mb-0">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Sistema seguro com criptografia
                     </p>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="text-muted">Entrando no sistema...</p>
+        </div>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Scripts carregados de forma otimizada -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
+            async defer></script>
     
     <script>
-        // Script para melhorar a experiência do usuário
-        document.addEventListener('DOMContentLoaded', function() {
-            // Focar no campo de email ao carregar
-            document.getElementById('email').focus();
+        // Script crítico inline - executa imediatamente
+        (function() {
+            'use strict';
             
-            // Mostrar/ocultar senha
+            // Cache de elementos DOM
+            const form = document.getElementById('loginForm');
+            const btnLogin = document.getElementById('btnLogin');
+            const overlay = document.getElementById('loadingOverlay');
+            const emailInput = document.getElementById('email');
             const passwordInput = document.getElementById('password');
-            const showPasswordBtn = document.createElement('span');
-            showPasswordBtn.innerHTML = '<i class="fas fa-eye"></i>';
-            showPasswordBtn.className = 'input-group-text';
-            showPasswordBtn.style.cursor = 'pointer';
-            showPasswordBtn.title = 'Mostrar senha';
+            const toggleBtn = document.getElementById('togglePassword');
+            const rememberCheckbox = document.getElementById('remember');
             
-            showPasswordBtn.addEventListener('click', function() {
-                if (passwordInput.type === 'password') {
-                    passwordInput.type = 'text';
-                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                    this.title = 'Ocultar senha';
-                } else {
-                    passwordInput.type = 'password';
-                    this.innerHTML = '<i class="fas fa-eye"></i>';
-                    this.title = 'Mostrar senha';
-                }
-            });
-            
-            // Adicionar o botão de mostrar senha ao grupo de input
-            const passwordGroup = passwordInput.closest('.input-group');
-            if (passwordGroup) {
-                passwordGroup.appendChild(showPasswordBtn);
+            // Focus no email ao carregar
+            if (emailInput) {
+                setTimeout(() => emailInput.focus(), 100);
             }
+            
+            // Carregar email salvo
+            if (rememberCheckbox && localStorage.getItem('saved_email')) {
+                emailInput.value = localStorage.getItem('saved_email');
+                rememberCheckbox.checked = true;
+            }
+            
+            // Toggle senha
+            if (toggleBtn && passwordInput) {
+                toggleBtn.addEventListener('click', function() {
+                    const type = passwordInput.type === 'password' ? 'text' : 'password';
+                    passwordInput.type = type;
+                    const icon = this.querySelector('i');
+                    icon.classList.toggle('fa-eye');
+                    icon.classList.toggle('fa-eye-slash');
+                });
+            }
+            
+            // Validação em tempo real
+            if (emailInput) {
+                emailInput.addEventListener('input', function() {
+                    if (this.value && !this.value.includes('@')) {
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            }
+            
+            if (passwordInput) {
+                passwordInput.addEventListener('input', function() {
+                    if (this.value.length > 0) {
+                        this.classList.remove('is-invalid');
+                    }
+                });
+            }
+            
+            // Submissão do formulário
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    let isValid = true;
+                    
+                    // Validação rápida
+                    if (!emailInput.value) {
+                        emailInput.classList.add('is-invalid');
+                        isValid = false;
+                    }
+                    
+                    if (!passwordInput.value) {
+                        passwordInput.classList.add('is-invalid');
+                        isValid = false;
+                    }
+                    
+                    if (emailInput.value && !emailInput.value.includes('@')) {
+                        emailInput.classList.add('is-invalid');
+                        isValid = false;
+                    }
+                    
+                    if (!isValid) {
+                        e.preventDefault();
+                        return;
+                    }
+                    
+                    // Salvar email se "lembrar" estiver marcado
+                    if (rememberCheckbox && rememberCheckbox.checked) {
+                        localStorage.setItem('saved_email', emailInput.value);
+                    } else {
+                        localStorage.removeItem('saved_email');
+                    }
+                    
+                    // Mostrar loading
+                    btnLogin.disabled = true;
+                    btnLogin.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Entrando...';
+                    overlay.style.display = 'flex';
+                });
+            }
+            
+            // Prevenir reenvio ao atualizar página
+            if (window.history.replaceState) {
+                window.history.replaceState(null, null, window.location.href);
+            }
+        })();
+    </script>
+    
+    <!-- Script não crítico carregado depois -->
+    <script>
+        // Carregar imagens e analytics depois
+        window.addEventListener('load', function() {
+            // Pré-carregar imagem de fundo
+            const bgImage = new Image();
+            bgImage.src = 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1932&q=80';
+            
+            // Fechar alerts automaticamente após 5 segundos
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    const closeBtn = alert.querySelector('.btn-close');
+                    if (closeBtn) closeBtn.click();
+                }, 5000);
+            });
         });
     </script>
 </body>

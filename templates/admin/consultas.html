@@ -2,785 +2,1341 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Gerenciar Consultas - DoctorIA</title>
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Date Range Picker -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
     <!-- jQuery (necessário para o datepicker) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --info-color: #3b82f6;
-            --dark-color: #2c3e50;
-            --light-bg: #f4f6f9;
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #0f172a;
+            --gray-50: #f9fafb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --sidebar-width: 280px;
+            --border-radius: 24px;
+            --transition: all 0.3s ease;
         }
-        
+
         body {
-            background-color: var(--light-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .sidebar {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
-            color: white;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            color: var(--gray-800);
+            overflow-x: hidden;
         }
-        
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.7);
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a1c2e 0%, #2d2f42 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1050;
+            transition: var(--transition);
+            box-shadow: 4px 0 30px rgba(0,0,0,0.15);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transform: rotate(-5deg);
+            transition: var(--transition);
+            box-shadow: 0 10px 20px rgba(67,97,238,0.3);
+        }
+
+        .logo:hover .logo-icon {
+            transform: rotate(0deg) scale(1.1);
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .logo-text span {
+            font-weight: 300;
+            color: var(--primary);
+        }
+
+        .user-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
             padding: 14px 20px;
             margin: 6px 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
             border-radius: 12px;
-            transition: all 0.3s;
+            transition: var(--transition);
             font-weight: 500;
-        }
-        
-        .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.12);
-            color: white;
-            transform: translateX(5px);
-        }
-        
-        .sidebar .nav-link.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
-            color: white;
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-        }
-        
-        .sidebar .nav-link i {
-            margin-right: 12px;
-            width: 22px;
-            text-align: center;
-        }
-        
-        .main-content {
-            padding: 30px;
-        }
-        
-        .page-title {
-            margin-bottom: 30px;
-            color: var(--dark-color);
-            font-weight: 800;
-            font-size: 28px;
-        }
-        
-        .page-title i {
-            margin-right: 12px;
-            color: var(--primary-color);
-        }
-        
-        /* Stats Cards Melhorados */
-        .stats-card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            transition: all 0.3s;
-            border: 1px solid rgba(0,0,0,0.03);
             position: relative;
             overflow: hidden;
         }
-        
+
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--primary);
+            transform: scaleY(0);
+            transition: var(--transition);
+        }
+
+        .nav-link:hover::before,
+        .nav-link.active::before {
+            transform: scaleY(1);
+        }
+
+        .nav-link i {
+            width: 24px;
+            font-size: 20px;
+            margin-right: 12px;
+            transition: var(--transition);
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding-left: 24px;
+        }
+
+        .nav-link:hover i {
+            transform: scale(1.1);
+            color: var(--primary);
+        }
+
+        .nav-link.active {
+            background: linear-gradient(90deg, rgba(67,97,238,0.2) 0%, transparent 100%);
+            color: white;
+            font-weight: 600;
+        }
+
+        .nav-link.active i {
+            color: var(--primary);
+        }
+
+        /* ==================== MENU TOGGLE ==================== */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1060;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67,97,238,0.4);
+        }
+
+        @media (max-width: 992px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+            transition: var(--transition);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 992px) {
+            .main-content {
+                margin-left: 0;
+                padding: 70px 15px 20px;
+            }
+        }
+
+        /* ==================== TOP BAR ==================== */
+        .top-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        @media (min-width: 768px) {
+            .top-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .page-title {
+                margin-bottom: 0;
+            }
+        }
+
+        .page-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .page-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .page-title p {
+            color: var(--gray-500);
+            margin: 5px 0 0 0;
+            font-size: 14px;
+        }
+
+        .date-badge {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 16px;
+            font-size: 14px;
+            color: var(--gray-600);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .date-badge i {
+            color: var(--primary);
+        }
+
+        /* ==================== STATS CARDS ==================== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 992px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stats-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.03);
+            animation: slideIn 0.5s ease-out;
+        }
+
         .stats-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
-        
-        .stats-card .stats-icon {
+
+        .stats-icon {
             position: absolute;
-            right: 20px;
-            top: 20px;
+            right: 15px;
+            top: 15px;
             font-size: 48px;
             opacity: 0.1;
-            color: var(--icon-color);
+            color: var(--primary);
         }
-        
-        .stats-card .stats-number {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--dark-color);
+
+        .stats-number {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gray-800);
             margin-bottom: 5px;
+            line-height: 1.2;
         }
-        
-        .stats-card .stats-label {
-            font-size: 14px;
-            color: #6c757d;
+
+        .stats-label {
+            font-size: 13px;
+            color: var(--gray-500);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
+            margin: 0;
         }
-        
+
         .stats-card.total {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            --icon-color: white;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
         }
-        
+
         .stats-card.total .stats-number,
         .stats-card.total .stats-label {
             color: white;
         }
-        
+
+        .stats-card.total .stats-icon {
+            color: white;
+            opacity: 0.2;
+        }
+
         .stats-card.realizadas {
             background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --icon-color: white;
         }
-        
+
         .stats-card.realizadas .stats-number,
         .stats-card.realizadas .stats-label {
             color: white;
         }
-        
+
+        .stats-card.realizadas .stats-icon {
+            color: white;
+            opacity: 0.2;
+        }
+
         .stats-card.pendentes {
             background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            --icon-color: white;
         }
-        
+
         .stats-card.pendentes .stats-number,
         .stats-card.pendentes .stats-label {
             color: white;
         }
-        
+
+        .stats-card.pendentes .stats-icon {
+            color: white;
+            opacity: 0.2;
+        }
+
         .stats-card.canceladas {
             background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            --icon-color: white;
         }
-        
+
         .stats-card.canceladas .stats-number,
         .stats-card.canceladas .stats-label {
             color: white;
         }
-        
-        /* Filtros */
+
+        .stats-card.canceladas .stats-icon {
+            color: white;
+            opacity: 0.2;
+        }
+
+        /* ==================== FILTER SECTION ==================== */
         .filter-section {
             background: white;
             border-radius: 20px;
             padding: 25px;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
             border: 1px solid rgba(0,0,0,0.03);
         }
-        
+
         .filter-label {
             font-size: 13px;
-            color: #6c757d;
+            color: var(--gray-500);
             margin-bottom: 8px;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        
+
         .filter-select, .filter-input {
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--gray-200);
             border-radius: 12px;
-            padding: 10px 15px;
+            padding: 12px 15px;
             width: 100%;
             font-size: 14px;
-            transition: all 0.3s;
+            transition: var(--transition);
+            background: white;
         }
-        
+
         .filter-select:focus, .filter-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
+            border-color: var(--primary);
             outline: none;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
         }
-        
+
         .btn-filter {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
             padding: 12px 25px;
             border-radius: 12px;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: var(--transition);
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-        
+
         .btn-filter:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
         }
-        
+
         .btn-clear {
             background: white;
-            color: #6c757d;
-            border: 2px solid #e9ecef;
+            color: var(--gray-600);
+            border: 2px solid var(--gray-200);
             padding: 12px 25px;
             border-radius: 12px;
             font-weight: 600;
-            transition: all 0.3s;
+            transition: var(--transition);
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-clear:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            transform: translateY(-2px);
+        }
+
+        /* ==================== SEARCH ==================== */
+        .search-box {
+            background: var(--gray-100);
+            border-radius: 14px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
             width: 100%;
         }
-        
-        .btn-clear:hover {
-            border-color: var(--danger-color);
-            color: var(--danger-color);
+
+        @media (min-width: 768px) {
+            .search-box {
+                width: 300px;
+            }
         }
-        
-        /* Cards */
-        .card {
+
+        .search-box i {
+            color: var(--gray-400);
+            margin-right: 10px;
+        }
+
+        .search-box input {
             border: none;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-            border: 1px solid rgba(0,0,0,0.03);
-        }
-        
-        .card-header {
             background: transparent;
-            border-bottom: 1px solid #e9ecef;
-            padding: 20px 25px;
-            border-radius: 24px 24px 0 0 !important;
+            outline: none;
+            width: 100%;
         }
-        
-        .card-header h5 {
-            margin: 0;
-            color: var(--dark-color);
-            font-weight: 700;
-            font-size: 1.2rem;
+
+        /* ==================== CARD ==================== */
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        @media (min-width: 768px) {
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .card-title {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 15px;
         }
-        
-        .card-header h5 i {
-            color: var(--primary-color);
-            font-size: 1.4rem;
+
+        @media (min-width: 768px) {
+            .card-title {
+                margin-bottom: 0;
+            }
         }
-        
+
+        .card-title i {
+            color: var(--primary);
+            font-size: 20px;
+        }
+
+        .card-title h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .card-title span {
+            background: var(--gray-200);
+            color: var(--gray-600);
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
         .card-body {
             padding: 0;
         }
-        
-        /* Tabela */
+
+        /* ==================== TABELA RESPONSIVA ==================== */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
         .table {
-            margin: 0;
+            width: 100%;
+            border-collapse: collapse;
         }
-        
-        .table thead th {
-            border-top: none;
-            border-bottom: 2px solid #e9ecef;
-            color: #6c757d;
+
+        .table th {
+            display: none;
+            padding: 16px 20px;
+            background: var(--gray-50);
+            color: var(--gray-600);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 18px 15px;
-            background-color: #f8f9fa;
+            border-bottom: 1px solid var(--gray-200);
         }
-        
-        .table tbody td {
-            padding: 18px 15px;
-            vertical-align: middle;
-            border-bottom: 1px solid #e9ecef;
-            color: #2c3e50;
+
+        .table td {
+            display: block;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            position: relative;
+            padding-left: 40%;
         }
-        
-        .table tbody tr:hover {
-            background-color: rgba(67, 97, 238, 0.02);
+
+        .table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 15px;
+            width: 35%;
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 12px;
+            text-transform: uppercase;
         }
-        
+
+        @media (min-width: 768px) {
+            .table th {
+                display: table-cell;
+            }
+            
+            .table td {
+                display: table-cell;
+                padding: 16px 20px;
+            }
+            
+            .table td::before {
+                display: none;
+            }
+        }
+
+        /* Informação do paciente/médico */
+        .info-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .info-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .info-email {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
         /* Badges de Status */
-        .badge-status {
-            padding: 8px 14px;
+        .badge {
+            padding: 6px 12px;
             border-radius: 30px;
             font-size: 12px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
-        
+
         .badge-agendada {
             background: rgba(67, 97, 238, 0.1);
-            color: #4361ee;
+            color: var(--primary);
         }
-        
+
         .badge-confirmada {
             background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
+            color: var(--warning);
         }
-        
+
         .badge-realizada {
             background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
+            color: var(--success);
         }
-        
+
         .badge-cancelada {
             background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            color: var(--danger);
         }
-        
+
         .badge-pendente {
             background: rgba(100, 116, 139, 0.1);
-            color: #64748b;
+            color: var(--gray-500);
         }
-        
+
         /* Botões de Ação */
+        .action-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
         .btn-action {
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 10px;
             font-size: 13px;
-            margin: 0 4px;
-            transition: all 0.3s;
             border: none;
-            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
             text-decoration: none;
         }
-        
+
+        .btn-view {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-pdf {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-cancel {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--gray-600);
+        }
+
         .btn-action:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
-        
-        .btn-view {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+
+        .btn-view:hover {
+            background: var(--primary);
             color: white;
         }
-        
-        .btn-pdf {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+
+        .btn-pdf:hover {
+            background: var(--danger);
             color: white;
         }
-        
-        .btn-cancel {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+
+        .btn-cancel:hover {
+            background: var(--gray-600);
             color: white;
         }
-        
-        /* Barra de Pesquisa */
-        .search-box {
-            background: white;
-            border-radius: 12px;
-            padding: 8px 16px;
-            border: 1px solid #e9ecef;
-            transition: all 0.3s;
-            width: 280px;
-            display: flex;
-            align-items: center;
+
+        /* Especialidade */
+        .especialidade-badge {
+            background: var(--gray-200);
+            color: var(--gray-700);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
         }
-        
-        .search-box:focus-within {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
-        }
-        
-        .search-box i {
-            color: #94a3b8;
-            margin-right: 10px;
-            font-size: 1rem;
-        }
-        
-        .search-box input {
-            border: none;
-            padding: 8px 0;
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-        }
-        
+
         /* Paginação */
         .pagination {
             margin-top: 25px;
             justify-content: center;
             gap: 5px;
         }
-        
+
         .page-link {
-            color: #6c757d;
-            border: 1px solid #e9ecef;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-200);
             border-radius: 10px;
             padding: 8px 16px;
-            transition: all 0.3s;
+            transition: var(--transition);
         }
-        
+
         .page-link:hover {
-            background: var(--primary-color);
+            background: var(--primary);
             color: white;
-            border-color: var(--primary-color);
+            border-color: var(--primary);
             transform: translateY(-2px);
         }
-        
+
         .page-item.active .page-link {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
         }
-        
-        /* Estado Vazio */
+
+        /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
         }
-        
+
         .empty-state i {
-            font-size: 4rem;
-            color: #cbd5e0;
+            font-size: 60px;
+            color: var(--gray-300);
             margin-bottom: 20px;
         }
-        
-        .empty-state h5 {
-            color: #64748b;
-            font-weight: 600;
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-700);
             margin-bottom: 10px;
         }
-        
+
         .empty-state p {
-            color: #94a3b8;
-            margin-bottom: 0;
+            color: var(--gray-500);
+            margin-bottom: 25px;
         }
-        
-        /* Responsividade */
+
+        /* Alertas */
+        .alert {
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 30px;
+        }
+
+        .footer hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
+        }
+
+        /* Animações */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .sidebar {
-                min-height: auto;
-                padding: 10px;
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+                padding: 15px;
             }
-            
-            .main-content {
-                padding: 20px;
-            }
-            
-            .page-title {
+
+            .page-title h1 {
                 font-size: 24px;
             }
-            
+
+            .date-badge {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .filter-section {
+                padding: 15px;
+            }
+
+            .filter-section .row > div {
+                margin-bottom: 10px;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+
             .search-box {
                 width: 100%;
-                margin-top: 10px;
             }
-            
-            .filter-section .row > div {
-                margin-bottom: 15px;
+
+            .action-group {
+                justify-content: flex-end;
             }
-            
-            .table thead {
-                display: none;
-            }
-            
-            .table tbody td {
-                display: block;
-                text-align: right;
-                padding: 12px 15px;
-                position: relative;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .table tbody td:before {
-                content: attr(data-label);
-                float: left;
-                font-weight: 600;
-                color: #64748b;
-            }
-            
+        }
+
+        /* Touch Improvements */
+        @media (max-width: 768px) {
+            .btn, 
+            .nav-link,
             .btn-action {
-                padding: 8px 12px;
-                font-size: 12px;
+                min-height: 44px;
             }
+            
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 4px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="p-4">
-                    <h4 class="text-white mb-4">
-                        <i class="fas fa-brain me-2" style="font-size: 2rem;"></i>
-                        Doctor<span style="font-weight: 300;">IA</span>
-                    </h4>
-                    <p class="text-white-50 small mb-4">Painel Administrativo</p>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.medicos') }}">
-                            <i class="fas fa-user-md"></i> Médicos
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.analistas') }}">
-                            <i class="fas fa-microscope"></i> Analistas
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
-                            <i class="fas fa-users"></i> Pacientes
-                        </a>
-                        <a class="nav-link active" href="{{ url_for('admin.consultas') }}">
-                            <i class="fas fa-calendar-check"></i> Consultas
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.estatisticas') }}">
-                            <i class="fas fa-chart-bar"></i> Estatísticas
-                        </a>
-                        <hr class="bg-white-50">
-                        <a class="nav-link" href="{{ url_for('admin.logout') }}">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
-                    </nav>
+    <!-- Menu Toggle (Mobile) -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('admin.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
                 </div>
-            </div>
+                <div class="logo-text">
+                    Doctor<span>IA</span>
+                </div>
+            </a>
+        </div>
+        
+        <nav class="nav flex-column">
+            <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.medicos') }}">
+                <i class="fas fa-user-md"></i> Médicos
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.analistas') }}">
+                <i class="fas fa-microscope"></i> Analistas
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.enfermeiros') }}">
+                <i class="fas fa-user-nurse"></i> Enfermeiros
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
+                <i class="fas fa-users"></i> Pacientes
+            </a>
+            <a class="nav-link active" href="{{ url_for('admin.consultas') }}">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
             
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                <!-- Page Title -->
-                <div class="page-title">
-                    <i class="fas fa-calendar-check"></i>
-                    Gerenciar Consultas
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px;">
+            
+            <a class="nav-link" href="{{ url_for('admin.logout') }}">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </nav>
+        
+        <!-- User Info -->
+        <div class="user-info">
+            <div class="d-flex align-items-center gap-3">
+                <div class="user-avatar">
+                    {{ session.user_name[:1] if session.user_name else 'A' }}
                 </div>
-                
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
-                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                
-                <!-- Stats Cards Melhorados -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card total">
-                            <div class="stats-icon">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <div class="stats-number" id="totalConsultas">{{ consultas|length }}</div>
-                            <div class="stats-label">Total de Consultas</div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card realizadas">
-                            <div class="stats-icon">
-                                <i class="fas fa-check-circle"></i>
-                            </div>
-                            <div class="stats-number" id="realizadasCount">0</div>
-                            <div class="stats-label">Realizadas</div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card pendentes">
-                            <div class="stats-icon">
-                                <i class="fas fa-clock"></i>
-                            </div>
-                            <div class="stats-number" id="pendentesCount">0</div>
-                            <div class="stats-label">Pendentes</div>
-                        </div>
-                    </div>
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="stats-card canceladas">
-                            <div class="stats-icon">
-                                <i class="fas fa-times-circle"></i>
-                            </div>
-                            <div class="stats-number" id="canceladasCount">0</div>
-                            <div class="stats-label">Canceladas</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Filter Section Melhorada -->
-                <div class="filter-section">
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <div class="filter-label">Período</div>
-                            <input type="text" class="filter-input" id="dateRange" name="daterange" value="Últimos 30 dias">
-                        </div>
-                        <div class="col-md-2">
-                            <div class="filter-label">Status</div>
-                            <select class="filter-select" id="statusFilter">
-                                <option value="">Todos</option>
-                                <option value="agendada">Agendada</option>
-                                <option value="confirmada">Confirmada</option>
-                                <option value="realizada">Realizada</option>
-                                <option value="cancelada">Cancelada</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="filter-label">Médico</div>
-                            <input type="text" class="filter-input" id="medicoFilter" placeholder="Nome do médico...">
-                        </div>
-                        <div class="col-md-3">
-                            <div class="filter-label">Paciente</div>
-                            <input type="text" class="filter-input" id="pacienteFilter" placeholder="Nome do paciente...">
-                        </div>
-                        <div class="col-md-1">
-                            <div class="filter-label">&nbsp;</div>
-                            <button class="btn-filter" onclick="filterTable()">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="row mt-3">
-                        <div class="col-12 text-end">
-                            <button class="btn-clear" onclick="clearFilters()">
-                                <i class="fas fa-undo me-2"></i>Limpar Filtros
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Consultas Table -->
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>
-                            <i class="fas fa-list"></i>
-                            Lista de Consultas
-                        </h5>
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-sm btn-success" onclick="exportToCSV()">
-                                <i class="fas fa-download me-1"></i>Exportar CSV
-                            </button>
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" id="searchInput" placeholder="Buscar consultas..." onkeyup="filterTable()">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table" id="consultasTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Paciente</th>
-                                        <th>Médico</th>
-                                        <th>Especialidade</th>
-                                        <th>Data/Hora</th>
-                                        <th>Status</th>
-                                        <th>Data Cadastro</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if consultas and consultas|length > 0 %}
-                                        {% for c in consultas %}
-                                        <tr>
-                                            <td data-label="ID">#{{ c[0] }}</td>
-                                            <td data-label="Paciente">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                                        <i class="fas fa-user text-success"></i>
-                                                    </div>
-                                                    <strong>{{ c[1] }}</strong>
-                                                </div>
-                                            </td>
-                                            <td data-label="Médico">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                                        <i class="fas fa-user-md text-primary"></i>
-                                                    </div>
-                                                    <strong>{{ c[2] }}</strong>
-                                                </div>
-                                            </td>
-                                            <td data-label="Especialidade">
-                                                <span class="badge bg-info">{{ c[6] }}</span>
-                                            </td>
-                                            <td data-label="Data/Hora">
-                                                <i class="fas fa-calendar-alt me-1 text-muted"></i>
-                                                {{ c[3].strftime('%d/%m/%Y %H:%M') if c[3] else '' }}
-                                            </td>
-                                            <td data-label="Status">
-                                                {% if c[4] == 'agendada' %}
-                                                    <span class="badge-status badge-agendada">
-                                                        <i class="fas fa-clock"></i>Agendada
-                                                    </span>
-                                                {% elif c[4] == 'confirmada' %}
-                                                    <span class="badge-status badge-confirmada">
-                                                        <i class="fas fa-check-circle"></i>Confirmada
-                                                    </span>
-                                                {% elif c[4] == 'realizada' %}
-                                                    <span class="badge-status badge-realizada">
-                                                        <i class="fas fa-check-double"></i>Realizada
-                                                    </span>
-                                                {% elif c[4] == 'cancelada' %}
-                                                    <span class="badge-status badge-cancelada">
-                                                        <i class="fas fa-times-circle"></i>Cancelada
-                                                    </span>
-                                                {% else %}
-                                                    <span class="badge-status badge-pendente">
-                                                        <i class="fas fa-question-circle"></i>{{ c[4] }}
-                                                    </span>
-                                                {% endif %}
-                                            </td>
-                                            <td data-label="Data Cadastro">
-                                                <small>{{ c[5].strftime('%d/%m/%Y') if c[5] else '' }}</small>
-                                            </td>
-                                            <td data-label="Ações">
-                                                <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=c[0]) }}" class="btn-action btn-view" title="Ver Detalhes" target="_blank">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                {% if c[4] == 'realizada' %}
-                                                <button class="btn-action btn-pdf" onclick="gerarPDF({{ c[0] }})" title="Gerar PDF">
-                                                    <i class="fas fa-file-pdf"></i>
-                                                </button>
-                                                {% endif %}
-                                                {% if c[4] != 'cancelada' and c[4] != 'realizada' %}
-                                                <button class="btn-action btn-cancel" onclick="cancelarConsulta({{ c[0] }})" title="Cancelar">
-                                                    <i class="fas fa-ban"></i>
-                                                </button>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    {% else %}
-                                        <tr>
-                                            <td colspan="8" class="empty-state">
-                                                <i class="fas fa-calendar-times"></i>
-                                                <h5>Nenhuma consulta encontrada</h5>
-                                                <p>As consultas realizadas aparecerão aqui.</p>
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                        
-                        <!-- Pagination -->
-                        {% if consultas and consultas|length > 20 %}
-                        <nav aria-label="Page navigation">
-                            <ul class="pagination">
-                                <li class="page-item disabled">
-                                    <a class="page-link" href="#" tabindex="-1">Anterior</a>
-                                </li>
-                                <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                                <li class="page-item"><a class="page-link" href="#">2</a></li>
-                                <li class="page-item"><a class="page-link" href="#">3</a></li>
-                                <li class="page-item">
-                                    <a class="page-link" href="#">Próximo</a>
-                                </li>
-                            </ul>
-                        </nav>
-                        {% endif %}
-                    </div>
+                <div>
+                    <small class="text-white-50 d-block">Administrador</small>
+                    <strong class="text-white">{{ session.user_name if session.user_name else 'Admin' }}</strong>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar fade-in">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div>
+                    <h1>Consultas</h1>
+                    <p>Gerencie todas as consultas do sistema</p>
+                </div>
+            </div>
+            <div class="date-badge">
+                <i class="fas fa-calendar-alt"></i>
+                <span id="currentDateTime"></span>
+            </div>
+        </div>
+        
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Stats Cards -->
+        <div class="stats-grid fade-in">
+            {% set total = consultas|length %}
+            {% set realizadas = consultas|selectattr('4', 'equalto', 'realizada')|list|length %}
+            {% set pendentes = consultas|selectattr('4', 'in', ['agendada', 'confirmada'])|list|length %}
+            {% set canceladas = consultas|selectattr('4', 'equalto', 'cancelada')|list|length %}
+            
+            <div class="stats-card total">
+                <i class="fas fa-calendar-check stats-icon"></i>
+                <div class="stats-number">{{ total }}</div>
+                <div class="stats-label">Total de Consultas</div>
+            </div>
+            
+            <div class="stats-card realizadas">
+                <i class="fas fa-check-circle stats-icon"></i>
+                <div class="stats-number">{{ realizadas }}</div>
+                <div class="stats-label">Realizadas</div>
+            </div>
+            
+            <div class="stats-card pendentes">
+                <i class="fas fa-clock stats-icon"></i>
+                <div class="stats-number">{{ pendentes }}</div>
+                <div class="stats-label">Pendentes</div>
+            </div>
+            
+            <div class="stats-card canceladas">
+                <i class="fas fa-times-circle stats-icon"></i>
+                <div class="stats-number">{{ canceladas }}</div>
+                <div class="stats-label">Canceladas</div>
+            </div>
+        </div>
+        
+        <!-- Filter Section -->
+        <div class="filter-section fade-in">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <div class="filter-label">Período</div>
+                    <input type="text" class="filter-input" id="dateRange" name="daterange" value="Últimos 30 dias">
+                </div>
+                <div class="col-md-2">
+                    <div class="filter-label">Status</div>
+                    <select class="filter-select" id="statusFilter">
+                        <option value="">Todos</option>
+                        <option value="agendada">Agendada</option>
+                        <option value="confirmada">Confirmada</option>
+                        <option value="realizada">Realizada</option>
+                        <option value="cancelada">Cancelada</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <div class="filter-label">Médico</div>
+                    <input type="text" class="filter-input" id="medicoFilter" placeholder="Nome do médico...">
+                </div>
+                <div class="col-md-3">
+                    <div class="filter-label">Paciente</div>
+                    <input type="text" class="filter-input" id="pacienteFilter" placeholder="Nome do paciente...">
+                </div>
+                <div class="col-md-1">
+                    <button class="btn-filter" onclick="filterTable()">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="col-12 text-end">
+                    <button class="btn-clear" onclick="clearFilters()">
+                        <i class="fas fa-undo"></i> Limpar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Card -->
+        <div class="card fade-in">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-list"></i>
+                    <h3>Lista de Consultas</h3>
+                    {% if total > 0 %}
+                    <span>{{ total }} registros</span>
+                    {% endif %}
+                </div>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar consultas...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="consultasTable">
+                    <thead>
+                        <tr>
+                            <th>Paciente</th>
+                            <th>Médico</th>
+                            <th>Especialidade</th>
+                            <th>Data/Hora</th>
+                            <th>Status</th>
+                            <th>Cadastro</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if consultas and consultas|length > 0 %}
+                            {% for c in consultas %}
+                            <tr>
+                                <td data-label="Paciente">
+                                    <div class="info-cell">
+                                        <div class="info-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        <div>
+                                            <div class="info-name">{{ c[1] }}</div>
+                                            <div class="info-email">ID: {{ c[0] }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Médico">
+                                    <div class="info-cell">
+                                        <div class="info-avatar">
+                                            <i class="fas fa-user-md"></i>
+                                        </div>
+                                        <div>
+                                            <div class="info-name">{{ c[2] }}</div>
+                                            <div class="info-email">{{ c[6] }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Especialidade">
+                                    <span class="especialidade-badge">{{ c[6] }}</span>
+                                </td>
+                                <td data-label="Data/Hora">
+                                    <strong>{{ c[3].strftime('%d/%m/%Y') if c[3] else '' }}</strong>
+                                    <br>
+                                    <small class="text-muted">{{ c[3].strftime('%H:%M') if c[3] else '' }}</small>
+                                </td>
+                                <td data-label="Status">
+                                    {% if c[4] == 'agendada' %}
+                                        <span class="badge badge-agendada">
+                                            <i class="fas fa-clock"></i> Agendada
+                                        </span>
+                                    {% elif c[4] == 'confirmada' %}
+                                        <span class="badge badge-confirmada">
+                                            <i class="fas fa-check-circle"></i> Confirmada
+                                        </span>
+                                    {% elif c[4] == 'realizada' %}
+                                        <span class="badge badge-realizada">
+                                            <i class="fas fa-check-double"></i> Realizada
+                                        </span>
+                                    {% elif c[4] == 'cancelada' %}
+                                        <span class="badge badge-cancelada">
+                                            <i class="fas fa-times-circle"></i> Cancelada
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-pendente">
+                                            <i class="fas fa-question-circle"></i> {{ c[4] }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Cadastro">
+                                    <small class="text-muted">{{ c[5].strftime('%d/%m/%Y') if c[5] else '' }}</small>
+                                </td>
+                                <td data-label="Ações">
+                                    <div class="action-group">
+                                        <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=c[0]) }}" class="btn-action btn-view" title="Ver Detalhes" target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        {% if c[4] == 'realizada' %}
+                                        <button class="btn-action btn-pdf" onclick="gerarPDF({{ c[0] }})" title="Gerar PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </button>
+                                        {% endif %}
+                                        {% if c[4] != 'cancelada' and c[4] != 'realizada' %}
+                                        <button class="btn-action btn-cancel" onclick="cancelarConsulta({{ c[0] }})" title="Cancelar">
+                                            <i class="fas fa-ban"></i>
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <i class="fas fa-calendar-times"></i>
+                                    <h3>Nenhuma consulta encontrada</h3>
+                                    <p>As consultas realizadas aparecerão aqui.</p>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if consultas and consultas|length > 10 %}
+            <nav class="mt-4 pb-3">
+                <ul class="pagination">
+                    <li class="page-item disabled">
+                        <span class="page-link">Anterior</span>
+                    </li>
+                    <li class="page-item active"><span class="page-link">1</span></li>
+                    <li class="page-item"><span class="page-link">2</span></li>
+                    <li class="page-item"><span class="page-link">3</span></li>
+                    <li class="page-item">
+                        <span class="page-link">Próximo</span>
+                    </li>
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <hr>
+            <p>
+                <i class="fas fa-heart" style="color: #ef4444;"></i> 
+                DoctorIA - Sistema de Gestão Médica
+                <br>
+                <span>© 2024 - Painel Administrativo</span>
+            </p>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     
     <script>
-        // Initialize Date Range Picker
+        // ==================== SIDEBAR FUNCTIONS ====================
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 992 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+        
+        // ==================== UPDATE DATE/TIME ====================
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long',
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+            };
+            document.getElementById('currentDateTime').textContent = now.toLocaleString('pt-BR', options);
+        }
+        
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+        
+        // ==================== DATE RANGE PICKER ====================
         $(function() {
             $('#dateRange').daterangepicker({
                 opens: 'left',
@@ -809,52 +1365,26 @@
             });
         });
         
-        // Update stats
-        function updateStats() {
-            const rows = document.querySelectorAll('#consultasTable tbody tr');
-            let realizadas = 0, pendentes = 0, canceladas = 0, total = 0;
-            
-            rows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    total++;
-                    const statusCell = row.cells[5];
-                    if (statusCell) {
-                        const status = statusCell.textContent.trim().toLowerCase();
-                        if (status.includes('realizada')) realizadas++;
-                        else if (status.includes('cancelada')) canceladas++;
-                        else pendentes++;
-                    }
-                }
-            });
-            
-            document.getElementById('totalConsultas').textContent = total;
-            document.getElementById('realizadasCount').textContent = realizadas;
-            document.getElementById('pendentesCount').textContent = pendentes;
-            document.getElementById('canceladasCount').textContent = canceladas;
-        }
-        
-        // Filter Table
+        // ==================== FILTER TABLE ====================
         function filterTable() {
             const searchInput = document.getElementById('searchInput').value.toLowerCase();
             const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
             const medicoFilter = document.getElementById('medicoFilter').value.toLowerCase();
             const pacienteFilter = document.getElementById('pacienteFilter').value.toLowerCase();
             
-            const table = document.getElementById('consultasTable');
-            const rows = table.getElementsByTagName('tr');
+            const rows = document.querySelectorAll('#consultasTable tbody tr');
             
-            for (let i = 1; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
-                if (cells.length < 2) continue;
+            rows.forEach(row => {
+                if (row.querySelector('.empty-state')) return;
                 
-                const paciente = cells[1]?.textContent.toLowerCase() || '';
-                const medico = cells[2]?.textContent.toLowerCase() || '';
-                const status = cells[5]?.textContent.toLowerCase() || '';
-                const data = cells[4]?.textContent.toLowerCase() || '';
+                const paciente = row.cells[0]?.textContent.toLowerCase() || '';
+                const medico = row.cells[1]?.textContent.toLowerCase() || '';
+                const status = row.cells[4]?.textContent.toLowerCase() || '';
+                const data = row.cells[3]?.textContent.toLowerCase() || '';
                 
                 let match = true;
                 
-                if (searchInput && !paciente.includes(searchInput) && !medico.includes(searchInput)) {
+                if (searchInput && !paciente.includes(searchInput) && !medico.includes(searchInput) && !data.includes(searchInput)) {
                     match = false;
                 }
                 
@@ -870,13 +1400,11 @@
                     match = false;
                 }
                 
-                rows[i].style.display = match ? '' : 'none';
-            }
-            
-            updateStats();
+                row.style.display = match ? '' : 'none';
+            });
         }
         
-        // Clear Filters
+        // ==================== CLEAR FILTERS ====================
         function clearFilters() {
             document.getElementById('searchInput').value = '';
             document.getElementById('statusFilter').value = '';
@@ -886,82 +1414,82 @@
             filterTable();
         }
         
-        // Gerar PDF
+        // ==================== GERAR PDF ====================
         function gerarPDF(consultaId) {
             window.open(`/api/receita/pdf/${consultaId}`, '_blank');
         }
         
-        // Cancelar Consulta
+        // ==================== CANCELAR CONSULTA ====================
         function cancelarConsulta(consultaId) {
-            if (confirm('Tem certeza que deseja cancelar esta consulta?')) {
-                fetch(`/consulta/${consultaId}/cancelar`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('Consulta cancelada com sucesso!');
-                        location.reload();
-                    } else {
-                        alert(data.error || 'Erro ao cancelar consulta');
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao cancelar consulta');
-                });
-            }
-        }
-        
-        // Export to CSV
-        function exportToCSV() {
-            const rows = document.querySelectorAll('#consultasTable tbody tr');
-            const csv = [];
-            
-            // Header
-            csv.push('ID,Paciente,Médico,Especialidade,Data/Hora,Status,Data Cadastro');
-            
-            // Data
-            rows.forEach(row => {
-                if (row.style.display !== 'none') {
-                    const cells = row.querySelectorAll('td');
-                    if (cells.length > 1) {
-                        const rowData = [
-                            cells[0]?.textContent.replace('#', '') || '',
-                            cells[1]?.textContent.trim() || '',
-                            cells[2]?.textContent.trim() || '',
-                            cells[3]?.textContent.trim() || '',
-                            cells[4]?.textContent.trim() || '',
-                            cells[5]?.textContent.trim() || '',
-                            cells[6]?.textContent.trim() || ''
-                        ];
-                        csv.push(rowData.join(','));
-                    }
+            Swal.fire({
+                title: 'Cancelar Consulta',
+                text: 'Tem certeza que deseja cancelar esta consulta?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sim, cancelar!',
+                cancelButtonText: 'Voltar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/consulta/${consultaId}/cancelar`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Cancelado!', 'Consulta cancelada com sucesso.', 'success')
+                                .then(() => location.reload());
+                        } else {
+                            Swal.fire('Erro!', data.error || 'Erro ao cancelar consulta', 'error');
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire('Erro!', 'Erro ao cancelar consulta', 'error');
+                    });
                 }
             });
-            
-            const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `consultas_${new Date().toISOString().split('T')[0]}.csv`;
-            a.click();
-            window.URL.revokeObjectURL(url);
         }
         
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            updateStats();
+        // ==================== TOUCH FEEDBACK ====================
+        document.querySelectorAll('.btn-action, .nav-link, .stats-card').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.transform = 'scale(0.98)';
+            });
             
-            // Adicionar listeners para filtros
+            el.addEventListener('touchend', function() {
+                this.style.transform = '';
+            });
+            
+            el.addEventListener('touchcancel', function() {
+                this.style.transform = '';
+            });
+        });
+        
+        // ==================== RESIZE HANDLER ====================
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 992) {
+                document.getElementById('sidebar').classList.remove('active');
+            }
+        });
+        
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add listeners
+            document.getElementById('searchInput').addEventListener('keyup', filterTable);
             document.getElementById('statusFilter').addEventListener('change', filterTable);
             document.getElementById('medicoFilter').addEventListener('keyup', filterTable);
             document.getElementById('pacienteFilter').addEventListener('keyup', filterTable);
-            $('#dateRange').on('apply.daterangepicker', function(ev, picker) {
-                filterTable();
+            $('#dateRange').on('apply.daterangepicker', filterTable);
+            
+            // Add fade-in animation to rows
+            document.querySelectorAll('#consultasTable tbody tr').forEach((row, index) => {
+                if (!row.classList.contains('empty-state')) {
+                    row.style.animation = `slideIn 0.3s ease-out ${index * 0.05}s both`;
+                }
             });
         });
     </script>

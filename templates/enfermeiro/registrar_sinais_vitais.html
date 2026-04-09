@@ -1,0 +1,363 @@
+<!-- templates/enfermeiro/registrar_sinais_vitais.html -->
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Registrar Sinais Vitais{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb bg-light p-2 rounded">
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.listar_internados') }}">Pacientes Internados</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.detalhes_internacao', internacao_id=internacao_id) }}">Detalhes da Internação</a></li>
+                    <li class="breadcrumb-item active">Registrar Sinais Vitais</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-success text-white py-3">
+                    <h4 class="mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>
+                        Registrar Sinais Vitais
+                    </h4>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Informações do Paciente -->
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-user-injured fa-2x me-3"></i>
+                            <div>
+                                <strong>Paciente:</strong> {{ paciente_nome }}<br>
+                                <strong>Prontuário:</strong> {{ numero_prontuario }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('enfermeiro.internados.salvar_sinais_vitais') }}" id="formSinaisVitais">
+                        <input type="hidden" name="paciente_id" value="{{ paciente_id }}">
+                        <input type="hidden" name="internacao_id" value="{{ internacao_id }}">
+                        <input type="hidden" name="consulta_id" value="{{ consulta_id }}">
+                        
+                        <div class="row g-4">
+                            <!-- Pressão Arterial -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-heart-pulse text-danger me-1"></i>
+                                    Pressão Arterial
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" name="pressao_arterial" 
+                                           placeholder="120 x 80" id="pressao_arterial">
+                                    <span class="input-group-text">mmHg</span>
+                                </div>
+                                <small class="text-muted">Formato: 120 x 80 ou 120/80</small>
+                                <div id="classificacao_pressao" class="mt-1"></div>
+                            </div>
+
+                            <!-- Frequência Cardíaca -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-heart text-danger me-1"></i>
+                                    Frequência Cardíaca
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="frequencia_cardiaca" 
+                                           placeholder="78" id="frequencia_cardiaca" min="0" max="300">
+                                    <span class="input-group-text">bpm</span>
+                                </div>
+                                <small class="text-muted">Normal: 60-100 bpm</small>
+                                <div id="classificacao_fc" class="mt-1"></div>
+                            </div>
+
+                            <!-- Frequência Respiratória -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-lungs text-primary me-1"></i>
+                                    Frequência Respiratória
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="frequencia_respiratoria" 
+                                           placeholder="16" id="frequencia_respiratoria" min="0" max="100">
+                                    <span class="input-group-text">rpm</span>
+                                </div>
+                                <small class="text-muted">Normal: 12-20 rpm</small>
+                                <div id="classificacao_fr" class="mt-1"></div>
+                            </div>
+
+                            <!-- Temperatura -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-thermometer-half text-warning me-1"></i>
+                                    Temperatura
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="temperatura" 
+                                           placeholder="36.5" id="temperatura" step="0.1" min="30" max="45">
+                                    <span class="input-group-text">°C</span>
+                                </div>
+                                <small class="text-muted">Normal: 36.1-37.2 °C</small>
+                                <div id="classificacao_temp" class="mt-1"></div>
+                            </div>
+
+                            <!-- Saturação de Oxigênio -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-wind text-info me-1"></i>
+                                    Saturação de Oxigênio (SpO₂)
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="saturacao_oxigenio" 
+                                           placeholder="98" id="saturacao_oxigenio" min="0" max="100">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <small class="text-muted">Normal: ≥ 95%</small>
+                                <div id="classificacao_spo2" class="mt-1"></div>
+                            </div>
+
+                            <!-- Glicemia -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-tint text-purple me-1"></i>
+                                    Glicemia
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="glicemia" 
+                                           placeholder="100" id="glicemia" min="0" max="600">
+                                    <span class="input-group-text">mg/dL</span>
+                                </div>
+                                <small class="text-muted">Normal: 70-140 mg/dL (jejum: 70-100)</small>
+                                <div id="classificacao_glicemia" class="mt-1"></div>
+                            </div>
+
+                            <!-- Peso -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-weight-scale text-secondary me-1"></i>
+                                    Peso
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="peso" 
+                                           placeholder="70" id="peso" step="0.1" min="0" max="300">
+                                    <span class="input-group-text">kg</span>
+                                </div>
+                                <small class="text-muted">Importante para cálculo de dosagens</small>
+                            </div>
+
+                            <!-- Observações -->
+                            <div class="col-12">
+                                <label class="form-label fw-bold">
+                                    <i class="fas fa-comment text-secondary me-1"></i>
+                                    Observações
+                                </label>
+                                <textarea class="form-control" name="observacoes" rows="3" 
+                                          placeholder="Informações adicionais..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Resumo dos Sinais -->
+                        <div class="alert alert-light mt-4" id="resumoSinais">
+                            <h6 class="fw-bold"><i class="fas fa-chart-line me-2"></i>Resumo dos Sinais Vitais</h6>
+                            <div class="row small">
+                                <div class="col-md-4">PA: <span id="resumo_pa">-</span></div>
+                                <div class="col-md-4">FC: <span id="resumo_fc">-</span> bpm</div>
+                                <div class="col-md-4">FR: <span id="resumo_fr">-</span> rpm</div>
+                                <div class="col-md-4">Temp: <span id="resumo_temp">-</span> °C</div>
+                                <div class="col-md-4">SpO₂: <span id="resumo_spo2">-</span>%</div>
+                                <div class="col-md-4">Glicemia: <span id="resumo_glicemia">-</span> mg/dL</div>
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-flex gap-3 justify-content-end mt-4 pt-3 border-top">
+                            <a href="{{ url_for('enfermeiro.internados.detalhes_internacao', internacao_id=internacao_id) }}" 
+                               class="btn btn-secondary">
+                                <i class="fas fa-times me-2"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success" id="btnSalvar">
+                                <i class="fas fa-save me-2"></i> Salvar Sinais Vitais
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-purple {
+        color: #6f42c1 !important;
+    }
+    .classificacao-normal {
+        color: #28a745;
+        font-size: 0.8rem;
+    }
+    .classificacao-alerta {
+        color: #ffc107;
+        font-size: 0.8rem;
+    }
+    .classificacao-critico {
+        color: #dc3545;
+        font-size: 0.8rem;
+    }
+    .form-control:focus {
+        border-color: #28a745;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    }
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1rem;
+        }
+        .col-md-6 {
+            margin-bottom: 1rem;
+        }
+    }
+</style>
+
+<script>
+    // Funções de classificação
+    function classificarPressao(valor) {
+        if (!valor) return null;
+        let sist, diast;
+        if (valor.includes('x')) {
+            [sist, diast] = valor.split('x');
+        } else if (valor.includes('/')) {
+            [sist, diast] = valor.split('/');
+        } else {
+            return null;
+        }
+        sist = parseInt(sist);
+        diast = parseInt(diast);
+        
+        if (sist < 120 && diast < 80) {
+            return { class: 'classificacao-normal', text: '✓ Normal' };
+        } else if (sist >= 180 || diast >= 120) {
+            return { class: 'classificacao-critico', text: '⚠️ Crise Hipertensiva - URGÊNCIA!' };
+        } else if (sist >= 140 || diast >= 90) {
+            return { class: 'classificacao-critico', text: '⚠️ Hipertensão - Avaliar' };
+        } else if (sist >= 130 || diast >= 85) {
+            return { class: 'classificacao-alerta', text: '⚠️ Elevada - Monitorar' };
+        }
+        return { class: 'classificacao-normal', text: '✓ Normal' };
+    }
+
+    function classificarFC(valor) {
+        if (!valor) return null;
+        if (valor < 60) return { class: 'classificacao-alerta', text: '⚠️ Bradicardia' };
+        if (valor > 100) return { class: 'classificacao-alerta', text: '⚠️ Taquicardia' };
+        return { class: 'classificacao-normal', text: '✓ Normal' };
+    }
+
+    function classificarFR(valor) {
+        if (!valor) return null;
+        if (valor < 12) return { class: 'classificacao-alerta', text: '⚠️ Bradipneia' };
+        if (valor > 20) return { class: 'classificacao-alerta', text: '⚠️ Taquipneia' };
+        return { class: 'classificacao-normal', text: '✓ Normal' };
+    }
+
+    function classificarTemp(valor) {
+        if (!valor) return null;
+        if (valor < 35) return { class: 'classificacao-critico', text: '⚠️ Hipotermia Grave' };
+        if (valor < 36) return { class: 'classificacao-alerta', text: '⚠️ Hipotermia' };
+        if (valor > 37.5) return { class: 'classificacao-alerta', text: '⚠️ Febre' };
+        if (valor > 39) return { class: 'classificacao-critico', text: '⚠️ Febre Alta - URGÊNCIA!' };
+        return { class: 'classificacao-normal', text: '✓ Normal' };
+    }
+
+    function classificarSpO2(valor) {
+        if (!valor) return null;
+        if (valor < 90) return { class: 'classificacao-critico', text: '⚠️ Hipoxemia Grave - URGÊNCIA!' };
+        if (valor < 95) return { class: 'classificacao-alerta', text: '⚠️ Hipoxemia Leve - Oxigenoterapia' };
+        return { class: 'classificacao-normal', text: '✓ Normal' };
+    }
+
+    function classificarGlicemia(valor) {
+        if (!valor) return null;
+        if (valor < 70) return { class: 'classificacao-critico', text: '⚠️ Hipoglicemia - URGÊNCIA!' };
+        if (valor > 200) return { class: 'classificacao-critico', text: '⚠️ Hiperglicemia Grave' };
+        if (valor > 140) return { class: 'classificacao-alerta', text: '⚠️ Hiperglicemia' };
+        return { class: 'classificacao-normal', text: '✓ Normal' };
+    }
+
+    // Atualizar classificações em tempo real
+    document.getElementById('pressao_arterial').addEventListener('input', function() {
+        const classificacao = classificarPressao(this.value);
+        const div = document.getElementById('classificacao_pressao');
+        if (classificacao) {
+            div.innerHTML = `<span class="${classificacao.class}">${classificacao.text}</span>`;
+        } else {
+            div.innerHTML = '';
+        }
+        document.getElementById('resumo_pa').textContent = this.value || '-';
+    });
+
+    document.getElementById('frequencia_cardiaca').addEventListener('input', function() {
+        const classificacao = classificarFC(this.value);
+        const div = document.getElementById('classificacao_fc');
+        if (classificacao) {
+            div.innerHTML = `<span class="${classificacao.class}">${classificacao.text}</span>`;
+        } else {
+            div.innerHTML = '';
+        }
+        document.getElementById('resumo_fc').textContent = this.value || '-';
+    });
+
+    document.getElementById('frequencia_respiratoria').addEventListener('input', function() {
+        const classificacao = classificarFR(this.value);
+        const div = document.getElementById('classificacao_fr');
+        if (classificacao) {
+            div.innerHTML = `<span class="${classificacao.class}">${classificacao.text}</span>`;
+        } else {
+            div.innerHTML = '';
+        }
+        document.getElementById('resumo_fr').textContent = this.value || '-';
+    });
+
+    document.getElementById('temperatura').addEventListener('input', function() {
+        const classificacao = classificarTemp(this.value);
+        const div = document.getElementById('classificacao_temp');
+        if (classificacao) {
+            div.innerHTML = `<span class="${classificacao.class}">${classificacao.text}</span>`;
+        } else {
+            div.innerHTML = '';
+        }
+        document.getElementById('resumo_temp').textContent = this.value || '-';
+    });
+
+    document.getElementById('saturacao_oxigenio').addEventListener('input', function() {
+        const classificacao = classificarSpO2(this.value);
+        const div = document.getElementById('classificacao_spo2');
+        if (classificacao) {
+            div.innerHTML = `<span class="${classificacao.class}">${classificacao.text}</span>`;
+        } else {
+            div.innerHTML = '';
+        }
+        document.getElementById('resumo_spo2').textContent = this.value || '-';
+    });
+
+    document.getElementById('glicemia').addEventListener('input', function() {
+        const classificacao = classificarGlicemia(this.value);
+        const div = document.getElementById('classificacao_glicemia');
+        if (classificacao) {
+            div.innerHTML = `<span class="${classificacao.class}">${classificacao.text}</span>`;
+        } else {
+            div.innerHTML = '';
+        }
+        document.getElementById('resumo_glicemia').textContent = this.value || '-';
+    });
+
+    // Validação antes de enviar
+    document.getElementById('formSinaisVitais').addEventListener('submit', function(e) {
+        const btn = document.getElementById('btnSalvar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,320 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes do Pedido #{{ pedido.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4">
+    <!-- Cabeçalho -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 mb-md-4">
+        <div>
+            <h2 class="h4 h3-md mb-0">
+                <i class="fas fa-file-medical me-2 text-primary"></i> Detalhes do Pedido
+            </h2>
+            <p class="text-muted mb-0 small">
+                <i class="fas fa-hashtag me-1"></i> Pedido #{{ pedido.id }} - 
+                <i class="fas fa-user me-1 ms-2"></i> {{ pedido.paciente_nome }}
+            </p>
+        </div>
+        <div class="mt-2 mt-md-0 d-flex gap-2">
+            <a href="{{ url_for('analista.pedidos') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+            {% if pedido.status == 'concluido' %}
+            <button type="button" class="btn btn-warning btn-sm" onclick="mostrarFormEdicao()">
+                <i class="fas fa-edit me-1"></i> Editar
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alertas Flash -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show mb-3 mb-md-4" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'warning' else 'info-circle' if category == 'info' else 'times-circle' }} me-2"></i>
+                        <div class="flex-grow-1">{{ message }}</div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Status do Pedido -->
+    <div class="row mb-3 mb-md-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <div class="d-flex flex-wrap align-items-center gap-3">
+                        <div>
+                            <span class="badge bg-{{ 'success' if pedido.status == 'concluido' else 'warning' if pedido.status == 'em_analise' else 'secondary' }} p-2">
+                                <i class="fas fa-{{ 'check-circle' if pedido.status == 'concluido' else 'clock' if pedido.status == 'em_analise' else 'hourglass' }} me-1"></i>
+                                {{ pedido.status|upper }}
+                            </span>
+                        </div>
+                        <div>
+                            <span class="badge bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' if pedido.urgencia == 'alta' else 'info' }} p-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                {{ pedido.urgencia|upper }}
+                            </span>
+                        </div>
+                        <div class="text-muted small">
+                            <i class="fas fa-calendar me-1"></i> Solicitação: {{ pedido.data_solicitacao.strftime('%d/%m/%Y %H:%M') if pedido.data_solicitacao else 'N/A' }}
+                        </div>
+                        {% if pedido.data_conclusao %}
+                        <div class="text-muted small">
+                            <i class="fas fa-check-circle me-1"></i> Conclusão: {{ pedido.data_conclusao.strftime('%d/%m/%Y %H:%M') if pedido.data_conclusao else 'N/A' }}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informações do Paciente e Médico -->
+    <div class="row g-3 mb-3 mb-md-4">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-primary text-white py-2">
+                    <h6 class="mb-0"><i class="fas fa-user me-2"></i> Paciente</h6>
+                </div>
+                <div class="card-body p-3">
+                    <p class="mb-1"><strong>{{ pedido.paciente_nome }}</strong></p>
+                    <p class="mb-1 small">
+                        <i class="fas fa-calendar-alt me-1 text-muted"></i> 
+                        {{ pedido.paciente_data_nascimento }} ({{ pedido.paciente_idade }})
+                    </p>
+                    <p class="mb-1 small">
+                        <i class="fas fa-venus-mars me-1 text-muted"></i> 
+                        {{ pedido.paciente_genero or 'Não informado' }}
+                    </p>
+                    <p class="mb-0 small">
+                        <i class="fas fa-phone me-1 text-muted"></i> 
+                        {{ pedido.paciente_telefone or 'Não informado' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-info text-white py-2">
+                    <h6 class="mb-0"><i class="fas fa-user-md me-2"></i> Médico Solicitante</h6>
+                </div>
+                <div class="card-body p-3">
+                    <p class="mb-1"><strong>{{ pedido.medico_nome }}</strong></p>
+                    <p class="mb-1 small">
+                        <i class="fas fa-stethoscope me-1 text-muted"></i> 
+                        {{ pedido.medico_especialidade or 'Não informado' }}
+                    </p>
+                    <p class="mb-0 small">
+                        <i class="fas fa-id-card me-1 text-muted"></i> 
+                        CRM: {{ pedido.medico_crm or 'Não informado' }}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalhes do Exame -->
+    <div class="row g-3 mb-3 mb-md-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white py-2">
+                    <h6 class="mb-0"><i class="fas fa-flask me-2"></i> Detalhes do Exame</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row">
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <small class="text-muted d-block">Tipo de Exame</small>
+                            <strong>{{ pedido.tipo_exame }}</strong>
+                        </div>
+                        {% if pedido.data_consulta %}
+                        <div class="col-md-4 mb-2 mb-md-0">
+                            <small class="text-muted d-block">Data da Consulta</small>
+                            <strong>{{ pedido.data_consulta.strftime('%d/%m/%Y %H:%M') }}</strong>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-4">
+                            <small class="text-muted d-block">Analista Responsável</small>
+                            <strong>{{ pedido.analista_nome or 'Não atribuído' }}</strong>
+                        </div>
+                    </div>
+                    
+                    {% if pedido.descricao %}
+                    <div class="mt-3">
+                        <small class="text-muted d-block">Descrição</small>
+                        <div class="border rounded p-2 bg-light mt-1">
+                            {{ pedido.descricao }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.observacoes %}
+                    <div class="mt-3">
+                        <small class="text-muted d-block">Observações</small>
+                        <div class="border rounded p-2 bg-light mt-1">
+                            {{ pedido.observacoes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resultado da Análise (VISUALIZAÇÃO) -->
+    {% if pedido.resultado_analise or pedido.diagnostico_analista %}
+    <div class="row g-3 mb-3 mb-md-4" id="visualizacaoAnalise">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white py-2">
+                    <h6 class="mb-0"><i class="fas fa-file-alt me-2"></i> Resultado da Análise</h6>
+                </div>
+                <div class="card-body p-3">
+                    {% if pedido.resultado_analise %}
+                    <div class="mb-3">
+                        <h6 class="text-success mb-2">Resultado</h6>
+                        <div class="border rounded p-3 bg-light">
+                            {{ pedido.resultado_analise|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.diagnostico_analista %}
+                    <div class="mb-3">
+                        <h6 class="text-primary mb-2">Diagnóstico</h6>
+                        <div class="border rounded p-3 bg-light">
+                            {{ pedido.diagnostico_analista|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.recomendacoes_analista %}
+                    <div class="mb-3">
+                        <h6 class="text-info mb-2">Recomendações</h6>
+                        <div class="border rounded p-3 bg-light">
+                            {{ pedido.recomendacoes_analista|replace('\n', '<br>')|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.observacoes_medico %}
+                    <div class="mt-3 pt-3 border-top">
+                        <h6 class="text-warning mb-2">Observações do Médico</h6>
+                        <div class="border rounded p-3 bg-light">
+                            {{ pedido.observacoes_medico }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulário de Edição (INICIALMENTE OCULTO) -->
+    <div class="row g-3 mb-3 mb-md-4" id="formEdicao" style="display: none;">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm border-warning">
+                <div class="card-header bg-warning text-dark py-2">
+                    <h6 class="mb-0"><i class="fas fa-edit me-2"></i> Editar Análise</h6>
+                </div>
+                <div class="card-body p-3">
+                    <form method="POST" action="{{ url_for('analista.editar_analise', pedido_id=pedido.id) }}">
+                        <div class="mb-3">
+                            <label class="form-label">Resultado da Análise <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="resultado_analise" rows="6" required>{{ pedido.resultado_analise or '' }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Diagnóstico <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="diagnostico_analista" rows="4" required>{{ pedido.diagnostico_analista or '' }}</textarea>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Recomendações</label>
+                            <textarea class="form-control" name="recomendacoes_analista" rows="3">{{ pedido.recomendacoes_analista or '' }}</textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i> Salvar Alterações
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="cancelarEdicao()">
+                                <i class="fas fa-times me-2"></i> Cancelar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anexos -->
+    {% if anexos and anexos|length > 0 %}
+    <div class="row g-3">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white py-2">
+                    <h6 class="mb-0"><i class="fas fa-paperclip me-2"></i> Anexos</h6>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row">
+                        {% for anexo in anexos %}
+                        <div class="col-md-4 mb-2">
+                            <div class="d-flex align-items-center border rounded p-2">
+                                <i class="fas fa-file-{% if anexo.tipo and 'image' in anexo.tipo %}image{% else %}alt{% endif %} fa-2x text-primary me-2"></i>
+                                <div class="flex-grow-1">
+                                    <small class="d-block text-truncate">{{ anexo.nome }}</small>
+                                    <small class="text-muted">{{ (anexo.tamanho/1024)|round|int }} KB</small>
+                                </div>
+                                <a href="{{ url_for('analista.download_anexo', pedido_id=pedido.id, filename=anexo.arquivo) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function mostrarFormEdicao() {
+    document.getElementById('visualizacaoAnalise').style.display = 'none';
+    document.getElementById('formEdicao').style.display = 'flex';
+}
+
+function cancelarEdicao() {
+    if (confirm('Cancelar edição? As alterações não salvas serão perdidas.')) {
+        document.getElementById('visualizacaoAnalise').style.display = 'flex';
+        document.getElementById('formEdicao').style.display = 'none';
+    }
+}
+</script>
+
+<style>
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    textarea {
+        font-size: 0.9rem;
+    }
+    
+    .btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %}

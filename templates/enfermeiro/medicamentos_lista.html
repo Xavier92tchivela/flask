@@ -1,0 +1,337 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Medicamentos - {{ internacao.paciente_nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb bg-light p-2 rounded">
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.listar_internados') }}">Internados</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.detalhes_internacao', internacao_id=internacao.id) }}">{{ internacao.paciente_nome }}</a></li>
+                    <li class="breadcrumb-item active">Medicamentos</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <!-- Card do Paciente -->
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-injured me-2"></i>
+                        {{ internacao.paciente_nome }}
+                        <span class="badge bg-light text-primary ms-2">Prontuário: {{ internacao.prontuario }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <small class="text-muted">Idade</small>
+                            <div>{{ internacao.idade }} anos</div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Data Internação</small>
+                            <div>
+                                {# CORREÇÃO: Verificar se data_internacao é datetime #}
+                                {% if internacao.data_internacao %}
+                                    {% if internacao.data_internacao is string %}
+                                        {{ internacao.data_internacao }}
+                                    {% elif internacao.data_internacao is not none %}
+                                        {{ internacao.data_internacao.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <small class="text-muted">Leito</small>
+                            <div>{{ internacao.leito or 'Não informado' }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards de Estatísticas -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <h3>{{ total_ativos }}</h3>
+                            <small>Medicamentos Ativos</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-dark">
+                        <div class="card-body text-center">
+                            <h3>{{ total_suspensos }}</h3>
+                            <small>Suspensos</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body text-center">
+                            <h3>{{ total_finalizados }}</h3>
+                            <small>Finalizados</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <h3>{{ administracoes_hoje }}</h3>
+                            <small>Adm. Hoje</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Medicamentos -->
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-capsules me-2"></i>
+                            Prescrições Médicas
+                        </h5>
+                        <a href="{{ url_for('enfermeiro.medicamentos.historico_administracoes', internacao_id=internacao.id) }}" 
+                           class="btn btn-sm btn-light">
+                            <i class="fas fa-history me-1"></i> Histórico
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if medicamentos %}
+                        <div class="accordion" id="accordionMedicamentos">
+                            {% for med in medicamentos %}
+                            <div class="accordion-item mb-2 border rounded">
+                                <div class="accordion-header" id="heading{{ med.id }}">
+                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center">
+                                                <strong class="fs-5">{{ med.medicamento }}</strong>
+                                                <span class="badge bg-{{ 'success' if med.status == 'ativa' else 'secondary' if med.status == 'finalizada' else 'warning' }} ms-2">
+                                                    {{ med.status|upper }}
+                                                </span>
+                                            </div>
+                                            <div class="row mt-2 small">
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-chart-line"></i> {{ med.dosagem }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-syringe"></i> {{ med.via }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-clock"></i> {{ med.frequencia }}
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <i class="fas fa-user-md"></i> {{ med.medico_nome }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" 
+                                                    data-bs-target="#collapse{{ med.id }}" aria-expanded="false">
+                                                <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div id="collapse{{ med.id }}" class="accordion-collapse collapse" data-bs-parent="#accordionMedicamentos">
+                                    <div class="accordion-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6><i class="fas fa-calendar-alt me-2"></i>Período</h6>
+                                                <p>{{ med.data_inicio }} até {{ med.data_fim }}</p>
+                                                {% if med.horario_inicio and med.horario_fim %}
+                                                <p><strong>Horário:</strong> {{ med.horario_inicio }} - {{ med.horario_fim }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6><i class="fas fa-star me-2"></i>Próximos Horários</h6>
+                                                {% if med.proximos_horarios %}
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        {% for horario in med.proximos_horarios %}
+                                                        <span class="badge bg-info">{{ horario }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <button class="btn btn-sm btn-success" onclick="administrarMedicamento({{ med.id }}, '{{ med.medicamento }}', '{{ med.dosagem }}')">
+                                                            <i class="fas fa-check-circle me-1"></i> Administrar Agora
+                                                        </button>
+                                                    </div>
+                                                {% else %}
+                                                    <span class="text-muted">Nenhum horário pendente</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        {% if med.observacoes %}
+                                        <div class="mt-3">
+                                            <h6><i class="fas fa-comment me-2"></i>Observações</h6>
+                                            <p class="text-muted">{{ med.observacoes }}</p>
+                                        </div>
+                                        {% endif %}
+                                        
+                                        <div class="mt-3">
+                                            <h6><i class="fas fa-history me-2"></i>Histórico de Administração</h6>
+                                            <div class="table-responsive">
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Data/Hora</th>
+                                                            <th>Status</th>
+                                                            <th>Observações</th>
+                                                        </thead>
+                                                    <tbody>
+                                                        {% for adm in med.administracoes[:5] %}
+                                                        <tr class="{% if adm.administrado %}table-success{% else %}table-warning{% endif %}">
+                                                            <td>
+                                                                {# CORREÇÃO: Verificar se data_hora é datetime #}
+                                                                {% if adm.data_hora %}
+                                                                    {% if adm.data_hora is string %}
+                                                                        {{ adm.data_hora }}
+                                                                    {% elif adm.data_hora is not none %}
+                                                                        {{ adm.data_hora.strftime('%d/%m/%Y %H:%M') }}
+                                                                    {% else %}
+                                                                        -
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    -
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>
+                                                                {% if adm.administrado %}
+                                                                    <span class="badge bg-success">Administrado</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-warning">Pendente</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{ adm.observacoes or '-' }}</td>
+                                                        </tr>
+                                                        {% else %}
+                                                        <tr>
+                                                            <td colspan="3" class="text-center text-muted">Nenhuma administração registrada</td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-capsules fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhum medicamento prescrito</h5>
+                            <p class="text-muted">Aguardando prescrição médica</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Administrar Medicamento -->
+<div class="modal fade" id="modalAdministrar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle me-2"></i> Administrar Medicamento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Confirmar administração de:</p>
+                <div class="alert alert-info">
+                    <strong id="medicamentoNome"></strong>
+                    <br>
+                    <small id="medicamentoDosagem"></small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Horário de Administração</label>
+                    <input type="datetime-local" class="form-control" id="horarioAdministracao">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Observações (opcional)</label>
+                    <textarea class="form-control" id="observacoesAdm" rows="2" placeholder="Ex: Paciente apresentou reação..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnConfirmarAdm">
+                    <i class="fas fa-check-circle me-1"></i> Confirmar Administração
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let medicamentoIdAtual = null;
+
+    function administrarMedicamento(id, nome, dosagem) {
+        medicamentoIdAtual = id;
+        document.getElementById('medicamentoNome').textContent = nome;
+        document.getElementById('medicamentoDosagem').textContent = dosagem;
+        
+        // Preencher horário atual
+        const agora = new Date();
+        const ano = agora.getFullYear();
+        const mes = String(agora.getMonth() + 1).padStart(2, '0');
+        const dia = String(agora.getDate()).padStart(2, '0');
+        const hora = String(agora.getHours()).padStart(2, '0');
+        const minuto = String(agora.getMinutes()).padStart(2, '0');
+        document.getElementById('horarioAdministracao').value = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalAdministrar'));
+        modal.show();
+    }
+
+    document.getElementById('btnConfirmarAdm').addEventListener('click', function() {
+        if (!medicamentoIdAtual) return;
+        
+        const horario = document.getElementById('horarioAdministracao').value;
+        const observacoes = document.getElementById('observacoesAdm').value;
+        
+        fetch(`/enfermeiro/medicamentos/administrar/${medicamentoIdAtual}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                horario: horario,
+                observacoes: observacoes
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalAdministrar')).hide();
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao processar solicitação');
+        });
+    });
+</script>
+{% endblock %}

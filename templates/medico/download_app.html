@@ -1,0 +1,448 @@
+<!-- templates/medico/download_app.html -->
+{% extends "base.html" %}
+
+{% block title %}Baixar App Móvel - Sistema Médico{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-md-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <!-- Card Principal -->
+            <div class="card shadow-lg border-0" style="border-radius: 25px; overflow: hidden;">
+                <div class="card-header bg-gradient-primary text-white text-center py-4" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <i class="fas fa-mobile-alt fa-4x mb-3"></i>
+                    <h2 class="h4 mb-0 fw-bold">App Móvel - Sistema Médico</h2>
+                    <p class="small mt-2 mb-0 opacity-75">Acesse o sistema de qualquer lugar, a qualquer momento</p>
+                </div>
+                
+                <div class="card-body p-4 p-md-5">
+                    <!-- Seção de Boas-vindas -->
+                    <div class="text-center mb-4">
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Disponível agora!</strong> Baixe o app e tenha o sistema na palma da sua mão.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    </div>
+                    
+                    <!-- Recursos do App -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="p-3 rounded-3 bg-light">
+                                <i class="fas fa-calendar-check fa-2x text-primary mb-2"></i>
+                                <p class="small mb-0 fw-bold">Consultas</p>
+                                <small class="text-muted">Em tempo real</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="p-3 rounded-3 bg-light">
+                                <i class="fas fa-microscope fa-2x text-success mb-2"></i>
+                                <p class="small mb-0 fw-bold">Análises</p>
+                                <small class="text-muted">Solicitar exames</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="p-3 rounded-3 bg-light">
+                                <i class="fas fa-procedures fa-2x text-info mb-2"></i>
+                                <p class="small mb-0 fw-bold">Internações</p>
+                                <small class="text-muted">Gerenciar pacientes</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 text-center">
+                            <div class="p-3 rounded-3 bg-light">
+                                <i class="fas fa-bell fa-2x text-warning mb-2"></i>
+                                <p class="small mb-0 fw-bold">Notificações</p>
+                                <small class="text-muted">Push instantâneas</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <!-- QR Code Section -->
+                    <div class="text-center mb-4">
+                        <h5 class="fw-bold mb-3">
+                            <i class="fas fa-qrcode text-primary me-2"></i>
+                            Escaneie o QR Code
+                        </h5>
+                        <div class="bg-white rounded-4 p-3 d-inline-block shadow-sm" style="border: 2px solid #e9ecef;">
+                            <div id="qrcode" style="width: 200px; height: 200px;"></div>
+                        </div>
+                        <p class="small text-muted mt-3 mb-0">
+                            Use a câmera do seu celular para escanear e baixar o app
+                        </p>
+                    </div>
+                    
+                    <!-- Links de Download -->
+                    <div class="text-center mb-4">
+                        <h5 class="fw-bold mb-3">Baixe diretamente:</h5>
+                        <div class="d-flex justify-content-center gap-3 flex-wrap">
+                            <a href="#" class="btn btn-dark btn-lg px-4" style="border-radius: 15px;" onclick="registrarDownload('ios')">
+                                <i class="fab fa-apple me-2"></i> App Store
+                                <small class="d-block small">iOS</small>
+                            </a>
+                            <a href="#" class="btn btn-success btn-lg px-4" style="border-radius: 15px;" onclick="registrarDownload('android')">
+                                <i class="fab fa-android me-2"></i> Google Play
+                                <small class="d-block small">Android</small>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Versão Web App -->
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-globe me-2"></i>
+                        <strong>Versão Web App (PWA):</strong>
+                        <p class="small mb-0 mt-2">
+                            Acesse pelo navegador do seu celular e adicione à tela inicial:
+                            <br>
+                            <code class="text-primary d-block mt-1 p-2 bg-white rounded" id="webAppUrl" style="word-break: break-all;"></code>
+                        </p>
+                    </div>
+                    
+                    <!-- Instruções de Instalação -->
+                    <div class="mt-4">
+                        <h6 class="fw-bold mb-3">
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            Como instalar?
+                        </h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fab fa-apple fa-2x text-dark me-2"></i>
+                                            <strong>iOS (iPhone/iPad)</strong>
+                                        </div>
+                                        <ol class="small ps-3 mb-0">
+                                            <li>Escaneie o QR Code ou acesse o link</li>
+                                            <li>Clique em "Compartilhar" <i class="fas fa-share-alt ms-1"></i></li>
+                                            <li>Selecione "Adicionar à Tela de Início"</li>
+                                            <li>Confirme em "Adicionar"</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-0 bg-light h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fab fa-android fa-2x text-success me-2"></i>
+                                            <strong>Android</strong>
+                                        </div>
+                                        <ol class="small ps-3 mb-0">
+                                            <li>Escaneie o QR Code ou acesse o link</li>
+                                            <li>Toque nos três pontos <i class="fas fa-ellipsis-v ms-1"></i></li>
+                                            <li>Selecione "Adicionar à tela inicial"</li>
+                                            <li>Confirme em "Adicionar"</li>
+                                        </ol>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botões de Ação -->
+                    <div class="d-flex justify-content-between gap-3 mt-4 pt-3">
+                        <a href="{{ url_for('medico.dashboard') }}" class="btn btn-outline-secondary flex-fill">
+                            <i class="fas fa-arrow-left me-2"></i> Voltar ao Dashboard
+                        </a>
+                        <button type="button" class="btn btn-primary flex-fill" onclick="enviarLinkPorEmail()">
+                            <i class="fas fa-envelope me-2"></i> Enviar Link por E-mail
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-light text-center p-3">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i> 
+                        Conexão segura com criptografia SSL
+                        <br>
+                        <i class="fas fa-sync-alt me-1"></i>
+                        Atualizações automáticas e suporte 24/7
+                    </small>
+                </div>
+            </div>
+            
+            <!-- Seção de Depoimentos -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body p-3 p-md-4">
+                            <h6 class="fw-bold text-center mb-3">
+                                <i class="fas fa-star text-warning me-2"></i>
+                                O que dizem os médicos
+                            </h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-user-md fa-2x text-primary mb-2"></i>
+                                        <p class="small mb-0">"Excelente app! Posso acompanhar meus pacientes de qualquer lugar."</p>
+                                        <small class="text-muted">- Dra. Ana Silva</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-user-md fa-2x text-primary mb-2"></i>
+                                        <p class="small mb-0">"Interface intuitiva e muito prática para o dia a dia."</p>
+                                        <small class="text-muted">- Dr. Carlos Santos</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="text-center">
+                                        <i class="fas fa-user-md fa-2x text-primary mb-2"></i>
+                                        <p class="small mb-0">"Notificações em tempo real me ajudam a não perder nenhuma solicitação."</p>
+                                        <small class="text-muted">- Dra. Mariana Costa</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // URL para a versão web app
+    const webAppUrl = window.location.origin + '/medico/dashboard';
+    document.getElementById('webAppUrl').textContent = webAppUrl;
+    
+    // Gerar QR Code
+    if (typeof QRCode !== 'undefined') {
+        const qrcodeElement = document.getElementById("qrcode");
+        if (qrcodeElement) {
+            new QRCode(qrcodeElement, {
+                text: webAppUrl,
+                width: 200,
+                height: 200,
+                colorDark: "#0d6efd",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+    }
+    
+    // Marcar que o usuário visualizou a página de download
+    localStorage.setItem('medico_app_download_shown', 'true');
+    
+    // Verificar se é dispositivo móvel e mostrar dica
+    function isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    if (isMobileDevice()) {
+        const mobileAlert = document.createElement('div');
+        mobileAlert.className = 'alert alert-success alert-dismissible fade show mt-3';
+        mobileAlert.innerHTML = `
+            <i class="fas fa-mobile-alt me-2"></i>
+            <strong>Você está usando um dispositivo móvel!</strong>
+            <br>
+            <small>Toque no botão de compartilhar e adicione este app à tela inicial.</small>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.querySelector('.card-body').insertBefore(mobileAlert, document.querySelector('.alert-success'));
+    }
+});
+
+// Função para registrar download
+function registrarDownload(plataforma) {
+    fetch('/medico/api/verificar-instalacao', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            instalado: true,
+            plataforma: plataforma
+        })
+    }).catch(console.error);
+    
+    localStorage.setItem('medico_app_installed', 'true');
+    
+    // Mostrar mensagem de agradecimento
+    Swal.fire({
+        icon: 'success',
+        title: 'Obrigado!',
+        text: 'Você será redirecionado para a loja de aplicativos.',
+        timer: 2000,
+        showConfirmButton: false
+    });
+}
+
+// Função para enviar link por e-mail
+function enviarLinkPorEmail() {
+    const email = prompt('Digite seu e-mail para receber o link de download:', '{{ user.email }}');
+    if (email && email.includes('@')) {
+        fetch('/medico/api/enviar-link-app', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                link: window.location.origin + '/medico/dashboard'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'E-mail enviado!',
+                    text: 'Verifique sua caixa de entrada.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error('Erro ao enviar');
+            }
+        })
+        .catch(() => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro',
+                text: 'Não foi possível enviar o e-mail. Tente novamente.',
+                confirmButtonText: 'OK'
+            });
+        });
+    } else if (email) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'E-mail inválido',
+            text: 'Por favor, digite um e-mail válido.',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Adicionar CSS para animações
+const style = document.createElement('style');
+style.textContent = `
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.1) !important;
+    }
+    
+    .btn {
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    #qrcode canvas,
+    #qrcode img {
+        width: 100% !important;
+        height: auto !important;
+        border-radius: 10px;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    #qrcode {
+        animation: pulse 2s ease-in-out;
+    }
+    
+    @media (max-width: 768px) {
+        .btn-lg {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem !important;
+        }
+        
+        #qrcode {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto;
+        }
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<!-- SweetAlert2 para mensagens bonitas -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+/* Estilos adicionais */
+.rounded-4 {
+    border-radius: 20px;
+}
+
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+
+.btn-outline-secondary:hover {
+    transform: translateY(-2px);
+}
+
+.alert {
+    border: none;
+    border-radius: 15px;
+}
+
+code {
+    background-color: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    border: 1px solid #e9ecef;
+}
+
+/* Animações de fade-in */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Melhorias para mobile */
+@media (max-width: 576px) {
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    .btn-lg {
+        font-size: 0.85rem;
+        padding: 8px 16px;
+    }
+    
+    .display-6 {
+        font-size: 1.5rem;
+    }
+}
+</style>
+{% endblock %}

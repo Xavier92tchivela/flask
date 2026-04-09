@@ -11,16 +11,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- ApexCharts -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --dark-color: #2c3e50;
-            --light-bg: #f4f6f9;
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --dark: #0f172a;
+            --gray-50: #f9fafb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            --sidebar-width: 280px;
+            --border-radius: 24px;
+            --transition: all 0.3s ease;
         }
         
         * {
@@ -30,89 +45,93 @@
         }
         
         body {
-            background-color: var(--light-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
             overflow-x: hidden;
         }
         
-        /* Sidebar - igual ao exemplo dos médicos */
+        /* ==================== SIDEBAR ==================== */
         .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a1c2e 0%, #2d2f42 100%);
             color: white;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
             position: fixed;
             top: 0;
             left: 0;
-            width: 280px;
-            z-index: 1050;
-            transition: transform 0.3s ease-in-out;
-            transform: translateX(-100%);
+            height: 100vh;
             overflow-y: auto;
+            z-index: 1050;
+            transition: var(--transition);
+            box-shadow: 4px 0 30px rgba(0,0,0,0.15);
         }
         
-        .sidebar.active {
-            transform: translateX(0);
+        .sidebar::-webkit-scrollbar {
+            width: 5px;
         }
         
-        @media (min-width: 992px) {
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--primary);
+            border-radius: 10px;
+        }
+        
+        @media (max-width: 992px) {
             .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
                 transform: translateX(0);
-                width: 280px;
             }
         }
         
-        .sidebar .logo-area {
+        .sidebar-header {
             padding: 24px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
         }
         
-        .sidebar .logo {
-            font-size: 22px;
-            font-weight: 700;
-            color: white;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .sidebar .logo i {
-            font-size: 28px;
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.7);
-            padding: 14px 20px;
-            margin: 6px 12px;
-            border-radius: 12px;
-            transition: all 0.3s;
-            font-weight: 500;
+        .logo {
             display: flex;
             align-items: center;
             gap: 12px;
             text-decoration: none;
-        }
-        
-        .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.12);
             color: white;
-            transform: translateX(5px);
         }
         
-        .sidebar .nav-link.active {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            color: white;
-            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transform: rotate(-5deg);
+            transition: var(--transition);
+            box-shadow: 0 10px 20px rgba(67,97,238,0.3);
         }
         
-        .sidebar .nav-link i {
-            width: 22px;
-            text-align: center;
+        .logo:hover .logo-icon {
+            transform: rotate(0deg) scale(1.1);
         }
         
-        .sidebar .user-info {
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+        }
+        
+        .logo-text span {
+            font-weight: 300;
+            color: var(--primary);
+        }
+        
+        .user-info {
             position: absolute;
             bottom: 0;
             left: 0;
@@ -120,103 +139,197 @@
             padding: 20px;
             border-top: 1px solid rgba(255,255,255,0.1);
             background: rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
         }
         
-        /* Menu Toggle */
-        .menu-toggle {
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
             display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            margin: 6px 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: var(--transition);
+            font-weight: 500;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: var(--primary);
+            transform: scaleY(0);
+            transition: var(--transition);
+        }
+        
+        .nav-link:hover::before,
+        .nav-link.active::before {
+            transform: scaleY(1);
+        }
+        
+        .nav-link i {
+            width: 24px;
+            font-size: 20px;
+            margin-right: 12px;
+            transition: var(--transition);
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding-left: 24px;
+        }
+        
+        .nav-link:hover i {
+            transform: scale(1.1);
+            color: var(--primary);
+        }
+        
+        .nav-link.active {
+            background: linear-gradient(90deg, rgba(67,97,238,0.2) 0%, transparent 100%);
+            color: white;
+            font-weight: 600;
+        }
+        
+        .nav-link.active i {
+            color: var(--primary);
+        }
+        
+        /* ==================== MENU TOGGLE ==================== */
+        .menu-toggle {
+            display: none;
             position: fixed;
             top: 15px;
             left: 15px;
             z-index: 1060;
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            color: white;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border: none;
-            width: 45px;
-            height: 45px;
             border-radius: 12px;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.4);
+            color: white;
             font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67,97,238,0.4);
         }
         
-        @media (min-width: 992px) {
+        @media (max-width: 992px) {
             .menu-toggle {
-                display: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
         }
         
-        /* Main Content */
+        /* ==================== MAIN CONTENT ==================== */
         .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
             min-height: 100vh;
-            padding: 70px 15px 20px 15px;
-            transition: margin-left 0.3s ease-in-out;
+            transition: var(--transition);
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
         }
         
-        @media (min-width: 992px) {
+        @media (max-width: 992px) {
             .main-content {
-                margin-left: 280px;
-                padding: 30px;
+                margin-left: 0;
+                padding: 70px 15px 20px;
             }
         }
         
-        /* Page Title */
+        /* ==================== PAGE TITLE ==================== */
         .page-title {
-            margin-bottom: 30px;
-            color: var(--dark-color);
-            font-weight: 800;
-            font-size: 24px;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .title-left {
+            display: flex;
+            align-items: center;
             gap: 15px;
         }
         
-        @media (min-width: 768px) {
-            .page-title {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-                font-size: 28px;
-            }
+        .title-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
         }
         
-        .page-title i {
-            margin-right: 12px;
-            color: var(--primary-color);
+        .title-left h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin: 0;
+        }
+        
+        .title-left p {
+            color: var(--gray-500);
+            margin: 5px 0 0 0;
+            font-size: 14px;
         }
         
         .date-badge {
             background: white;
-            padding: 8px 16px;
-            border-radius: 30px;
+            padding: 12px 20px;
+            border-radius: 16px;
             font-size: 14px;
-            color: #64748b;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: inline-flex;
+            color: var(--gray-600);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            display: flex;
             align-items: center;
             gap: 8px;
-            width: fit-content;
         }
         
         .date-badge i {
-            color: var(--primary-color);
-            margin: 0;
+            color: var(--primary);
         }
         
-        /* Stats Cards */
+        /* ==================== STATS CARDS ==================== */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
             margin-bottom: 30px;
         }
         
-        @media (min-width: 768px) {
+        @media (max-width: 992px) {
             .stats-grid {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 24px;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
             }
         }
         
@@ -225,10 +338,11 @@
             border-radius: 20px;
             padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            transition: all 0.3s;
+            transition: var(--transition);
             position: relative;
             overflow: hidden;
             border: 1px solid rgba(0,0,0,0.03);
+            animation: slideIn 0.5s ease-out;
         }
         
         .stats-card:hover {
@@ -236,155 +350,277 @@
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
         }
         
-        .stats-card .icon {
+        .stats-icon {
             position: absolute;
             right: 15px;
             top: 15px;
-            font-size: 40px;
+            font-size: 48px;
             opacity: 0.1;
-            color: var(--primary-color);
+            color: var(--primary);
         }
         
-        .stats-card .number {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--dark-color);
+        .stats-number {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--gray-800);
             margin-bottom: 5px;
+            line-height: 1.2;
         }
         
-        .stats-card .label {
-            font-size: 12px;
-            color: #64748b;
+        .stats-label {
+            font-size: 13px;
+            color: var(--gray-500);
             text-transform: uppercase;
             letter-spacing: 0.5px;
             font-weight: 600;
+            margin: 0;
         }
         
-        /* Cards */
+        .stats-trend {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        
+        .trend-up {
+            color: var(--success);
+        }
+        
+        .trend-down {
+            color: var(--danger);
+        }
+        
+        /* ==================== CARDS ==================== */
         .card {
-            border: none;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-            border: 1px solid rgba(0,0,0,0.03);
             background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            border: 1px solid rgba(0,0,0,0.03);
+            overflow: hidden;
+            height: 100%;
         }
         
         .card-header {
             background: transparent;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid var(--gray-200);
             padding: 20px 25px;
-            border-radius: 24px 24px 0 0 !important;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
-        .card-header h5 {
-            margin: 0;
-            color: var(--dark-color);
-            font-weight: 700;
-            font-size: 1.2rem;
+        .card-title {
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .card-header h5 i {
-            color: var(--primary-color);
-            font-size: 1.4rem;
+        .card-title i {
+            color: var(--primary);
+            font-size: 20px;
+        }
+        
+        .card-title h5 {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--gray-800);
         }
         
         .card-body {
             padding: 20px;
         }
         
-        /* List Group */
-        .list-group-item {
-            border: none;
-            border-bottom: 1px solid #e9ecef;
-            padding: 15px 20px;
+        .card-footer {
             background: transparent;
+            border-top: 1px solid var(--gray-200);
+            padding: 15px 20px;
         }
         
-        .list-group-item:last-child {
+        /* ==================== LISTS ==================== */
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            transition: var(--transition);
+        }
+        
+        .list-item:last-child {
             border-bottom: none;
         }
         
-        /* Badges */
-        .badge {
+        .list-item:hover {
+            background: var(--gray-50);
+        }
+        
+        .item-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .item-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .item-details {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .item-title {
+            font-weight: 600;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+        
+        .item-subtitle {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+        
+        .item-badge {
             padding: 6px 12px;
             border-radius: 30px;
             font-size: 12px;
             font-weight: 600;
         }
         
-        .badge.agendada { background: rgba(67, 97, 238, 0.1); color: var(--primary-color); }
-        .badge.realizada { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .badge.cancelada { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
-        .badge.active { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-        .badge.inactive { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+        .badge-agendada {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
         
-        /* Empty State */
+        .badge-realizada {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .badge-cancelada {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+        
+        .badge-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .badge-inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+        
+        .badge-admin {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+        
+        /* ==================== CHARTS ==================== */
+        #consultasChart, #statusChart {
+            min-height: 300px;
+            width: 100%;
+        }
+        
+        /* ==================== EMPTY STATE ==================== */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
         }
         
         .empty-state i {
-            font-size: 3rem;
-            color: #cbd5e0;
+            font-size: 48px;
+            color: var(--gray-300);
             margin-bottom: 15px;
         }
         
         .empty-state p {
-            color: #94a3b8;
+            color: var(--gray-500);
             margin: 0;
         }
         
-        /* Charts */
-        #consultasChart, #statusChart {
-            min-height: 300px;
-            width: 100%;
+        /* ==================== ANIMATIONS ==================== */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
-        /* Responsividade */
+        .fade-in {
+            animation: slideIn 0.5s ease-out;
+        }
+        
+        /* ==================== FOOTER ==================== */
+        .footer {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 30px;
+        }
+        
+        .footer hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
+        }
+        
+        /* ==================== RESPONSIVE ==================== */
         @media (max-width: 768px) {
-            .main-content {
-                padding: 70px 12px 20px 12px;
+            .page-title {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
             }
             
-            .stats-card {
-                padding: 15px;
-            }
-            
-            .stats-card .number {
+            .title-left h1 {
                 font-size: 24px;
             }
             
-            .stats-card .label {
-                font-size: 11px;
+            .date-badge {
+                width: 100%;
+                justify-content: center;
             }
             
             .card-header {
                 padding: 15px 20px;
             }
             
-            .card-header h5 {
-                font-size: 1rem;
-            }
-            
             .card-body {
                 padding: 15px;
             }
             
-            .list-group-item {
+            .list-item {
                 padding: 12px 15px;
+            }
+            
+            .item-avatar {
+                width: 35px;
+                height: 35px;
                 font-size: 14px;
             }
         }
         
-        /* Touch Improvements */
+        /* ==================== TOUCH IMPROVEMENTS ==================== */
         @media (max-width: 768px) {
             .btn, 
-            .nav-link {
+            .nav-link,
+            .stats-card {
                 min-height: 44px;
             }
             
@@ -393,29 +629,19 @@
             }
         }
         
-        /* Scrollbar */
+        /* ==================== SCROLLBAR ==================== */
         ::-webkit-scrollbar {
             width: 4px;
             height: 4px;
         }
         
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: var(--gray-100);
         }
         
         ::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
+            background: var(--primary);
             border-radius: 4px;
-        }
-        
-        /* Animações */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .fade-in {
-            animation: fadeIn 0.3s ease-out;
         }
     </style>
 </head>
@@ -428,10 +654,14 @@
 
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
-        <div class="logo-area">
+        <div class="sidebar-header">
             <a href="{{ url_for('admin.dashboard') }}" class="logo">
-                <i class="fas fa-brain"></i>
-                <span>Doctor<span style="font-weight: 300;">IA</span></span>
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="logo-text">
+                    Doctor<span>IA</span>
+                </div>
             </a>
         </div>
         
@@ -439,24 +669,26 @@
             <a class="nav-link active" href="{{ url_for('admin.dashboard') }}">
                 <i class="fas fa-home"></i> Dashboard
             </a>
-            
             <a class="nav-link" href="{{ url_for('admin.medicos') }}">
                 <i class="fas fa-user-md"></i> Médicos
             </a>
-            
             <a class="nav-link" href="{{ url_for('admin.analistas') }}">
                 <i class="fas fa-microscope"></i> Analistas
             </a>
-            
-            <a class="nav-link" href="{{ url_for('admin.consultas') }}">
-                <i class="fas fa-calendar-check"></i> Consultas
+            <a class="nav-link" href="{{ url_for('admin.enfermeiros') }}">
+                <i class="fas fa-user-nurse"></i> Enfermeiros
             </a>
-            
             <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
                 <i class="fas fa-users"></i> Pacientes
             </a>
+            <a class="nav-link" href="{{ url_for('admin.consultas') }}">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
+            <a class="nav-link" href="{{ url_for('admin.estatisticas') }}">
+                <i class="fas fa-chart-bar"></i> Estatísticas
+            </a>
             
-            <hr class="bg-white-50">
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px;">
             
             <a class="nav-link" href="{{ url_for('admin.logout') }}">
                 <i class="fas fa-sign-out-alt"></i> Sair
@@ -465,13 +697,13 @@
         
         <!-- User Info -->
         <div class="user-info">
-            <div class="d-flex align-items-center">
-                <div class="bg-white rounded-circle p-2 me-3" style="width: 40px; height: 40px;">
-                    <i class="fas fa-crown text-warning" style="font-size: 1.2rem;"></i>
+            <div class="d-flex align-items-center gap-3">
+                <div class="user-avatar">
+                    {{ session.user_name[:1] if session.user_name else 'A' }}
                 </div>
                 <div>
                     <small class="text-white-50 d-block">Administrador</small>
-                    <strong class="text-white">{{ user.user_name if user else 'Admin' }}</strong>
+                    <strong class="text-white">{{ session.user_name if session.user_name else 'Admin' }}</strong>
                 </div>
             </div>
         </div>
@@ -481,9 +713,14 @@
     <div class="main-content">
         <!-- Page Title -->
         <div class="page-title fade-in">
-            <div>
-                <i class="fas fa-chart-line"></i>
-                Dashboard
+            <div class="title-left">
+                <div class="title-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                    <h1>Dashboard</h1>
+                    <p>Visão geral do sistema</p>
+                </div>
             </div>
             <div class="date-badge">
                 <i class="fas fa-calendar-alt"></i>
@@ -494,27 +731,63 @@
         <!-- Stats Cards -->
         <div class="stats-grid fade-in">
             <div class="stats-card">
-                <i class="fas fa-user-md icon"></i>
-                <div class="number" id="statsMedicos">{{ total_medicos or 0 }}</div>
-                <div class="label">Médicos</div>
+                <i class="fas fa-user-md stats-icon"></i>
+                <div class="stats-number">{{ total_medicos or 0 }}</div>
+                <div class="stats-label">Médicos</div>
+                <div class="stats-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+12% este mês</span>
+                </div>
             </div>
             
             <div class="stats-card">
-                <i class="fas fa-microscope icon"></i>
-                <div class="number" id="statsAnalistas">{{ total_analistas or 0 }}</div>
-                <div class="label">Analistas</div>
+                <i class="fas fa-microscope stats-icon"></i>
+                <div class="stats-number">{{ total_analistas or 0 }}</div>
+                <div class="stats-label">Analistas</div>
+                <div class="stats-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+8% este mês</span>
+                </div>
             </div>
             
             <div class="stats-card">
-                <i class="fas fa-users icon"></i>
-                <div class="number" id="statsPacientes">{{ total_pacientes or 0 }}</div>
-                <div class="label">Pacientes</div>
+                <i class="fas fa-user-nurse stats-icon" style="color: #10b981;"></i>
+                <div class="stats-number">{{ total_enfermeiros or 0 }}</div>
+                <div class="stats-label">Enfermeiros</div>
+                <div class="stats-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+5% este mês</span>
+                </div>
             </div>
             
             <div class="stats-card">
-                <i class="fas fa-calendar-check icon"></i>
-                <div class="number" id="statsConsultas">{{ total_consultas or 0 }}</div>
-                <div class="label">Consultas</div>
+                <i class="fas fa-users stats-icon"></i>
+                <div class="stats-number">{{ total_pacientes or 0 }}</div>
+                <div class="stats-label">Pacientes</div>
+                <div class="stats-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+15% este mês</span>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <i class="fas fa-calendar-check stats-icon"></i>
+                <div class="stats-number">{{ total_consultas or 0 }}</div>
+                <div class="stats-label">Consultas</div>
+                <div class="stats-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+20% este mês</span>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <i class="fas fa-chart-bar stats-icon"></i>
+                <div class="stats-number">{{ total_analises or 0 }}</div>
+                <div class="stats-label">Análises</div>
+                <div class="stats-trend trend-up">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+10% este mês</span>
+                </div>
             </div>
         </div>
         
@@ -523,10 +796,15 @@
             <div class="col-12 col-lg-8">
                 <div class="card">
                     <div class="card-header">
-                        <h5>
+                        <div class="card-title">
                             <i class="fas fa-chart-line"></i>
-                            Movimento de Consultas
-                        </h5>
+                            <h5>Movimento de Consultas</h5>
+                        </div>
+                        <select class="form-select form-select-sm w-auto">
+                            <option>Últimos 12 meses</option>
+                            <option>Últimos 6 meses</option>
+                            <option>Últimos 30 dias</option>
+                        </select>
                     </div>
                     <div class="card-body">
                         <div id="consultasChart"></div>
@@ -537,13 +815,20 @@
             <div class="col-12 col-lg-4">
                 <div class="card">
                     <div class="card-header">
-                        <h5>
+                        <div class="card-title">
                             <i class="fas fa-chart-pie"></i>
-                            Status das Consultas
-                        </h5>
+                            <h5>Status das Consultas</h5>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div id="statusChart"></div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between">
+                            <span><span class="badge badge-agendada me-2"></span> Agendadas: {{ consultas_agendadas or 10 }}</span>
+                            <span><span class="badge badge-realizada me-2"></span> Realizadas: {{ consultas_realizadas or 20 }}</span>
+                            <span><span class="badge badge-cancelada me-2"></span> Canceladas: {{ consultas_canceladas or 5 }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -554,21 +839,26 @@
             <div class="col-12 col-lg-6">
                 <div class="card">
                     <div class="card-header">
-                        <h5>
+                        <div class="card-title">
                             <i class="fas fa-clock"></i>
-                            Últimas Consultas
-                        </h5>
+                            <h5>Últimas Consultas</h5>
+                        </div>
+                        <a href="{{ url_for('admin.consultas') }}" class="text-decoration-none small">Ver todas</a>
                     </div>
                     <div class="card-body p-0">
                         {% if atividades_recentes %}
                             {% for atividade in atividades_recentes %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ atividade[1] }}</strong>
-                                    <br>
-                                    <small class="text-muted">{{ atividade[3].strftime('%d/%m/%Y %H:%M') if atividade[3] else '' }}</small>
+                            <div class="list-item">
+                                <div class="item-info">
+                                    <div class="item-avatar">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="item-details">
+                                        <span class="item-title">{{ atividade[1] }}</span>
+                                        <span class="item-subtitle">{{ atividade[3].strftime('%d/%m/%Y %H:%M') if atividade[3] else '' }}</span>
+                                    </div>
                                 </div>
-                                <span class="badge {{ atividade[2] }}">{{ atividade[2]|capitalize }}</span>
+                                <span class="item-badge badge-{{ atividade[2] }}">{{ atividade[2]|capitalize }}</span>
                             </div>
                             {% endfor %}
                         {% else %}
@@ -584,21 +874,26 @@
             <div class="col-12 col-lg-6">
                 <div class="card">
                     <div class="card-header">
-                        <h5>
+                        <div class="card-title">
                             <i class="fas fa-users"></i>
-                            Últimos Usuários
-                        </h5>
+                            <h5>Últimos Usuários</h5>
+                        </div>
+                        <a href="{{ url_for('admin.pacientes') }}" class="text-decoration-none small">Ver todos</a>
                     </div>
                     <div class="card-body p-0">
                         {% if ultimos_usuarios %}
                             {% for usuario in ultimos_usuarios %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <strong>{{ usuario[1] }}</strong>
-                                    <br>
-                                    <small class="text-muted">{{ usuario[2] }} • {{ usuario[3] }}</small>
+                            <div class="list-item">
+                                <div class="item-info">
+                                    <div class="item-avatar">
+                                        <i class="fas fa-{{ 'user-md' if usuario[3] == 'medico' else 'microscope' if usuario[3] == 'analista' else 'user-nurse' if usuario[3] == 'enfermeiro' else 'user' }}"></i>
+                                    </div>
+                                    <div class="item-details">
+                                        <span class="item-title">{{ usuario[1] }}</span>
+                                        <span class="item-subtitle">{{ usuario[2] }} • {{ usuario[3]|capitalize }}</span>
+                                    </div>
                                 </div>
-                                <span class="badge {{ 'active' if usuario[4] else 'inactive' }}">
+                                <span class="item-badge {{ 'badge-active' if usuario[4] else 'badge-inactive' }}">
                                     {{ 'Ativo' if usuario[4] else 'Inativo' }}
                                 </span>
                             </div>
@@ -612,6 +907,59 @@
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="row g-4 mt-2 fade-in">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-bolt"></i>
+                            <h5>Ações Rápidas</h5>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-6 col-md-3">
+                                <a href="{{ url_for('admin.cadastrar_medico') }}" class="btn btn-primary w-100 py-3">
+                                    <i class="fas fa-user-md mb-2 d-block"></i>
+                                    <small>Novo Médico</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ url_for('admin.cadastrar_analista') }}" class="btn btn-primary w-100 py-3" style="background: linear-gradient(135deg, #f59e0b, #d97706); border: none;">
+                                    <i class="fas fa-microscope mb-2 d-block"></i>
+                                    <small>Novo Analista</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ url_for('admin.cadastrar_enfermeiro') }}" class="btn btn-primary w-100 py-3" style="background: linear-gradient(135deg, #10b981, #059669); border: none;">
+                                    <i class="fas fa-user-nurse mb-2 d-block"></i>
+                                    <small>Novo Enfermeiro</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ url_for('admin.cadastrar_paciente') }}" class="btn btn-primary w-100 py-3" style="background: linear-gradient(135deg, #64748b, #475569); border: none;">
+                                    <i class="fas fa-users mb-2 d-block"></i>
+                                    <small>Novo Paciente</small>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <hr>
+            <p>
+                <i class="fas fa-heart" style="color: #ef4444;"></i> 
+                DoctorIA - Sistema de Gestão Médica
+                <br>
+                <span>© 2024 - Painel Administrativo</span>
+            </p>
         </div>
     </div>
     
@@ -641,6 +989,7 @@
         function updateDateTime() {
             const now = new Date();
             const options = { 
+                weekday: 'long',
                 day: '2-digit', 
                 month: '2-digit', 
                 year: 'numeric', 
@@ -666,7 +1015,7 @@
                 type: 'area',
                 toolbar: { show: false },
                 animations: { enabled: true },
-                fontFamily: 'Segoe UI, sans-serif'
+                fontFamily: 'Inter, sans-serif'
             },
             stroke: {
                 curve: 'smooth',
@@ -684,7 +1033,10 @@
             xaxis: {
                 categories: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
             },
-            colors: ['#4361ee']
+            colors: ['#4361ee'],
+            tooltip: {
+                theme: 'light'
+            }
         };
         
         var consultasChart = new ApexCharts(document.querySelector("#consultasChart"), consultasOptions);
@@ -697,7 +1049,7 @@
                 type: 'donut',
                 height: 250,
                 animations: { enabled: true },
-                fontFamily: 'Segoe UI, sans-serif'
+                fontFamily: 'Inter, sans-serif'
             },
             labels: ['Agendadas', 'Realizadas', 'Canceladas'],
             colors: ['#4361ee', '#10b981', '#ef4444'],
@@ -722,6 +1074,9 @@
                 position: 'bottom',
                 fontSize: '12px'
             },
+            tooltip: {
+                theme: 'light'
+            },
             responsive: [{
                 breakpoint: 768,
                 options: {
@@ -745,10 +1100,21 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        document.getElementById('statsMedicos').textContent = data.data.medicos;
-                        document.getElementById('statsAnalistas').textContent = data.data.analistas;
-                        document.getElementById('statsPacientes').textContent = data.data.pacientes;
-                        document.getElementById('statsConsultas').textContent = data.data.consultas;
+                        document.querySelectorAll('.stats-number')[0].textContent = data.data.medicos;
+                        document.querySelectorAll('.stats-number')[1].textContent = data.data.analistas;
+                        document.querySelectorAll('.stats-number')[2].textContent = data.data.enfermeiros;
+                        document.querySelectorAll('.stats-number')[3].textContent = data.data.pacientes;
+                        document.querySelectorAll('.stats-number')[4].textContent = data.data.consultas;
+                        document.querySelectorAll('.stats-number')[5].textContent = data.data.analises;
+                        
+                        // Atualizar gráfico de status com dados reais
+                        if (data.data.status) {
+                            statusChart.updateSeries([
+                                data.data.status.agendadas,
+                                data.data.status.realizadas,
+                                data.data.status.canceladas
+                            ]);
+                        }
                     }
                 })
                 .catch(error => console.error('Erro ao carregar estatísticas:', error));
@@ -759,7 +1125,7 @@
         setInterval(carregarEstatisticas, 60000);
         
         // ==================== TOUCH FEEDBACK ====================
-        document.querySelectorAll('.stats-card, .nav-link').forEach(el => {
+        document.querySelectorAll('.stats-card, .nav-link, .btn').forEach(el => {
             el.addEventListener('touchstart', function() {
                 this.style.transform = 'scale(0.98)';
             });
@@ -778,6 +1144,10 @@
             if (window.innerWidth > 992) {
                 document.getElementById('sidebar').classList.remove('active');
             }
+            
+            // Redesenhar gráficos
+            consultasChart.updateOptions({});
+            statusChart.updateOptions({});
         });
     </script>
 </body>

@@ -24,10 +24,9 @@
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f8f9fc;
-            padding-bottom: 70px; /* Espaço para navegação mobile */
+            padding-bottom: 70px;
         }
         
-        /* Container responsivo */
         .container-fluid {
             padding-left: 10px;
             padding-right: 10px;
@@ -40,7 +39,6 @@
             }
         }
         
-        /* Estilos para o Receituário */
         .receita-medica {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -123,7 +121,6 @@
             background: #224abe;
         }
         
-        /* Cards modernos e responsivos */
         .card {
             border-radius: 12px;
             border: none;
@@ -181,6 +178,10 @@
             background: linear-gradient(135deg, var(--secondary-color) 0%, #6c757d 100%) !important;
         }
         
+        .card-header.bg-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #dda20a 100%) !important;
+        }
+        
         .card-header h4, 
         .card-header h6 {
             color: white;
@@ -198,7 +199,6 @@
             }
         }
         
-        /* Badges personalizados */
         .badge {
             font-weight: 600;
             padding: 0.4em 0.8em;
@@ -230,7 +230,6 @@
             background: linear-gradient(135deg, #36b9cc 0%, #258391 100%) !important;
         }
         
-        /* Tabelas responsivas */
         .table-borderless td {
             padding: 0.4rem 0;
             vertical-align: middle;
@@ -256,7 +255,6 @@
             border-bottom: none;
         }
         
-        /* Alertas personalizados */
         .alert {
             border-radius: 8px;
             border: none;
@@ -296,7 +294,6 @@
             color: #721c24;
         }
         
-        /* Botões melhorados e responsivos */
         .btn {
             border-radius: 8px;
             font-weight: 600;
@@ -349,8 +346,21 @@
             box-shadow: 0 4px 12px rgba(78, 115, 223, 0.3);
         }
         
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #dda20a 100%);
+            border: none;
+            color: #000;
+        }
+        
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #f3b53c 0%, #c49108 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(246, 194, 62, 0.3);
+        }
+        
         @media (max-width: 576px) {
-            .btn-primary:hover {
+            .btn-primary:hover,
+            .btn-warning:hover {
                 transform: none;
             }
         }
@@ -366,7 +376,6 @@
             box-shadow: 0 4px 12px rgba(28, 200, 138, 0.3);
         }
         
-        /* Ajustes responsivos principais */
         @media (max-width: 768px) {
             .card-body {
                 padding: 12px !important;
@@ -424,7 +433,6 @@
                 margin: 2px 0;
             }
             
-            /* Ajustes para o cabeçalho mobile */
             .d-flex.justify-content-between {
                 flex-direction: column;
                 align-items: flex-start !important;
@@ -435,7 +443,6 @@
                 width: 100%;
             }
             
-            /* Ajustes para formulários mobile */
             .row.g-3 {
                 gap: 0.5rem;
             }
@@ -459,7 +466,6 @@
                 font-size: 0.8em;
             }
             
-            /* Ajustes para anexos */
             .list-group-item .d-flex {
                 flex-direction: column;
                 align-items: flex-start !important;
@@ -478,7 +484,6 @@
                 flex: 1;
             }
             
-            /* Ajustes para preview de imagem */
             #previewContainer {
                 margin-top: 10px;
             }
@@ -488,7 +493,6 @@
                 width: auto;
             }
             
-            /* Toast mobile */
             .toast-container {
                 width: 90%;
                 left: 5%;
@@ -512,7 +516,6 @@
             }
         }
         
-        /* Preview de imagem */
         #previewImagem {
             max-width: 100%;
             height: auto;
@@ -528,7 +531,6 @@
             }
         }
         
-        /* Animações */
         @keyframes pulse {
             0% { opacity: 0.6; }
             50% { opacity: 1; }
@@ -554,7 +556,6 @@
             }
         }
         
-        /* Modal styles */
         .modal-content {
             border-radius: 15px;
             overflow: hidden;
@@ -583,7 +584,6 @@
             }
         }
         
-        /* Toast notifications */
         .toast {
             border-radius: 8px;
             border: none;
@@ -597,7 +597,6 @@
             }
         }
         
-        /* List groups */
         .list-group-item {
             border: none;
             border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -614,7 +613,6 @@
             border-bottom: none;
         }
         
-        /* Form controls */
         .form-control, .form-select {
             border-radius: 8px;
             border: 1px solid #ced4da;
@@ -646,12 +644,10 @@
             }
         }
         
-        /* Separadores */
         .border-top {
             border-top: 2px solid rgba(0,0,0,0.1) !important;
         }
         
-        /* Text truncation */
         .text-truncate {
             max-width: 200px;
         }
@@ -662,7 +658,6 @@
             }
         }
         
-        /* Estilo para resultados da IA */
         .diagnostico-ia {
             background: white;
             padding: 20px;
@@ -708,7 +703,6 @@
             margin-bottom: 8px;
         }
         
-        /* Imagem no modal */
         #imagemPreview img {
             max-height: 200px;
             max-width: 100%;
@@ -725,7 +719,6 @@
             }
         }
         
-        /* Botões do modal */
         .btn-group-modal {
             display: flex;
             flex-wrap: wrap;
@@ -746,7 +739,6 @@
             }
         }
         
-        /* Status indicators */
         .status-indicator {
             display: inline-flex;
             align-items: center;
@@ -807,7 +799,6 @@
             background-color: #198754;
         }
         
-        /* Barra de progresso */
         .progress {
             height: 8px;
             border-radius: 4px;
@@ -819,7 +810,6 @@
             }
         }
         
-        /* Ícones */
         @media (max-width: 576px) {
             i {
                 font-size: 0.9em;
@@ -834,13 +824,11 @@
             }
         }
         
-        /* Menu de ações mobile */
         @media (max-width: 576px) {
             .d-grid.gap-2 {
                 gap: 0.5rem !important;
             }
             
-            /* Ajustes para o formulário de resultados finais */
             #formResultadosFinais {
                 margin-top: 1rem;
                 padding-top: 0.8rem;
@@ -860,7 +848,6 @@
             }
         }
         
-        /* Touch-friendly improvements */
         @media (max-width: 576px) {
             button, 
             .btn, 
@@ -868,32 +855,28 @@
             .nav-link,
             .form-control,
             .form-select {
-                min-height: 44px; /* Tamanho mínimo para toque */
+                min-height: 44px;
             }
             
             .btn-sm {
                 min-height: 36px;
             }
             
-            /* Espaçamento para elementos clicáveis */
             .list-group-item {
                 padding: 12px;
             }
             
-            /* Melhor visibilidade do foco em touch */
             .btn:active,
             .list-group-item:active {
                 opacity: 0.8;
             }
             
-            /* Ajuste para selects */
             select.form-select {
                 background-position: right 0.5rem center;
                 padding-right: 2rem;
             }
         }
         
-        /* Landscape orientation fixes */
         @media (max-height: 500px) and (orientation: landscape) {
             .modal-dialog {
                 margin: 0.25rem;
@@ -914,7 +897,6 @@
             }
         }
         
-        /* Fix para input file em mobile */
         @media (max-width: 576px) {
             input[type="file"] {
                 font-size: 0.85rem;
@@ -927,7 +909,6 @@
             }
         }
         
-        /* Estilos para o novo botão ANÁLISE CONCLUÍDA */
         #btnConcluirAgora {
             background: linear-gradient(135deg, var(--success-color) 0%, #13855c 100%);
             border: none;
@@ -943,17 +924,52 @@
         
         @media (max-width: 576px) {
             #btnConcluirAgora {
-                order: -1; /* Coloca o botão em primeiro em mobile */
+                order: -1;
             }
         }
         
-        /* Badge para análise concluída */
         .badge-concluida {
             background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
             color: white;
             padding: 0.5rem 1rem;
             border-radius: 50px;
             font-weight: bold;
+            animation: pulse 2s infinite;
+        }
+        
+        /* Botão Editar em destaque */
+        .btn-edit {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #dda20a 100%);
+            border: none;
+            color: #000;
+            font-weight: bold;
+        }
+        
+        .btn-edit:hover {
+            background: linear-gradient(135deg, #f3b53c 0%, #c49108 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(246, 194, 62, 0.3);
+        }
+        
+        .btn-outline-edit {
+            border: 2px solid var(--warning-color);
+            color: #856404;
+            background: transparent;
+        }
+        
+        .btn-outline-edit:hover {
+            background: var(--warning-color);
+            color: #000;
+        }
+        
+        /* Indicador de modo edição */
+        .modo-edicao-badge {
+            background: var(--warning-color);
+            color: #000;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
             animation: pulse 2s infinite;
         }
     </style>
@@ -1526,77 +1542,83 @@
                         </div>
                         
                         <!-- Formulário para Resultados Finais -->
-                        {% if pedido.status == 'em_analise' %}
+                        {% if pedido.status == 'em_analise' or pedido.status == 'concluido' %}
                         <div class="mt-4 mt-md-5 pt-3 pt-md-4 border-top" id="formResultadosFinais" style="display: none;">
-                            <h5 class="mb-3 mb-md-4">
-                                <i class="fas fa-flag-checkered me-2 text-success"></i>
-                                Resultados Finais da Análise
-                            </h5>
-                            <form method="POST" id="formConcluirAnalise" onsubmit="return validarFormulario()">
-                                <input type="hidden" name="acao" value="concluir">
+                            <div class="d-flex justify-content-between align-items-center mb-3 mb-md-4">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-edit me-2 text-warning"></i>
+                                    Editar Análise
+                                </h5>
+                                <span class="modo-edicao-badge">
+                                    <i class="fas fa-pen me-1"></i> Modo Edição
+                                </span>
+                            </div>
+                            
+                            <form method="POST" action="{{ url_for('analista.editar_analise', pedido_id=pedido.id) }}" id="formEditarAnalise" onsubmit="return validarFormularioEdicao()">
+                                <input type="hidden" name="acao" value="editar">
                                 
                                 <div class="mb-3 mb-md-4">
-                                    <label for="resultado_analise" class="form-label">
-                                        <i class="fas fa-file-alt me-1 text-primary"></i> Resultado da Análise *
+                                    <label for="resultado_analise_edit" class="form-label">
+                                        <i class="fas fa-file-alt me-1 text-primary"></i> Resultado da Análise <span class="text-danger">*</span>
                                     </label>
-                                    <textarea class="form-control" id="resultado_analise" name="resultado_analise" 
-                                              rows="6" placeholder="Descreva detalhadamente os resultados encontrados..." required>{{ pedido.resultado_analise or '' }}</textarea>
+                                    <textarea class="form-control" id="resultado_analise_edit" name="resultado_analise" 
+                                              rows="8" placeholder="Descreva detalhadamente os resultados encontrados..." required>{{ pedido.resultado_analise or '' }}</textarea>
                                     <div class="form-text">
                                         Descreva todos os achados relevantes
                                     </div>
-                                    <div class="mt-2 d-flex gap-2">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatarTexto('resultado_analise')">
-                                            <i class="fas fa-bold me-1"></i> Formatar
+                                    <div class="mt-2 d-flex gap-2 flex-wrap">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="formatarTexto('resultado_analise_edit')">
+                                            <i class="fas fa-bold me-1"></i> Negrito
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="inserirTemplate('resultado_analise')">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="inserirTemplate('resultado_analise_edit')">
                                             <i class="fas fa-magic me-1"></i> Template
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="analisarComIA()">
+                                            <i class="fas fa-robot me-1"></i> Sugerir com IA
                                         </button>
                                     </div>
                                 </div>
                                 
                                 <div class="mb-3 mb-md-4">
-                                    <label for="diagnostico_analista" class="form-label">
-                                        <i class="fas fa-diagnoses me-1 text-danger"></i> Diagnóstico *
+                                    <label for="diagnostico_analista_edit" class="form-label">
+                                        <i class="fas fa-diagnoses me-1 text-danger"></i> Diagnóstico <span class="text-danger">*</span>
                                     </label>
-                                    <textarea class="form-control" id="diagnostico_analista" name="diagnostico_analista" 
+                                    <textarea class="form-control" id="diagnostico_analista_edit" name="diagnostico_analista" 
                                               rows="4" placeholder="Forneça o diagnóstico principal..." required>{{ pedido.diagnostico_analista or '' }}</textarea>
                                     <div class="form-text">
                                         Diagnóstico principal baseado nos achados
                                     </div>
                                 </div>
                                 
-                                <div class="mb-3 mb-md-4">
-                                    <label for="recomendacoes_analista" class="form-label">
+                                <div class="mb-4">
+                                    <label for="recomendacoes_analista_edit" class="form-label">
                                         <i class="fas fa-clipboard-list me-1 text-success"></i> Recomendações
                                     </label>
-                                    <textarea class="form-control" id="recomendacoes_analista" name="recomendacoes_analista" 
+                                    <textarea class="form-control" id="recomendacoes_analista_edit" name="recomendacoes_analista" 
                                               rows="3" placeholder="Recomendações para o médico ou paciente...">{{ pedido.recomendacoes_analista or '' }}</textarea>
                                     <div class="form-text">
                                         Recomendações de tratamento ou acompanhamento
                                     </div>
                                 </div>
                                 
-                                <div class="alert alert-info border-start border-5 border-info">
+                                <div class="alert alert-warning border-start border-5 border-warning mb-4">
                                     <div class="d-flex">
-                                        <i class="fas fa-info-circle me-2 me-md-3 mt-1 text-info"></i>
+                                        <i class="fas fa-exclamation-triangle me-3 mt-1 text-warning"></i>
                                         <div>
-                                            <strong class="d-block mb-1 mb-md-2">Atenção!</strong>
-                                            <p class="mb-1 small">Após concluir, o pedido será marcado como concluído.</p>
-                                            <small class="text-muted d-block">
-                                                <i class="fas fa-check-circle me-1"></i> Verifique todos os dados antes de enviar.
-                                            </small>
+                                            <strong>Atenção!</strong>
+                                            <p class="mb-0 small">Ao salvar, a análise será atualizada com as novas informações. A data de modificação será registrada.</p>
                                         </div>
                                     </div>
                                 </div>
                                 
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fas fa-check-circle me-2"></i> Concluir e Enviar
+                                <div class="d-flex flex-column flex-md-row gap-2">
+                                    <button type="submit" class="btn btn-success flex-fill">
+                                        <i class="fas fa-save me-2"></i> Salvar Alterações
                                     </button>
-                                    <button type="button" class="btn btn-outline-secondary" onclick="salvarRascunho()">
-                                        <i class="fas fa-save me-2"></i> Salvar Rascunho
+                                    <button type="button" class="btn btn-outline-warning flex-fill" onclick="salvarRascunhoEdicao()">
+                                        <i class="fas fa-pen me-2"></i> Salvar Rascunho
                                     </button>
-                                    <button type="button" class="btn btn-outline-danger" onclick="cancelarAnalise()">
+                                    <button type="button" class="btn btn-outline-danger flex-fill" onclick="cancelarEdicao()">
                                         <i class="fas fa-times me-2"></i> Cancelar
                                     </button>
                                 </div>
@@ -1903,19 +1925,10 @@ RECOMENDAÇÕES:
         });
 
         function inicializarAplicacao() {
-            // Verificar estado do Gemini
             verificarEstadoGemini();
-            
-            // Configurar listeners
             configurarEventListeners();
-            
-            // Carregar rascunho salvo
             carregarRascunhoSalvo();
-            
-            // Inicializar validação de formulário
             inicializarValidacaoFormulario();
-            
-            // Configurar preview de imagem
             configurarPreviewImagem();
         }
 
@@ -1937,19 +1950,16 @@ RECOMENDAÇÕES:
         }
 
         function configurarEventListeners() {
-            // Botão de configuração do Gemini
             const btnConfigurarGemini = document.getElementById('btnConfigurarGemini');
             if (btnConfigurarGemini) {
                 btnConfigurarGemini.addEventListener('click', mostrarInstrucoesGemini);
             }
 
-            // Botão para testar Gemini
             const btnTestarGemini = document.getElementById('btnTestarGemini');
             if (btnTestarGemini) {
                 btnTestarGemini.addEventListener('click', testarConexaoGemini);
             }
 
-            // Análise com IA
             const formAnaliseImagem = document.getElementById('analiseForm');
             if (formAnaliseImagem) {
                 formAnaliseImagem.addEventListener('submit', async function(e) {
@@ -1958,13 +1968,11 @@ RECOMENDAÇÕES:
                 });
             }
 
-            // Análise manual
             const btnAnaliseLocal = document.getElementById('btnAnaliseLocal');
             if (btnAnaliseLocal) {
                 btnAnaliseLocal.addEventListener('click', gerarAnaliseManual);
             }
 
-            // Concluir análise
             const btnConcluirAnalise = document.getElementById('btnConcluirAnalise');
             if (btnConcluirAnalise) {
                 btnConcluirAnalise.addEventListener('click', function() {
@@ -1973,17 +1981,15 @@ RECOMENDAÇÕES:
                         formResultados.style.display = 'block';
                         formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
                         
-                        // Preencher campos se existirem dados
                         if (APP_STATE.rascunhoSalvo) {
-                            document.getElementById('resultado_analise').value = localStorage.getItem(`rascunho_resultado_${APP_STATE.pedidoId}`) || '';
-                            document.getElementById('diagnostico_analista').value = localStorage.getItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`) || '';
-                            document.getElementById('recomendacoes_analista').value = localStorage.getItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`) || '';
+                            document.getElementById('resultado_analise_edit').value = localStorage.getItem(`rascunho_resultado_${APP_STATE.pedidoId}`) || '';
+                            document.getElementById('diagnostico_analista_edit').value = localStorage.getItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`) || '';
+                            document.getElementById('recomendacoes_analista_edit').value = localStorage.getItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`) || '';
                         }
                     }
                 });
             }
 
-            // Botão de refresh
             const btnRefreshResultados = document.getElementById('btnRefreshResultados');
             if (btnRefreshResultados) {
                 btnRefreshResultados.addEventListener('click', function() {
@@ -1991,19 +1997,16 @@ RECOMENDAÇÕES:
                 });
             }
 
-            // Botão de instruções IA
             const btnInstrucoesIA = document.getElementById('btnInstrucoesIA');
             if (btnInstrucoesIA) {
                 btnInstrucoesIA.addEventListener('click', mostrarDicasAnalise);
             }
 
-            // Botão limpar formulário
             const btnLimparForm = document.getElementById('btnLimparForm');
             if (btnLimparForm) {
                 btnLimparForm.addEventListener('click', limparFormularioAnalise);
             }
 
-            // Upload de resultados
             const btnUploadResultados = document.getElementById('btnUploadResultados');
             if (btnUploadResultados) {
                 btnUploadResultados.addEventListener('click', function() {
@@ -2011,7 +2014,6 @@ RECOMENDAÇÕES:
                 });
             }
 
-            // Salvar rascunho
             const btnSalvarRascunho = document.getElementById('btnSalvarRascunho');
             if (btnSalvarRascunho) {
                 btnSalvarRascunho.addEventListener('click', salvarRascunho);
@@ -2032,25 +2034,21 @@ RECOMENDAÇÕES:
                     if (this.files && this.files[0]) {
                         const file = this.files[0];
                         
-                        // Validar tamanho
-                        const maxSize = 10 * 1024 * 1024; // 10MB
+                        const maxSize = 10 * 1024 * 1024;
                         if (file.size > maxSize) {
                             mostrarToast(`Arquivo muito grande. Máximo: ${formatBytes(maxSize)}`, 'warning');
                             this.value = '';
                             return;
                         }
                         
-                        // Atualizar informações
                         nomeImagemCarregada.textContent = file.name;
                         tamanhoImagem.textContent = formatBytes(file.size);
                         
-                        // Mostrar preview
                         const reader = new FileReader();
                         reader.onload = function(e) {
                             previewImagem.src = e.target.result;
                             previewContainer.style.display = 'block';
                             
-                            // Obter dimensões da imagem
                             const img = new Image();
                             img.onload = function() {
                                 dimensoesImagem.textContent = `${this.width} × ${this.height}px`;
@@ -2067,14 +2065,12 @@ RECOMENDAÇÕES:
 
         async function analisarImagemComIA() {
             try {
-                // Verificar se Gemini está disponível
                 if (!APP_STATE.geminiAvailable) {
                     mostrarToast('API Gemini não configurada. Use a análise manual.', 'warning');
                     mostrarInstrucoesGemini();
                     return;
                 }
 
-                // Validar arquivo
                 const fileInput = document.getElementById('imagem');
                 if (!fileInput.files || !fileInput.files.length) {
                     mostrarToast('Selecione uma imagem para análise', 'warning');
@@ -2083,19 +2079,17 @@ RECOMENDAÇÕES:
                 }
 
                 const file = fileInput.files[0];
-                const maxSize = 10 * 1024 * 1024; // 10MB
+                const maxSize = 10 * 1024 * 1024;
                 if (file.size > maxSize) {
                     mostrarToast(`Arquivo muito grande. Máximo: ${formatBytes(maxSize)}`, 'warning');
                     return;
                 }
 
-                // Validar tipo de arquivo
                 if (!file.type.startsWith('image/')) {
                     mostrarToast('Arquivo deve ser uma imagem', 'warning');
                     return;
                 }
 
-                // Obter dados do formulário
                 const tipoAnalise = document.getElementById('tipo_analise').value;
                 if (!tipoAnalise) {
                     mostrarToast('Selecione o tipo de análise', 'warning');
@@ -2104,27 +2098,22 @@ RECOMENDAÇÕES:
 
                 const observacoes = document.getElementById('observacoes_analista').value;
 
-                // Preparar form data
                 const formData = new FormData();
                 formData.append('imagem', file);
                 formData.append('tipo_analise', tipoAnalise);
                 formData.append('observacoes_analista', observacoes);
                 formData.append('detectar_api', 'true');
 
-                // Mostrar loading
                 const btnAnalisar = document.getElementById('btnAnalisarIA');
                 const originalText = btnAnalisar.innerHTML;
                 btnAnalisar.disabled = true;
                 btnAnalisar.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processando...';
 
-                // Abrir modal
                 const modal = new bootstrap.Modal(document.getElementById('modalResultadoIA'));
                 modal.show();
 
-                // Atualizar informações no modal
                 atualizarInfoModal(file);
 
-                // Enviar requisição
                 const startTime = Date.now();
                 const response = await fetch(`/analista/api/analisar_imagem/${APP_STATE.pedidoId}`, {
                     method: 'POST',
@@ -2139,14 +2128,12 @@ RECOMENDAÇÕES:
                 const endTime = Date.now();
                 const tempoDecorrido = ((endTime - startTime) / 1000).toFixed(1);
 
-                // Processar resposta
                 processarRespostaAnalise(data, tempoDecorrido);
 
             } catch (error) {
                 console.error('Erro na análise:', error);
                 mostrarErroAnalise(error);
             } finally {
-                // Restaurar botão
                 const btnAnalisar = document.getElementById('btnAnalisarIA');
                 if (btnAnalisar) {
                     btnAnalisar.disabled = false;
@@ -2156,7 +2143,6 @@ RECOMENDAÇÕES:
         }
 
         function atualizarInfoModal(file) {
-            // Atualizar informações do arquivo
             const nomeArquivo = document.getElementById('nomeArquivo');
             const tamanhoArquivo = document.getElementById('tamanhoArquivo');
             const formatoArquivo = document.getElementById('formatoArquivo');
@@ -2170,7 +2156,6 @@ RECOMENDAÇÕES:
             }
             if (tempoAnalise) tempoAnalise.textContent = 'Processando...';
 
-            // Mostrar prévia da imagem
             const reader = new FileReader();
             reader.onload = function(e) {
                 const imagemPreview = document.getElementById('imagemPreview');
@@ -2193,7 +2178,6 @@ RECOMENDAÇÕES:
             const warningText = document.getElementById('warningText');
             const apiVersionWarning = document.getElementById('apiVersionWarning');
 
-            // Atualizar status
             if (statusAnalise) {
                 if (data.warning) {
                     statusAnalise.className = 'badge bg-warning';
@@ -2205,23 +2189,19 @@ RECOMENDAÇÕES:
                 }
             }
 
-            // Atualizar tempo
             if (tempoAnalise) {
                 tempoAnalise.innerHTML = `<i class="fas fa-clock me-1"></i> ${tempoDecorrido} segundos`;
             }
 
-            // Mostrar avisos
             if (data.warning && geminiWarning && warningText) {
                 geminiWarning.style.display = 'block';
                 warningText.textContent = data.warning;
             }
 
-            // Mostrar diagnóstico
             if (diagnosticoIA) {
                 diagnosticoIA.innerHTML = formatarDiagnosticoIA(data.diagnostico || 'Nenhum diagnóstico gerado', data.warning);
             }
 
-            // Configurar botões do modal
             configurarBotoesModal(data.diagnostico || '');
         }
 
@@ -2239,7 +2219,6 @@ RECOMENDAÇÕES:
                 .replace(/⚠️ (.*?)(<br>|$)/g, '<div class="alert alert-warning p-2 p-md-3 mb-3"><i class="fas fa-exclamation-triangle me-2"></i> $1</div>')
                 .replace(/✅ (.*?)(<br>|$)/g, '<div class="alert alert-success p-2 p-md-3 mb-3"><i class="fas fa-check-circle me-2"></i> $1</div>');
             
-            // Adicionar aviso se existir
             if (warning) {
                 html += `
                     <div class="alert alert-warning mt-3 p-2 p-md-3">
@@ -2258,7 +2237,6 @@ RECOMENDAÇÕES:
         }
 
         function configurarBotoesModal(diagnostico) {
-            // Botão copiar
             const btnCopiar = document.getElementById('btnCopiarDiagnostico');
             if (btnCopiar) {
                 btnCopiar.onclick = function() {
@@ -2268,36 +2246,30 @@ RECOMENDAÇÕES:
                 };
             }
 
-            // Botão "ANÁLISE CONCLUÍDA"
             const btnConcluirAgora = document.getElementById('btnConcluirAgora');
             if (btnConcluirAgora) {
                 btnConcluirAgora.onclick = function() {
-                    // Preencher todos os campos automaticamente
-                    const resultadoField = document.getElementById('resultado_analise');
-                    const diagnosticoField = document.getElementById('diagnostico_analista');
-                    const recomendacoesField = document.getElementById('recomendacoes_analista');
+                    const resultadoField = document.getElementById('resultado_analise_edit');
+                    const diagnosticoField = document.getElementById('diagnostico_analista_edit');
+                    const recomendacoesField = document.getElementById('recomendacoes_analista_edit');
                     
                     if (resultadoField) {
                         resultadoField.value = diagnostico;
                     }
                     
-                    // Extrair diagnóstico principal do texto
                     const diagnosticoPrincipal = extrairDiagnosticoPrincipal(diagnostico);
                     if (diagnosticoField) {
                         diagnosticoField.value = diagnosticoPrincipal || diagnostico.split('\n')[0] || diagnostico.substring(0, 200);
                     }
                     
-                    // Extrair recomendações do texto
                     const recomendacoes = extrairRecomendacoes(diagnostico);
                     if (recomendacoesField && recomendacoes) {
                         recomendacoesField.value = recomendacoes;
                     }
                     
-                    // Fechar modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('modalResultadoIA'));
                     if (modal) modal.hide();
                     
-                    // Mostrar formulário de conclusão
                     const formResultados = document.getElementById('formResultadosFinais');
                     if (formResultados) {
                         formResultados.style.display = 'block';
@@ -2306,26 +2278,22 @@ RECOMENDAÇÕES:
                         }, 500);
                     }
                     
-                    // Marcar como concluído
                     mostrarToast('Diagnóstico preenchido automaticamente! Verifique e conclua a análise.', 'success');
                     
-                    // Atualizar status
                     const statusGemini = document.getElementById('statusGemini');
                     if (statusGemini) {
                         statusGemini.innerHTML = '<i class="fas fa-check-circle text-success me-1"></i>ANÁLISE CONCLUÍDA';
                         statusGemini.className = 'badge bg-success';
                     }
                     
-                    // Salvar rascunho automaticamente
-                    salvarRascunho();
+                    salvarRascunhoEdicao();
                 };
             }
 
-            // Botão usar
             const btnUsar = document.getElementById('btnUsarDiagnostico');
             if (btnUsar) {
                 btnUsar.onclick = function() {
-                    const resultadoField = document.getElementById('resultado_analise');
+                    const resultadoField = document.getElementById('resultado_analise_edit');
                     if (resultadoField) {
                         resultadoField.value = diagnostico;
                         const modal = bootstrap.Modal.getInstance(document.getElementById('modalResultadoIA'));
@@ -2333,7 +2301,6 @@ RECOMENDAÇÕES:
                         
                         mostrarToast('Diagnóstico copiado para o formulário!', 'success');
                         
-                        // Mostrar formulário de resultados
                         const formResultados = document.getElementById('formResultadosFinais');
                         if (formResultados) {
                             formResultados.style.display = 'block';
@@ -2345,13 +2312,11 @@ RECOMENDAÇÕES:
                 };
             }
 
-            // Botão testar nova API
             const btnTestarNovaAPI = document.getElementById('btnTestarNovaAPI');
             if (btnTestarNovaAPI) {
                 btnTestarNovaAPI.onclick = mostrarInstrucoesGemini;
             }
 
-            // Botão melhorar texto
             const btnMelhorarTexto = document.getElementById('btnMelhorarTexto');
             if (btnMelhorarTexto) {
                 btnMelhorarTexto.onclick = function() {
@@ -2365,7 +2330,6 @@ RECOMENDAÇÕES:
             }
         }
 
-        // Funções auxiliares
         function extrairDiagnosticoPrincipal(texto) {
             const linhas = texto.split('\n');
             for (let linha of linhas) {
@@ -2375,7 +2339,6 @@ RECOMENDAÇÕES:
                 }
             }
             
-            // Se não encontrar, pegar a primeira linha após o título
             for (let i = 0; i < linhas.length; i++) {
                 if (linhas[i].trim() && !linhas[i].includes('📋') && !linhas[i].includes('**')) {
                     return linhas[i].substring(0, 200);
@@ -2445,7 +2408,6 @@ RECOMENDAÇÕES:
             mostrarToast('Erro na análise: ' + error.message, 'danger');
         }
 
-        // Funções Auxiliares
         function formatBytes(bytes, decimals = 2) {
             if (bytes === 0) return '0 Bytes';
             const k = 1024;
@@ -2487,7 +2449,6 @@ RECOMENDAÇÕES:
             });
         }
 
-        // Funções Globais
         window.mostrarInstrucoesGemini = function() {
             const modal = new bootstrap.Modal(document.getElementById('modalInstrucoesGemini'));
             modal.show();
@@ -2528,14 +2489,12 @@ RECOMENDAÇÕES:
 
             const observacoes = document.getElementById('observacoes_analista').value;
             
-            // Obter dados do paciente
             const dadosPaciente = document.getElementById('dadosPaciente');
             const pacienteIdade = dadosPaciente ? dadosPaciente.dataset.pacienteIdade : 'Não informada';
             const pacienteGenero = dadosPaciente ? dadosPaciente.dataset.pacienteGenero : 'Não informado';
             const tipoExame = dadosPaciente ? dadosPaciente.dataset.tipoExame : 'Não especificado';
             const descricao = dadosPaciente ? dadosPaciente.dataset.descricao : '';
             
-            // Gerar template de análise manual
             const diagnosticoManual = `
 📋 **RELATÓRIO DE ANÁLISE MÉDICA - MODO MANUAL**
 
@@ -2622,13 +2581,11 @@ RECOMENDAÇÕES:
 *Este é um template de análise. Preencha todas as seções com base na avaliação da imagem.*
             `;
             
-            // Preencher campo de resultado
-            const resultadoField = document.getElementById('resultado_analise');
+            const resultadoField = document.getElementById('resultado_analise_edit');
             if (resultadoField) {
                 resultadoField.value = diagnosticoManual;
                 mostrarToast('Template de análise manual gerado!', 'success');
                 
-                // Mostrar formulário de resultados
                 const formResultados = document.getElementById('formResultadosFinais');
                 if (formResultados) {
                     formResultados.style.display = 'block';
@@ -2639,9 +2596,50 @@ RECOMENDAÇÕES:
             }
         };
 
+        window.editarResultado = function() {
+            console.log('Editando resultado da análise...');
+            
+            const receitaContent = document.getElementById('receitaContent');
+            const resultadoExistente = receitaContent ? receitaContent.innerText : '';
+            
+            if (resultadoExistente) {
+                const resultadoField = document.getElementById('resultado_analise_edit');
+                const diagnosticoField = document.getElementById('diagnostico_analista_edit');
+                const recomendacoesField = document.getElementById('recomendacoes_analista_edit');
+                
+                if (resultadoField) {
+                    resultadoField.value = resultadoExistente;
+                    
+                    if (!diagnosticoField.value) {
+                        const diagnosticoExtraido = extrairDiagnosticoPrincipal(resultadoExistente);
+                        if (diagnosticoExtraido) {
+                            diagnosticoField.value = diagnosticoExtraido;
+                        }
+                    }
+                    
+                    if (!recomendacoesField.value) {
+                        const recomendacoesExtraidas = extrairRecomendacoes(resultadoExistente);
+                        if (recomendacoesExtraidas) {
+                            recomendacoesField.value = recomendacoesExtraidas;
+                        }
+                    }
+                    
+                    const formResultados = document.getElementById('formResultadosFinais');
+                    if (formResultados) {
+                        formResultados.style.display = 'block';
+                        formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                    
+                    mostrarToast('Análise carregada para edição!', 'success');
+                }
+            } else {
+                mostrarToast('Nenhum resultado para editar.', 'warning');
+            }
+        };
+
         window.exportarResultado = function() {
             const resultado = document.getElementById('receitaContent')?.innerText || 
-                            document.getElementById('resultado_analise')?.value || 
+                            document.getElementById('resultado_analise_edit')?.value || 
                             'Nenhum resultado disponível';
             
             const blob = new Blob([resultado], { type: 'text/plain;charset=utf-8' });
@@ -2657,33 +2655,16 @@ RECOMENDAÇÕES:
             mostrarToast('Resultado exportado com sucesso!', 'success');
         };
 
-        window.editarResultado = function() {
-            const resultadoExistente = document.getElementById('receitaContent')?.innerText;
-            if (resultadoExistente) {
-                const resultadoField = document.getElementById('resultado_analise');
-                if (resultadoField) {
-                    resultadoField.value = resultadoExistente;
-                    
-                    const formResultados = document.getElementById('formResultadosFinais');
-                    if (formResultados) {
-                        formResultados.style.display = 'block';
-                        formResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }
-            }
-        };
-
         window.limparResultado = function() {
             if (confirm('Tem certeza que deseja limpar o resultado da análise?')) {
-                const resultadoField = document.getElementById('resultado_analise');
-                const diagnosticoField = document.getElementById('diagnostico_analista');
-                const recomendacoesField = document.getElementById('recomendacoes_analista');
+                const resultadoField = document.getElementById('resultado_analise_edit');
+                const diagnosticoField = document.getElementById('diagnostico_analista_edit');
+                const recomendacoesField = document.getElementById('recomendacoes_analista_edit');
                 
                 if (resultadoField) resultadoField.value = '';
                 if (diagnosticoField) diagnosticoField.value = '';
                 if (recomendacoesField) recomendacoesField.value = '';
                 
-                // Limpar rascunho do localStorage
                 localStorage.removeItem(`rascunho_resultado_${APP_STATE.pedidoId}`);
                 localStorage.removeItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`);
                 localStorage.removeItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`);
@@ -2694,9 +2675,9 @@ RECOMENDAÇÕES:
             }
         };
 
-        window.validarFormulario = function() {
-            const resultado = document.getElementById('resultado_analise')?.value.trim() || '';
-            const diagnostico = document.getElementById('diagnostico_analista')?.value.trim() || '';
+        window.validarFormularioEdicao = function() {
+            const resultado = document.getElementById('resultado_analise_edit')?.value.trim() || '';
+            const diagnostico = document.getElementById('diagnostico_analista_edit')?.value.trim() || '';
             
             if (!resultado || !diagnostico) {
                 mostrarToast('Resultado e diagnóstico são obrigatórios!', 'warning');
@@ -2716,17 +2697,16 @@ RECOMENDAÇÕES:
             return true;
         };
 
-        window.salvarRascunho = function() {
-            const resultado = document.getElementById('resultado_analise')?.value.trim() || '';
-            const diagnostico = document.getElementById('diagnostico_analista')?.value.trim() || '';
-            const recomendacoes = document.getElementById('recomendacoes_analista')?.value.trim() || '';
+        window.salvarRascunhoEdicao = function() {
+            const resultado = document.getElementById('resultado_analise_edit')?.value.trim() || '';
+            const diagnostico = document.getElementById('diagnostico_analista_edit')?.value.trim() || '';
+            const recomendacoes = document.getElementById('recomendacoes_analista_edit')?.value.trim() || '';
             
             if (!resultado && !diagnostico && !recomendacoes) {
                 mostrarToast('Nenhum dado para salvar.', 'info');
                 return;
             }
             
-            // Salvar no localStorage
             localStorage.setItem(`rascunho_resultado_${APP_STATE.pedidoId}`, resultado);
             localStorage.setItem(`rascunho_diagnostico_${APP_STATE.pedidoId}`, diagnostico);
             localStorage.setItem(`rascunho_recomendacoes_${APP_STATE.pedidoId}`, recomendacoes);
@@ -2745,16 +2725,14 @@ RECOMENDAÇÕES:
             if (resultado || diagnostico || recomendacoes) {
                 APP_STATE.rascunhoSalvo = true;
                 
-                // Atualizar campos se existirem
-                const resultadoField = document.getElementById('resultado_analise');
-                const diagnosticoField = document.getElementById('diagnostico_analista');
-                const recomendacoesField = document.getElementById('recomendacoes_analista');
+                const resultadoField = document.getElementById('resultado_analise_edit');
+                const diagnosticoField = document.getElementById('diagnostico_analista_edit');
+                const recomendacoesField = document.getElementById('recomendacoes_analista_edit');
                 
                 if (resultadoField && resultado) resultadoField.value = resultado;
                 if (diagnosticoField && diagnostico) diagnosticoField.value = diagnostico;
                 if (recomendacoesField && recomendacoes) recomendacoesField.value = recomendacoes;
                 
-                // Mostrar notificação
                 if (timestamp) {
                     const data = new Date(timestamp);
                     mostrarToast(`Rascunho carregado (salvo em ${data.toLocaleTimeString()})`, 'info');
@@ -2762,24 +2740,22 @@ RECOMENDAÇÕES:
             }
         }
 
-        window.cancelarAnalise = function() {
-            if (confirm('Tem certeza que deseja cancelar a análise? Os dados não salvos serão perdidos.')) {
-                // Limpar formulário
-                const resultadoField = document.getElementById('resultado_analise');
-                const diagnosticoField = document.getElementById('diagnostico_analista');
-                const recomendacoesField = document.getElementById('recomendacoes_analista');
+        window.cancelarEdicao = function() {
+            if (confirm('Tem certeza que deseja cancelar a edição? As alterações não salvas serão perdidas.')) {
+                const resultadoField = document.getElementById('resultado_analise_edit');
+                const diagnosticoField = document.getElementById('diagnostico_analista_edit');
+                const recomendacoesField = document.getElementById('recomendacoes_analista_edit');
                 
                 if (resultadoField) resultadoField.value = '';
                 if (diagnosticoField) diagnosticoField.value = '';
                 if (recomendacoesField) recomendacoesField.value = '';
                 
-                // Esconder formulário
                 const formResultados = document.getElementById('formResultadosFinais');
                 if (formResultados) {
                     formResultados.style.display = 'none';
                 }
                 
-                mostrarToast('Análise cancelada', 'info');
+                mostrarToast('Edição cancelada', 'info');
             }
         };
 
@@ -2803,13 +2779,11 @@ RECOMENDAÇÕES:
             const selecao = texto.substring(campo.selectionStart, campo.selectionEnd);
             
             if (selecao) {
-                // Formatar texto selecionado
                 const novoTexto = texto.substring(0, campo.selectionStart) + 
                                 '**' + selecao + '**' + 
                                 texto.substring(campo.selectionEnd);
                 campo.value = novoTexto;
             } else {
-                // Se não houver seleção, adicionar formatação no cursor
                 const cursorPos = campo.selectionStart;
                 const novoTexto = texto.substring(0, cursorPos) + '**texto**' + texto.substring(cursorPos);
                 campo.value = novoTexto;
@@ -2845,7 +2819,19 @@ Diagnóstico principal aqui.
 **DATA:** ${new Date().toLocaleDateString('pt-BR')}`;
             
             campo.value = template;
+            campo.style.height = 'auto';
+            campo.style.height = (campo.scrollHeight) + 'px';
             mostrarToast('Template inserido!', 'success');
+        };
+
+        window.analisarComIA = async function() {
+            if (!APP_STATE.geminiAvailable) {
+                mostrarToast('API Gemini não disponível', 'warning');
+                mostrarInstrucoesGemini();
+                return;
+            }
+            
+            mostrarToast('Funcionalidade de sugestão com IA em desenvolvimento', 'info');
         };
 
         window.mostrarExemplosAnalise = function() {
@@ -2883,7 +2869,6 @@ Diagnóstico principal aqui.
 
         window.visualizarAnexo = function(nomeArquivo) {
             mostrarToast(`Visualizando: ${nomeArquivo}`, 'info');
-            // Implementar visualização de anexo
         };
 
         window.testarGeminiAposConfig = function() {
@@ -2893,7 +2878,6 @@ Diagnóstico principal aqui.
         };
 
         function inicializarValidacaoFormulario() {
-            // Validação Bootstrap
             const forms = document.querySelectorAll('.needs-validation');
             Array.from(forms).forEach(form => {
                 form.addEventListener('submit', event => {
@@ -2901,7 +2885,6 @@ Diagnóstico principal aqui.
                         event.preventDefault();
                         event.stopPropagation();
                         
-                        // Mostrar mensagens de erro amigáveis
                         const invalidFields = form.querySelectorAll(':invalid');
                         if (invalidFields.length > 0) {
                             const firstInvalid = invalidFields[0];
@@ -2914,7 +2897,6 @@ Diagnóstico principal aqui.
             });
         }
 
-        // Prevenir zoom em inputs no mobile
         if (APP_STATE.isMobile) {
             const inputs = document.querySelectorAll('input, select, textarea');
             inputs.forEach(input => {

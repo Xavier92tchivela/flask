@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Produto - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Produto
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Nome do Produto *</label>
+                                <input type="text" name="nome" class="form-control" value="{{ produto.nome }}" required>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Descrição</label>
+                                <textarea name="descricao" class="form-control" rows="3">{{ produto.descricao }}</textarea>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Categoria</label>
+                                <select name="categoria" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    <option value="Antimaláricos" {% if produto.categoria == 'Antimaláricos' %}selected{% endif %}>Malária</option>
+                                    <option value="Febre Tifoide" {% if produto.categoria == 'Febre Tifoide' %}selected{% endif %}>Febre Tifoide</option>
+                                    <option value="Infecção Urinária" {% if produto.categoria == 'Infecção Urinária' %}selected{% endif %}>Infecção Urinária</option>
+                                    <option value="Pneumonia" {% if produto.categoria == 'Pneumonia' %}selected{% endif %}>Pneumonia</option>
+                                    <option value="Asma" {% if produto.categoria == 'Asma' %}selected{% endif %}>Asma</option>
+                                    <option value="Cardiovasculares" {% if produto.categoria == 'Cardiovasculares' %}selected{% endif %}>Hipertensão</option>
+                                    <option value="Endócrinos" {% if produto.categoria == 'Endócrinos' %}selected{% endif %}>Diabetes</option>
+                                    <option value="Gastrointestinais" {% if produto.categoria == 'Gastrointestinais' %}selected{% endif %}>Gastrite/Úlcera</option>
+                                    <option value="Analgésicos" {% if produto.categoria == 'Analgésicos' %}selected{% endif %}>Dor/Cefaleia</option>
+                                    <option value="Anti-inflamatórios" {% if produto.categoria == 'Anti-inflamatórios' %}selected{% endif %}>Anti-inflamatórios</option>
+                                    <option value="Antibióticos" {% if produto.categoria == 'Antibióticos' %}selected{% endif %}>Antibióticos</option>
+                                    <option value="Psicotrópicos" {% if produto.categoria == 'Psicotrópicos' %}selected{% endif %}>Psicotrópicos</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Unidade</label>
+                                <select name="unidade" class="form-select">
+                                    <option value="unidade" {% if produto.unidade == 'unidade' %}selected{% endif %}>Unidade</option>
+                                    <option value="comprimido" {% if produto.unidade == 'comprimido' %}selected{% endif %}>Comprimido</option>
+                                    <option value="cápsula" {% if produto.unidade == 'cápsula' %}selected{% endif %}>Cápsula</option>
+                                    <option value="ml" {% if produto.unidade == 'ml' %}selected{% endif %}>ml</option>
+                                    <option value="ampola" {% if produto.unidade == 'ampola' %}selected{% endif %}>Ampola</option>
+                                    <option value="frasco" {% if produto.unidade == 'frasco' %}selected{% endif %}>Frasco</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Quantidade</label>
+                                <input type="number" name="quantidade" class="form-control" value="{{ produto.quantidade }}" min="0" readonly disabled>
+                                <small class="text-muted">Para alterar a quantidade, use "Nova Entrada" ou "Baixar Estoque"</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estoque Mínimo</label>
+                                <input type="number" name="estoque_minimo" class="form-control" value="{{ produto.estoque_minimo }}" min="0">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lote</label>
+                                <input type="text" name="lote" class="form-control" value="{{ produto.lote }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Data de Validade</label>
+                                <input type="date" name="data_validade" class="form-control" value="{{ produto.data_validade.strftime('%Y-%m-%d') if produto.data_validade else '' }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Preço de Custo (R$)</label>
+                                <input type="number" name="preco_custo" class="form-control" step="0.01" value="{{ produto.preco_custo }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Preço de Venda (R$)</label>
+                                <input type="number" name="preco_venda" class="form-control" step="0.01" value="{{ produto.preco_venda }}">
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Localização</label>
+                                <input type="text" name="localizacao" class="form-control" value="{{ produto.localizacao }}">
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Fornecedor</label>
+                                <select name="fornecedor_id" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    {% for f in fornecedores %}
+                                    <option value="{{ f.id }}" {% if produto.fornecedor_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('farmaceutico.produtos') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-2"></i>Atualizar Produto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

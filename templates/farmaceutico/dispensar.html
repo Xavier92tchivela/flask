@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Dispensar Receita - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-pills me-2"></i>
+                        Dispensar Receita #{{ receita.id }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Confirme os dados da receita antes de realizar a dispensação.
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-user me-2"></i>Dados do Paciente</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ receita.paciente_nome }}</p>
+                                    <p><strong>Telefone:</strong> {{ receita.telefone if receita.telefone else '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-user-md me-2"></i>Dados do Médico</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ receita.medico_nome }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-calendar me-2"></i>Informações da Receita</h6>
+                        </div>
+                        <div class="card-body">
+                            <p><strong>Data de Emissão:</strong> 
+                                {% if receita.created_at %}
+                                    {% if receita.created_at is string %}
+                                        {{ receita.created_at[:16] }}
+                                    {% else %}
+                                        {{ receita.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-stethoscope me-2"></i>Diagnóstico</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ receita.diagnostico|safe if receita.diagnostico else 'Nao informado' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-capsules me-2"></i>Prescrição</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ receita.prescricao|safe if receita.prescricao else 'Nao informado' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if receita.recomendacoes %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-comment me-2"></i>Recomendações</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ receita.recomendacoes|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('farmaceutico.dispensar', receita_id=receita.id) }}">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Atenção:</strong> Após confirmar a dispensação, o status da receita será alterado para "Dispensada" e não poderá ser revertido.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('farmaceutico.prescricoes') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-check-circle me-2"></i>Confirmar Dispensação
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

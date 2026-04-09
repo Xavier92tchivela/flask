@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Gerenciar Enfermeiros - DoctorIA</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --sidebar-width: 280px;
+            --border-radius: 24px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--gray-800);
+            overflow-x: hidden;
+        }
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a1c2e 0%, #2d2f42 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .logo-text span {
+            font-weight: 300;
+            color: var(--primary);
+        }
+
+        .user-info {
+            padding: 20px;
+            margin: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 4px 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: var(--transition);
+            font-weight: 500;
+        }
+
+        .nav-link i {
+            width: 24px;
+            margin-right: 12px;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        /* ==================== MENU TOGGLE ==================== */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1100;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(16,185,129,0.4);
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 30px;
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 70px 15px 20px;
+            }
+        }
+
+        /* ==================== TOP BAR ==================== */
+        .top-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        @media (min-width: 768px) {
+            .top-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .page-title {
+                margin-bottom: 0;
+            }
+        }
+
+        .page-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .page-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .page-title p {
+            color: var(--gray-500);
+            font-size: 14px;
+            margin: 5px 0 0 0;
+        }
+
+        /* ==================== BOTÕES ==================== */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .btn-primary {
+                width: auto;
+            }
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16,185,129,0.3);
+            color: white;
+        }
+
+        .btn-action {
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-edit {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-view {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--gray-600);
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-edit:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: var(--gray-600);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* ==================== SEARCH ==================== */
+        .search-box {
+            background: var(--gray-100);
+            border-radius: 14px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .search-box {
+                width: 300px;
+            }
+        }
+
+        .search-box i {
+            color: var(--gray-400);
+            margin-right: 10px;
+        }
+
+        .search-box input {
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+        }
+
+        /* ==================== STATS CARD ==================== */
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 20px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-number {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .stats-label {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .stats-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        /* ==================== CARD ==================== */
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        @media (min-width: 768px) {
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        @media (min-width: 768px) {
+            .card-title {
+                margin-bottom: 0;
+            }
+        }
+
+        .card-title i {
+            color: var(--primary);
+            font-size: 20px;
+        }
+
+        .card-title h3 {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .card-title span {
+            background: var(--gray-200);
+            color: var(--gray-600);
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        /* ==================== TABELA RESPONSIVA ==================== */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            display: none;
+            padding: 16px 20px;
+            background: var(--gray-50);
+            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .table td {
+            display: block;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            position: relative;
+            padding-left: 40%;
+        }
+
+        .table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 15px;
+            width: 35%;
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        @media (min-width: 768px) {
+            .table th {
+                display: table-cell;
+            }
+            
+            .table td {
+                display: table-cell;
+                padding: 16px 20px;
+            }
+            
+            .table td::before {
+                display: none;
+            }
+        }
+
+        /* Informação do enfermeiro */
+        .info-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .info-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .info-email {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .badge-active {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+        }
+
+        .badge-inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .badge-coren {
+            background: var(--gray-200);
+            color: var(--gray-700);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+
+        .badge-especialidade {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+
+        /* Ações */
+        .action-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .empty-state i {
+            font-size: 60px;
+            color: var(--gray-300);
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-700);
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: var(--gray-500);
+            margin-bottom: 25px;
+        }
+
+        /* Alertas */
+        .alert {
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .btn-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 30px;
+        }
+
+        .footer hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Menu Toggle -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('admin.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="logo-text">
+                    Doctor<span>IA</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="user-info">
+            <div class="user-avatar">
+                {{ session.user_name[:1] if session.user_name else 'A' }}
+            </div>
+            <div>
+                <div class="user-name">{{ session.user_name if session.user_name else 'Admin' }}</div>
+                <div class="user-role">Administrador</div>
+            </div>
+        </div>
+        
+        <nav>
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin.medicos') }}" class="nav-link">
+                <i class="fas fa-user-md"></i> Médicos
+            </a>
+            <a href="{{ url_for('admin.analistas') }}" class="nav-link">
+                <i class="fas fa-microscope"></i> Analistas
+            </a>
+            <a href="{{ url_for('admin.enfermeiros') }}" class="nav-link active">
+                <i class="fas fa-user-nurse"></i> Enfermeiros
+            </a>
+            <a href="{{ url_for('admin.pacientes') }}" class="nav-link">
+                <i class="fas fa-users"></i> Pacientes
+            </a>
+            <a href="{{ url_for('admin.consultas') }}" class="nav-link">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px;">
+            <a href="{{ url_for('admin.logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-user-nurse"></i>
+                </div>
+                <div>
+                    <h1>Enfermeiros</h1>
+                    <p>Gerencie os enfermeiros do sistema</p>
+                </div>
+            </div>
+            <a href="{{ url_for('admin.cadastrar_enfermeiro') }}" class="btn-primary">
+                <i class="fas fa-plus"></i> Novo Enfermeiro
+            </a>
+        </div>
+
+        <!-- Stats Card -->
+        {% if enfermeiros and enfermeiros|length > 0 %}
+        <div class="stats-card">
+            <div>
+                <div class="stats-number">{{ enfermeiros|length }}</div>
+                <div class="stats-label">Total de Enfermeiros</div>
+            </div>
+            <div class="stats-icon">
+                <i class="fas fa-user-nurse"></i>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button class="btn-close">&times;</button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-list"></i>
+                    <h3>Lista de Enfermeiros</h3>
+                    {% if enfermeiros and enfermeiros|length > 0 %}
+                    <span>{{ enfermeiros|length }} registros</span>
+                    {% endif %}
+                </div>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar enfermeiros...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="enfermeirosTable">
+                    <thead>
+                        <tr>
+                            <th>Enfermeiro</th>
+                            <th>COREN</th>
+                            <th>Especialidade</th>
+                            <th>Status</th>
+                            <th>Data Cadastro</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if enfermeiros and enfermeiros|length > 0 %}
+                            {% for e in enfermeiros %}
+                            <tr>
+                                <td data-label="Enfermeiro">
+                                    <div class="info-cell">
+                                        <div class="info-avatar">
+                                            <i class="fas fa-user-nurse"></i>
+                                        </div>
+                                        <div>
+                                            <div class="info-name">{{ e.nome }}</div>
+                                            <div class="info-email">{{ e.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="COREN">
+                                    <span class="badge-coren">{{ e.coren }}</span>
+                                </td>
+                                <td data-label="Especialidade">
+                                    <span class="badge-especialidade">
+                                        <i class="fas fa-stethoscope"></i> {{ e.especialidade or 'Não informada' }}
+                                    </span>
+                                </td>
+                                <td data-label="Status">
+                                    {% if e.ativo == 1 %}
+                                        <span class="badge badge-active">
+                                            <i class="fas fa-circle"></i> Ativo
+                                        </span>
+                                    {% else %}
+                                        <span class="badge badge-inactive">
+                                            <i class="fas fa-circle"></i> Inativo
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Data Cadastro">
+                                    <small>{{ e.data_cadastro.strftime('%d/%m/%Y') if e.data_cadastro else '' }}</small>
+                                </td>
+                                <td data-label="Ações">
+                                    <div class="action-group">
+                                        <a href="{{ url_for('admin.editar_enfermeiro', enfermeiro_id=e.id) }}" class="btn-action btn-edit" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn-action btn-view" onclick="visualizarEnfermeiro({{ e.id }})" title="Visualizar">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick="excluirEnfermeiro({{ e.id }})" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="empty-state">
+                                    <i class="fas fa-user-nurse"></i>
+                                    <h3>Nenhum enfermeiro cadastrado</h3>
+                                    <p>Comece cadastrando o primeiro enfermeiro do sistema.</p>
+                                    <a href="{{ url_for('admin.cadastrar_enfermeiro') }}" class="btn-primary" style="display: inline-flex; width: auto;">
+                                        <i class="fas fa-plus"></i> Cadastrar Enfermeiro
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <hr>
+            <p>
+                <i class="fas fa-heart" style="color: #ef4444;"></i> 
+                DoctorIA - Sistema de Gestão Médica
+                <br>
+                <span>© 2024 - Painel Administrativo</span>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Toggle Sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Fechar sidebar ao clicar fora
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Função de busca
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const input = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#enfermeirosTable tbody tr');
+            
+            rows.forEach(row => {
+                if (row.querySelector('.empty-state')) return;
+                
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? '' : 'none';
+            });
+        });
+
+        // Visualizar Enfermeiro
+        function visualizarEnfermeiro(id) {
+            Swal.fire({
+                title: 'Carregando...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch(`/admin/enfermeiros/${id}/visualizar`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        Swal.fire('Erro', data.error, 'error');
+                    } else {
+                        Swal.fire({
+                            title: data.nome,
+                            html: `
+                                <div class="text-start" style="font-size: 14px;">
+                                    <p><strong><i class="fas fa-envelope"></i> Email:</strong> ${data.email}</p>
+                                    <p><strong><i class="fas fa-id-card"></i> COREN:</strong> ${data.coren}</p>
+                                    <p><strong><i class="fas fa-stethoscope"></i> Especialidade:</strong> ${data.especialidade || 'Não informada'}</p>
+                                    <p><strong><i class="fas fa-phone"></i> Telefone:</strong> ${data.telefone || '—'}</p>
+                                    <p><strong><i class="fas fa-circle"></i> Status:</strong> ${data.ativo ? 'Ativo' : 'Inativo'}</p>
+                                    <p><strong><i class="fas fa-calendar"></i> Cadastro:</strong> ${data.data_cadastro}</p>
+                                </div>
+                            `,
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#10b981'
+                        });
+                    }
+                })
+                .catch(() => {
+                    Swal.fire('Erro', 'Erro ao carregar dados', 'error');
+                });
+        }
+
+        // Excluir Enfermeiro
+        function excluirEnfermeiro(id) {
+            Swal.fire({
+                title: 'Confirmar exclusão',
+                text: "Esta ação não poderá ser desfeita!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/enfermeiros/${id}/excluir`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Sucesso!', data.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Erro!', data.error, 'error');
+                        }
+                    });
+                }
+            });
+        }
+
+        // Fechar alerts
+        document.querySelectorAll('.btn-close').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.alert').remove();
+            });
+        });
+
+        // Auto-fechar alerts após 5 segundos
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.remove();
+            });
+        }, 5000);
+    </script>
+</body>
+</html>

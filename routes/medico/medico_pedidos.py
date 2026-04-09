@@ -16,6 +16,18 @@ def init_medico_pedidos(base, gemini_available=False):
     formatar_data = base['formatar_data']
     calcular_idade = base['calcular_idade']
     
+    # ===== FUNÇÃO AUXILIAR PARA CONVERTER BYTES =====
+    def converter_bytes_para_string(valor):
+        """Converte bytes para string se necessário"""
+        if valor is None:
+            return ''
+        if isinstance(valor, bytes):
+            try:
+                return valor.decode('utf-8', errors='ignore')
+            except:
+                return str(valor)
+        return str(valor) if valor else ''
+    
     # ========== ROTA: PEDIDOS DE ANÁLISE ==========
     @medico_required
     def pedidos_analise():
@@ -253,7 +265,7 @@ def init_medico_pedidos(base, gemini_available=False):
                                 (paciente_id,), fetch=True, one=True
                             )
                             if paciente_info:
-                                paciente_nome = paciente_info[0]
+                                paciente_nome = converter_bytes_para_string(paciente_info[0])
                         
                         medico_nome = f"Médico {pedido_medico_id}"
                         if pedido_medico_id:
@@ -262,7 +274,7 @@ def init_medico_pedidos(base, gemini_available=False):
                                 (pedido_medico_id,), fetch=True, one=True
                             )
                             if medico_info_db:
-                                medico_nome = medico_info_db[0]
+                                medico_nome = converter_bytes_para_string(medico_info_db[0])
                         
                         analista_nome = "Não atribuído"
                         if analista_id and analista_id != 0:
@@ -271,7 +283,7 @@ def init_medico_pedidos(base, gemini_available=False):
                                 (analista_id,), fetch=True, one=True
                             )
                             if analista_info:
-                                analista_nome = analista_info[0]
+                                analista_nome = converter_bytes_para_string(analista_info[0])
                         
                         pedidos_formatados.append({
                             'id': id_pedido,
@@ -403,9 +415,10 @@ def init_medico_pedidos(base, gemini_available=False):
             
             consultas_lista = []
             for c in consultas:
+                paciente_nome = converter_bytes_para_string(c[1])
                 consultas_lista.append({
                     'id': c[0],
-                    'paciente_nome': c[1],
+                    'paciente_nome': paciente_nome,
                     'data_hora': formatar_data(c[2]),
                     'paciente_id': c[3]
                 })
@@ -684,7 +697,8 @@ def init_medico_pedidos(base, gemini_available=False):
                 """, (pedido[1],), fetch=True, one=True)
                 
                 if sintomas_data and sintomas_data[0]:
-                    sintomas_lista = [s.strip() for s in sintomas_data[0].split(',') if s.strip()]
+                    sintomas_raw = converter_bytes_para_string(sintomas_data[0])
+                    sintomas_lista = [s.strip() for s in sintomas_raw.split(',') if s.strip()]
                     logger.info(f"Encontrados {len(sintomas_lista)} sintomas")
             
             # ===== BUSCAR SINAIS VITAIS DA CONSULTA =====
@@ -824,7 +838,7 @@ def init_medico_pedidos(base, gemini_available=False):
                     (pedido[3],), fetch=True, one=True
                 )
                 if paciente_info:
-                    paciente_nome = paciente_info[0]
+                    paciente_nome = converter_bytes_para_string(paciente_info[0])
                     if paciente_info[1]:
                         idade = calcular_idade(paciente_info[1])
                         paciente_idade = idade if idade else ''
@@ -837,7 +851,7 @@ def init_medico_pedidos(base, gemini_available=False):
                     (pedido_medico_id,), fetch=True, one=True
                 )
                 if medico_info_db:
-                    medico_nome = medico_info_db[0]
+                    medico_nome = converter_bytes_para_string(medico_info_db[0])
             
             analista_nome = "Não atribuído"
             analista_especialidade = ''
@@ -847,7 +861,7 @@ def init_medico_pedidos(base, gemini_available=False):
                     (analista_id,), fetch=True, one=True
                 )
                 if analista_info:
-                    analista_nome = analista_info[0]
+                    analista_nome = converter_bytes_para_string(analista_info[0])
                     analista_especialidade = analista_info[1] or ''
             
             pedido_dict = {
@@ -943,7 +957,7 @@ def init_medico_pedidos(base, gemini_available=False):
                     (pedido[8],), fetch=True, one=True
                 )
                 if paciente_info:
-                    paciente_nome = paciente_info[0]
+                    paciente_nome = converter_bytes_para_string(paciente_info[0])
             
             pedido_dict = {
                 'id': pedido[0],

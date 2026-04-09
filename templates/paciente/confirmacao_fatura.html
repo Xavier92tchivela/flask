@@ -1,0 +1,168 @@
+<!-- templates/paciente/confirmacao_fatura.html -->
+{% extends "base.html" %}
+
+{% block title %}Confirmação de Agendamento - Fatura #{{ fatura.numero_fatura }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <!-- Mensagem de Sucesso -->
+            <div class="alert alert-success text-center mb-4">
+                <i class="fas fa-check-circle fa-3x mb-2"></i>
+                <h4 class="mb-0">Consulta Agendada com Sucesso!</h4>
+                <p class="mb-0">Sua fatura foi emitida. Você pode baixar o PDF abaixo.</p>
+            </div>
+
+            <!-- Card da Fatura -->
+            <div class="card shadow-lg border-0" id="fatura-print">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <h4 class="mb-0">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>
+                                HOSPITAL MUNICIPAL DA CACULA
+                            </h4>
+                            <small>Fatura de Consulta Médica</small>
+                        </div>
+                        <div class="col-4 text-end">
+                            <div class="bg-white text-dark p-2 rounded d-inline-block">
+                                <strong>FATURA</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Cabeçalho da Fatura -->
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <strong>HOSPITAL MUNICIPAL DA CACULA</strong><br>
+                            Rua Principal, Bairro Central<br>
+                            Cacula, Huíla, Angola<br>
+                            Tel: 924 042 244
+                        </div>
+                        <div class="col-6 text-end">
+                            <strong>FATURA Nº:</strong> {{ fatura.numero_fatura }}<br>
+                            <strong>Data Emissão:</strong> {{ fatura.data_emissao.strftime('%d/%m/%Y %H:%M') }}<br>
+                            <strong>Status:</strong> 
+                            <span class="badge bg-warning">PENDENTE</span>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Dados do Paciente -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="text-primary">DADOS DO PACIENTE</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Nome:</strong> {{ fatura.paciente_nome }}<br>
+                                    <strong>Telefone:</strong> {{ fatura.paciente_telefone or 'Não informado' }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Data Consulta:</strong> {{ fatura.data_consulta.strftime('%d/%m/%Y %H:%M') }}<br>
+                                    <strong>Médico:</strong> {{ fatura.medico_nome }} - {{ fatura.especialidade }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- Itens da Fatura -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-dark">
+                                70>
+                                    <th>#</th>
+                                    <th>Descrição</th>
+                                    <th>Quantidade</th>
+                                    <th>Valor Unitário (Kz)</th>
+                                    <th>Valor Total (Kz)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Consulta Médica - {{ fatura.especialidade }}</td>
+                                    <td>1</td>
+                                    <td>{{ "%.2f"|format(fatura.valor_consulta) }}</td>
+                                    <td class="fw-bold">{{ "%.2f"|format(fatura.valor_consulta) }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-active">
+                                    <td colspan="4" class="text-end fw-bold">TOTAL:</td>
+                                    <td class="fw-bold text-success">{{ "%.2f"|format(fatura.valor_consulta) }} Kz</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    
+                    <!-- Formas de Pagamento -->
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-credit-card me-2"></i> FORMAS DE PAGAMENTO</h6>
+                        <ul class="mb-0">
+                            <li><strong>Balcão de Atendimento:</strong> Dinheiro ou Cartão</li>
+                            <li><strong>MB WAY:</strong> 924 042 244</li>
+                            <li><strong>Depósito Bancário:</strong> BAI - 123456789 (Hospital Municipal da Cacula)</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Rodapé -->
+                    <div class="text-center mt-4 pt-3 border-top">
+                        <small class="text-muted">
+                            Hospital Municipal da Cacula - Compromisso com a Saúde<br>
+                            Documento emitido por sistema eletrônico - Validade legal
+                        </small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Botões de Ação -->
+            <div class="d-flex justify-content-between gap-2 mt-4">
+                <a href="{{ url_for('paciente.fatura_pdf', fatura_id=fatura.id) }}" 
+                   class="btn btn-danger btn-lg flex-grow-1">
+                    <i class="fas fa-file-pdf me-2"></i> BAIXAR FATURA (PDF)
+                </a>
+                <button onclick="window.print()" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-print me-2"></i> IMPRIMIR
+                </button>
+            </div>
+            
+            <div class="d-grid gap-2 mt-3">
+                <a href="{{ url_for('paciente.dashboard') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-home me-2"></i> VOLTAR AO DASHBOARD
+                </a>
+            </div>
+            
+            <!-- SMS Enviado -->
+            <div class="alert alert-success mt-3 text-center">
+                <i class="fas fa-envelope me-2"></i>
+                <strong>SMS enviado para {{ fatura.paciente_telefone or 'seu número' }}</strong><br>
+                <small>Verifique sua caixa de entrada para os dados da fatura</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .btn, .alert-success, .navbar, footer {
+        display: none !important;
+    }
+    #fatura-print {
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+    .card-header {
+        background-color: #000 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+</style>
+{% endblock %}

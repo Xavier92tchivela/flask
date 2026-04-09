@@ -4,6 +4,7 @@ from .auth import init_auth_routes
 from .dashboard import init_dashboard_routes
 from .medicos import init_medicos_routes
 from .analistas import init_analistas_routes
+from .enfermeiros import init_enfermeiros_routes  # 👈 ADICIONAR ESTA LINHA
 from .pacientes import init_pacientes_routes
 from .consultas import init_consultas_routes
 from .estatisticas import init_estatisticas_routes
@@ -18,11 +19,13 @@ def init_admin(mysql):
     init_dashboard_routes(admin_bp, mysql)
     init_medicos_routes(admin_bp, mysql)
     init_analistas_routes(admin_bp, mysql)
+    init_enfermeiros_routes(admin_bp, mysql)  # 👈 ADICIONAR ESTA LINHA
     init_pacientes_routes(admin_bp, mysql)
     init_consultas_routes(admin_bp, mysql)
     init_estatisticas_routes(admin_bp, mysql)
     init_configuracoes_routes(admin_bp, mysql)
     
     print("[OK] Admin blueprint inicializado com todos os módulos")
+    print("      Módulos carregados: auth, dashboard, medicos, analistas, enfermeiros, pacientes, consultas, estatisticas, configuracoes")
     
     return admin_bp

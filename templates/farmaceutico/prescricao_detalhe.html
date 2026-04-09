@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Prescrição - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-prescription me-2"></i>
+                        Detalhes da Receita #{{ receita.id }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-user me-2"></i>Dados do Paciente</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ receita.paciente_nome }}</p>
+                                    <p><strong>Telefone:</strong> {{ receita.telefone if receita.telefone else '-' }}</p>
+                                    <p><strong>Email:</strong> {{ receita.email if receita.email else '-' }}</p>
+                                    <p><strong>ID do Paciente:</strong> {{ receita.paciente_id }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-user-md me-2"></i>Dados do Médico</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ receita.medico_nome }}</p>
+                                    <p><strong>Especialidade:</strong> {{ receita.especialidade if receita.especialidade else '-' }}</p>
+                                    <p><strong>ID do Médico:</strong> {{ receita.medico_id }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-calendar me-2"></i>Informações da Receita</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Data de Emissão:</strong> 
+                                        {% if receita.created_at %}
+                                            {% if receita.created_at is string %}
+                                                {{ receita.created_at[:16] }}
+                                            {% else %}
+                                                {{ receita.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </p>
+                                    <p><strong>Status:</strong> 
+                                        {% if receita.status == 'ativa' %}
+                                            <span class="badge bg-success">Ativa</span>
+                                        {% elif receita.status == 'dispensada' %}
+                                            <span class="badge bg-secondary">Dispensada</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{{ receita.status }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% if receita.data_geracao_pdf %}
+                                    <p><strong>Data Dispensação:</strong> 
+                                        {% if receita.data_geracao_pdf is string %}
+                                            {{ receita.data_geracao_pdf[:16] }}
+                                        {% else %}
+                                            {{ receita.data_geracao_pdf.strftime('%d/%m/%Y %H:%M') }}
+                                        {% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-file-pdf me-2"></i>Documento</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if receita.receita_pdf_path and receita.pdf_gerado %}
+                                        <a href="{{ url_for('farmaceutico.visualizar_pdf', receita_id=receita.id) }}" 
+                                           class="btn btn-danger" target="_blank">
+                                            <i class="fas fa-file-pdf me-2"></i>Visualizar PDF da Receita
+                                        </a>
+                                    {% else %}
+                                        <p class="text-muted">PDF não disponível</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-stethoscope me-2"></i>Diagnóstico</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ receita.diagnostico|safe if receita.diagnostico else 'Não informado' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-capsules me-2"></i>Prescrição</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ receita.prescricao|safe if receita.prescricao else 'Não informado' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if receita.recomendacoes %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-comment me-2"></i>Recomendações</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ receita.recomendacoes|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('farmaceutico.prescricoes') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                        {% if receita.status == 'ativa' %}
+                        <a href="{{ url_for('farmaceutico.dispensar', receita_id=receita.id) }}" class="btn btn-success">
+                            <i class="fas fa-pills me-2"></i>Dispensar
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

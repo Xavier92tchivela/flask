@@ -1,13 +1,163 @@
-# routes/medico/medico_receitas.py - VERSÃO COMPLETA CORRIGIDA COM PESO
+# routes/medico/medico_receitas.py - VERSÃO COMPLETA CORRIGIDA
+# CORREÇÃO: Adicionada função para garantir que todos os dados sejam strings
+# CORREÇÃO: Importações das funções de classificação do módulo correto (utils.classificacoes)
 
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, send_file
 import os
 import logging
 import traceback
 import json
-from datetime import datetime
+import re
+from datetime import datetime, date
+
+# Importar funções de classificação do módulo compartilhado
+from utils.classificacoes import (
+    classificar_pressao_arterial,
+    classificar_frequencia_cardiaca,
+    classificar_frequencia_respiratoria,
+    classificar_temperatura,
+    classificar_saturacao_oxigenio,
+    classificar_glicemia,
+    classificar_peso,
+    interpretar_sinais_vitais,
+    gerar_alerta_sinais_vitais,
+    classificar_imc,
+    calcular_dosagem_por_peso
+)
 
 logger = logging.getLogger(__name__)
+
+# ===== FUNÇÃO PARA GARANTIR QUE TODOS OS DADOS SEJAM STRINGS =====
+def garantir_string(valor, valor_padrao=''):
+    """
+    Converte qualquer valor para string de forma segura
+    Especialmente útil para dados que podem vir como bytes do MySQL
+    """
+    if valor is None:
+        return valor_padrao
+    if isinstance(valor, bytes):
+        try:
+            return valor.decode('utf-8')
+        except:
+            return str(valor)
+    if isinstance(valor, (int, float, bool)):
+        return str(valor)
+    if isinstance(valor, (datetime, date)):
+        return valor.strftime('%Y-%m-%d %H:%M:%S')
+    return str(valor)
+
+def garantir_lista_strings(lista_valores):
+    """
+    Converte todos os elementos de uma lista para string
+    """
+    if not lista_valores:
+        return []
+    resultado = []
+    for item in lista_valores:
+        if isinstance(item, (list, tuple)):
+            resultado.append(garantir_lista_strings(item))
+        elif isinstance(item, dict):
+            resultado.append(garantir_dict_strings(item))
+        else:
+            resultado.append(garantir_string(item))
+    return resultado
+
+def garantir_dict_strings(dicionario):
+    """
+    Converte todos os valores de um dicionário para string
+    """
+    if not dicionario:
+        return {}
+    resultado = {}
+    for chave, valor in dicionario.items():
+        if isinstance(valor, (list, tuple)):
+            resultado[chave] = garantir_lista_strings(valor)
+        elif isinstance(valor, dict):
+            resultado[chave] = garantir_dict_strings(valor)
+        elif isinstance(valor, bytes):
+            try:
+                resultado[chave] = valor.decode('utf-8')
+            except:
+                resultado[chave] = str(valor)
+        elif valor is None:
+            resultado[chave] = ''
+        else:
+            resultado[chave] = str(valor)
+    return resultado
+
+# ===== FUNÇÃO PARA LIMPAR FORMATAÇÃO MARKDOWN =====
+def limpar_markdown(texto):
+    """
+    Remove toda formatação Markdown de um texto para exibição limpa
+    """
+    if not texto:
+        return ''
+    
+    # Garantir que é string
+    texto = garantir_string(texto)
+    
+    try:
+        # Remover cabeçalhos (##, ###, ####, etc)
+        texto = re.sub(r'#{1,6}\s+', '', texto)
+        
+        # Remover negrito (**texto**)
+        texto = re.sub(r'\*\*(.*?)\*\*', r'\1', texto)
+        
+        # Remover itálico (*texto*)
+        texto = re.sub(r'\*(.*?)\*', r'\1', texto)
+        
+        # Remover negrito com underline (__texto__)
+        texto = re.sub(r'__(.*?)__', r'\1', texto)
+        
+        # Remover itálico com underline (_texto_)
+        texto = re.sub(r'_(.*?)_', r'\1', texto)
+        
+        # Converter marcadores de lista para bullet points
+        texto = re.sub(r'^-\s+', '• ', texto, flags=re.MULTILINE)
+        texto = re.sub(r'^\*\s+', '• ', texto, flags=re.MULTILINE)
+        texto = re.sub(r'^\+\s+', '• ', texto, flags=re.MULTILINE)
+        
+        # Manter listas numeradas (1., 2., etc) mas remover formatação
+        texto = re.sub(r'^(\d+)\.\s+', r'\1. ', texto, flags=re.MULTILINE)
+        
+        # Remover linhas horizontais
+        texto = re.sub(r'^[-]{3,}$', '', texto, flags=re.MULTILINE)
+        texto = re.sub(r'^[*]{3,}$', '', texto, flags=re.MULTILINE)
+        texto = re.sub(r'^[_]{3,}$', '', texto, flags=re.MULTILINE)
+        
+        # Remover blocos de código
+        texto = re.sub(r'```\w*\n', '', texto)
+        texto = re.sub(r'```', '', texto)
+        
+        # Remover links [texto](url)
+        texto = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', texto)
+        
+        # Remover imagens ![alt](url)
+        texto = re.sub(r'!\[.*?\]\(.*?\)', '', texto)
+        
+        # Remover citações (> texto)
+        texto = re.sub(r'^>\s+', '', texto, flags=re.MULTILINE)
+        
+        # Remover código inline (`texto`)
+        texto = re.sub(r'`(.*?)`', r'\1', texto)
+        
+        # Remover tabelas Markdown
+        texto = re.sub(r'\|.*?\|', '', texto)
+        
+        # Remover HTML tags se houver
+        texto = re.sub(r'<[^>]+>', '', texto)
+        
+        # Remover linhas em branco excessivas (mais de 2)
+        texto = re.sub(r'\n{3,}', '\n\n', texto)
+        
+        # Remover espaços extras
+        texto = re.sub(r' +', ' ', texto)
+        
+        return texto.strip()
+        
+    except Exception as e:
+        logger.error(f"Erro ao limpar Markdown: {e}")
+        return texto
 
 def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
     """Inicializa rotas de receitas do médico"""
@@ -18,7 +168,7 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
     obter_info_medico = base['obter_info_medico']
     medico_required = base['medico_required']
     
-    # ========== ROTA: GERAR RECEITA (COM SINAIS VITAIS E PESO) ==========
+    # ========== ROTA: GERAR RECEITA ==========
     @medico_required
     def gerar_receita(pedido_id):
         try:
@@ -32,18 +182,24 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Informações do médico não encontradas.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            if not isinstance(medico_info, dict):
-                logger.error(f"medico_info não é um dicionário: {type(medico_info)}")
-                flash('Erro nas informações do médico.', 'danger')
-                return redirect(url_for('auth.login'))
+            # Garantir que médico_info seja um dicionário com strings
+            medico_info = garantir_dict_strings(medico_info)
             
             medico_id = medico_info.get('id')
-            logger.info(f"Médico ID: {medico_id}, Nome: {medico_info.get('nome')}")
-            
-            if not medico_id or medico_id < 0:
+            if not medico_id or medico_id == '' or medico_id == 'None':
                 logger.warning("Médico sem ID válido")
                 flash('Complete seu cadastro no perfil.', 'warning')
                 return redirect(url_for('medico.perfil'))
+            
+            # Converter medico_id para int se for string
+            try:
+                medico_id = int(medico_id)
+            except:
+                logger.error(f"ID do médico inválido: {medico_id}")
+                flash('ID do médico inválido.', 'danger')
+                return redirect(url_for('auth.login'))
+            
+            logger.info(f"Médico ID: {medico_id}, Nome: {medico_info.get('nome')}")
             
             # Verificar se Gemini está disponível
             if not gemini_available:
@@ -73,6 +229,9 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Pedido não encontrado ou não está concluído.', 'danger')
                 return redirect(url_for('medico.ver_detalhes_pedido', pedido_id=pedido_id))
             
+            # Garantir que todos os campos do pedido sejam strings
+            pedido = garantir_lista_strings(pedido)
+            
             logger.info(f"Pedido encontrado: Status Aprovação={pedido[7]}, Consulta ID={pedido[8]}")
             
             if pedido[7] != 'aprovado':
@@ -84,10 +243,17 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             consulta_id = pedido[8]
             logger.info(f"Consulta ID: {consulta_id}")
             
+            # Converter consulta_id para int se necessário
+            if consulta_id and consulta_id != '' and consulta_id != 'None':
+                try:
+                    consulta_id = int(consulta_id)
+                except:
+                    consulta_id = None
+            
             diagnostico_completo = ""
             fonte_diagnostico = ""
             
-            # ===== BUSCAR SINAIS VITAIS (CORRIGIDO COM PESO) =====
+            # ===== BUSCAR SINAIS VITAIS =====
             sinais_vitais = None
             if consulta_id:
                 logger.info(f"Buscando sinais vitais para consulta #{consulta_id}...")
@@ -102,17 +268,21 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 sinais_data = execute_query(sinais_query, (consulta_id,), fetch=True, one=True)
                 
                 if sinais_data:
+                    # Garantir que todos os dados sejam strings
+                    sinais_data = garantir_lista_strings(sinais_data)
+                    
                     logger.info("✅ SINAIS VITAIS ENCONTRADOS!")
                     logger.info(f"   PA: {sinais_data[1]}")
                     logger.info(f"   FC: {sinais_data[2]}")
                     logger.info(f"   Peso: {sinais_data[7]} kg")
                     
-                    # Classificar cada sinal vital
-                    from routes.consulta import (
-                        classificar_pressao_arterial, classificar_frequencia_cardiaca,
-                        classificar_frequencia_respiratoria, classificar_temperatura,
-                        classificar_saturacao_oxigenio, classificar_glicemia
-                    )
+                    # Converter peso para float se possível
+                    peso_valor = None
+                    if sinais_data[7] and sinais_data[7] != '' and sinais_data[7] != 'None':
+                        try:
+                            peso_valor = float(sinais_data[7])
+                        except:
+                            peso_valor = None
                     
                     sinais_vitais = {
                         'id': sinais_data[0],
@@ -122,19 +292,18 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                         'fc_classificacao': classificar_frequencia_cardiaca(sinais_data[2]) if sinais_data[2] else None,
                         'frequencia_respiratoria': sinais_data[3],
                         'fr_classificacao': classificar_frequencia_respiratoria(sinais_data[3]) if sinais_data[3] else None,
-                        'temperatura': float(sinais_data[4]) if sinais_data[4] else None,
+                        'temperatura': sinais_data[4],
                         'temp_classificacao': classificar_temperatura(sinais_data[4]) if sinais_data[4] else None,
                         'saturacao_oxigenio': sinais_data[5],
                         'spo2_classificacao': classificar_saturacao_oxigenio(sinais_data[5]) if sinais_data[5] else None,
                         'glicemia': sinais_data[6],
                         'glicemia_classificacao': classificar_glicemia(sinais_data[6]) if sinais_data[6] else None,
-                        'peso': float(sinais_data[7]) if sinais_data[7] else None,
-                        'data_afericao': formatar_data(sinais_data[8], '%d/%m/%Y %H:%M') if sinais_data[8] else '',
+                        'peso': peso_valor,
+                        'peso_classificacao': classificar_peso(peso_valor) if peso_valor else None,
+                        'data_afericao': sinais_data[8],
                         'observacoes': sinais_data[9] or ''
                     }
-                    logger.info(f"Sinais vitais processados: PA={sinais_vitais['pressao_arterial']}, "
-                              f"FC={sinais_vitais['frequencia_cardiaca']}, "
-                              f"Peso={sinais_vitais['peso']} kg")
+                    logger.info(f"Sinais vitais processados")
                 else:
                     logger.warning("❌ Nenhum sinal vital encontrado para esta consulta")
             
@@ -148,9 +317,11 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 """, (consulta_id,), fetch=True, one=True)
                 
                 if sintomas_data and sintomas_data[0]:
-                    sintomas_lista = [s.strip() for s in sintomas_data[0].split(',') if s.strip()]
+                    # Garantir que sintomas seja string
+                    sintomas_str = garantir_string(sintomas_data[0])
+                    sintomas_lista = [s.strip() for s in sintomas_str.split(',') if s.strip()]
                     sintomas_texto = ", ".join(sintomas_lista)
-                    logger.info(f"Encontrados {len(sintomas_lista)} sintomas: {sintomas_texto[:100]}...")
+                    logger.info(f"Encontrados {len(sintomas_lista)} sintomas")
             
             # ===== BUSCAR DIAGNÓSTICO =====
             if consulta_id:
@@ -163,19 +334,22 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 """, (consulta_id,), fetch=True, one=True)
                 
                 if diagnostico_data:
+                    # Garantir que todos os dados sejam strings
+                    diagnostico_data = garantir_lista_strings(diagnostico_data)
+                    
                     logger.info("Diagnóstico encontrado na tabela diagnostico")
                     campos = []
-                    if diagnostico_data[0] and str(diagnostico_data[0]).strip():
+                    if diagnostico_data[0] and diagnostico_data[0].strip():
                         campos.append(f"TIPO DE EXAME:\n{diagnostico_data[0]}")
-                    if diagnostico_data[1] and str(diagnostico_data[1]).strip():
+                    if diagnostico_data[1] and diagnostico_data[1].strip():
                         campos.append(f"DESCRIÇÃO:\n{diagnostico_data[1]}")
-                    if diagnostico_data[2] and str(diagnostico_data[2]).strip():
+                    if diagnostico_data[2] and diagnostico_data[2].strip():
                         campos.append(f"OBSERVAÇÕES:\n{diagnostico_data[2]}")
-                    if diagnostico_data[3] and str(diagnostico_data[3]).strip():
+                    if diagnostico_data[3] and diagnostico_data[3].strip():
                         campos.append(f"RESULTADO:\n{diagnostico_data[3]}")
-                    if diagnostico_data[4] and str(diagnostico_data[4]).strip():
+                    if diagnostico_data[4] and diagnostico_data[4].strip():
                         campos.append(f"DIAGNÓSTICO PRELIMINAR:\n{diagnostico_data[4]}")
-                    if diagnostico_data[5] and str(diagnostico_data[5]).strip():
+                    if diagnostico_data[5] and diagnostico_data[5].strip():
                         campos.append(f"DIAGNÓSTICO FINAL:\n{diagnostico_data[5]}")
                     
                     if campos:
@@ -187,17 +361,17 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             if not diagnostico_completo:
                 logger.info("Usando dados do pedido para diagnóstico")
                 campos = []
-                if pedido[4] and str(pedido[4]).strip():
+                if pedido[4] and pedido[4].strip():
                     campos.append(f"DIAGNÓSTICO DO ANALISTA:\n{pedido[4]}")
-                if pedido[5] and str(pedido[5]).strip():
+                if pedido[5] and pedido[5].strip():
                     campos.append(f"RESULTADO DA ANÁLISE:\n{pedido[5]}")
-                if pedido[6] and str(pedido[6]).strip():
+                if pedido[6] and pedido[6].strip():
                     campos.append(f"RECOMENDAÇÕES DO ANALISTA:\n{pedido[6]}")
-                if pedido[2] and str(pedido[2]).strip():
+                if pedido[2] and pedido[2].strip():
                     campos.append(f"DESCRIÇÃO DO EXAME:\n{pedido[2]}")
-                if pedido[3] and str(pedido[3]).strip():
+                if pedido[3] and pedido[3].strip():
                     campos.append(f"OBSERVAÇÕES DO PEDIDO:\n{pedido[3]}")
-                if pedido[9] and str(pedido[9]).strip():
+                if pedido[9] and pedido[9].strip():
                     campos.append(f"OBSERVAÇÕES DO MÉDICO:\n{pedido[9]}")
                 
                 if campos:
@@ -211,18 +385,24 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             
             # Adicionar sintomas ao diagnóstico completo
             if sintomas_lista:
-                diagnostico_completo += f"\n\n---\n\n**SINTOMAS RELATADOS PELO PACIENTE:**\n"
+                diagnostico_completo += f"\n\n---\n\nSINTOMAS RELATADOS PELO PACIENTE:\n"
                 for sintoma in sintomas_lista:
                     diagnostico_completo += f"• {sintoma}\n"
                 logger.info("Sintomas adicionados ao diagnóstico")
             
+            # ===== APLICAR LIMPEZA DE MARKDOWN NO DIAGNÓSTICO =====
+            diagnostico_limpo = limpar_markdown(diagnostico_completo)
+            logger.info("✅ Limpeza de Markdown aplicada ao diagnóstico")
+            
             # Calcular idade
             idade = ''
-            if pedido[11]:
+            if pedido[11] and pedido[11] != '' and pedido[11] != 'None':
                 try:
                     data_nasc = pedido[11]
                     if isinstance(data_nasc, str):
-                        data_nasc = datetime.strptime(data_nasc[:10], '%Y-%m-%d')
+                        # Extrair apenas a data se for string completa
+                        data_nasc = data_nasc[:10] if len(data_nasc) >= 10 else data_nasc
+                        data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
                     hoje = datetime.now()
                     idade_calc = hoje.year - data_nasc.year
                     if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
@@ -234,57 +414,58 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                     idade = ''
             
             pedido_info = {
-                'id': str(pedido[0]), 
-                'tipo_exame': str(pedido[1] or 'Não especificado'),
-                'descricao': str(pedido[2] or ''), 
-                'observacoes': str(pedido[3] or ''),
-                'diagnostico_analista': str(pedido[4] or ''),
-                'resultado_analise': str(pedido[5] or ''),
-                'recomendacoes_analista': str(pedido[6] or ''),
-                'status_aprovacao': str(pedido[7]), 
+                'id': pedido[0],
+                'tipo_exame': pedido[1] or 'Não especificado',
+                'descricao': pedido[2] or '',
+                'observacoes': pedido[3] or '',
+                'diagnostico_analista': pedido[4] or '',
+                'resultado_analise': pedido[5] or '',
+                'recomendacoes_analista': pedido[6] or '',
+                'status_aprovacao': pedido[7],
                 'consulta_id': str(consulta_id) if consulta_id else '',
-                'observacoes_medico': str(pedido[9] or ''),
-                'paciente_nome': str(pedido[10] or 'Não informado'),
-                'paciente_data_nascimento': formatar_data(pedido[11], '%d/%m/%Y') if pedido[11] else '',
-                'paciente_idade': idade, 
-                'paciente_genero': str(pedido[12] or ''),
-                'paciente_telefone': str(pedido[13] or ''),
-                'paciente_endereco': str(pedido[14] or ''),
-                'paciente_id': str(pedido[15]), 
-                'medico_nome': str(medico_info.get('nome', '')),
-                'medico_especialidade': str(medico_info.get('especialidade', '')),
-                'medico_crm': str(medico_info.get('crm', '')),
-                'diagnostico_completo': diagnostico_completo,
+                'observacoes_medico': pedido[9] or '',
+                'paciente_nome': pedido[10] or 'Não informado',
+                'paciente_data_nascimento': pedido[11] or '',
+                'paciente_idade': idade,
+                'paciente_genero': pedido[12] or '',
+                'paciente_telefone': pedido[13] or '',
+                'paciente_endereco': pedido[14] or '',
+                'paciente_id': pedido[15],
+                'medico_nome': medico_info.get('nome', ''),
+                'medico_especialidade': medico_info.get('especialidade', ''),
+                'medico_crm': medico_info.get('crm', ''),
+                'diagnostico_completo': diagnostico_limpo,
+                'diagnostico_original': diagnostico_completo,
                 'fonte_diagnostico': fonte_diagnostico,
                 'sintomas_lista': sintomas_lista,
                 'sintomas_texto': sintomas_texto,
                 'sinais_vitais': sinais_vitais
             }
             
-            logger.info(f"Pedido info preparado: Paciente={pedido_info['paciente_nome']}, Consulta ID={pedido_info['consulta_id']}")
+            logger.info(f"Pedido info preparado: Paciente={pedido_info['paciente_nome']}")
             logger.info(f"Sintomas incluídos: {len(sintomas_lista)}")
             logger.info(f"Sinais Vitais incluídos: {bool(sinais_vitais)}")
             
             if request.method == 'POST':
                 logger.info("Processando POST - Salvando receita")
                 
-                if not pedido_info['consulta_id']:
+                if not pedido_info['consulta_id'] or pedido_info['consulta_id'] == '':
                     logger.error("Consulta ID não encontrado")
                     flash('Este pedido não possui consulta vinculada.', 'danger')
                     return redirect(url_for('medico.ver_detalhes_pedido', pedido_id=pedido_id))
                 
-                if not diagnostico_completo or len(diagnostico_completo.strip()) < 50:
-                    logger.warning(f"Diagnóstico insuficiente: {len(diagnostico_completo.strip()) if diagnostico_completo else 0} caracteres")
+                if not diagnostico_limpo or len(diagnostico_limpo.strip()) < 50:
+                    logger.warning(f"Diagnóstico insuficiente")
                     flash('Diagnóstico insuficiente.', 'warning')
                     return redirect(url_for('medico.gerar_receita', pedido_id=pedido_id))
                 
                 medico_info_completo = {
-                    'id': str(medico_info.get('id', '')),
-                    'nome': str(medico_info.get('nome', 'Dr. Não Informado')),
-                    'especialidade': str(medico_info.get('especialidade', 'Clínico Geral')),
-                    'crm': str(medico_info.get('crm', 'CRM não informado')),
-                    'usuario_id': str(medico_info.get('usuario_id', '')),
-                    'email': str(medico_info.get('email', ''))
+                    'id': medico_info.get('id', ''),
+                    'nome': medico_info.get('nome', 'Dr. Não Informado'),
+                    'especialidade': medico_info.get('especialidade', 'Clínico Geral'),
+                    'crm': medico_info.get('crm', 'CRM não informado'),
+                    'usuario_id': medico_info.get('usuario_id', ''),
+                    'email': medico_info.get('email', '')
                 }
                 
                 paciente_ia_info = {
@@ -293,26 +474,20 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                     'genero': pedido_info['paciente_genero']
                 }
                 
-                # LOG PARA VERIFICAR OS SINAIS VITAIS ANTES DE ENVIAR
-                logger.info("=" * 50)
-                logger.info("🔍 SINAIS VITAIS SENDO ENVIADOS PARA IA:")
-                if sinais_vitais:
-                    logger.info(json.dumps({
-                        'pressao_arterial': sinais_vitais.get('pressao_arterial'),
-                        'frequencia_cardiaca': sinais_vitais.get('frequencia_cardiaca'),
-                        'peso': sinais_vitais.get('peso')
-                    }, indent=2))
-                else:
-                    logger.warning("⚠️ NENHUM sinal vital disponível!")
-                logger.info("=" * 50)
+                logger.info("Chamando receita_service.gerar_receita_ia...")
                 
-                logger.info("Chamando receita_service.gerar_receita_ia com SINAIS VITAIS...")
+                # Converter consulta_id para int
+                try:
+                    consulta_id_int = int(pedido_info['consulta_id'])
+                except:
+                    consulta_id_int = None
+                
                 receita_data, error = receita_service.gerar_receita_ia(
-                    diagnostico=diagnostico_completo,
+                    diagnostico=diagnostico_limpo,
                     paciente_info=paciente_ia_info,
                     medico_info=medico_info_completo,
                     sintomas=sintomas_lista,
-                    sinais_vitais=sinais_vitais
+                    consulta_id=consulta_id_int
                 )
                 
                 if error or not receita_data:
@@ -321,19 +496,18 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                     return redirect(url_for('medico.gerar_receita', pedido_id=pedido_id))
                 
                 logger.info("✅ Receita gerada com sucesso pela IA")
-                logger.info(f"Prescrição: {receita_data['prescricao'][:100]}...")
                 
                 logger.info("Salvando receita no banco de dados...")
                 receita_id = receita_service.salvar_receita_no_banco(
-                    consulta_id=pedido_info['consulta_id'],
-                    diagnostico=diagnostico_completo,
+                    consulta_id=consulta_id_int,
+                    diagnostico=diagnostico_limpo,
                     prescricao=receita_data['prescricao'],
                     recomendacoes=receita_data['recomendacoes'],
                     medico_id=medico_id
                 )
                 
                 if not receita_id:
-                    logger.error("Falha ao salvar receita no banco - retornou None ou False")
+                    logger.error("Falha ao salvar receita no banco")
                     flash('Erro ao salvar receita no banco de dados.', 'danger')
                     return redirect(url_for('medico.gerar_receita', pedido_id=pedido_id))
                 
@@ -348,7 +522,7 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                     logger.warning(f"Erro ao gerar PDF: {pdf_error}")
                     flash(f'Receita gerada, mas erro no PDF: {pdf_error}', 'warning')
                 else:
-                    logger.info(f"PDF gerado com sucesso: {pdf_path}")
+                    logger.info(f"PDF gerado com sucesso")
                     flash('Receita gerada e salva com sucesso!', 'success')
                 
                 return render_template('medico/receita_gerada.html',
@@ -365,7 +539,7 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                                  pedido=pedido_info,
                                  user=session,
                                  medico=medico_info,
-                                 diagnostico_completo=diagnostico_completo,
+                                 diagnostico_completo=diagnostico_limpo,
                                  fonte_diagnostico=fonte_diagnostico,
                                  gemini_available=gemini_available,
                                  sintomas_lista=sintomas_lista,
@@ -388,7 +562,13 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Informações do médico não encontradas.', 'danger')
                 return redirect(url_for('auth.login'))
             
+            medico_info = garantir_dict_strings(medico_info)
+            
             medico_id = medico_info.get('id')
+            try:
+                medico_id = int(medico_id)
+            except:
+                medico_id = None
             
             receita = receita_service.buscar_receita_por_id(receita_id, medico_id)
             
@@ -397,55 +577,76 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Receita não encontrada.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
+            # Garantir que receita seja lista de strings
+            receita = garantir_lista_strings(receita)
+            
             logger.info(f"Receita encontrada: Paciente={receita[11]}")
             
             idade = calcular_idade(receita[12]) if receita[12] else ''
             
+            # Limpar diagnóstico da receita
+            diagnostico_limpo = limpar_markdown(receita[2] or '')
+            
             receita_info = {
-                'id': receita[0], 
+                'id': receita[0],
                 'consulta_id': receita[1],
-                'diagnostico': receita[2] or '', 
+                'diagnostico': diagnostico_limpo,
+                'diagnostico_original': receita[2] or '',
                 'prescricao': receita[3] or '',
-                'recomendacoes': receita[4] or '', 
+                'recomendacoes': receita[4] or '',
                 'status': receita[5] or '',
-                'created_at': formatar_data(receita[6]),
-                'receita_pdf_path': receita[7] or '', 
-                'pdf_gerado': bool(receita[8]),
-                'data_geracao_pdf': formatar_data(receita[9]),
-                'paciente_id': receita[10], 
+                'created_at': receita[6],
+                'receita_pdf_path': receita[7] or '',
+                'pdf_gerado': bool(receita[8]) if receita[8] else False,
+                'data_geracao_pdf': receita[9] or '',
+                'paciente_id': receita[10],
                 'paciente_nome': receita[11] or 'Não informado',
-                'paciente_data_nascimento': formatar_data(receita[12], '%d/%m/%Y') if receita[12] else '',
-                'paciente_idade': idade, 
+                'paciente_data_nascimento': receita[12] or '',
+                'paciente_idade': idade,
                 'paciente_genero': receita[13] or '',
-                'paciente_telefone': receita[14] or '', 
+                'paciente_telefone': receita[14] or '',
                 'medico_id': receita[15]
             }
             
             # Buscar sinais vitais da consulta
             sinais_vitais = None
-            if receita[1]:  # consulta_id
-                sinais_query = """
-                    SELECT pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
-                           temperatura, saturacao_oxigenio, glicemia, peso, data_afericao, observacoes
-                    FROM sinais_vitais
-                    WHERE consulta_id = %s
-                    ORDER BY data_afericao DESC
-                    LIMIT 1
-                """
-                sinais_data = execute_query(sinais_query, (receita[1],), fetch=True, one=True)
-                
-                if sinais_data:
-                    sinais_vitais = {
-                        'pressao_arterial': sinais_data[0],
-                        'frequencia_cardiaca': sinais_data[1],
-                        'frequencia_respiratoria': sinais_data[2],
-                        'temperatura': sinais_data[3],
-                        'saturacao_oxigenio': sinais_data[4],
-                        'glicemia': sinais_data[5],
-                        'peso': float(sinais_data[6]) if sinais_data[6] else None,
-                        'data_afericao': formatar_data(sinais_data[7], '%d/%m/%Y %H:%M') if sinais_data[7] else '',
-                        'observacoes': sinais_data[8] or ''
-                    }
+            if receita[1] and receita[1] != '' and receita[1] != 'None':
+                try:
+                    consulta_id_int = int(receita[1])
+                    sinais_query = """
+                        SELECT pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
+                               temperatura, saturacao_oxigenio, glicemia, peso, data_afericao, observacoes
+                        FROM sinais_vitais
+                        WHERE consulta_id = %s
+                        ORDER BY data_afericao DESC
+                        LIMIT 1
+                    """
+                    sinais_data = execute_query(sinais_query, (consulta_id_int,), fetch=True, one=True)
+                    
+                    if sinais_data:
+                        sinais_data = garantir_lista_strings(sinais_data)
+                        
+                        # Converter peso para float
+                        peso_valor = None
+                        if sinais_data[6] and sinais_data[6] != '' and sinais_data[6] != 'None':
+                            try:
+                                peso_valor = float(sinais_data[6])
+                            except:
+                                peso_valor = None
+                        
+                        sinais_vitais = {
+                            'pressao_arterial': sinais_data[0],
+                            'frequencia_cardiaca': sinais_data[1],
+                            'frequencia_respiratoria': sinais_data[2],
+                            'temperatura': sinais_data[3],
+                            'saturacao_oxigenio': sinais_data[4],
+                            'glicemia': sinais_data[5],
+                            'peso': peso_valor,
+                            'data_afericao': sinais_data[7] or '',
+                            'observacoes': sinais_data[8] or ''
+                        }
+                except Exception as e:
+                    logger.error(f"Erro ao buscar sinais vitais: {e}")
             
             return render_template('medico/ver_receita.html',
                                  receita=receita_info,
@@ -470,7 +671,13 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             if not medico_info:
                 return jsonify({'error': 'Não autorizado'}), 401
             
+            medico_info = garantir_dict_strings(medico_info)
+            
             medico_id = medico_info.get('id')
+            try:
+                medico_id = int(medico_id)
+            except:
+                medico_id = None
             
             pdf_path, paciente_nome = receita_service.get_pdf_receita_path(receita_id, medico_id)
             
@@ -479,7 +686,18 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('PDF não encontrado.', 'danger')
                 return redirect(url_for('medico.ver_receita', receita_id=receita_id))
             
-            filename = f"Receita_{paciente_nome.replace(' ', '_')}.pdf"
+            # CORREÇÃO: Garantir que paciente_nome seja string
+            if isinstance(paciente_nome, bytes):
+                paciente_nome = paciente_nome.decode('utf-8', errors='ignore')
+            elif paciente_nome is None:
+                paciente_nome = 'Receita'
+            
+            # Remover caracteres inválidos para nome de arquivo
+            nome_limpo = "".join(c for c in paciente_nome if c.isalnum() or c in (' ', '-', '_')).strip()
+            if not nome_limpo:
+                nome_limpo = "Receita"
+            
+            filename = f"Receita_{nome_limpo.replace(' ', '_')}.pdf"
             logger.info(f"Enviando arquivo: {filename}")
             
             return send_file(
@@ -506,8 +724,15 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Informações do médico não encontradas.', 'danger')
                 return redirect(url_for('auth.login'))
             
+            medico_info = garantir_dict_strings(medico_info)
+            
             medico_id = medico_info.get('id')
-            if not medico_id or medico_id < 0:
+            try:
+                medico_id = int(medico_id)
+            except:
+                medico_id = None
+            
+            if not medico_id:
                 flash('Complete seu cadastro no perfil.', 'warning')
                 return redirect(url_for('medico.perfil'))
             
@@ -517,22 +742,28 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             if receitas_db:
                 logger.info(f"Encontradas {len(receitas_db)} receitas")
                 for r in receitas_db:
+                    r = garantir_lista_strings(r)
+                    
                     idade = calcular_idade(r[11]) if r[11] else ''
+                    
+                    # Limpar diagnóstico
+                    diagnostico_limpo = limpar_markdown(r[2] or '')
+                    
                     receitas_lista.append({
-                        'id': r[0], 
+                        'id': r[0],
                         'consulta_id': r[1],
-                        'diagnostico': r[2] or '', 
+                        'diagnostico': diagnostico_limpo[:200] + '...' if len(diagnostico_limpo) > 200 else diagnostico_limpo,
                         'prescricao': r[3] or '',
-                        'recomendacoes': r[4] or '', 
+                        'recomendacoes': r[4] or '',
                         'status': r[5] or '',
-                        'created_at': formatar_data(r[6]),
-                        'receita_pdf_path': r[7] or '', 
-                        'pdf_gerado': bool(r[8]),
-                        'data_geracao_pdf': formatar_data(r[9]),
+                        'created_at': r[6],
+                        'receita_pdf_path': r[7] or '',
+                        'pdf_gerado': bool(r[8]) if r[8] else False,
+                        'data_geracao_pdf': r[9] or '',
                         'paciente_nome': r[10] or 'Não informado',
-                        'paciente_idade': idade, 
+                        'paciente_idade': idade,
                         'paciente_genero': r[12] or '',
-                        'consulta_data': formatar_data(r[13])
+                        'consulta_data': r[13] or ''
                     })
             else:
                 logger.info("Nenhuma receita encontrada")
@@ -549,7 +780,7 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             flash(f'Erro ao carregar receitas: {str(e)}', 'danger')
             return redirect(url_for('medico.dashboard'))
     
-    # ========== ROTA: GERAR PDF RECEITA (rota auxiliar) ==========
+    # ========== ROTA: GERAR PDF RECEITA ==========
     @medico_required
     def gerar_pdf_receita_rota(receita_id):
         try:
@@ -560,7 +791,13 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Informações do médico não encontradas.', 'danger')
                 return redirect(url_for('auth.login'))
             
+            medico_info = garantir_dict_strings(medico_info)
+            
             medico_id = medico_info.get('id')
+            try:
+                medico_id = int(medico_id)
+            except:
+                medico_id = None
             
             receita = receita_service.buscar_receita_por_id(receita_id, medico_id)
             
@@ -569,13 +806,18 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Receita não encontrada.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
+            receita = garantir_lista_strings(receita)
+            
             idade = calcular_idade(receita[12]) if receita[12] else ''
             
+            # Limpar diagnóstico
+            diagnostico_limpo = limpar_markdown(receita[2] or '')
+            
             receita_data = {
-                'diagnostico_resumo': receita[2] or '',
+                'diagnostico_resumo': diagnostico_limpo,
                 'prescricao': receita[3] or '',
                 'recomendacoes': receita[4] or '',
-                'receita_completa': f"{receita[2] or ''}\n\n{receita[3] or ''}\n\n{receita[4] or ''}"
+                'receita_completa': f"{diagnostico_limpo}\n\n{receita[3] or ''}\n\n{receita[4] or ''}"
             }
             
             paciente_info = {
@@ -585,12 +827,12 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             }
             
             medico_info_completo = {
-                'id': str(medico_info.get('id', '')),
-                'nome': str(medico_info.get('nome', 'Dr. Não Informado')),
-                'especialidade': str(medico_info.get('especialidade', 'Clínico Geral')),
-                'crm': str(medico_info.get('crm', 'CRM não informado')),
-                'usuario_id': str(medico_info.get('usuario_id', '')),
-                'email': str(medico_info.get('email', ''))
+                'id': medico_info.get('id', ''),
+                'nome': medico_info.get('nome', 'Dr. Não Informado'),
+                'especialidade': medico_info.get('especialidade', 'Clínico Geral'),
+                'crm': medico_info.get('crm', 'CRM não informado'),
+                'usuario_id': medico_info.get('usuario_id', ''),
+                'email': medico_info.get('email', '')
             }
             
             logger.info("Chamando gerar_pdf_receita...")
@@ -603,7 +845,16 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash(f'Erro ao gerar PDF: {error}', 'danger')
                 return redirect(url_for('medico.ver_receita', receita_id=receita_id))
             
-            filename = f"Receita_{paciente_info['nome'].replace(' ', '_')}.pdf"
+            # CORREÇÃO: Garantir que nome do paciente seja string
+            nome_paciente = paciente_info['nome']
+            if isinstance(nome_paciente, bytes):
+                nome_paciente = nome_paciente.decode('utf-8', errors='ignore')
+            
+            nome_limpo = "".join(c for c in nome_paciente if c.isalnum() or c in (' ', '-', '_')).strip()
+            if not nome_limpo:
+                nome_limpo = "Receita"
+            
+            filename = f"Receita_{nome_limpo.replace(' ', '_')}.pdf"
             logger.info(f"PDF gerado com sucesso: {filename}")
             
             return send_file(
@@ -631,7 +882,13 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 flash('Informações do médico não encontradas.', 'danger')
                 return redirect(url_for('auth.login'))
             
+            medico_info = garantir_dict_strings(medico_info)
+            
             medico_id = medico_info.get('id')
+            try:
+                medico_id = int(medico_id)
+            except:
+                medico_id = None
             
             # Buscar receita
             receita = receita_service.buscar_receita_por_id(receita_id, medico_id)
@@ -640,6 +897,8 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
                 logger.error(f"Receita #{receita_id} não encontrada")
                 flash('Receita não encontrada.', 'danger')
                 return redirect(url_for('medico.minhas_receitas'))
+            
+            receita = garantir_lista_strings(receita)
             
             if request.method == 'POST':
                 # Atualizar receita
@@ -679,14 +938,17 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             # Preparar dados para o template
             idade = calcular_idade(receita[12]) if receita[12] else ''
             
+            # Limpar diagnóstico
+            diagnostico_limpo = limpar_markdown(receita[2] or '')
+            
             receita_info = {
                 'id': receita[0],
                 'consulta_id': receita[1],
-                'diagnostico': receita[2] or '',
+                'diagnostico': diagnostico_limpo,
                 'prescricao': receita[3] or '',
                 'recomendacoes': receita[4] or '',
                 'status': receita[5] or '',
-                'created_at': formatar_data(receita[6]),
+                'created_at': receita[6],
                 'paciente_nome': receita[11] or 'Não informado',
                 'paciente_idade': idade,
                 'paciente_genero': receita[13] or ''
@@ -694,29 +956,43 @@ def init_medico_receitas(mysql, base, receita_service, gemini_available=False):
             
             # Buscar sinais vitais da consulta
             sinais_vitais = None
-            if receita[1]:  # consulta_id
-                sinais_query = """
-                    SELECT pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
-                           temperatura, saturacao_oxigenio, glicemia, peso, data_afericao, observacoes
-                    FROM sinais_vitais
-                    WHERE consulta_id = %s
-                    ORDER BY data_afericao DESC
-                    LIMIT 1
-                """
-                sinais_data = execute_query(sinais_query, (receita[1],), fetch=True, one=True)
-                
-                if sinais_data:
-                    sinais_vitais = {
-                        'pressao_arterial': sinais_data[0],
-                        'frequencia_cardiaca': sinais_data[1],
-                        'frequencia_respiratoria': sinais_data[2],
-                        'temperatura': sinais_data[3],
-                        'saturacao_oxigenio': sinais_data[4],
-                        'glicemia': sinais_data[5],
-                        'peso': float(sinais_data[6]) if sinais_data[6] else None,
-                        'data_afericao': formatar_data(sinais_data[7], '%d/%m/%Y %H:%M') if sinais_data[7] else '',
-                        'observacoes': sinais_data[8] or ''
-                    }
+            if receita[1] and receita[1] != '' and receita[1] != 'None':
+                try:
+                    consulta_id_int = int(receita[1])
+                    sinais_query = """
+                        SELECT pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
+                               temperatura, saturacao_oxigenio, glicemia, peso, data_afericao, observacoes
+                        FROM sinais_vitais
+                        WHERE consulta_id = %s
+                        ORDER BY data_afericao DESC
+                        LIMIT 1
+                    """
+                    sinais_data = execute_query(sinais_query, (consulta_id_int,), fetch=True, one=True)
+                    
+                    if sinais_data:
+                        sinais_data = garantir_lista_strings(sinais_data)
+                        
+                        # Converter peso para float
+                        peso_valor = None
+                        if sinais_data[6] and sinais_data[6] != '' and sinais_data[6] != 'None':
+                            try:
+                                peso_valor = float(sinais_data[6])
+                            except:
+                                peso_valor = None
+                        
+                        sinais_vitais = {
+                            'pressao_arterial': sinais_data[0],
+                            'frequencia_cardiaca': sinais_data[1],
+                            'frequencia_respiratoria': sinais_data[2],
+                            'temperatura': sinais_data[3],
+                            'saturacao_oxigenio': sinais_data[4],
+                            'glicemia': sinais_data[5],
+                            'peso': peso_valor,
+                            'data_afericao': sinais_data[7] or '',
+                            'observacoes': sinais_data[8] or ''
+                        }
+                except Exception as e:
+                    logger.error(f"Erro ao buscar sinais vitais: {e}")
             
             return render_template('medico/editar_receita.html',
                                  receita=receita_info,

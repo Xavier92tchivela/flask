@@ -1,0 +1,397 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Sinais Vitais - Enfermeiro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-heartbeat me-2"></i>
+                Sinais Vitais
+            </h2>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter me-2"></i>
+            Filtros de Pesquisa
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <!-- Campo de busca por nome do paciente -->
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-user text-primary me-1"></i>
+                        Nome do Paciente
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-primary text-white">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control form-control-lg" name="paciente" 
+                               placeholder="Digite o nome do paciente..." 
+                               value="{{ request.args.get('paciente', '') }}">
+                        {% if request.args.get('paciente') %}
+                        <button class="btn btn-outline-secondary" type="button" 
+                                onclick="window.location.href='{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}'">
+                            <i class="fas fa-times"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Busque por nome completo ou parcial
+                    </small>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar-start text-success me-1"></i>
+                        Data Início
+                    </label>
+                    <input type="date" class="form-control" name="data_inicio" 
+                           value="{{ request.args.get('data_inicio', '') }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-calendar-end text-danger me-1"></i>
+                        Data Fim
+                    </label>
+                    <input type="date" class="form-control" name="data_fim" 
+                           value="{{ request.args.get('data_fim', '') }}">
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-heart-circle-exclamation text-warning me-1"></i>
+                        Pressão Alterada
+                    </label>
+                    <select class="form-control" name="pressao_alterada">
+                        <option value="">Todos</option>
+                        <option value="sim" {% if request.args.get('pressao_alterada') == 'sim' %}selected{% endif %}>Sim (≥140x90)</option>
+                        <option value="nao" {% if request.args.get('pressao_alterada') == 'nao' %}selected{% endif %}>Não (normal)</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="fas fa-filter me-1"></i> Filtrar
+                    </button>
+                </div>
+                
+                <div class="col-12 mt-3">
+                    <div class="d-flex align-items-center">
+                        <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-undo me-1"></i> Limpar todos os filtros
+                        </a>
+                        
+                        {% if request.args.get('paciente') %}
+                            <span class="badge bg-primary ms-2 p-2">
+                                <i class="fas fa-user me-1"></i>
+                                Paciente: <strong>"{{ request.args.get('paciente') }}"</strong>
+                            </span>
+                        {% endif %}
+                        
+                        {% if request.args.get('data_inicio') or request.args.get('data_fim') %}
+                            <span class="badge bg-success ms-2 p-2">
+                                <i class="fas fa-calendar me-1"></i>
+                                Período: 
+                                {% if request.args.get('data_inicio') %}{{ request.args.get('data_inicio')|replace('-', '/') }}{% endif %}
+                                {% if request.args.get('data_inicio') and request.args.get('data_fim') %} até {% endif %}
+                                {% if request.args.get('data_fim') %}{{ request.args.get('data_fim')|replace('-', '/') }}{% endif %}
+                            </span>
+                        {% endif %}
+                        
+                        {% if request.args.get('pressao_alterada') %}
+                            <span class="badge bg-warning ms-2 p-2">
+                                <i class="fas fa-heart me-1"></i>
+                                Pressão: {% if request.args.get('pressao_alterada') == 'sim' %}Alterada{% else %}Normal{% endif %}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Sinais Vitais -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center bg-light">
+            <div>
+                <i class="fas fa-list me-2 text-primary"></i>
+                <span class="fw-bold">Registros de Sinais Vitais</span>
+                {% if sinais_vitais %}
+                <span class="badge bg-secondary ms-2">{{ sinais_vitais|length }} registros</span>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>
+                Nova Aferição
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-vitals mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th class="text-center">#</th>
+                            <th>Data/Hora</th>
+                            <th>Paciente</th>
+                            <th class="text-center">Pressão</th>
+                            <th class="text-center">Classificação</th>
+                            <th class="text-center">FC</th>
+                            <th class="text-center">FR</th>
+                            <th class="text-center">Temp</th>
+                            <th class="text-center">Sat O2</th>
+                            <th class="text-center">Glicemia</th>
+                            <th class="text-center">Peso</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vital in sinais_vitais %}
+                        <tr class="align-middle">
+                            <td class="text-center fw-bold">{{ vital.id }}</td>
+                            <td>{{ vital.data_afericao.strftime('%d/%m/%Y %H:%M') }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" 
+                                         style="width: 40px; height: 40px; font-size: 1.2rem; background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+                                        {{ vital.paciente_nome[0] }}
+                                    </div>
+                                    <div>
+                                        <strong class="fs-6">{{ vital.paciente_nome }}</strong>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-id-card me-1"></i>
+                                            ID: {{ vital.paciente_id }}
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark fs-6 p-2">
+                                    <strong>{{ vital.pressao_arterial }}</strong>
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {% if classificar_pressao %}
+                                    {% set classificacao = classificar_pressao(vital.pressao_arterial) %}
+                                    {% if classificacao %}
+                                        <span class="badge bg-{{ classificacao.class }} p-2" style="min-width: 100px;">
+                                            {{ classificacao.text }}
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary p-2">Não classificado</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary p-2">Não classificado</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <span class="{% if vital.frequencia_cardiaca and (vital.frequencia_cardiaca < 60 or vital.frequencia_cardiaca > 100) %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                    {{ vital.frequencia_cardiaca|default('-') }}
+                                    {% if vital.frequencia_cardiaca %}<small>bpm</small>{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="{% if vital.frequencia_respiratoria and (vital.frequencia_respiratoria < 12 or vital.frequencia_respiratoria > 20) %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                    {{ vital.frequencia_respiratoria|default('-') }}
+                                    {% if vital.frequencia_respiratoria %}<small>mpm</small>{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="{% if vital.temperatura and (vital.temperatura < 36 or vital.temperatura > 37.5) %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                    {{ vital.temperatura|default('-') }}
+                                    {% if vital.temperatura %}<small>°C</small>{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="{% if vital.saturacao_oxigenio and vital.saturacao_oxigenio < 95 %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                    {{ vital.saturacao_oxigenio|default('-') }}%
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <span class="{% if vital.glicemia and (vital.glicemia < 70 or vital.glicemia > 140) %}text-danger fw-bold{% else %}text-success{% endif %}">
+                                    {{ vital.glicemia|default('-') }}
+                                    {% if vital.glicemia %}<small>mg/dL</small>{% endif %}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                {{ vital.peso|default('-') }}
+                                {% if vital.peso %}<small>kg</small>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('enfermeiro.sinais_vitais.detalhes_sinais_vitais', vital_id=vital.id) }}" 
+                                       class="btn btn-sm btn-outline-primary" title="Ver detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('enfermeiro.sinais_vitais.editar_sinais_vitais', vital_id=vital.id) }}" 
+                                       class="btn btn-sm btn-outline-warning" title="Editar registro">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" 
+                                            onclick="confirmarExclusao({{ vital.id }})" title="Excluir registro">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="12" class="text-center py-5">
+                                <i class="fas fa-heart-circle-exclamation fa-4x text-muted mb-3"></i>
+                                <h5>Nenhum registro de sinais vitais encontrado</h5>
+                                <p class="text-muted">
+                                    {% if request.args.get('paciente') or request.args.get('data_inicio') or request.args.get('data_fim') %}
+                                        Nenhum resultado para 
+                                        {% if request.args.get('paciente') %}"<strong>{{ request.args.get('paciente') }}</strong>"{% endif %}
+                                        {% if request.args.get('data_inicio') %} desde {{ request.args.get('data_inicio') }}{% endif %}
+                                        {% if request.args.get('data_fim') %} até {{ request.args.get('data_fim') }}{% endif %}
+                                    {% else %}
+                                        Comece registrando uma nova aferição
+                                    {% endif %}
+                                </p>
+                                <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais') }}" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus-circle me-1"></i>
+                                    Nova Aferição
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Informações de paginação -->
+            {% if pagination and pagination.pages > 1 %}
+            <div class="card-footer bg-light">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Mostrando {{ sinais_vitais|length }} registros de {{ pagination.total }} total
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination justify-content-end mb-0">
+                                {% if pagination.has_prev %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais', page=pagination.prev_num, **request.args) }}">
+                                        <i class="fas fa-chevron-left"></i> Anterior
+                                    </a>
+                                </li>
+                                {% endif %}
+                                
+                                <li class="page-item active">
+                                    <span class="page-link">
+                                        Página {{ pagination.page }} de {{ pagination.pages }}
+                                    </span>
+                                </li>
+                                
+                                {% if pagination.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais', page=pagination.next_num, **request.args) }}">
+                                        Próxima <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-vitals td {
+        vertical-align: middle;
+    }
+    .badge {
+        font-size: 0.85rem;
+    }
+    .input-group-text {
+        background-color: #f8f9fa;
+    }
+    .avatar {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        font-weight: bold;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .table thead th {
+        background-color: #212529;
+        color: white;
+        font-weight: 500;
+        border-bottom: none;
+    }
+    .table tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    .text-success {
+        color: #198754 !important;
+        font-weight: 500;
+    }
+    .text-danger {
+        color: #dc3545 !important;
+        font-weight: 600;
+    }
+</style>
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-submit do formulário quando digitar no campo de busca
+        let searchTimeout;
+        $('input[name="paciente"]').on('keyup', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                $(this).closest('form').submit();
+            }, 1000);
+        });
+        
+        // Submeter quando mudar os selects
+        $('select[name="pressao_alterada"]').on('change', function() {
+            $(this).closest('form').submit();
+        });
+        
+        // Submeter quando mudar as datas
+        $('input[name="data_inicio"], input[name="data_fim"]').on('change', function() {
+            $(this).closest('form').submit();
+        });
+        
+        // Tooltips para os botões
+        $('[title]').tooltip();
+    });
+    
+    function confirmarExclusao(vitalId) {
+        Swal.fire({
+            title: 'Confirmar exclusão',
+            text: 'Tem certeza que deseja excluir este registro? Esta ação não pode ser desfeita.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "{{ url_for('enfermeiro.sinais_vitais.excluir_sinais_vitais', vital_id=0) }}".replace('0', vitalId);
+            }
+        });
+    }
+</script>
+{% endblock %}
+{% endblock %}

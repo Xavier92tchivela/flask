@@ -1,110 +1,1135 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-AO">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Médico - Página Inicial</title>
+    <title>DoctorIA Angola - Sistema Médico com Inteligência Artificial</title>
+    
+    <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <!-- Google Fonts - Inter (fonte moderna) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
     <style>
-        .hero-section {
-            background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)), url('https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1932&q=80');
-            background-size: cover;
-            background-position: center;
-            color: white;
-            padding: 100px 0;
-            text-align: center;
-            margin-top: 70px; /* Para compensar a navbar fixa */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .feature-icon {
-            font-size: 3rem;
-            color: #3498db;
+
+        :root {
+            --primary: #2A5C9A;
+            --primary-light: #3B7BC4;
+            --primary-dark: #1E3F6F;
+            --secondary: #47B5FF;
+            --success: #28A745;
+            --warning: #FFC107;
+            --danger: #DC3545;
+            --info: #17A2B8;
+            --dark: #1E293B;
+            --light: #F8FAFC;
+            --gray: #64748B;
+            --white: #FFFFFF;
+            --enfermeiro: #10b981;
+            --enfermeiro-dark: #059669;
+            
+            --gradient-primary: linear-gradient(135deg, #2A5C9A 0%, #1E3F6F 100%);
+            --gradient-secondary: linear-gradient(135deg, #47B5FF 0%, #2A5C9A 100%);
+            --gradient-success: linear-gradient(135deg, #28A745 0%, #1E7E34 100%);
+            --gradient-enfermeiro: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            
+            --box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --box-shadow-hover: 0 30px 50px rgba(42, 92, 154, 0.2);
+            --border-radius: 20px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: var(--dark);
+            background-color: var(--white);
+            overflow-x: hidden;
+        }
+
+        /* Navbar Moderna */
+        .navbar-modern {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.05);
+            padding: 1rem 0;
+            transition: var(--transition);
+        }
+
+        .navbar-modern.scrolled {
+            padding: 0.5rem 0;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: var(--primary) !important;
+            letter-spacing: -1px;
+        }
+
+        .navbar-brand i {
+            font-size: 2rem;
+            margin-right: 10px;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .navbar-brand span {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .nav-link {
+            color: var(--dark) !important;
+            font-weight: 500;
+            padding: 0.5rem 1.2rem !important;
+            border-radius: 30px;
+            transition: var(--transition);
+            position: relative;
+            font-size: 0.95rem;
+        }
+
+        .nav-link:hover {
+            color: var(--primary) !important;
+            background: rgba(42, 92, 154, 0.05);
+        }
+
+        .nav-link.active {
+            color: var(--primary) !important;
+            background: rgba(42, 92, 154, 0.1);
+        }
+
+        .btn-nav {
+            padding: 0.5rem 1.5rem;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: var(--transition);
+            margin-left: 0.5rem;
+        }
+
+        .btn-login {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+
+        .btn-login:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(42, 92, 154, 0.3);
+        }
+
+        .btn-register {
+            background: var(--gradient-primary);
+            color: var(--white);
+            border: none;
+        }
+
+        .btn-register:hover {
+            background: var(--gradient-secondary);
+            color: var(--white);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(42, 92, 154, 0.3);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            padding: 120px 0 80px;
+            background: linear-gradient(135deg, #F8FAFC 0%, #E9ECF0 100%);
+            overflow: hidden;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 80%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(42, 92, 154, 0.03) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            left: -10%;
+            width: 80%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(71, 181, 255, 0.03) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            color: var(--dark);
+        }
+
+        .hero-title span {
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .hero-subtitle {
+            font-size: 1.2rem;
+            color: var(--gray);
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .hero-buttons .btn {
+            padding: 1rem 2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            margin-right: 1rem;
             margin-bottom: 1rem;
         }
-        
-        .feature-card {
-            transition: transform 0.3s;
-            height: 100%;
-            border: 1px solid #e9ecef;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        .btn-primary-modern {
+            background: var(--gradient-primary);
+            color: var(--white);
+            border: none;
+            box-shadow: 0 10px 20px rgba(42, 92, 154, 0.3);
         }
-        
+
+        .btn-primary-modern:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(42, 92, 154, 0.4);
+            color: var(--white);
+        }
+
+        .btn-outline-modern {
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+        }
+
+        .btn-outline-modern:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(42, 92, 154, 0.2);
+        }
+
+        .hero-image {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-image img {
+            border-radius: 30px;
+            box-shadow: var(--box-shadow);
+            animation: float 6s ease-in-out infinite;
+            max-width: 100%;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .floating-badge {
+            position: absolute;
+            background: var(--white);
+            padding: 1rem 1.5rem;
+            border-radius: 50px;
+            box-shadow: var(--box-shadow);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            z-index: 2;
+        }
+
+        .badge-1 {
+            top: 10%;
+            left: -10%;
+            animation: floatBadge 5s ease-in-out infinite;
+        }
+
+        .badge-2 {
+            bottom: 10%;
+            right: -5%;
+            animation: floatBadge 5s ease-in-out infinite 1s;
+        }
+
+        @keyframes floatBadge {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .badge-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+        }
+
+        .badge-text h6 {
+            font-weight: 700;
+            margin-bottom: 0;
+            font-size: 0.9rem;
+        }
+
+        .badge-text p {
+            margin-bottom: 0;
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* Stats Section */
+        .stats-section {
+            padding: 60px 0;
+            background: var(--white);
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            color: var(--gray);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Features Section */
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-subtitle {
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 1rem;
+        }
+
+        .section-description {
+            font-size: 1.1rem;
+            color: var(--gray);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .feature-card {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 2.5rem 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+            transform: scaleX(0);
+            transition: var(--transition);
+        }
+
         .feature-card:hover {
             transform: translateY(-10px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+            box-shadow: var(--box-shadow-hover);
         }
-        
-        .cta-section {
-            background-color: #3498db;
-            color: white;
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, rgba(42, 92, 154, 0.1) 0%, rgba(71, 181, 255, 0.1) 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            font-size: 2rem;
+            transition: var(--transition);
+        }
+
+        .feature-card:hover .feature-icon {
+            background: var(--gradient-primary);
+            color: var(--white);
+            transform: rotateY(180deg);
+        }
+
+        .feature-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+
+        .feature-description {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .feature-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .feature-tag {
+            background: var(--light);
+            color: var(--primary);
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Perfis Section */
+        .profiles-section {
             padding: 80px 0;
+            background: var(--light);
         }
-        
-        /* Estilos para navbar */
-        .navbar {
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+
+        .profile-card {
+            background: var(--white);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            transition: var(--transition);
+            height: 100%;
         }
-        
+
+        .profile-card:hover {
+            transform: translateY(-10px);
+            box-shadow: var(--box-shadow-hover);
+        }
+
+        .profile-icon {
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: var(--white);
+            font-size: 3rem;
+        }
+
+        .profile-card.enfermeiro .profile-icon {
+            background: var(--gradient-enfermeiro);
+        }
+
+        .profile-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .profile-features {
+            text-align: left;
+            margin: 1.5rem 0;
+            padding-left: 1rem;
+        }
+
+        .profile-features li {
+            margin-bottom: 0.8rem;
+            color: var(--gray);
+        }
+
+        .profile-features i {
+            color: var(--success);
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .profile-btn {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 30px;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .profile-btn.enfermeiro {
+            background: var(--gradient-enfermeiro);
+            color: white;
+            border: none;
+        }
+
+        .profile-btn.enfermeiro:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        /* IA Section */
+        .ia-section {
+            padding: 80px 0;
+            background: var(--gradient-primary);
+            color: var(--white);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ia-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 80%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+        }
+
+        .ia-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .ia-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .ia-description {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+
+        .ia-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .ia-feature-item {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .ia-feature-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .ia-feature-title {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .ia-feature-text {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #1E3F6F 0%, #2A5C9A 100%);
+            color: var(--white);
+            text-align: center;
+        }
+
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+
+        .cta-description {
+            font-size: 1.2rem;
+            margin-bottom: 2.5rem;
+            opacity: 0.9;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons .btn {
+            padding: 1rem 2.5rem;
+            font-weight: 600;
+            border-radius: 50px;
+            margin: 0 0.5rem 1rem;
+        }
+
+        .btn-cta-primary {
+            background: var(--white);
+            color: var(--primary);
+            border: none;
+        }
+
+        .btn-cta-primary:hover {
+            background: var(--light);
+            color: var(--primary-dark);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-cta-outline {
+            background: transparent;
+            color: var(--white);
+            border: 2px solid var(--white);
+        }
+
+        .btn-cta-outline:hover {
+            background: var(--white);
+            color: var(--primary);
+            transform: translateY(-3px);
+        }
+
+        /* Footer */
+        .footer-modern {
+            background: var(--dark);
+            color: var(--white);
+            padding: 60px 0 30px;
+        }
+
+        .footer-brand {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--white);
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .footer-brand i {
+            color: var(--secondary);
+            margin-right: 10px;
+        }
+
+        .footer-text {
+            color: #94A3B8;
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+
+        .footer-title {
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--white);
+        }
+
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-links li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-links a {
+            color: #94A3B8;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .footer-links a:hover {
+            color: var(--white);
+            padding-left: 5px;
+        }
+
+        .footer-contact li {
+            color: #94A3B8;
+            margin-bottom: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .footer-contact i {
+            color: var(--secondary);
+            width: 20px;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .social-link {
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--white);
+            transition: var(--transition);
+        }
+
+        .social-link:hover {
+            background: var(--primary);
+            color: var(--white);
+            transform: translateY(-3px);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding-top: 2rem;
+            margin-top: 3rem;
+            text-align: center;
+            color: #94A3B8;
+        }
+
+        .footer-bottom a {
+            color: var(--white);
+            text-decoration: none;
+        }
+
+        /* Assinatura Digital */
+        .assinatura-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 60px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .assinatura-card {
+            background: white;
+            border-radius: 30px;
+            padding: 3rem;
+            box-shadow: var(--box-shadow);
+            max-width: 900px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .assinatura-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .assinatura-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--gradient-primary);
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .assinatura-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .assinatura-subtitle {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .assinatura-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .assinatura-feature {
+            text-align: center;
+        }
+
+        .assinatura-feature i {
+            font-size: 2rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .assinatura-feature h4 {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .assinatura-feature p {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .assinatura-demo {
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+            border-radius: 20px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            position: relative;
+        }
+
+        .demo-badge {
+            position: absolute;
+            top: -10px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .demo-content {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .demo-signature {
+            flex: 1;
+            border: 2px dashed var(--primary);
+            border-radius: 10px;
+            padding: 1rem;
+            font-family: 'Brush Script MT', cursive;
+            font-size: 1.5rem;
+            color: var(--primary);
+            background: white;
+        }
+
+        .demo-info {
+            flex: 1;
+        }
+
+        .demo-info p {
+            margin-bottom: 0.5rem;
+            color: var(--gray);
+        }
+
+        .demo-info strong {
+            color: var(--dark);
+        }
+
+        .demo-date {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        .assinatura-btn {
+            background: var(--gradient-primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: var(--transition);
+            text-decoration: none;
+        }
+
+        .assinatura-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(42, 92, 154, 0.3);
+            color: white;
+        }
+
         /* Responsividade */
-        @media (max-width: 768px) {
-            .hero-section {
-                padding: 60px 0;
-                margin-top: 60px;
+        @media (max-width: 992px) {
+            .hero-title {
+                font-size: 2.5rem;
             }
             
-            .feature-icon {
-                font-size: 2.5rem;
+            .floating-badge {
+                display: none;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .ia-title {
+                font-size: 2rem;
+            }
+            
+            .assinatura-features {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            
+            .demo-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero-section {
+                padding: 100px 0 60px;
+            }
+            
+            .hero-title {
+                font-size: 2rem;
+            }
+            
+            .hero-buttons .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+            
+            .section-title {
+                font-size: 1.8rem;
+            }
+            
+            .ia-features {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .cta-title {
+                font-size: 1.8rem;
+            }
+            
+            .cta-buttons .btn {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+            
+            .assinatura-card {
+                padding: 1.5rem;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <!-- Navbar Moderna -->
+    <nav class="navbar navbar-expand-lg navbar-modern fixed-top" id="mainNav">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('auth.index') }}">
-                <i class="fas fa-hospital me-2"></i>Sistema Médico
+                <i class="fas fa-heartbeat"></i>
+                <span>DoctorIA Angola</span>
             </a>
+            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
+            
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav mx-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="#home">Início</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#features">Funcionalidades</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#about">Sobre</a>
+                        <a class="nav-link" href="#profiles">Perfis</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#cta">Começar</a>
+                        <a class="nav-link" href="#ia">IA</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('auth.login') }}">
-                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        <a class="nav-link" href="/assinatura/">
+                            <i class="fas fa-pen-signature me-1"></i>Planos de Assinatura
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#contact">Contacto</a>
+                    </li>
                 </ul>
+                
+                <div class="d-flex">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-nav btn-login">
+                        <i class="fas fa-sign-in-alt me-2"></i>Entrar
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-nav btn-register">
+                        <i class="fas fa-user-plus me-2"></i>Registar
+                    </a>
+                </div>
             </div>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <section class="hero-section">
+    <section id="home" class="hero-section">
         <div class="container">
-            <div class="row">
-                <div class="col-lg-8 mx-auto">
-                    <h1 class="display-4 fw-bold mb-4">Sistema de Gestão Médica Completo</h1>
-                    <p class="lead mb-4">Gerencie pacientes, médicos, consultas e muito mais com nossa plataforma intuitiva e eficiente.</p>
-                    <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg me-3">
-                        <i class="fas fa-sign-in-alt me-2"></i>Acessar Sistema
-                    </a>
-                    <a href="#features" class="btn btn-outline-light btn-lg">
-                        <i class="fas fa-info-circle me-2"></i>Saiba Mais
-                    </a>
+            <div class="row align-items-center">
+                <div class="col-lg-6" data-aos="fade-right">
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-4 py-2 mb-4 rounded-pill">
+                        <i class="fas fa-robot me-2"></i>Tecnologia de Ponta em Angola
+                    </span>
+                    
+                    <h1 class="hero-title">
+                        Revolucione a sua prática médica com
+                        <span>Inteligência Artificial</span>
+                    </h1>
+                    
+                    <p class="hero-subtitle">
+                        Sistema completo de gestão médica com análise de exames por IA, 
+                        agendamento inteligente, prontuários eletrônicos e assinatura digital. 
+                        Desenvolvido para clínicas e hospitais angolanos.
+                    </p>
+                    
+                    <div class="hero-buttons">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-primary-modern">
+                            <i class="fas fa-rocket me-2"></i>Começar Agora
+                        </a>
+                        <a href="#features" class="btn btn-outline-modern">
+                            <i class="fas fa-play-circle me-2"></i>Ver Demonstração
+                        </a>
+                    </div>
+                    
+                    <div class="mt-5 d-flex align-items-center gap-4">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="text-muted">Lei Angola</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="text-muted">SSL 256-bit</span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span class="text-muted">Backup Diário</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6" data-aos="fade-left">
+                    <div class="hero-image">
+                        <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                             alt="DoctorIA Dashboard" class="img-fluid">
+                        
+                        <div class="floating-badge badge-1">
+                            <div class="badge-icon">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="badge-text">
+                                <h6>Análise com IA</h6>
+                                <p>Inteligência Artificial</p>
+                            </div>
+                        </div>
+                        
+                        <div class="floating-badge badge-2">
+                            <div class="badge-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="badge-text">
+                                <h6>100% Seguro</h6>
+                                <p>Criptografado</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-3 col-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stat-item">
+                        <div class="stat-number">500+</div>
+                        <div class="stat-label">Consultas/Mês</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stat-item">
+                        <div class="stat-number">50+</div>
+                        <div class="stat-label">Médicos</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stat-item">
+                        <div class="stat-number">30+</div>
+                        <div class="stat-label">Enfermeiros</div>
+                    </div>
+                </div>
+                <div class="col-md-3 col-6" data-aos="fade-up" data-aos-delay="400">
+                    <div class="stat-item">
+                        <div class="stat-number">98%</div>
+                        <div class="stat-label">Satisfação</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -113,109 +1138,279 @@
     <!-- Features Section -->
     <section id="features" class="py-5">
         <div class="container">
-            <div class="text-center mb-5">
-                <h2 class="fw-bold">Funcionalidades Principais</h2>
-                <p class="lead text-muted">Tudo que você precisa para gerenciar sua clínica ou consultório</p>
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-subtitle">Funcionalidades</span>
+                <h2 class="section-title">Tudo que precisa num só lugar</h2>
+                <p class="section-description">
+                    Uma plataforma completa com as melhores ferramentas para gestão médica, 
+                    análise de exames e atendimento ao paciente em Angola.
+                </p>
             </div>
             
             <div class="row g-4">
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon">
-                                <i class="fas fa-user-injured"></i>
-                            </div>
-                            <h4 class="card-title">Gestão de Pacientes</h4>
-                            <p class="card-text">Cadastro completo de pacientes com histórico médico, contatos e informações pessoais. Controle total sobre os dados dos pacientes.</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary">Prontuários</span>
-                                <span class="badge bg-primary">Histórico</span>
-                                <span class="badge bg-primary">Documentos</span>
-                            </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-injured"></i>
+                        </div>
+                        <h3 class="feature-title">Gestão de Pacientes</h3>
+                        <p class="feature-description">
+                            Cadastro completo com histórico médico, documentos, 
+                            exames e contactos. Tudo organizado e de fácil acesso.
+                        </p>
+                        <div class="feature-tags">
+                            <span class="feature-tag">Prontuários</span>
+                            <span class="feature-tag">Histórico</span>
+                            <span class="feature-tag">Documentos</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon">
-                                <i class="fas fa-user-md"></i>
-                            </div>
-                            <h4 class="card-title">Gestão de Médicos</h4>
-                            <p class="card-text">Controle completo da equipe médica com especialidades, CRM e informações de contato. Agendas individuais para cada profissional.</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary">Agenda</span>
-                                <span class="badge bg-primary">Especialidades</span>
-                                <span class="badge bg-primary">Disponibilidade</span>
-                            </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <h3 class="feature-title">Gestão de Médicos</h3>
+                        <p class="feature-description">
+                            Controlo de agenda, especialidades, CRM e disponibilidade. 
+                            Dashboard personalizado para cada profissional.
+                        </p>
+                        <div class="feature-tags">
+                            <span class="feature-tag">Agenda</span>
+                            <span class="feature-tag">Especialidades</span>
+                            <span class="feature-tag">Disponibilidade</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <h4 class="card-title">Agendamento de Consultas</h4>
-                            <p class="card-text">Sistema intuitivo para agendamento, cancelamento e reagendamento de consultas. Notificações automáticas por email.</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary">Agendamento</span>
-                                <span class="badge bg-primary">Cancelamento</span>
-                                <span class="badge bg-primary">Lembretes</span>
-                            </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-nurse"></i>
+                        </div>
+                        <h3 class="feature-title">Gestão de Enfermeiros</h3>
+                        <p class="feature-description">
+                            Registo de sinais vitais, triagem, administração de medicamentos 
+                            e acompanhamento contínuo de pacientes internados.
+                        </p>
+                        <div class="feature-tags">
+                            <span class="feature-tag">Sinais Vitais</span>
+                            <span class="feature-tag">Triagem</span>
+                            <span class="feature-tag">Medicamentos</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon">
-                                <i class="fas fa-file-medical"></i>
-                            </div>
-                            <h4 class="card-title">Prontuários Eletrônicos</h4>
-                            <p class="card-text">Registro completo do histórico de consultas, diagnósticos e prescrições. Acesso seguro e organizado a todos os dados do paciente.</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary">Histórico</span>
-                                <span class="badge bg-primary">Diagnósticos</span>
-                                <span class="badge bg-primary">Segurança</span>
-                            </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <h3 class="feature-title">Agendamento</h3>
+                        <p class="feature-description">
+                            Sistema inteligente de agendamento com lembretes por SMS, 
+                            cancelamento online e gestão de horários.
+                        </p>
+                        <div class="feature-tags">
+                            <span class="feature-tag">Lembretes</span>
+                            <span class="feature-tag">Online</span>
+                            <span class="feature-tag">Automação</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon">
-                                <i class="fas fa-pills"></i>
-                            </div>
-                            <h4 class="card-title">Prescrições Médicas</h4>
-                            <p class="card-text">Emissão de receitas médicas com dados completos dos medicamentos prescritos. Geração de PDF profissional para impressão.</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary">Receitas</span>
-                                <span class="badge bg-primary">Medicamentos</span>
-                                <span class="badge bg-primary">PDF</span>
-                            </div>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-medical"></i>
+                        </div>
+                        <h3 class="feature-title">Prontuários</h3>
+                        <p class="feature-description">
+                            Prontuários eletrónicos completos com histórico de consultas, 
+                            diagnósticos e prescrições. Acesso rápido e seguro.
+                        </p>
+                        <div class="feature-tags">
+                            <span class="feature-tag">Eletrónico</span>
+                            <span class="feature-tag">Histórico</span>
+                            <span class="feature-tag">Seguro</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-md-4">
-                    <div class="card feature-card h-100">
-                        <div class="card-body text-center p-4">
-                            <div class="feature-icon">
-                                <i class="fas fa-robot"></i>
+                <div class="col-md-4" data-aos="fade-up" data-aos-delay="600">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-pen-signature"></i>
+                        </div>
+                        <h3 class="feature-title">Assinatura Digital</h3>
+                        <p class="feature-description">
+                            Assine digitalmente receitas, laudos e documentos com validade 
+                            legal em Angola. Apenas 1.000 Kz por atendimento.
+                        </p>
+                        <div class="feature-tags">
+                            <span class="feature-tag">Validade Legal</span>
+                            <span class="feature-tag">1.000 Kz</span>
+                            <span class="feature-tag">Documentos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Perfis Section -->
+    <section id="profiles" class="profiles-section">
+        <div class="container">
+            <div class="section-header" data-aos="fade-up">
+                <span class="section-subtitle">Para Quem é</span>
+                <h2 class="section-title">Soluções para cada perfil</h2>
+                <p class="section-description">
+                    O DoctorIA Angola foi desenvolvido para atender todas as necessidades do ecossistema médico angolano
+                </p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-3" data-aos="fade-up" data-aos-delay="100">
+                    <div class="profile-card">
+                        <div class="profile-icon">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <h3 class="profile-title">Médicos</h3>
+                        <ul class="profile-features">
+                            <li><i class="fas fa-check-circle"></i> Dashboard personalizado</li>
+                            <li><i class="fas fa-check-circle"></i> Solicitar análises de exames</li>
+                            <li><i class="fas fa-check-circle"></i> Acompanhar resultados</li>
+                            <li><i class="fas fa-check-circle"></i> Prescrições digitais</li>
+                            <li><i class="fas fa-check-circle"></i> Histórico de pacientes</li>
+                        </ul>
+                        <a href="{{ url_for('auth.register') }}?tipo=medico" class="btn btn-outline-modern profile-btn">
+                            Saiba mais <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3" data-aos="fade-up" data-aos-delay="200">
+                    <div class="profile-card">
+                        <div class="profile-icon">
+                            <i class="fas fa-microscope"></i>
+                        </div>
+                        <h3 class="profile-title">Analistas</h3>
+                        <ul class="profile-features">
+                            <li><i class="fas fa-check-circle"></i> Análise de exames com IA</li>
+                            <li><i class="fas fa-check-circle"></i> Pedidos pendentes</li>
+                            <li><i class="fas fa-check-circle"></i> Diagnósticos assistidos</li>
+                            <li><i class="fas fa-check-circle"></i> Prioridade por urgência</li>
+                            <li><i class="fas fa-check-circle"></i> Histórico de análises</li>
+                        </ul>
+                        <a href="{{ url_for('auth.register') }}?tipo=analista" class="btn btn-outline-modern profile-btn">
+                            Saiba mais <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3" data-aos="fade-up" data-aos-delay="300">
+                    <div class="profile-card enfermeiro">
+                        <div class="profile-icon">
+                            <i class="fas fa-user-nurse"></i>
+                        </div>
+                        <h3 class="profile-title">Enfermeiros</h3>
+                        <ul class="profile-features">
+                            <li><i class="fas fa-check-circle"></i> Registo de sinais vitais</li>
+                            <li><i class="fas fa-check-circle"></i> Triagem de pacientes</li>
+                            <li><i class="fas fa-check-circle"></i> Administração de medicamentos</li>
+                            <li><i class="fas fa-check-circle"></i> Acompanhamento de internados</li>
+                            <li><i class="fas fa-check-circle"></i> Relatórios de enfermagem</li>
+                        </ul>
+                        <a href="{{ url_for('auth.register') }}?tipo=enfermeiro" class="profile-btn enfermeiro">
+                            Saiba mais <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3" data-aos="fade-up" data-aos-delay="400">
+                    <div class="profile-card">
+                        <div class="profile-icon">
+                            <i class="fas fa-user-injured"></i>
+                        </div>
+                        <h3 class="profile-title">Pacientes</h3>
+                        <ul class="profile-features">
+                            <li><i class="fas fa-check-circle"></i> Agendamento online</li>
+                            <li><i class="fas fa-check-circle"></i> Consultas agendadas</li>
+                            <li><i class="fas fa-check-circle"></i> Resultados de exames</li>
+                            <li><i class="fas fa-check-circle"></i> Histórico médico</li>
+                            <li><i class="fas fa-check-circle"></i> Lembretes por SMS</li>
+                        </ul>
+                        <a href="{{ url_for('auth.register') }}?tipo=paciente" class="btn btn-outline-modern profile-btn">
+                            Saiba mais <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- IA Section -->
+    <section id="ia" class="ia-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 ia-content" data-aos="fade-right">
+                    <span class="badge bg-white bg-opacity-20 text-white px-4 py-2 mb-4 rounded-pill">
+                        <i class="fas fa-robot me-2"></i>Inteligência Artificial
+                    </span>
+                    
+                    <h2 class="ia-title">
+                        Análise de Imagens Médicas com IA Avançada
+                    </h2>
+                    
+                    <p class="ia-description">
+                        Nossa plataforma integra a mais avançada tecnologia de Inteligência Artificial para auxiliar 
+                        no diagnóstico de exames de imagem. O sistema analisa radiografias, 
+                        tomografias e outros exames, fornecendo insights precisos e rápidos para 
+                        médicos angolanos.
+                    </p>
+                    
+                    <div class="ia-features">
+                        <div class="ia-feature-item">
+                            <div class="ia-feature-icon">
+                                <i class="fas fa-brain"></i>
                             </div>
-                            <h4 class="card-title">Assistente com IA</h4>
-                            <p class="card-text">Assistente inteligente integrado com tecnologia Gemini AI para suporte médico. Análise de imagens e sugestões de diagnóstico.</p>
-                            <div class="mt-3">
-                                <span class="badge bg-primary">Gemini AI</span>
-                                <span class="badge bg-primary">Análise</span>
-                                <span class="badge bg-primary">Suporte</span>
+                            <div class="ia-feature-title">Machine Learning</div>
+                            <div class="ia-feature-text">Aprendizado contínuo com cada análise</div>
+                        </div>
+                        
+                        <div class="ia-feature-item">
+                            <div class="ia-feature-icon">
+                                <i class="fas fa-bolt"></i>
+                            </div>
+                            <div class="ia-feature-title">Resultados Rápidos</div>
+                            <div class="ia-feature-text">Análise em segundos</div>
+                        </div>
+                        
+                        <div class="ia-feature-item">
+                            <div class="ia-feature-icon">
+                                <i class="fas fa-chart-pie"></i>
+                            </div>
+                            <div class="ia-feature-title">95% de Precisão</div>
+                            <div class="ia-feature-text">Alta taxa de acerto</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <a href="#" class="btn btn-light btn-lg rounded-pill px-5">
+                            <i class="fas fa-play-circle me-2"></i>Ver Demonstração
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6" data-aos="fade-left">
+                    <div class="position-relative">
+                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80" 
+                             alt="Análise com IA" class="img-fluid rounded-4 shadow-lg">
+                        
+                        <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                            <div class="bg-white rounded-circle p-4 shadow-lg" style="cursor: pointer;">
+                                <i class="fas fa-play fa-3x text-primary"></i>
                             </div>
                         </div>
                     </div>
@@ -224,133 +1419,264 @@
         </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about" class="py-5 bg-light">
+    <!-- Assinatura Digital Section -->
+    <section id="assinatura" class="assinatura-section">
         <div class="container">
-            <div class="row align-items-center">
-                <div class="col-lg-6">
-                    <h2 class="fw-bold mb-4">Sobre o Sistema</h2>
-                    <p class="lead">Desenvolvido para modernizar e simplificar a gestão de clínicas e consultórios médicos.</p>
-                    <p>Nosso sistema oferece uma solução completa para administrar todos os aspectos de uma operação médica, desde o agendamento de consultas até o gerenciamento de prontuários eletrônicos.</p>
-                    <p>Com interface intuitiva e tecnologia de ponta, facilitamos o trabalho dos profissionais de saúde, permitindo que se concentrem no que realmente importa: o cuidado com os pacientes.</p>
-                    
-                    <div class="mt-4">
-                        <h5><i class="fas fa-check-circle text-success me-2"></i>Vantagens do Sistema:</h5>
-                        <ul class="list-unstyled">
-                            <li class="mb-2"><i class="fas fa-check text-primary me-2"></i>Segurança de dados garantida</li>
-                            <li class="mb-2"><i class="fas fa-check text-primary me-2"></i>Interface amigável e intuitiva</li>
-                            <li class="mb-2"><i class="fas fa-check text-primary me-2"></i>Suporte técnico 24/7</li>
-                            <li class="mb-2"><i class="fas fa-check text-primary me-2"></i>Atualizações constantes</li>
-                            <li class="mb-2"><i class="fas fa-check text-primary me-2"></i>Integração com tecnologia AI</li>
-                        </ul>
+            <div class="assinatura-card" data-aos="zoom-in">
+                <div class="assinatura-header">
+                    <div class="assinatura-icon">
+                        <i class="fas fa-pen-fancy"></i>
+                    </div>
+                    <h2 class="assinatura-title">Assinatura Digital com Validade Legal</h2>
+                    <p class="assinatura-subtitle">Apenas 1.000 Kz por atendimento</p>
+                </div>
+                
+                <div class="assinatura-features">
+                    <div class="assinatura-feature">
+                        <i class="fas fa-gavel"></i>
+                        <h4>Validade Jurídica</h4>
+                        <p>Documentos assinados têm validade legal em Angola</p>
+                    </div>
+                    <div class="assinatura-feature">
+                        <i class="fas fa-clock"></i>
+                        <h4>Carimbo de Tempo</h4>
+                        <p>Garantia da data e hora da assinatura</p>
+                    </div>
+                    <div class="assinatura-feature">
+                        <i class="fas fa-lock"></i>
+                        <h4>Criptografia</h4>
+                        <p>Assinaturas criptografadas com tecnologia de ponta</p>
                     </div>
                 </div>
-                <div class="col-lg-6">
-                    <img src="https://images.unsplash.com/photo-1586773860418-d37222d8fce3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1473&q=80" 
-                         alt="Sistema Médico" 
-                         class="img-fluid rounded shadow-lg"
-                         style="border: 5px solid white; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);">
+                
+                <div class="assinatura-demo">
+                    <span class="demo-badge">Exemplo</span>
+                    <div class="demo-content">
+                        <div class="demo-signature">
+                            Dr. João Silva
+                        </div>
+                        <div class="demo-info">
+                            <p><strong>Documento:</strong> Receita Médica #12345</p>
+                            <p><strong>Assinado em:</strong> 12/03/2025 14:30</p>
+                            <div class="demo-date">
+                                <i class="fas fa-certificate text-primary"></i>
+                                <span>Certificado digital válido</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="/assinatura/" class="assinatura-btn">
+                        <i class="fas fa-pen-fancy"></i>
+                        Ver Planos de Assinatura
+                    </a>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- CTA Section -->
-    <section id="cta" class="cta-section">
-        <div class="container text-center">
-            <h2 class="display-5 fw-bold mb-4">Pronto para transformar sua gestão médica?</h2>
-            <p class="lead mb-4">Experimente nosso sistema e descubra como podemos ajudar sua clínica ou consultório a ser mais eficiente e organizado.</p>
-            <a href="{{ url_for('auth.login') }}" class="btn btn-light btn-lg me-3">
-                <i class="fas fa-sign-in-alt me-2"></i>Fazer Login
-            </a>
-            <a href="{{ url_for('auth.register') }}" class="btn btn-outline-light btn-lg">
-                <i class="fas fa-user-plus me-2"></i>Criar Conta
-            </a>
+    <section class="cta-section">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8" data-aos="fade-up">
+                    <h2 class="cta-title">Pronto para modernizar a sua clínica?</h2>
+                    <p class="cta-description">
+                        Comece hoje mesmo a usar o DoctorIA Angola e descubra como a tecnologia pode 
+                        revolucionar o seu atendimento médico.
+                    </p>
+                    <div class="cta-buttons">
+                        <a href="{{ url_for('auth.register') }}" class="btn btn-cta-primary">
+                            <i class="fas fa-rocket me-2"></i>Criar Conta Grátis
+                        </a>
+                        <a href="{{ url_for('auth.login') }}" class="btn btn-cta-outline">
+                            <i class="fas fa-sign-in-alt me-2"></i>Fazer Login
+                        </a>
+                    </div>
+                    <p class="mt-4 text-white-50">
+                        <i class="fas fa-check-circle me-2"></i>Sem compromisso. Cancele quando quiser.
+                    </p>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="bg-dark text-white py-5">
+    <footer id="contact" class="footer-modern">
         <div class="container">
             <div class="row">
-                <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold">
-                        <i class="fas fa-hospital me-2"></i>Sistema Médico
-                    </h5>
-                    <p class="mt-3">Solução completa para gestão de clínicas e consultórios. Modernize sua operação médica com nossa plataforma.</p>
-                    <div class="social-icons mt-4">
-                        <a href="#" class="text-white me-3"><i class="fab fa-facebook fa-lg"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-twitter fa-lg"></i></a>
-                        <a href="#" class="text-white me-3"><i class="fab fa-instagram fa-lg"></i></a>
-                        <a href="#" class="text-white"><i class="fab fa-linkedin fa-lg"></i></a>
+                <div class="col-lg-4 mb-5 mb-lg-0">
+                    <a href="{{ url_for('auth.index') }}" class="footer-brand">
+                        <i class="fas fa-heartbeat"></i>DoctorIA Angola
+                    </a>
+                    <p class="footer-text">
+                        Sistema médico inteligente com análise de exames por IA, 
+                        gestão completa e prontuários eletrónicos. Tecnologia de ponta 
+                        para a saúde angolana.
+                    </p>
+                    <div class="social-links">
+                        <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="social-link"><i class="fab fa-whatsapp"></i></a>
                     </div>
                 </div>
                 
-                <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold">Links Rápidos</h5>
-                    <ul class="list-unstyled mt-3">
-                        <li class="mb-2"><a href="{{ url_for('auth.index') }}" class="text-white text-decoration-none">Página Inicial</a></li>
-                        <li class="mb-2"><a href="#features" class="text-white text-decoration-none">Funcionalidades</a></li>
-                        <li class="mb-2"><a href="#about" class="text-white text-decoration-none">Sobre</a></li>
-                        <li class="mb-2"><a href="{{ url_for('auth.login') }}" class="text-white text-decoration-none">Login</a></li>
-                        <li><a href="{{ url_for('auth.register') }}" class="text-white text-decoration-none">Registrar</a></li>
+                <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+                    <h5 class="footer-title">Produto</h5>
+                    <ul class="footer-links">
+                        <li><a href="#features">Funcionalidades</a></li>
+                        <li><a href="#ia">Inteligência Artificial</a></li>
+                        <li><a href="#profiles">Para Quem é</a></li>
+                        <li><a href="/assinatura/">Planos de Assinatura</a></li>
+                        <li><a href="#">FAQ</a></li>
                     </ul>
                 </div>
                 
-                <div class="col-md-4 mb-4">
-                    <h5 class="fw-bold">Contato</h5>
-                    <ul class="list-unstyled mt-3">
-                        <li class="mb-2"><i class="fas fa-envelope me-2"></i>contato@sistemamedico.com</li>
-                        <li class="mb-2"><i class="fas fa-phone me-2"></i>(11) 9999-9999</li>
-                        <li class="mb-2"><i class="fas fa-map-marker-alt me-2"></i>São Paulo, SP</li>
-                        <li><i class="fas fa-clock me-2"></i>Suporte 24/7</li>
+                <div class="col-lg-2 col-md-4 mb-4 mb-md-0">
+                    <h5 class="footer-title">Legal</h5>
+                    <ul class="footer-links">
+                        <li><a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Termos de Uso</a></li>
+                        <li><a href="#" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacidade</a></li>
+                        <li><a href="#">Lei Angola</a></li>
+                        <li><a href="#">Segurança</a></li>
+                        <li><a href="#">Cookies</a></li>
+                    </ul>
+                </div>
+                
+                <div class="col-lg-4 col-md-4">
+                    <h5 class="footer-title">Contacto</h5>
+                    <ul class="footer-contact">
+                        <li><i class="fas fa-envelope"></i> geral@doctoria.ao</li>
+                        <li><i class="fas fa-phone"></i> <a href="tel:+244929027742" class="text-white text-decoration-none">929 027 742</a></li>
+                        <li><i class="fas fa-map-marker-alt"></i> Luanda, Angola</li>
+                        <li><i class="fas fa-clock"></i> Suporte 24/7</li>
                     </ul>
                 </div>
             </div>
             
-            <hr class="bg-light my-4">
-            
-            <div class="row">
-                <div class="col-md-12 text-center">
-                    <p class="mb-0">&copy; 2025 Sistema Médico. Todos os direitos reservados.</p>
-                    <p class="text-muted mt-2">Desenvolvido com <i class="fas fa-heart text-danger"></i> para a saúde brasileira</p>
+            <div class="footer-bottom">
+                <div class="row">
+                    <div class="col-md-6 text-md-start">
+                        <p>&copy; 2025 DoctorIA Angola. Todos os direitos reservados.</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p>Desenvolvido com <i class="fas fa-heart text-danger"></i> para a saúde angolana</p>
+                    </div>
                 </div>
             </div>
         </div>
     </footer>
 
+    <!-- Modais -->
+    <div class="modal fade" id="termsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-file-contract me-2"></i>Termos de Uso</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>1. Uso do Sistema</h6>
+                    <p>O DoctorIA Angola é destinado exclusivamente para profissionais de saúde e pacientes autorizados em território angolano.</p>
+                    
+                    <h6 class="mt-3">2. Privacidade de Dados</h6>
+                    <p>Todos os dados são tratados conforme a legislação angolana de proteção de dados, com criptografia de ponta a ponta.</p>
+                    
+                    <h6 class="mt-3">3. Assinatura Digital</h6>
+                    <p>As assinaturas digitais realizadas na plataforma têm validade legal conforme a legislação angolana.</p>
+                    
+                    <h6 class="mt-3">4. Inteligência Artificial</h6>
+                    <p>As análises por IA são assistivas e devem ser validadas por profissionais habilitados.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal fade" id="privacyModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-shield-alt me-2"></i>Política de Privacidade</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6>Dados Coletados</h6>
+                    <p>Coletamos apenas dados necessários para o funcionamento do sistema: nome, contacto e informações de saúde.</p>
+                    
+                    <h6 class="mt-3">Armazenamento</h6>
+                    <p>Servidores seguros com criptografia e backups diários.</p>
+                    
+                    <h6 class="mt-3">Compartilhamento</h6>
+                    <p>Dados compartilhados apenas entre profissionais autorizados envolvidos no atendimento.</p>
+                    
+                    <h6 class="mt-3">Assinaturas Digitais</h6>
+                    <p>As assinaturas digitais são armazenadas com criptografia e têm valor legal.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     
     <script>
+        // Inicializar AOS
+        AOS.init({
+            duration: 800,
+            once: true,
+            offset: 100
+        });
+
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const nav = document.getElementById('mainNav');
+            if (window.scrollY > 50) {
+                nav.classList.add('scrolled');
+            } else {
+                nav.classList.remove('scrolled');
+            }
+        });
+
         // Smooth scroll para links âncora
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
+            anchor.addEventListener('click', function(e) {
                 e.preventDefault();
-                
                 const targetId = this.getAttribute('href');
                 if (targetId === '#') return;
                 
                 const targetElement = document.querySelector(targetId);
                 if (targetElement) {
+                    const navHeight = document.getElementById('mainNav').offsetHeight;
                     window.scrollTo({
-                        top: targetElement.offsetTop - 70,
+                        top: targetElement.offsetTop - navHeight,
                         behavior: 'smooth'
                     });
                 }
             });
         });
-        
-        // Adicionar classe active ao item de menu atual
+
+        // Atualizar links ativos no scroll
         window.addEventListener('scroll', function() {
             const sections = document.querySelectorAll('section[id]');
-            const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+            const navLinks = document.querySelectorAll('.nav-link');
             
             let current = '';
+            const scrollPosition = window.scrollY + 100;
             
             sections.forEach(section => {
-                const sectionTop = section.offsetTop - 100;
+                const sectionTop = section.offsetTop;
                 const sectionHeight = section.clientHeight;
-                if (scrollY >= sectionTop && scrollY < sectionTop + sectionHeight) {
+                
+                if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
                     current = section.getAttribute('id');
                 }
             });
@@ -362,6 +1688,57 @@
                 }
             });
         });
+
+        // Contador animado
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.textContent = value.toLocaleString() + '+';
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Iniciar contadores quando a seção estiver visível
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const stats = document.querySelectorAll('.stat-number');
+                    stats.forEach(stat => {
+                        const value = parseInt(stat.textContent.replace(/[^0-9]/g, ''));
+                        animateValue(stat, 0, value, 2000);
+                    });
+                    observer.unobserve(entry.target);
+                }
+            });
+        });
+
+        observer.observe(document.querySelector('.stats-section'));
+
+        // Formatar telefone para clique
+        const phoneNumber = "929027742";
+        const phoneLink = document.querySelector('.footer-contact li strong');
+        if (phoneLink) {
+            phoneLink.parentElement.innerHTML = `<i class="fas fa-phone"></i> <a href="tel:+244${phoneNumber}" class="text-white text-decoration-none">929 027 742</a>`;
+        }
+
+        // Animação da assinatura digital
+        const signatureDemo = document.querySelector('.demo-signature');
+        if (signatureDemo) {
+            setInterval(() => {
+                signatureDemo.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    signatureDemo.style.transform = 'scale(1)';
+                }, 200);
+            }, 3000);
+        }
     </script>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>

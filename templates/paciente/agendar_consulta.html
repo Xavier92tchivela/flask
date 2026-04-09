@@ -32,8 +32,8 @@
                                 <option value="" selected disabled>Selecione um médico...</option>
                                 {% if medicos %}
                                     {% for medico in medicos %}
-                                    <option value="{{ medico[0] }}">
-                                        {{ medico[1] }} - {{ medico[2] }} (CRM: {{ medico[3] }})
+                                    <option value="{{ medico.id }}">
+                                        {{ medico.nome }} - {{ medico.especialidade }} (CRM: {{ medico.crm }})
                                     </option>
                                     {% endfor %}
                                 {% else %}
@@ -248,7 +248,7 @@
                                         </div>
                                     </div>
 
-                                    <!-- ===== NOVA ABA: SINTOMAS URINÁRIOS ===== -->
+                                    <!-- Sintomas Urinários -->
                                     <div class="tab-pane fade" id="urinarios" role="tabpanel">
                                         <div class="sintomas-grid">
                                             <div class="sintoma-item" data-sintoma="Dor ao urinar">
@@ -417,6 +417,24 @@
                             <div class="form-text">Informações adicionais para o médico</div>
                         </div>
 
+                        <!-- ===== RESUMO DA FATURA ===== -->
+                        <div class="alert alert-success mb-4">
+                            <h6 class="alert-heading fw-bold">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>Resumo da Fatura
+                            </h6>
+                            <div class="row">
+                                <div class="col-6">Consulta Médica:</div>
+                                <div class="col-6 text-end"><strong>2.500,00 Kz</strong></div>
+                                <hr class="my-2">
+                                <div class="col-6 fw-bold">TOTAL:</div>
+                                <div class="col-6 text-end fw-bold text-success">2.500,00 Kz</div>
+                            </div>
+                            <small class="text-muted d-block mt-2">
+                                <i class="fas fa-info-circle me-1"></i>
+                                A fatura será gerada automaticamente após o agendamento
+                            </small>
+                        </div>
+
                         <!-- Informações Importantes -->
                         <div class="alert alert-info mb-4">
                             <h6 class="alert-heading">
@@ -435,8 +453,8 @@
                             <a href="{{ url_for('paciente.dashboard') }}" class="btn btn-secondary">
                                 <i class="fas fa-times me-2"></i>Cancelar
                             </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-calendar-check me-2"></i>Agendar Consulta
+                            <button type="submit" class="btn btn-primary btn-lg" id="btnAgendar">
+                                <i class="fas fa-calendar-check me-2"></i>AGENDAR E EMITIR FATURA
                             </button>
                         </div>
                     </form>
@@ -457,15 +475,15 @@
                         <div class="col-md-6 mb-3">
                             <div class="card h-100 border-primary">
                                 <div class="card-body">
-                                    <h6 class="card-title text-primary">{{ medico[1] }}</h6>
+                                    <h6 class="card-title text-primary">{{ medico.nome }}</h6>
                                     <p class="card-text mb-1">
                                         <small class="text-muted">
-                                            <i class="fas fa-stethoscope me-1"></i>{{ medico[2] }}
+                                            <i class="fas fa-stethoscope me-1"></i>{{ medico.especialidade }}
                                         </small>
                                     </p>
                                     <p class="card-text mb-2">
                                         <small class="text-muted">
-                                            <i class="fas fa-id-card me-1"></i>CRM: {{ medico[3] }}
+                                            <i class="fas fa-id-card me-1"></i>CRM: {{ medico.crm }}
                                         </small>
                                     </p>
                                 </div>
@@ -647,13 +665,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Atualizar a lista visual de sintomas
     function atualizarListaSintomas() {
-        // Atualizar contador
         contadorSpan.textContent = sintomasSelecionados.size + ' selecionados';
-        
-        // Atualizar input hidden
         sintomasInput.value = Array.from(sintomasSelecionados).join(', ');
         
-        // Atualizar lista visual
         if (sintomasSelecionados.size === 0) {
             listaSintomasDiv.innerHTML = '<em class="text-muted">Nenhum sintoma selecionado</em>';
             return;
@@ -669,34 +683,27 @@ document.addEventListener('DOMContentLoaded', function() {
         listaSintomasDiv.innerHTML = html;
     }
 
-    // Função global para remover sintoma
     window.removerSintoma = function(sintoma) {
         sintomasSelecionados.delete(sintoma);
-        
-        // Remover classe selecionada do item correspondente
         document.querySelectorAll('.sintoma-item').forEach(item => {
             if (item.dataset.sintoma === sintoma) {
                 item.classList.remove('selecionado');
             }
         });
-        
         atualizarListaSintomas();
     };
 
-    // Formata a data atual para o formato brasileiro
     function formatarDataBrasileira(data) {
         const [ano, mes, dia] = data.split('-');
         return `${dia}/${mes}/${ano}`;
     }
 
-    // Validação do formulário antes de enviar
     const form = document.getElementById('formAgendar');
     if (form) {
         form.addEventListener('submit', function(event) {
             const medicoId = document.getElementById('medico_id').value;
             const data = document.getElementById('data_consulta').value;
             const hora = document.getElementById('hora_consulta').value;
-            const sintomasSelecionadosSize = sintomasSelecionados.size;
             
             if (!medicoId || !data || !hora) {
                 alert('Por favor, preencha todos os campos obrigatórios.');
@@ -704,13 +711,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
             
-            if (sintomasSelecionadosSize === 0) {
+            if (sintomasSelecionados.size === 0) {
                 alert('Por favor, selecione pelo menos um sintoma.');
                 event.preventDefault();
                 return false;
             }
             
-            // Verifica se a data não é no passado
             const dataSelecionada = new Date(data + 'T' + hora);
             const agora = new Date();
             
@@ -720,16 +726,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
             
-            // Confirmação final
-            const confirmacao = confirm(`Confirmar agendamento para ${formatarDataBrasileira(data)} às ${hora}?`);
+            const confirmacao = confirm(`Confirmar agendamento para ${formatarDataBrasileira(data)} às ${hora}?\n\nUma fatura será emitida no valor de 2.500,00 Kz.`);
             if (!confirmacao) {
                 event.preventDefault();
                 return false;
             }
+            
+            // Desabilitar botão e mostrar loading
+            const btn = document.getElementById('btnAgendar');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>AGENDANDO E EMITINDO FATURA...';
         });
     }
 
-    // Ativar a primeira aba por padrão
     const firstTab = new bootstrap.Tab(document.getElementById('gerais-tab'));
     firstTab.show();
 });

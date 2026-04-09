@@ -1,0 +1,282 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Consulta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('enfermeiro.dashboard.index') }}">
+                            <i class="fas fa-home me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <i class="fas fa-file-medical me-1"></i> Detalhes da Consulta #{{ consulta.id }}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    Detalhes da Consulta
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width: 40%">ID da Consulta:</th>
+                                    <td><strong>#{{ consulta.id }}</strong></td>
+                                </tr>
+                                <tr>
+                                    <th>Data:</th>
+                                    <td>{{ consulta.data_hora.strftime('%d/%m/%Y') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Hora:</th>
+                                    <td>{{ consulta.data_hora.strftime('%H:%M') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        {% if consulta.status == 'AGUARDANDO' %}
+                                            <span class="badge bg-warning">Aguardando</span>
+                                        {% elif consulta.status == 'EM_ATENDIMENTO' %}
+                                            <span class="badge bg-primary">Em Atendimento</span>
+                                        {% elif consulta.status == 'FINALIZADA' %}
+                                            <span class="badge bg-success">Finalizada</span>
+                                        {% elif consulta.status == 'CANCELADA' %}
+                                            <span class="badge bg-danger">Cancelada</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ consulta.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <th style="width: 40%">Triagem:</th>
+                                    <td>
+                                        {% if consulta.status_triagem == 'REALIZADA' %}
+                                            <span class="badge bg-success">Realizada</span>
+                                        {% else %}
+                                            <span class="badge bg-warning">Pendente</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Sinais Vitais:</th>
+                                    <td>
+                                        {% if sinais_vitais %}
+                                            <span class="badge bg-success">{{ sinais_vitais|length }} registro(s)</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Nenhum</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if consulta.sintomas %}
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-notes-medical me-2 text-warning"></i>Sintomas:</h6>
+                            <p>{{ consulta.sintomas }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if consulta.observacoes %}
+                    <div class="row mt-2">
+                        <div class="col-12">
+                            <h6><i class="fas fa-comment me-2 text-info"></i>Observações:</h6>
+                            <p>{{ consulta.observacoes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if sinais_vitais %}
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-heartbeat me-2"></i>
+                    Sinais Vitais Registrados
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data/Hora</th>
+                                    <th>Pressão</th>
+                                    <th>FC</th>
+                                    <th>FR</th>
+                                    <th>Temp</th>
+                                    <th>Sat O2</th>
+                                    <th>Glicemia</th>
+                                    <th>Peso</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for vital in sinais_vitais %}
+                                <tr>
+                                    <td>{{ vital.data_afericao.strftime('%d/%m %H:%M') }}</td>
+                                    <td><strong>{{ vital.pressao_arterial }}</strong></td>
+                                    <td>{{ vital.frequencia_cardiaca|default('-') }}</td>
+                                    <td>{{ vital.frequencia_respiratoria|default('-') }}</td>
+                                    <td>{{ vital.temperatura|default('-') }}</td>
+                                    <td>{{ vital.saturacao_oxigenio|default('-') }}%</td>
+                                    <td>{{ vital.glicemia|default('-') }}</td>
+                                    <td>{{ vital.peso|default('-') }} kg</td>
+                                    <td>
+                                        <a href="{{ url_for('enfermeiro.sinais_vitais.detalhes_sinais_vitais', vital_id=vital.id) }}" 
+                                           class="btn btn-sm btn-outline-primary" title="Detalhes">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-md-4">
+            <!-- Card do Paciente -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-user me-2"></i>
+                    Informações do Paciente
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="avatar mx-auto bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 80px; height: 80px; font-size: 2.5rem;">
+                            {{ paciente.nome[0] }}
+                        </div>
+                        <h5 class="mt-3">{{ paciente.nome }}</h5>
+                    </div>
+                    
+                    <table class="table table-sm">
+                        <tr>
+                            <th>ID:</th>
+                            <td>{{ paciente.id }}</td>
+                        </tr>
+                        <tr>
+                            <th>Email:</th>
+                            <td>{{ paciente.email }}</td>
+                        </tr>
+                        <tr>
+                            <th>Telefone:</th>
+                            <td>{{ paciente.telefone|default('--') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Data Nasc.:</th>
+                            <td>{{ paciente.data_nascimento.strftime('%d/%m/%Y') if paciente.data_nascimento else '--' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Card do Médico -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-user-md me-2"></i>
+                    Médico Responsável
+                </div>
+                <div class="card-body">
+                    {% if medico %}
+                        <h6>{{ medico.nome }}</h6>
+                        <p class="mb-0 small">
+                            <i class="fas fa-stethoscope me-1"></i> {{ medico.especialidade|default('--') }}
+                            <br>
+                            <i class="fas fa-id-card me-1"></i> CRM: {{ medico.crm|default('--') }}
+                        </p>
+                    {% else %}
+                        <p class="text-muted mb-0">Nenhum médico atribuído</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <i class="fas fa-tasks me-2"></i>
+                    Ações
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if consulta.status_triagem != 'REALIZADA' %}
+                            <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                               class="btn btn-success btn-lg">
+                                <i class="fas fa-clipboard-check me-2"></i>
+                                REALIZAR TRIAGEM
+                            </a>
+                            <p class="text-muted small text-center mt-2">
+                                Registrar sinais vitais do paciente
+                            </p>
+                        {% else %}
+                            <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta.id) }}" 
+                               class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Nova Aferição
+                            </a>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('enfermeiro.historico.listar_pacientes', paciente_id=paciente.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-history me-2"></i>
+                            Histórico do Paciente
+                        </a>
+                        
+                        <a href="{{ url_for('enfermeiro.dashboard.index') }}" 
+                           class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Voltar ao Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        font-weight: bold;
+    }
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0;
+    }
+    .table th {
+        font-weight: 600;
+        color: #495057;
+    }
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.65rem;
+    }
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+</style>
+{% endblock %}

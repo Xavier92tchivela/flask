@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Relatórios - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-bar me-2 text-primary"></i>Relatórios</h2>
+        <div>
+            <a href="{{ url_for('farmaceutico.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5><i class="fas fa-prescription me-2"></i>Relatório de Prescrições</h5>
+                </div>
+                <div class="card-body">
+                    <p>Gerar relatório de prescrições por período</p>
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Data Início</label>
+                                <input type="date" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Data Fim</label>
+                                <input type="date" class="form-control">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary w-100">
+                            <i class="fas fa-file-pdf me-2"></i>Gerar PDF
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-pills me-2"></i>Relatório de Dispensações</h5>
+                </div>
+                <div class="card-body">
+                    <p>Gerar relatório de dispensações por período</p>
+                    <form>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label>Data Início</label>
+                                <input type="date" class="form-control">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label>Data Fim</label>
+                                <input type="date" class="form-control">
+                            </div>
+                        </div>
+                        <button class="btn btn-success w-100">
+                            <i class="fas fa-file-excel me-2"></i>Gerar Excel
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning">
+                    <h5><i class="fas fa-boxes me-2"></i>Relatório de Estoque</h5>
+                </div>
+                <div class="card-body">
+                    <p>Relatório de produtos com estoque baixo</p>
+                    <a href="#" class="btn btn-warning w-100">
+                        <i class="fas fa-print me-2"></i>Imprimir
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5><i class="fas fa-chart-line me-2"></i>Dashboard de Vendas</h5>
+                </div>
+                <div class="card-body">
+                    <p>Visualizar estatísticas de vendas</p>
+                    <a href="#" class="btn btn-info w-100">
+                        <i class="fas fa-chart-line me-2"></i>Visualizar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

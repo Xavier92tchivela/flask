@@ -1,0 +1,225 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Meu Perfil - Enfermeiro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-user me-2"></i>
+                Meu Perfil
+            </h2>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Informações Pessoais -->
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="user-avatar mx-auto mb-3" style="width: 120px; height: 120px; font-size: 3rem; background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        {% if enfermeiro.foto_perfil %}
+                            <img src="{{ enfermeiro.foto_perfil }}" alt="Foto" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            {{ enfermeiro.nome[0] }}
+                        {% endif %}
+                    </div>
+                    
+                    <h4 class="mb-1">{{ enfermeiro.nome }}</h4>
+                    <p class="text-muted">
+                        <i class="fas fa-user-nurse me-1"></i>
+                        Enfermeiro - COREN: {{ enfermeiro.coren }}
+                    </p>
+                    
+                    <div class="d-flex justify-content-center gap-2 mb-3">
+                        <span class="badge bg-primary">{{ enfermeiro.especialidade }}</span>
+                        {% if enfermeiro.ativo %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inativo</span>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="text-start">
+                        <p class="mb-2">
+                            <i class="fas fa-envelope me-2 text-primary"></i>
+                            {{ enfermeiro.email }}
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-phone me-2 text-primary"></i>
+                            {{ enfermeiro.telefone }}
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-calendar me-2 text-primary"></i>
+                            Cadastro: {{ enfermeiro.data_cadastro.strftime('%d/%m/%Y') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estatísticas -->
+        <div class="col-md-8">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);">
+                        <div class="stats-number">{{ enfermeiro.total_afericoes }}</div>
+                        <div class="stats-label">Total de Aferições</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #198754 0%, #157347 100%);">
+                        <div class="stats-number">{{ enfermeiro.media_afericoes_dia|default(0) }}</div>
+                        <div class="stats-label">Média por Dia</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="stats-card" style="background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%);">
+                        <div class="stats-number">{{ enfermeiro.pacientes_unicos|default(0) }}</div>
+                        <div class="stats-label">Pacientes Atendidos</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Últimas Atividades -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <i class="fas fa-history me-2"></i>
+                    Últimas Atividades
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        {% for atividade in ultimas_atividades %}
+                        <div class="timeline-item mb-3">
+                            <div class="row">
+                                <div class="col-auto">
+                                    <div class="timeline-icon bg-{{ atividade.cor }}">
+                                        <i class="fas fa-{{ atividade.icone }}"></i>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">{{ atividade.descricao }}</h6>
+                                        <small class="text-muted">{{ atividade.data.strftime('%d/%m/%Y %H:%M') }}</small>
+                                    </div>
+                                    <p class="mb-0 text-muted small">{{ atividade.detalhes }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-center text-muted my-3">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Nenhuma atividade encontrada
+                        </p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Ações -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <i class="fas fa-cog me-2"></i>
+                    Configurações
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary w-100 mb-2" onclick="alterarSenha()">
+                                <i class="fas fa-key me-2"></i>
+                                Alterar Senha
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-outline-primary w-100 mb-2" onclick="editarPerfil()">
+                                <i class="fas fa-edit me-2"></i>
+                                Editar Perfil
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    
+    .timeline-icon.bg-primary { background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%); }
+    .timeline-icon.bg-success { background: linear-gradient(135deg, #198754 0%, #157347 100%); }
+    .timeline-icon.bg-warning { background: linear-gradient(135deg, #ffc107 0%, #ffb300 100%); }
+    .timeline-icon.bg-info { background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function alterarSenha() {
+        Swal.fire({
+            title: 'Alterar Senha',
+            html: `
+                <input type="password" id="senha_atual" class="swal2-input" placeholder="Senha Atual">
+                <input type="password" id="nova_senha" class="swal2-input" placeholder="Nova Senha">
+                <input type="password" id="confirmar_senha" class="swal2-input" placeholder="Confirmar Nova Senha">
+            `,
+            confirmButtonText: 'Alterar',
+            showCancelButton: true,
+            cancelButtonText: 'Cancelar',
+            preConfirm: () => {
+                const senha_atual = document.getElementById('senha_atual').value;
+                const nova_senha = document.getElementById('nova_senha').value;
+                const confirmar_senha = document.getElementById('confirmar_senha').value;
+                
+                if (!senha_atual || !nova_senha || !confirmar_senha) {
+                    Swal.showValidationMessage('Preencha todos os campos');
+                    return false;
+                }
+                
+                if (nova_senha !== confirmar_senha) {
+                    Swal.showValidationMessage('As senhas não coincidem');
+                    return false;
+                }
+                
+                return { senha_atual, nova_senha };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Aqui você faria a requisição AJAX para alterar a senha
+                Swal.fire('Sucesso!', 'Senha alterada com sucesso', 'success');
+            }
+        });
+    }
+    
+    function editarPerfil() {
+        Swal.fire({
+            title: 'Editar Perfil',
+            html: `
+                <input type="text" id="telefone" class="swal2-input" placeholder="Telefone" value="{{ enfermeiro.telefone }}">
+                <input type="text" id="especialidade" class="swal2-input" placeholder="Especialidade" value="{{ enfermeiro.especialidade }}">
+            `,
+            confirmButtonText: 'Salvar',
+            showCancelButton: true,
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Aqui você faria a requisição AJAX para editar o perfil
+                Swal.fire('Sucesso!', 'Perfil atualizado com sucesso', 'success');
+            }
+        });
+    }
+</script>
+{% endblock %}

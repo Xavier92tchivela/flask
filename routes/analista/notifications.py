@@ -1,10 +1,11 @@
+# routes/analista/notifications.py
 """Sistema de notificações para o módulo analista"""
 import logging
-import base64
-import os
-import traceback
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# Variáveis globais
 _execute_query = None
 _logger = None
 
@@ -13,18 +14,27 @@ def set_notification_deps(execute_query_func, logger_func):
     global _execute_query, _logger
     _execute_query = execute_query_func
     _logger = logger_func
+    if _logger:
+        _logger.info(" Dependências de notificações configuradas")
+    print("[NOTIFICATIONS] Dependências configuradas")
 
 def criar_notificacao_medico(medico_id, pedido_id, titulo, mensagem, tipo='diagnostico'):
-    """Cria notificação para o médico sobre novo diagnóstico"""
+    """Cria notificação para o médico"""
     try:
         if not _execute_query:
-            logger.error("❌ Execute_query não configurado")
+            print("[NOTIFICACAO]  Execute_query não configurado")
             return False
-            
+        
+        print(f"[NOTIFICACAO] Criando notificação:")
+        print(f"   - Médico ID: {medico_id}")
+        print(f"   - Pedido ID: {pedido_id}")
+        print(f"   - Tipo: {tipo}")
+        print(f"   - Título: {titulo}")
+        
         result = _execute_query("""
             INSERT INTO notificacoes 
             (usuario_id, tipo, titulo, mensagem, referencia_id, lida, criado_em)
-            VALUES (%s, %s, %s, %s, %s, FALSE, NOW())
+            VALUES (%s, %s, %s, %s, %s, 0, NOW())
         """, (
             medico_id,
             tipo,
@@ -34,12 +44,48 @@ def criar_notificacao_medico(medico_id, pedido_id, titulo, mensagem, tipo='diagn
         ), commit=True)
         
         if result:
-            logger.info(f"🔔 Notificação criada para médico {medico_id} sobre pedido {pedido_id}")
+            print(f"[NOTIFICACAO]  Notificação criada com sucesso!")
             return True
-        return False
+        else:
+            print(f"[NOTIFICACAO]  Falha ao criar notificação")
+            return False
         
     except Exception as e:
-        logger.error(f"❌ Erro ao criar notificação: {e}")
+        print(f"[NOTIFICACAO]  Erro: {e}")
+        return False
+
+def criar_notificacao_analise_manual(medico_id, pedido_id, consulta_id, tipo_exame, diagnostico_final, paciente_nome=None):
+    """Cria notificação específica para análise manual concluída"""
+    try:
+        titulo = f" Análise Manual Concluída - {tipo_exame}"
+        
+        diagnostico_resumido = diagnostico_final[:150] if diagnostico_final else "Diagnóstico não informado"
+        if diagnostico_final and len(diagnostico_final) > 150:
+            diagnostico_resumido += '...'
+        
+        data_atual = datetime.now().strftime('%d/%m/%Y %H:%M')
+        
+        mensagem = f"""Análise manual concluída!
+
+Paciente: {paciente_nome or 'Não informado'}
+Exame: {tipo_exame}
+Data: {data_atual}
+
+Diagnóstico: {diagnostico_resumido}
+
+Clique para visualizar o resultado completo."""
+        
+        print(f"[NOTIFICACAO] ========================================")
+        print(f"[NOTIFICACAO] CRIANDO NOTIFICAÇÃO DE ANÁLISE MANUAL")
+        print(f"[NOTIFICACAO] Médico ID: {medico_id}")
+        print(f"[NOTIFICACAO] Pedido ID: {pedido_id}")
+        print(f"[NOTIFICACAO] Exame: {tipo_exame}")
+        print(f"[NOTIFICACAO] ========================================")
+        
+        return criar_notificacao_medico(medico_id, pedido_id, titulo, mensagem, 'analise_manual')
+        
+    except Exception as e:
+        print(f"[NOTIFICACAO]  Erro criar_notificacao_analise_manual: {e}")
         return False
 
 def salvar_diagnostico_ia(consulta_id, tipo_exame, descricao, observacoes, 
@@ -48,7 +94,7 @@ def salvar_diagnostico_ia(consulta_id, tipo_exame, descricao, observacoes,
     """Salva diagnóstico gerado pela IA na tabela diagnostico"""
     try:
         if not _execute_query:
-            logger.error("❌ Execute_query não configurado")
+            print("[NOTIFICACAO] ❌ Execute_query não configurado")
             return False
             
         # Verificar se já existe diagnóstico
@@ -78,7 +124,7 @@ def salvar_diagnostico_ia(consulta_id, tipo_exame, descricao, observacoes,
             ), commit=True)
             
             if result is not None:
-                logger.info(f"📝 Diagnóstico atualizado para consulta {consulta_id}")
+                print(f"[NOTIFICACAO] Diagnóstico atualizado para consulta {consulta_id}")
                 return True
         else:
             result = _execute_query("""
@@ -94,12 +140,19 @@ def salvar_diagnostico_ia(consulta_id, tipo_exame, descricao, observacoes,
             ), commit=True)
             
             if result:
-                logger.info(f"📝 Novo diagnóstico criado para consulta {consulta_id}")
+                print(f"[NOTIFICACAO] Novo diagnóstico criado para consulta {consulta_id}")
                 return True
         
         return False
         
     except Exception as e:
-        logger.error(f"❌ Erro ao salvar diagnóstico: {e}")
-        logger.error(traceback.format_exc())
+        print(f"[NOTIFICACAO] ❌ Erro ao salvar diagnóstico: {e}")
         return False
+
+# Exportar funções necessárias
+__all__ = [
+    'set_notification_deps',
+    'criar_notificacao_medico',
+    'criar_notificacao_analise_manual',
+    'salvar_diagnostico_ia'
+]

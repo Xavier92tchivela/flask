@@ -1,0 +1,243 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Pacientes Internados{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="mb-4">
+                        <i class="fas fa-procedures me-2"></i>
+                        Pacientes Internados
+                    </h2>
+                    <p class="text-muted">
+                        <strong>Total:</strong> {{ total_internados|default(0) }} pacientes internados
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Voltar ao Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-danger text-white">
+                    <i class="fas fa-procedures me-2"></i>
+                    Lista de Pacientes Internados
+                </div>
+                <div class="card-body">
+                    {% if internados_lista %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Prontuário</th>
+                                        <th>Paciente</th>
+                                        <th>Idade</th>
+                                        <th>Leito</th>
+                                        <th>Data Internação</th>
+                                        <th>Tipo</th>
+                                        <th>Diagnóstico</th>
+                                        <th>Últimos Sinais</th>
+                                        <th>Ações</th>
+                                    </thead>
+                                <tbody>
+                                    {% for internado in internados_lista %}
+                                    <tr>
+                                        <td class="align-middle">
+                                            <span class="badge bg-primary">{{ internado.numero_prontuario }}</span>
+                                        </td>
+                                        <td class="align-middle">
+                                            <strong>{{ internado.paciente_nome }}</strong>
+                                        </td>
+                                        <td class="align-middle">
+                                            {% if internado.idade %}
+                                                {{ internado.idade }} anos
+                                            {% else %}
+                                                <span class="text-muted">-</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle">
+                                            <span class="badge bg-info">{{ internado.leito_alas }} - {{ internado.leito_numero }}</span>
+                                            <br>
+                                            <small class="text-muted">{{ internado.leito_tipo }}</small>
+                                        </td>
+                                        <td class="align-middle">
+                                            {# CORREÇÃO: Verificar se data_internacao é datetime #}
+                                            {% if internado.data_internacao %}
+                                                {% if internado.data_internacao is string %}
+                                                    {{ internado.data_internacao }}
+                                                {% else %}
+                                                    {% if internado.data_internacao is not none %}
+                                                        {{ internado.data_internacao.strftime('%d/%m/%Y %H:%M') }}
+                                                    {% else %}
+                                                        Não informada
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% else %}
+                                                Não informada
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle">
+                                            <span class="badge bg-{{ 'danger' if internado.tipo_internacao|upper == 'URGENCIA' else 'primary' }}">
+                                                {{ internado.tipo_internacao|upper }}
+                                            </span>
+                                        </td>
+                                        <td class="align-middle">
+                                            <span title="{{ internado.diagnostico_inicial }}">
+                                                {{ internado.diagnostico_inicial|truncate(50) if internado.diagnostico_inicial else 'Não informado' }}
+                                            </span>
+                                        </td>
+                                        <td class="align-middle">
+                                            {% if internado.ultimos_sinais %}
+                                                <div class="small">
+                                                    <i class="fas fa-heartbeat text-danger"></i> FC: {{ internado.ultimos_sinais.frequencia_cardiaca|default('-') }}<br>
+                                                    <i class="fas fa-tint text-primary"></i> PA: {{ internado.ultimos_sinais.pressao_arterial|default('-') }}<br>
+                                                    <i class="fas fa-thermometer-half text-warning"></i> Temp: {{ internado.ultimos_sinais.temperatura|default('-') }}°C
+                                                </div>
+                                                {# CORREÇÃO: Verificar se data_afericao é datetime #}
+                                                {% if internado.ultimos_sinais.data_afericao %}
+                                                    {% if internado.ultimos_sinais.data_afericao is string %}
+                                                        <small class="text-muted">{{ internado.ultimos_sinais.data_afericao }}</small>
+                                                    {% else %}
+                                                        {% if internado.ultimos_sinais.data_afericao is not none %}
+                                                            <small class="text-muted">{{ internado.ultimos_sinais.data_afericao.strftime('%d/%m %H:%M') if internado.ultimos_sinais.data_afericao else '' }}</small>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Sem registros</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="align-middle">
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="{{ url_for('enfermeiro.internados.detalhes_internacao', internacao_id=internado.id) }}" 
+                                                   class="btn btn-info" title="Ver Detalhes">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <a href="{{ url_for('enfermeiro.internados.registrar_sinais_vitais', paciente_id=internado.paciente_id, internacao_id=internado.id) }}" 
+                                                   class="btn btn-success" title="Registrar Sinais Vitais">
+                                                    <i class="fas fa-heartbeat"></i>
+                                                </a>
+                                                <button type="button" 
+                                                        class="btn btn-warning"
+                                                        onclick="solicitarAlta({{ internado.id }}, '{{ internado.paciente_nome }}')"
+                                                        title="Dar Alta">
+                                                    <i class="fas fa-check-circle"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-procedures fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhum paciente internado no momento</h5>
+                            <p class="text-muted">Os pacientes internados aparecerão aqui.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Alta -->
+<div class="modal fade" id="modalAlta" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-dark">
+                    <i class="fas fa-check-circle me-2"></i> Confirmar Alta Médica
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja dar alta ao paciente <strong id="pacienteNomeAlta"></strong>?</p>
+                <div class="mb-3">
+                    <label for="diagnosticoFinal" class="form-label">Diagnóstico Final</label>
+                    <textarea class="form-control" id="diagnosticoFinal" rows="3" placeholder="Informe o diagnóstico final e orientações para alta..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="observacoesAlta" class="form-label">Observações da Alta</label>
+                    <textarea class="form-control" id="observacoesAlta" rows="2" placeholder="Observações adicionais..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmarAlta">
+                    <i class="fas fa-check-circle me-1"></i> Confirmar Alta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th, .table td {
+        vertical-align: middle;
+    }
+    .btn-group .btn {
+        margin-right: 2px;
+    }
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.35rem 0.65rem;
+    }
+</style>
+
+<script>
+    let internacaoIdAlta = null;
+
+    function solicitarAlta(internacaoId, pacienteNome) {
+        internacaoIdAlta = internacaoId;
+        document.getElementById('pacienteNomeAlta').textContent = pacienteNome;
+        document.getElementById('diagnosticoFinal').value = '';
+        document.getElementById('observacoesAlta').value = '';
+        const modal = new bootstrap.Modal(document.getElementById('modalAlta'));
+        modal.show();
+    }
+
+    document.getElementById('btnConfirmarAlta')?.addEventListener('click', function() {
+        if (!internacaoIdAlta) return;
+        
+        const diagnosticoFinal = document.getElementById('diagnosticoFinal').value;
+        const observacoesAlta = document.getElementById('observacoesAlta').value;
+        
+        fetch(`/enfermeiro/internados/${internacaoIdAlta}/alta`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                diagnostico_final: diagnosticoFinal,
+                observacoes_alta: observacoesAlta
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalAlta')).hide();
+                location.reload();
+            } else {
+                alert('Erro ao dar alta: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao processar solicitação');
+        });
+    });
+</script>
+{% endblock %}

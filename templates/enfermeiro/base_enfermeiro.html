@@ -1,0 +1,520 @@
+{% extends "base.html" %}
+
+{% block title %}Enfermeiro - DOCTORIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Sidebar específica do enfermeiro */
+    .sidebar-enfermeiro {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    }
+    
+    .sidebar-enfermeiro .nav-link {
+        color: rgba(255,255,255,0.8);
+        transition: all 0.3s;
+        border-radius: 8px;
+        margin: 2px 0;
+    }
+    
+    .sidebar-enfermeiro .nav-link:hover {
+        background: rgba(255,255,255,0.2);
+        color: white;
+        transform: translateX(5px);
+    }
+    
+    .sidebar-enfermeiro .nav-link.active {
+        background: rgba(255,255,255,0.3);
+        color: white;
+        font-weight: 500;
+    }
+    
+    .sidebar-enfermeiro .nav-link i {
+        width: 24px;
+        text-align: center;
+    }
+    
+    /* Header específico */
+    .header-enfermeiro {
+        background: white;
+        border-bottom: 3px solid #0d6efd;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    /* Badge de notificações */
+    .badge-notification {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #dc3545;
+        color: white;
+        border-radius: 50%;
+        padding: 3px 6px;
+        font-size: 10px;
+        min-width: 18px;
+        text-align: center;
+    }
+    
+    /* Cards do dashboard */
+    .stat-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: transform 0.3s;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+    }
+    
+    /* Timeline de consultas */
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+    
+    .timeline-item {
+        padding: 15px 20px;
+        background: white;
+        border-left: 4px solid #0d6efd;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+    
+    .timeline-item:hover {
+        box-shadow: 0 5px 20px rgba(13,110,253,0.15);
+    }
+    
+    .timeline-item.pendente {
+        border-left-color: #ffc107;
+    }
+    
+    .timeline-item.realizada {
+        border-left-color: #198754;
+        opacity: 0.8;
+    }
+    
+    .timeline-time {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #0d6efd;
+    }
+    
+    /* Tabela de sinais vitais */
+    .table-vitals td {
+        vertical-align: middle;
+    }
+    
+    .vital-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+    
+    .vital-normal {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+    
+    .vital-alterado {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .vital-critico {
+        background: #f8d7da;
+        color: #842029;
+    }
+    
+    /* Avatar do paciente */
+    .avatar-paciente {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+    
+    /* Loading spinner */
+    .spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .sidebar-enfermeiro {
+            min-height: auto !important;
+        }
+        
+        .stat-card {
+            margin-bottom: 15px;
+        }
+        
+        .timeline-item {
+            padding: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 px-0 position-fixed" style="height: 100vh; overflow-y: auto;">
+            <div class="sidebar-enfermeiro d-flex flex-column p-3 text-white h-100">
+                <!-- Logo e título -->
+                <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+                    <i class="fas fa-clinic-medical fs-4 me-2"></i>
+                    <span class="fs-5 fw-bold">DOICTORIA</span>
+                </a>
+                <hr class="bg-white">
+                
+                <!-- Informações do enfermeiro logado -->
+                <div class="text-center mb-4">
+                    <div class="bg-white text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-2" 
+                         style="width: 80px; height: 80px; font-size: 2rem; font-weight: bold;">
+                        {{ session.get('enfermeiro_nome', 'E')|first|upper }}
+                    </div>
+                    <h6 class="mb-0">{{ session.get('enfermeiro_nome', 'Enfermeiro') }}</h6>
+                    <small><i class="fas fa-id-badge me-1"></i> ID: {{ session.get('enfermeiro_id', '') }}</small>
+                </div>
+                
+                <hr class="bg-white">
+                
+                <!-- Menu de navegação -->
+                <ul class="nav nav-pills flex-column mb-auto">
+                    <li class="nav-item">
+                        <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="nav-link {% if request.endpoint == 'enfermeiro.dashboard.index' %}active{% endif %}" aria-current="page">
+                            <i class="fas fa-home me-2"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="nav-link {% if request.endpoint == 'enfermeiro.triagem.listar_consultas_triagem' %}active{% endif %}">
+                            <i class="fas fa-clock me-2"></i>
+                            Triagem
+                            {% if pendentes_triagem > 0 %}
+                            <span class="badge bg-warning text-dark float-end">{{ pendentes_triagem }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" class="nav-link {% if 'sinais_vitais' in request.endpoint %}active{% endif %}">
+                            <i class="fas fa-heartbeat me-2"></i>
+                            Sinais Vitais
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="{{ url_for('enfermeiro.historico.listar_pacientes') }}" class="nav-link {% if request.endpoint == 'enfermeiro.historico.listar_pacientes' %}active{% endif %}">
+                            <i class="fas fa-history me-2"></i>
+                            Histórico
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="{{ url_for('enfermeiro.perfil.visualizar') }}" class="nav-link {% if request.endpoint == 'enfermeiro.perfil.visualizar' %}active{% endif %}">
+                            <i class="fas fa-user me-2"></i>
+                            Perfil
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item mt-3">
+                        <hr class="bg-white">
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a href="{{ url_for('auth.logout') }}" class="nav-link text-warning">
+                            <i class="fas fa-sign-out-alt me-2"></i>
+                            Sair
+                        </a>
+                    </li>
+                </ul>
+                
+                <!-- Informações do sistema -->
+                <div class="mt-4 small text-center text-white-50">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    <span>DOICTORIA v1.0</span>
+                    <br>
+                    <span>{{ now.year }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conteúdo principal -->
+        <div class="col-md-9 col-lg-10 ms-auto" style="min-height: 100vh; background: #f8f9fa;">
+            <!-- Header -->
+            <header class="header-enfermeiro py-3 px-4 mb-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-nurse text-primary me-2"></i>
+                        Área do Enfermeiro
+                    </h4>
+                    <small class="text-muted">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        {{ hoje.strftime('%d/%m/%Y') if hoje else now.strftime('%d/%m/%Y') }}
+                    </small>
+                </div>
+                
+                <div class="d-flex align-items-center">
+                    <!-- Notificações -->
+                    <div class="dropdown me-3">
+                        <button class="btn btn-light position-relative" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-bell"></i>
+                            {% if total_notificacoes > 0 %}
+                            <span class="badge-notification">{{ total_notificacoes }}</span>
+                            {% endif %}
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end p-2" style="width: 300px;">
+                            <h6 class="dropdown-header">Notificações</h6>
+                            {% if notificacoes %}
+                                {% for notif in notificacoes %}
+                                <a class="dropdown-item" href="#">
+                                    <small class="text-muted">{{ notif.tempo }}</small>
+                                    <p class="mb-0">{{ notif.mensagem }}</p>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                {% endfor %}
+                            {% else %}
+                                <span class="dropdown-item text-muted">Nenhuma notificação</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Menu do usuário -->
+                    <div class="dropdown">
+                        <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i>
+                            {{ session.get('enfermeiro_nome', 'Enfermeiro')|truncate(15) }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('enfermeiro.perfil.visualizar') }}">
+                                    <i class="fas fa-user me-2"></i>Meu Perfil
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-cog me-2"></i>Configurações
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Sair
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Conteúdo dinâmico -->
+            <div class="px-4 pb-4">
+                {% block enfermeiro_content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div class="spinner-overlay" id="loadingSpinner">
+    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+        <span class="visually-hidden">Carregando...</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Auto-refresh do dashboard a cada 30 segundos (apenas se estiver no dashboard)
+        if (window.location.pathname.includes('/enfermeiro/dashboard')) {
+            setInterval(function() {
+                location.reload();
+            }, 30000);
+        }
+        
+        // Carregar notificações via AJAX
+        function carregarNotificacoes() {
+            $.get('/enfermeiro/api/notificacoes', function(data) {
+                if (data.total > 0) {
+                    $('#notificationBadge').text(data.total).show();
+                } else {
+                    $('#notificationBadge').hide();
+                }
+            }).fail(function() {
+                console.log('Erro ao carregar notificações');
+            });
+        }
+        
+        // Carregar notificações a cada 1 minuto
+        if ($('#notificationBadge').length) {
+            carregarNotificacoes();
+            setInterval(carregarNotificacoes, 60000);
+        }
+        
+        // Mostrar loading em requisições AJAX
+        $(document).ajaxStart(function() {
+            $('#loadingSpinner').css('display', 'flex');
+        });
+        
+        $(document).ajaxStop(function() {
+            $('#loadingSpinner').hide();
+        });
+        
+        // Tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function(tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Popovers
+        var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.map(function(popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl);
+        });
+    });
+    
+    // Função para formatar data
+    function formatarData(data) {
+        if (!data) return '';
+        var d = new Date(data);
+        return d.toLocaleDateString('pt-BR');
+    }
+    
+    // Função para formatar hora
+    function formatarHora(data) {
+        if (!data) return '';
+        var d = new Date(data);
+        return d.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+    }
+    
+    // Função para confirmar ações
+    function confirmarAcao(titulo, texto, callback) {
+        if (confirm(texto)) {
+            callback();
+        }
+    }
+    
+    // Função para mostrar mensagens de sucesso
+    function mostrarSucesso(mensagem) {
+        // Usar Toast ou SweetAlert se disponível
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Sucesso!',
+                text: mensagem,
+                timer: 3000,
+                showConfirmButton: false
+            });
+        } else {
+            alert('Sucesso: ' + mensagem);
+        }
+    }
+    
+    // Função para mostrar mensagens de erro
+    function mostrarErro(mensagem) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro!',
+                text: mensagem
+            });
+        } else {
+            alert('Erro: ' + mensagem);
+        }
+    }
+    
+    // Função para validar pressão arterial
+    function validarPressao(pressao) {
+        var padrao = /^\d{2,3}x\d{2,3}$/;
+        if (!padrao.test(pressao)) {
+            return false;
+        }
+        
+        var partes = pressao.split('x');
+        var sistolica = parseInt(partes[0]);
+        var diastolica = parseInt(partes[1]);
+        
+        return !(sistolica < 50 || sistolica > 250 || diastolica < 30 || diastolica > 150);
+    }
+    
+    // Função para classificar pressão
+    function classificarPressao(pressao) {
+        if (!pressao) return null;
+        
+        var partes = pressao.split('x');
+        if (partes.length !== 2) return null;
+        
+        var sistolica = parseInt(partes[0]);
+        var diastolica = parseInt(partes[1]);
+        
+        if (isNaN(sistolica) || isNaN(diastolica)) return null;
+        
+        if (sistolica < 120 && diastolica < 80) {
+            return {text: 'Normal', class: 'success'};
+        } else if (sistolica >= 140 || diastolica >= 90) {
+            return {text: 'Hipertensão', class: 'danger'};
+        } else {
+            return {text: 'Pré-hipertensão', class: 'warning'};
+        }
+    }
+    
+    // Função para verificar valores críticos
+    function verificarValoresCriticos(dados) {
+        var alertas = [];
+        
+        if (dados.frequencia_cardiaca && (dados.frequencia_cardiaca < 50 || dados.frequencia_cardiaca > 120)) {
+            alertas.push('Frequência cardíaca: ' + dados.frequencia_cardiaca + ' bpm');
+        }
+        
+        if (dados.frequencia_respiratoria && (dados.frequencia_respiratoria < 10 || dados.frequencia_respiratoria > 30)) {
+            alertas.push('Frequência respiratória: ' + dados.frequencia_respiratoria + ' mpm');
+        }
+        
+        if (dados.temperatura && (dados.temperatura < 35 || dados.temperatura > 38.5)) {
+            alertas.push('Temperatura: ' + dados.temperatura + '°C');
+        }
+        
+        if (dados.saturacao_oxigenio && dados.saturacao_oxigenio < 90) {
+            alertas.push('Saturação O2: ' + dados.saturacao_oxigenio + '%');
+        }
+        
+        if (dados.glicemia && (dados.glicemia < 60 || dados.glicemia > 200)) {
+            alertas.push('Glicemia: ' + dados.glicemia + ' mg/dL');
+        }
+        
+        return alertas;
+    }
+</script>
+{% endblock %}

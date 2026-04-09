@@ -1,0 +1,344 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">
+            <i class="fas fa-prescription-bottle-alt me-2"></i>
+            Dashboard do Farmacêutico
+        </h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <span class="badge bg-primary fs-6 p-2">
+                    <i class="fas fa-id-card me-1"></i>
+                    CRF: {{ farmaceutico[1] if farmaceutico else 'N/A' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                <i class="fas fa-prescription me-1"></i>
+                                Prescrições Pendentes
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats[0] if stats else 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-file-prescription fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                <i class="fas fa-calendar-check me-1"></i>
+                                Dispensas Hoje
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats[1] if stats else 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-pills fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Estoque Baixo
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats[2] if stats else 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-box-open fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                <i class="fas fa-hourglass-half me-1"></i>
+                                Validade Próxima (30 dias)
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ stats[3] if stats else 0 }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-calendar-times fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ações Rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt me-2"></i>
+                        Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin.prescricoes_pendentes') }}" class="btn btn-primary w-100">
+                                <i class="fas fa-prescription me-2"></i>
+                                Ver Prescrições
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin.dispensacoes') }}" class="btn btn-success w-100">
+                                <i class="fas fa-pills me-2"></i>
+                                Nova Dispensação
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin.estoque') }}" class="btn btn-warning w-100">
+                                <i class="fas fa-boxes me-2"></i>
+                                Consultar Estoque
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('admin.produtos') }}" class="btn btn-info w-100">
+                                <i class="fas fa-capsules me-2"></i>
+                                Catálogo de Produtos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Prescrições Pendentes -->
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-prescription me-2"></i>
+                        Prescrições Pendentes
+                    </h6>
+                    <a href="{{ url_for('admin.prescricoes_pendentes') }}" class="btn btn-sm btn-primary">
+                        Ver todas <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Paciente</th>
+                                    <th>Médico</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if prescricoes_pendentes %}
+                                    {% for p in prescricoes_pendentes %}
+                                    <tr>
+                                        <td>{{ p.data_prescricao|datetime }}</td>
+                                        <td>{{ p.paciente_nome }}</td>
+                                        <td>{{ p.medico_nome }}</td>
+                                        <td>
+                                            <a href="{{ url_for('admin.dispensar', id=p.id) }}" class="btn btn-sm btn-success">
+                                                <i class="fas fa-pills"></i> Dispensar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">
+                                            <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                                            Nenhuma prescrição pendente
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas de Estoque -->
+        <div class="col-xl-6 col-lg-6 mb-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Alertas de Estoque
+                    </h6>
+                    <a href="{{ url_for('admin.estoque') }}" class="btn btn-sm btn-warning">
+                        Gerenciar <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Produto</th>
+                                    <th>Lote</th>
+                                    <th>Quantidade</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if alertas_estoque %}
+                                    {% for a in alertas_estoque %}
+                                    <tr>
+                                        <td>{{ a.nome }}</td>
+                                        <td>{{ a.lote }}</td>
+                                        <td>{{ a.quantidade_atual }}</td>
+                                        <td>
+                                            {% if a.quantidade_atual <= 0 %}
+                                                <span class="badge bg-danger">Esgotado</span>
+                                            {% elif a.quantidade_atual <= 10 %}
+                                                <span class="badge bg-warning">Estoque Baixo</span>
+                                            {% endif %}
+                                            {% if a.dias_para_validade < 30 %}
+                                                <span class="badge bg-info">Vence em {{ a.dias_para_validade }} dias</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4">
+                                            <i class="fas fa-check-circle fa-2x mb-2 d-block"></i>
+                                            Nenhum alerta de estoque
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Dispensas Recentes -->
+        <div class="col-12 mb-4">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-history me-2"></i>
+                        Dispensas Recentes
+                    </h6>
+                    <a href="{{ url_for('admin.dispensacoes') }}" class="btn btn-sm btn-success">
+                        Ver todas <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Nº Dispensa</th>
+                                    <th>Data</th>
+                                    <th>Paciente</th>
+                                    <th>Valor Total</th>
+                                    <th>Status</th>
+                                    <th>Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if dispensas_recentes %}
+                                    {% for d in dispensas_recentes %}
+                                    <tr>
+                                        <td>{{ d.numero_dispensa }}</td>
+                                        <td>{{ d.data_dispensa|datetime }}</td>
+                                        <td>{{ d.paciente_nome }}</td>
+                                        <td>R$ {{ "%.2f"|format(d.valor_total) }}</td>
+                                        <td>
+                                            <span class="badge bg-success">Concluída</span>
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('admin.dispensa_detalhe', id=d.id) }}" class="btn btn-sm btn-info">
+                                                <i class="fas fa-eye"></i> Ver
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center text-muted py-4">
+                                            <i class="fas fa-pills fa-2x mb-2 d-block"></i>
+                                            Nenhuma dispensa registrada
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Atualizar dados em tempo real (opcional)
+    function atualizarDashboard() {
+        fetch('{{ url_for("admin.api_dashboard_farmaceutico") }}')
+            .then(response => response.json())
+            .then(data => {
+                // Atualizar cards
+                document.querySelectorAll('.h5.mb-0')[0].innerText = data.prescricoes_pendentes;
+                document.querySelectorAll('.h5.mb-0')[1].innerText = data.dispensas_hoje;
+                document.querySelectorAll('.h5.mb-0')[2].innerText = data.estoque_baixo;
+                document.querySelectorAll('.h5.mb-0')[3].innerText = data.validade_proxima;
+            })
+            .catch(error => console.error('Erro ao atualizar dashboard:', error));
+    }
+
+    // Atualizar a cada 30 segundos
+    // setInterval(atualizarDashboard, 30000);
+</script>
+{% endblock %}

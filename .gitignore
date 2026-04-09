@@ -1,5 +1,45 @@
-".env" 
-"__pycache__/" 
-"uploads/" 
-"*.pyc" 
-"*.pyo" 
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+env/
+venv/
+.env
+*.log
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets
+.env.local
+.env.production
+encryption_key.txt
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+temp/
+
+# Sistema
+*.pid
+instance/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*_backup.sql
+*.dump

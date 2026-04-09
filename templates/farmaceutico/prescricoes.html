@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Prescrições - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-prescription me-2 text-primary"></i>Receitas / Prescrições</h2>
+        <div>
+            <a href="{{ url_for('farmaceutico.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <a class="nav-link {% if status_atual == 'ativa' %}active{% endif %}" 
+                       href="{{ url_for('farmaceutico.prescricoes', status='ativa') }}">
+                        <i class="fas fa-clock me-1"></i>Ativas 
+                        ({{ prescricoes|selectattr('status', 'equalto', 'ativa')|list|length }})
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if status_atual == 'dispensada' %}active{% endif %}" 
+                       href="{{ url_for('farmaceutico.prescricoes', status='dispensada') }}">
+                        <i class="fas fa-check-circle me-1"></i>Dispensadas
+                        ({{ prescricoes|selectattr('status', 'equalto', 'dispensada')|list|length }})
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if status_atual == 'expirada' %}active{% endif %}" 
+                       href="{{ url_for('farmaceutico.prescricoes', status='expirada') }}">
+                        <i class="fas fa-calendar-times me-1"></i>Expiradas
+                        ({{ prescricoes|selectattr('status', 'equalto', 'expirada')|list|length }})
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Data</th>
+                            <th>Paciente</th>
+                            <th>Médico</th>
+                            <th>Diagnóstico</th>
+                            <th>Status</th>
+                            <th>PDF</th>
+                            <th>Ações</th>
+                        </thead>
+                    <tbody>
+                        {% for r in prescricoes %}
+                        <tr>
+                            <td>
+                                {% if r.created_at %}
+                                    {% if r.created_at is string %}
+                                        {{ r.created_at[:16] }}
+                                    {% else %}
+                                        {{ r.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ r.paciente_nome if r.paciente_nome else '-' }}</strong><br>
+                                <small class="text-muted">ID: {{ r.paciente_id if r.paciente_id else '-' }}</small>
+                            </td>
+                            <td>{{ r.medico_nome if r.medico_nome else '-' }}</td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ r.diagnostico }}">
+                                    {{ r.diagnostico|truncate(50) if r.diagnostico else '-' }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if r.status == 'ativa' %}
+                                    <span class="badge bg-success">Ativa</span>
+                                {% elif r.status == 'dispensada' %}
+                                    <span class="badge bg-secondary">Dispensada</span>
+                                {% elif r.status == 'expirada' %}
+                                    <span class="badge bg-danger">Expirada</span>
+                                {% else %}
+                                    <span class="badge bg-warning">{{ r.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if r.receita_pdf_path and r.pdf_gerado %}
+                                    <a href="{{ url_for('farmaceutico.visualizar_pdf', receita_id=r.id) }}" 
+                                       class="btn btn-sm btn-danger" title="Ver PDF" target="_blank">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('farmaceutico.prescricao_detalhe', id=r.id) }}" 
+                                       class="btn btn-sm btn-info" title="Ver detalhes">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    {% if r.status == 'ativa' %}
+                                    <a href="{{ url_for('farmaceutico.dispensar', receita_id=r.id) }}" 
+                                       class="btn btn-sm btn-success" title="Dispensar">
+                                        <i class="fas fa-pills"></i> Dispensar
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                Nenhuma receita encontrada
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-group .btn {
+        margin: 0 2px;
+    }
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{% endblock %}

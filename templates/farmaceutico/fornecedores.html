@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Fornecedores - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-truck me-2 text-primary"></i>Fornecedores</h2>
+        <div>
+            <a href="{{ url_for('farmaceutico.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list me-2"></i>Lista de Fornecedores</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Nome</th>
+                            <th>CNPJ</th>
+                            <th>Telefone</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if fornecedores %}
+                            {% for f in fornecedores %}
+                            <tr>
+                                <td>#{{ f.id }}</td>
+                                <td><strong>{{ f.nome }}</strong></td>
+                                <td>{{ f.cnpj or '-' }}</td>
+                                <td>{{ f.telefone or '-' }}</td>
+                                <td>{{ f.email or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="fas fa-truck fa-2x mb-2 d-block"></i>
+                                    Nenhum fornecedor cadastrado.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,143 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Histórico de Pacientes - Enfermeiro{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-history me-2"></i>
+                Histórico de Pacientes Atendidos
+            </h2>
+            <p class="text-muted">
+                Visualize todos os pacientes que você já atendeu
+            </p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="fas fa-filter me-2"></i>
+            Filtros
+        </div>
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Pesquisar Paciente</label>
+                    <input type="text" class="form-control" name="pesquisa" 
+                           placeholder="Nome do paciente" value="{{ request.args.get('pesquisa', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Início</label>
+                    <input type="date" class="form-control" name="data_inicio" 
+                           value="{{ request.args.get('data_inicio', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Data Fim</label>
+                    <input type="date" class="form-control" name="data_fim" 
+                           value="{{ request.args.get('data_fim', '') }}">
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Pacientes -->
+    <div class="row">
+        {% for paciente in pacientes %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-3" 
+                             style="width: 50px; height: 50px; font-size: 1.5rem;">
+                            {{ paciente.paciente_nome[0] }}
+                        </div>
+                        <div>
+                            <h5 class="mb-1">{{ paciente.paciente_nome }}</h5>
+                            <small class="text-muted">
+                                <i class="fas fa-envelope me-1"></i> {{ paciente.email }}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-6">
+                            <div class="text-center p-2 bg-light rounded">
+                                <h6 class="mb-0">{{ paciente.total_afericoes }}</h6>
+                                <small class="text-muted">Aferições</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-2 bg-light rounded">
+                                <h6 class="mb-0">{{ paciente.telefone|default('--') }}</h6>
+                                <small class="text-muted">Telefone</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <small class="text-muted d-block">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            Primeira aferição: 
+                            {% if paciente.primeira_afericao %}
+                                {{ paciente.primeira_afericao.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </small>
+                        <small class="text-muted d-block">
+                            <i class="fas fa-clock me-1"></i>
+                            Última aferição: 
+                            {% if paciente.ultima_afericao %}
+                                {{ paciente.ultima_afericao.strftime('%d/%m/%Y %H:%M') }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <div class="mt-3 d-grid">
+                        <a href="{{ url_for('enfermeiro.historico_paciente_detalhes', paciente_id=paciente.id) }}" 
+                           class="btn btn-outline-primary">
+                            <i class="fas fa-chart-line me-1"></i>
+                            Ver Histórico Completo
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-users fa-4x text-muted mb-3"></i>
+                    <h5>Nenhum paciente encontrado</h5>
+                    <p class="text-muted">
+                        Você ainda não realizou aferições para nenhum paciente.
+                    </p>
+                    <a href="{{ url_for('enfermeiro.registrar_sinais_vitais') }}" class="btn btn-primary">
+                        <i class="fas fa-plus-circle me-1"></i>
+                        Realizar Primeira Aferição
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .avatar {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

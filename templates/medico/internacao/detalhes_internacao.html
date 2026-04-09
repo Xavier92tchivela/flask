@@ -1,0 +1,266 @@
+<!-- templates/medico/internacao/detalhes_internacao.html -->
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Internação #{{ internacao.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-2 mt-md-4 px-2 px-md-3">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+                <ol class="breadcrumb bg-light p-2 p-md-3 rounded-3 shadow-sm">
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.dashboard') }}" class="text-decoration-none"><i class="fas fa-home me-1"></i>Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.consultas') }}" class="text-decoration-none"><i class="fas fa-calendar-check me-1"></i>Consultas</a></li>
+                    <li class="breadcrumb-item active fw-bold">Internação #{{ internacao.id }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-8 mx-auto">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-gradient-success text-white py-3 rounded-top-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <h5 class="mb-0 fw-bold">
+                            <i class="fas fa-procedures me-2"></i>Detalhes da Internação
+                        </h5>
+                        <span class="badge bg-light text-success fs-6 px-3 py-2">
+                            <i class="fas fa-check-circle me-1"></i>{{ internacao.status|upper }}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-4">
+                    <!-- Prontuário -->
+                    <div class="alert alert-primary mb-4 border-0 shadow-sm">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-medical fa-2x me-3 text-primary"></i>
+                            <div>
+                                <strong class="fs-5">Número do Prontuário:</strong> 
+                                <span class="fs-5 fw-bold text-primary">{{ internacao.numero_prontuario }}</span><br>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Data da Internação: {{ internacao.data_internacao.strftime('%d/%m/%Y %H:%M') if internacao.data_internacao else 'Não informada' }}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 bg-light shadow-sm">
+                                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                                    <h6 class="text-primary fw-bold mb-0">
+                                        <i class="fas fa-user me-2"></i>Paciente
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-user-circle me-1"></i>Nome Completo
+                                        </small>
+                                        <strong class="fs-5">{{ internacao.paciente_nome }}</strong>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-id-card me-1"></i>ID do Paciente
+                                        </small>
+                                        <span>#{{ internacao.paciente_id }}</span>
+                                    </div>
+                                    {% if internacao.paciente_cpf %}
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-id-card me-1"></i>CPF
+                                        </small>
+                                        {{ internacao.paciente_cpf }}
+                                    </div>
+                                    {% endif %}
+                                    {% if internacao.paciente_telefone %}
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-phone-alt me-1"></i>Telefone
+                                        </small>
+                                        {{ internacao.paciente_telefone }}
+                                    </div>
+                                    {% endif %}
+                                    {% if internacao.paciente_email %}
+                                    <div>
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-envelope me-1"></i>Email
+                                        </small>
+                                        {{ internacao.paciente_email }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 bg-light shadow-sm">
+                                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                                    <h6 class="text-primary fw-bold mb-0">
+                                        <i class="fas fa-notes-medical me-2"></i>Dados da Internação
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-bed me-1"></i>Leito
+                                        </small>
+                                        <strong class="fs-5">
+                                            {{ internacao.leito_alas }} - Leito {{ internacao.leito_numero }}
+                                        </strong>
+                                        <span class="badge bg-info ms-2">{{ internacao.leito_tipo }}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-chart-line me-1"></i>Tipo de Internação
+                                        </small>
+                                        <span class="badge bg-primary px-3 py-2 fs-6">{{ internacao.tipo_internacao|upper }}</span>
+                                    </div>
+                                    <div class="mb-3">
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-user-md me-1"></i>Médico Responsável
+                                        </small>
+                                        <strong>{{ internacao.medico_nome }}</strong><br>
+                                        <small class="text-muted">CRM: {{ internacao.medico_crm }}</small>
+                                    </div>
+                                    {% if internacao.consulta_id %}
+                                    <div>
+                                        <small class="text-muted d-block mb-1">
+                                            <i class="fas fa-calendar-check me-1"></i>Consulta de Origem
+                                        </small>
+                                        <a href="{{ url_for('medico.consulta.detalhes_consulta', consulta_id=internacao.consulta_id) }}" class="text-decoration-none fw-bold">
+                                            Consulta #{{ internacao.consulta_id }}
+                                            <i class="fas fa-external-link-alt ms-1 fa-xs"></i>
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 bg-light shadow-sm mt-4">
+                        <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                            <h6 class="text-primary fw-bold mb-0">
+                                <i class="fas fa-diagnoses me-2"></i>Diagnóstico / Motivo da Internação
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="bg-white p-3 rounded-3 border-start border-4 border-danger shadow-sm">
+                                <p class="mb-0" style="white-space: pre-wrap; line-height: 1.6;">{{ internacao.diagnostico_inicial }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if internacao.observacoes %}
+                    <div class="card border-0 bg-light shadow-sm mt-4">
+                        <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                            <h6 class="text-primary fw-bold mb-0">
+                                <i class="fas fa-comment-dots me-2"></i>Observações Adicionais
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="bg-white p-3 rounded-3 border-start border-4 border-info shadow-sm">
+                                <p class="mb-0" style="white-space: pre-wrap; line-height: 1.6;">{{ internacao.observacoes }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-3 justify-content-end mt-4 pt-3 border-top">
+                        <a href="{{ url_for('medico.consultas') }}" 
+                           class="btn btn-secondary btn-lg px-4">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar para Consultas
+                        </a>
+                        <button type="button" class="btn btn-info btn-lg px-4" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i>Imprimir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-success {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+.bg-light {
+    background-color: #f8f9fa !important;
+}
+.btn-info {
+    background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%);
+    border: none;
+    color: white;
+    transition: all 0.3s ease;
+}
+.btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 202, 240, 0.3);
+    color: white;
+}
+.btn-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+}
+.card {
+    transition: all 0.3s ease;
+}
+.card:hover {
+    transform: translateY(-2px);
+}
+@media print {
+    .btn, .navbar, .breadcrumb, .card-header .badge {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .alert {
+        border: 1px solid #ddd !important;
+    }
+}
+@media (max-width: 768px) {
+    .card-body {
+        padding: 1rem !important;
+    }
+    .btn-lg {
+        padding: 0.5rem 1rem !important;
+        font-size: 0.9rem !important;
+    }
+    .fs-5 {
+        font-size: 1rem !important;
+    }
+}
+</style>
+
+<script>
+// Função para imprimir a página
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar evento de impressão
+    window.beforePrint = function() {
+        console.log('Preparando para impressão...');
+    };
+    
+    window.afterPrint = function() {
+        console.log('Impressão concluída');
+    };
+    
+    if (window.matchMedia) {
+        var mediaQueryList = window.matchMedia('print');
+        mediaQueryList.addListener(function(mql) {
+            if (mql.matches) {
+                beforePrint();
+            } else {
+                afterPrint();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

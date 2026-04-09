@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da Dispensação - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-pills me-2"></i>
+                        Detalhes da Dispensação #{{ dispensa.id }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-user me-2"></i>Dados do Paciente</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ dispensa.paciente_nome }}</p>
+                                    <p><strong>Telefone:</strong> {{ dispensa.telefone if dispensa.telefone else '-' }}</p>
+                                    <p><strong>Email:</strong> {{ dispensa.email if dispensa.email else '-' }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-user-md me-2"></i>Dados do Médico</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ dispensa.medico_nome }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-calendar me-2"></i>Informações da Receita</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Data de Emissão:</strong> 
+                                        {% if dispensa.created_at %}
+                                            {% if dispensa.created_at is string %}
+                                                {{ dispensa.created_at[:16] }}
+                                            {% else %}
+                                                {{ dispensa.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </p>
+                                    <p><strong>Data de Dispensação:</strong> 
+                                        {% if dispensa.data_geracao_pdf %}
+                                            {% if dispensa.data_geracao_pdf is string %}
+                                                {{ dispensa.data_geracao_pdf[:16] }}
+                                            {% else %}
+                                                {{ dispensa.data_geracao_pdf.strftime('%d/%m/%Y %H:%M') }}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6><i class="fas fa-file-pdf me-2"></i>Documento</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if dispensa.receita_pdf_path %}
+                                        <a href="{{ url_for('farmaceutico.visualizar_pdf', receita_id=dispensa.id) }}" 
+                                           class="btn btn-danger" target="_blank">
+                                            <i class="fas fa-file-pdf me-2"></i>Visualizar PDF da Receita
+                                        </a>
+                                    {% else %}
+                                        <p class="text-muted">PDF não disponível</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-stethoscope me-2"></i>Diagnóstico</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ dispensa.diagnostico|safe if dispensa.diagnostico else 'Não informado' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-capsules me-2"></i>Prescrição</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ dispensa.prescricao|safe if dispensa.prescricao else 'Não informado' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if dispensa.recomendacoes %}
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6><i class="fas fa-comment me-2"></i>Recomendações</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="p-3 bg-light rounded" style="white-space: pre-wrap;">
+                                {{ dispensa.recomendacoes|safe }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('farmaceutico.dispensacoes') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Voltar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

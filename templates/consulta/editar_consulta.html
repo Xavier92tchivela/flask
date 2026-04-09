@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Consulta{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h4 mb-0">
+            <i class="fas fa-edit me-2"></i> Editar Consulta
+        </h2>
+        <div>
+            <a href="{{ url_for('medico.consulta.detalhes_consulta', consulta_id=consulta.id) }}" class="btn btn-secondary btn-sm me-2">
+                <i class="fas fa-arrow-left"></i> Voltar
+            </a>
+            <a href="{{ url_for('medico.consultas') }}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-list"></i> Todas as Consultas
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-edit me-2"></i> Formulário de Edição
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('consulta.atualizar_consulta', consulta_id=consulta.id) }}" id="formEditarConsulta">
+                        <!-- Campos ocultos para separar data e hora -->
+                        <input type="hidden" id="data" name="data" value="{{ consulta.data_consulta }}">
+                        <input type="hidden" id="hora" name="hora" value="{{ consulta.hora_consulta }}">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="paciente" class="form-label">Paciente</label>
+                                <input type="text" class="form-control" id="paciente" value="{{ consulta.paciente_nome }}" readonly disabled>
+                                <small class="text-muted">O paciente não pode ser alterado</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="data_hora" class="form-label">Data e Hora <span class="text-danger">*</span></label>
+                                <input type="datetime-local" class="form-control" id="data_hora" 
+                                       value="{{ consulta.data_hora_formatada }}" required
+                                       onchange="atualizarDataHora()">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                                <select class="form-select" id="status" name="status" required>
+                                    {% for value, label in status_options %}
+                                    <option value="{{ value }}" {% if consulta.status == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ID da Consulta</label>
+                                <input type="text" class="form-control" value="#{{ consulta.id }}" readonly disabled>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="observacoes" class="form-label">Observações</label>
+                            <textarea class="form-control" id="observacoes" name="observacoes" rows="3">{{ consulta.observacoes }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="diagnostico_texto" class="form-label">Diagnóstico</label>
+                            <textarea class="form-control" id="diagnostico_texto" name="diagnostico_texto" rows="4">{{ consulta.diagnostico_texto or '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="resultado_exames" class="form-label">Resultado de Exames</label>
+                            <textarea class="form-control" id="resultado_exames" name="resultado_exames" rows="4">{{ consulta.resultado_exames or '' }}</textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="receita" class="form-label">Receita</label>
+                            <textarea class="form-control" id="receita" name="receita" rows="4">{{ consulta.receita }}</textarea>
+                        </div>
+
+                        <hr>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-danger" onclick="cancelarEdicao()">
+                                <i class="fas fa-times me-2"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Informações do Paciente -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-info">
+                        <i class="fas fa-user me-2"></i> Informações do Paciente
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <i class="fas fa-user-circle fa-4x text-info"></i>
+                    </div>
+                    <h5 class="text-center">{{ consulta.paciente_nome }}</h5>
+                    <hr>
+                    <p class="mb-1"><i class="fas fa-id me-2"></i> ID: #{{ consulta.paciente_id }}</p>
+                    <p class="mb-0"><i class="fas fa-calendar me-2"></i> Data original: {{ consulta.data_hora }}</p>
+                </div>
+            </div>
+
+            <!-- Ajuda -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-warning">
+                        <i class="fas fa-question-circle me-2"></i> Dicas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Data/Hora:</strong> Formato obrigatório
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>Status:</strong> Selecione o status atual
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            <strong>Diagnóstico:</strong> Descreva o diagnóstico
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-info-circle text-info me-2"></i>
+                            <strong>Receita:</strong> Prescrição médica
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{{ url_for('medico.consulta.detalhes_consulta', consulta_id=consulta.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                        <i class="fas fa-eye me-2"></i> Ver Detalhes da Consulta
+                    </a>
+                </div>
+            </div>
+
+            <!-- Botões de Ação Rápida -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-success">
+                        <i class="fas fa-bolt me-2"></i> Ações Rápidas
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if consulta.status != 'cancelada' and consulta.status != 'realizada' %}
+                        <button type="button" class="btn btn-warning" onclick="marcarRealizada()">
+                            <i class="fas fa-check-circle me-2"></i> Marcar como Realizada
+                        </button>
+                        {% endif %}
+                        
+                        {% if consulta.status != 'cancelada' %}
+                        <button type="button" class="btn btn-danger" onclick="cancelarConsulta()">
+                            <i class="fas fa-times-circle me-2"></i> Cancelar Consulta
+                        </button>
+                        {% endif %}
+                        
+                        <a href="{{ url_for('pedido_analise.novo_pedido') }}?consulta_id={{ consulta.id }}" 
+                           class="btn btn-success">
+                            <i class="fas fa-microscope me-2"></i> Novo Pedido
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function atualizarDataHora() {
+    const dataHora = document.getElementById('data_hora').value;
+    if (dataHora) {
+        const [data, hora] = dataHora.split('T');
+        document.getElementById('data').value = data;
+        document.getElementById('hora').value = hora;
+    }
+}
+
+function cancelarEdicao() {
+    if (confirm('Deseja cancelar a edição? As alterações não salvas serão perdidas.')) {
+        window.location.href = "{{ url_for('medico.consulta.detalhes_consulta', consulta_id=consulta.id) }}";
+    }
+}
+
+function marcarRealizada() {
+    if (confirm('Marcar esta consulta como realizada?')) {
+        fetch(`/consulta/{{ consulta.id }}/realizar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Consulta marcada como realizada!');
+                window.location.reload();
+            } else {
+                alert('Erro ao marcar consulta: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao marcar consulta');
+            console.error(error);
+        });
+    }
+}
+
+function cancelarConsulta() {
+    if (confirm('Tem certeza que deseja cancelar esta consulta?')) {
+        fetch(`/consulta/{{ consulta.id }}/cancelar`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Consulta cancelada com sucesso!');
+                window.location.reload();
+            } else {
+                alert('Erro ao cancelar consulta: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro ao cancelar consulta');
+            console.error(error);
+        });
+    }
+}
+
+// Inicializar campos ocultos quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    const dataHora = document.getElementById('data_hora').value;
+    if (dataHora) {
+        const [data, hora] = dataHora.split('T');
+        document.getElementById('data').value = data;
+        document.getElementById('hora').value = hora;
+    }
+});
+
+// Validação do formulário antes de enviar
+document.getElementById('formEditarConsulta').addEventListener('submit', function(e) {
+    const data = document.getElementById('data').value;
+    const hora = document.getElementById('hora').value;
+    const status = document.getElementById('status').value;
+    
+    if (!data || !hora) {
+        e.preventDefault();
+        alert('Por favor, preencha a data e hora da consulta.');
+        return;
+    }
+    
+    if (!status) {
+        e.preventDefault();
+        alert('Por favor, selecione o status da consulta.');
+        return;
+    }
+});
+</script>
+
+<style>
+.card {
+    border-radius: 10px;
+    border: none;
+}
+.card-header {
+    background-color: #f8f9fc;
+    border-bottom: 1px solid #e3e6f0;
+    font-weight: 600;
+}
+.form-control:focus, .form-select:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+.btn-success {
+    background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+    border: none;
+}
+.btn-success:hover {
+    background: linear-gradient(135deg, #13855c 0%, #0e6647 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.btn-danger {
+    background: linear-gradient(135deg, #e74a3b 0%, #be3e31 100%);
+    border: none;
+}
+.btn-warning {
+    background: linear-gradient(135deg, #f6c23e 0%, #d4a72c 100%);
+    border: none;
+    color: white;
+}
+.btn-warning:hover {
+    color: white;
+}
+</style>
+{% endblock %}

@@ -203,6 +203,11 @@
         footer {
             flex-shrink: 0;
         }
+
+        /* Função para decodificar bytes */
+        .decode-bytes {
+            /* Apenas para referência - a conversão é feita via Jinja */
+        }
     </style>
 </head>
 <body>
@@ -285,15 +290,29 @@
                     </li>
                     {% endif %}
                     
-                    <!-- Dropdown do usuário - Responsivo -->
+                    <!-- Dropdown do usuário - Responsivo com correção para bytes -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
                            data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user-circle me-1"></i> 
-                            <span class="d-none d-sm-inline">{{ session.user_name or 'Usuário' }}</span>
+                            <span class="d-none d-sm-inline">
+                                {% if session.user_name %}
+                                    {% if session.user_name.__class__.__name__ == 'bytes' %}
+                                        {{ session.user_name.decode('utf-8') }}
+                                    {% else %}
+                                        {{ session.user_name }}
+                                    {% endif %}
+                                {% else %}
+                                    Usuário
+                                {% endif %}
+                            </span>
                             <span class="d-inline d-sm-none">
                                 {% if session.user_name %}
-                                    {{ session.user_name|truncate(10) }}
+                                    {% if session.user_name.__class__.__name__ == 'bytes' %}
+                                        {{ session.user_name.decode('utf-8')|truncate(10) }}
+                                    {% else %}
+                                        {{ session.user_name|truncate(10) }}
+                                    {% endif %}
                                 {% else %}
                                     User
                                 {% endif %}
@@ -347,14 +366,20 @@
 
     <!-- Main Content - Responsivo -->
     <main class="container my-3 my-md-4">
-        <!-- Flash Messages - Responsivos -->
+        <!-- Flash Messages - Responsivos com correção para bytes -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
                     <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
-                            <div class="flex-grow-1">{{ message }}</div>
+                            <div class="flex-grow-1">
+                                {% if message.__class__.__name__ == 'bytes' %}
+                                    {{ message.decode('utf-8') }}
+                                {% else %}
+                                    {{ message }}
+                                {% endif %}
+                            </div>
                             <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     </div>

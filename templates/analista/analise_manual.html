@@ -1,0 +1,568 @@
+{% extends "base.html" %}
+
+{% block title %}Análise Manual - Pedido #{{ pedido.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Cabeçalho -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
+        <div>
+            <h2 class="h4 mb-1">
+                <i class="fas fa-user-md text-primary me-2"></i>
+                Análise Manual de Exame
+            </h2>
+            <p class="text-muted mb-0">
+                <i class="fas fa-hashtag me-1"></i> Pedido #{{ pedido.id }} - 
+                <i class="fas fa-user me-1 ms-2"></i> {{ pedido.paciente_nome }}
+            </p>
+        </div>
+        <div class="mt-2 mt-md-0">
+            <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Coluna Esquerda - Informações do Pedido -->
+        <div class="col-lg-4 mb-4">
+            <!-- Card do Paciente -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-circle me-2"></i> Dados do Paciente
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td width="40%"><strong>Nome:</strong></td>
+                            <td>{{ pedido.paciente_nome }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email:</strong></td>
+                            <td>{{ pedido.paciente_email or 'Não informado' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Telefone:</strong></td>
+                            <td>{{ pedido.paciente_telefone or 'Não informado' }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Card do Exame -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-microscope me-2"></i> Informações do Exame
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td width="40%"><strong>Tipo:</strong></td>
+                            <td>{{ pedido.tipo_exame or 'Não especificado' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Médico:</strong></td>
+                            <td>{{ pedido.medico_nome or 'Não informado' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Urgência:</strong></td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if pedido.urgencia == 'urgente' else 'warning' if pedido.urgencia == 'alta' else 'info' }}">
+                                    {{ pedido.urgencia|upper if pedido.urgencia else 'NORMAL' }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Data Solicitação:</strong></td>
+                            <td>{{ pedido.data_solicitacao or 'Não informada' }}</td>
+                        </tr>
+                    </table>
+                    
+                    {% if pedido.descricao %}
+                    <div class="mt-3 pt-2 border-top">
+                        <strong><i class="fas fa-file-alt me-1"></i> Descrição:</strong>
+                        <p class="small mt-2 mb-0">{{ pedido.descricao }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if pedido.instrucoes %}
+                    <div class="mt-3 pt-2 border-top">
+                        <strong><i class="fas fa-clipboard-list me-1"></i> Instruções:</strong>
+                        <p class="small mt-2 mb-0">{{ pedido.instrucoes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card de Anexos -->
+            {% if anexos_pedido %}
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-paperclip me-2"></i> Anexos do Pedido
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for anexo in anexos_pedido %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-file-{{ 'pdf' if anexo.original_name.endswith('.pdf') else 'image' if 'image' in anexo.type else 'alt' }} me-2"></i>
+                                <small>{{ anexo.original_name }}</small>
+                            </div>
+                            <a href="{{ url_for('analista.download_anexo', pedido_id=pedido.id, filename=anexo.filename) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Coluna Direita - Formulário de Análise Manual -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-edit me-2"></i> Resultados da Análise Manual
+                        </h5>
+                        <span class="badge bg-light text-dark">
+                            <i class="fas fa-clock me-1"></i> Modo Manual
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('analista.salvar_analise_manual', pedido_id=pedido.id) }}" id="formAnaliseManual">
+                        <input type="hidden" name="consulta_id" value="{{ pedido.consulta_id }}">
+                        
+                        <!-- Tipo de Exame -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-microscope text-primary me-1"></i> 
+                                Tipo de Exame <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" name="tipo_exame" 
+                                   value="{{ pedido.tipo_exame or dados.tipo_exame or '' }}"
+                                   placeholder="Ex: Radiografia de Tórax, Ultrassom Abdominal, etc." required>
+                            <div class="form-text">
+                                Especifique o tipo de exame analisado
+                            </div>
+                        </div>
+                        
+                        <!-- Descrição do Exame -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-file-alt text-primary me-1"></i> 
+                                Descrição do Exame
+                            </label>
+                            <textarea class="form-control" name="descricao" rows="3" 
+                                      placeholder="Descreva o exame, técnica utilizada, qualidade da imagem...">{{ dados.descricao if dados else '' }}</textarea>
+                            <div class="form-text">
+                                Informações técnicas sobre o exame
+                            </div>
+                        </div>
+
+                        <!-- Achados Principais (Resultado) -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-search text-primary me-1"></i> 
+                                Achados Principais <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" name="resultado" rows="6" 
+                                      placeholder="Descreva detalhadamente os achados observados na imagem/exame...&#10;&#10;Exemplo:&#10;- Presença de imagem sugestiva de...&#10;- Estruturas anatômicas preservadas...&#10;- Ausência de sinais de..." 
+                                      required>{{ dados.resultado if dados else '' }}</textarea>
+                            <div class="form-text">
+                                Descreva todos os achados relevantes, positivos e negativos.
+                            </div>
+                        </div>
+
+                        <!-- Diagnóstico Preliminar -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-stethoscope text-warning me-1"></i> 
+                                Diagnóstico Preliminar
+                            </label>
+                            <textarea class="form-control" name="diagnostico_preliminar" rows="3" 
+                                      placeholder="Diagnóstico preliminar baseado na análise...">{{ dados.diagnostico_preliminar if dados else '' }}</textarea>
+                            <div class="form-text">
+                                Primeira impressão diagnóstica antes da análise final
+                            </div>
+                        </div>
+
+                        <!-- Diagnóstico Final -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-diagnoses text-danger me-1"></i> 
+                                Diagnóstico Final <span class="text-danger">*</span>
+                            </label>
+                            <textarea class="form-control" name="diagnostico_final" rows="4" 
+                                      placeholder="Diagnóstico final baseado nos achados...&#10;&#10;Exemplo:&#10;Pneumonia bacteriana no lobo inferior direito&#10;Derrame pleural discreto à direita" 
+                                      required>{{ dados.diagnostico_final if dados else '' }}</textarea>
+                            <div class="form-text">
+                                Diagnóstico principal e diagnósticos diferenciais relevantes.
+                            </div>
+                        </div>
+
+                        <!-- Observações Adicionais -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-comment-dots text-info me-1"></i> 
+                                Observações Adicionais
+                            </label>
+                            <textarea class="form-control" name="observacoes" rows="3" 
+                                      placeholder="Observações complementares, limitações do exame, recomendações específicas..."
+                                      >{{ dados.observacoes if dados else '' }}</textarea>
+                            <div class="form-text">
+                                Informações complementares relevantes.
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-flag-checkered text-success me-1"></i> 
+                                Status da Análise
+                            </label>
+                            <select class="form-select" name="status">
+                                <option value="pendente" {{ 'selected' if dados and dados.status == 'pendente' else '' }}>Pendente</option>
+                                <option value="em_andamento" {{ 'selected' if dados and dados.status == 'em_andamento' else '' }}>Em Andamento</option>
+                                <option value="concluido" {{ 'selected' if dados and dados.status == 'concluido' else '' }}>Concluído</option>
+                                <option value="revisao" {{ 'selected' if dados and dados.status == 'revisao' else '' }}>Aguardando Revisão</option>
+                            </select>
+                            <div class="form-text">
+                                Status atual da análise
+                            </div>
+                        </div>
+
+                        <!-- Templates Rápidos -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-file-alt me-1"></i> 
+                                Templates Rápidos
+                            </label>
+                            <div class="row g-2">
+                                <div class="col-12 col-md-6">
+                                    <button type="button" class="btn btn-outline-primary w-100" onclick="inserirTemplate('normal')">
+                                        <i class="fas fa-check-circle me-1"></i> Exame Normal
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <button type="button" class="btn btn-outline-warning w-100" onclick="inserirTemplate('anormal')">
+                                        <i class="fas fa-exclamation-triangle me-1"></i> Achados Anormais
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <button type="button" class="btn btn-outline-info w-100" onclick="inserirTemplate('radiografia')">
+                                        <i class="fas fa-x-ray me-1"></i> Radiografia
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <button type="button" class="btn btn-outline-success w-100" onclick="inserirTemplate('ultrassom')">
+                                        <i class="fas fa-waveform me-1"></i> Ultrassom
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botões de Ação -->
+                        <div class="d-flex flex-column flex-md-row gap-2 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-success flex-fill">
+                                <i class="fas fa-save me-2"></i> Salvar Análise
+                            </button>
+                            <button type="button" class="btn btn-outline-warning flex-fill" onclick="salvarRascunho()">
+                                <i class="fas fa-pen me-2"></i> Salvar Rascunho
+                            </button>
+                            <button type="button" class="btn btn-outline-danger flex-fill" onclick="cancelar()">
+                                <i class="fas fa-times me-2"></i> Cancelar
+                            </button>
+                        </div>
+                        
+                        <!-- Status do Rascunho -->
+                        <div id="statusRascunho" class="mt-3 text-center small text-muted" style="display: none;">
+                            <i class="fas fa-save me-1"></i> Rascunho salvo em <span id="timestampRascunho"></span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Dicas de Análise -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb text-warning me-2"></i> 
+                        Dicas para Análise Manual
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <ul class="small mb-0">
+                                <li class="mb-2">✓ Seja objetivo e descritivo</li>
+                                <li class="mb-2">✓ Utilize terminologia médica adequada</li>
+                                <li class="mb-2">✓ Descreva tanto achados normais quanto anormais</li>
+                                <li class="mb-2">✓ Mencione limitações técnicas do exame</li>
+                            </ul>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <ul class="small mb-0">
+                                <li class="mb-2">✓ Compare com exames anteriores se disponíveis</li>
+                                <li class="mb-2">✓ Destaque achados clinicamente relevantes</li>
+                                <li class="mb-2">✓ Seja específico nas recomendações</li>
+                                <li class="mb-2">✓ Indique claramente o nível de urgência</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Templates para inserção rápida
+    const templates = {
+        normal: {
+            tipo_exame: '',
+            resultado: `**ACHADOS PRINCIPAIS:**
+- Exame sem alterações significativas
+- Estruturas anatômicas preservadas
+- Morfologia e dimensões dentro dos limites normais
+- Ausência de lesões ou massas identificáveis`,
+            diagnostico_final: `Exame dentro dos padrões de normalidade.`,
+            observacoes: `Sem alterações dignas de nota.`
+        },
+        anormal: {
+            tipo_exame: '',
+            resultado: `**ACHADOS PRINCIPAIS:**
+- [Descrever achado anormal 1]
+- [Descrever achado anormal 2]
+- [Descrever localização, tamanho e características]`,
+            diagnostico_final: `[Diagnóstico principal baseado nos achados]`,
+            observacoes: `Recomenda-se correlação clínica.`
+        },
+        radiografia: {
+            tipo_exame: 'Radiografia de Tórax',
+            resultado: `**ACHADOS PRINCIPAIS:**
+- Campo pulmonar: [descrever]
+- Silhueta cardíaca: [descrever]
+- Mediastino: [descrever]
+- Estruturas ósseas: [descrever]
+- Partes moles: [descrever]`,
+            diagnostico_final: `[Diagnóstico radiológico]`,
+            observacoes: `Recomenda-se correlação clínica e exames complementares se necessário.`
+        },
+        ultrassom: {
+            tipo_exame: 'Ultrassom',
+            resultado: `**ACHADOS PRINCIPAIS:**
+- Parênquima: [descrever ecotextura, ecogenicidade]
+- Dimensões: [medidas em cm]
+- Contornos: [regulares/irregulares]
+- Vascularização: [presença/ausência de fluxo]
+- Formações císticas/sólidas: [descrever]`,
+            diagnostico_final: `[Diagnóstico ultrassonográfico]`,
+            observacoes: `Correlação clínica sugerida.`
+        }
+    };
+
+    // Carregar rascunho salvo
+    function carregarRascunho() {
+        const pedidoId = {{ pedido.id }};
+        const rascunho = localStorage.getItem(`rascunho_analise_manual_${pedidoId}`);
+        
+        if (rascunho) {
+            try {
+                const dados = JSON.parse(rascunho);
+                document.querySelector('[name="tipo_exame"]').value = dados.tipo_exame || '';
+                document.querySelector('[name="descricao"]').value = dados.descricao || '';
+                document.querySelector('[name="resultado"]').value = dados.resultado || '';
+                document.querySelector('[name="diagnostico_preliminar"]').value = dados.diagnostico_preliminar || '';
+                document.querySelector('[name="diagnostico_final"]').value = dados.diagnostico_final || '';
+                document.querySelector('[name="observacoes"]').value = dados.observacoes || '';
+                document.querySelector('[name="status"]').value = dados.status || 'pendente';
+                
+                if (dados.timestamp) {
+                    const data = new Date(dados.timestamp);
+                    document.getElementById('timestampRascunho').textContent = data.toLocaleString();
+                    document.getElementById('statusRascunho').style.display = 'block';
+                    
+                    setTimeout(() => {
+                        document.getElementById('statusRascunho').style.opacity = '0.5';
+                    }, 3000);
+                }
+                
+                mostrarToast('Rascunho carregado!', 'info');
+            } catch(e) {
+                console.error('Erro ao carregar rascunho:', e);
+            }
+        }
+    }
+
+    // Salvar rascunho
+    function salvarRascunho() {
+        const pedidoId = {{ pedido.id }};
+        const dados = {
+            tipo_exame: document.querySelector('[name="tipo_exame"]').value,
+            descricao: document.querySelector('[name="descricao"]').value,
+            resultado: document.querySelector('[name="resultado"]').value,
+            diagnostico_preliminar: document.querySelector('[name="diagnostico_preliminar"]').value,
+            diagnostico_final: document.querySelector('[name="diagnostico_final"]').value,
+            observacoes: document.querySelector('[name="observacoes"]').value,
+            status: document.querySelector('[name="status"]').value,
+            timestamp: new Date().toISOString()
+        };
+        
+        localStorage.setItem(`rascunho_analise_manual_${pedidoId}`, JSON.stringify(dados));
+        
+        const data = new Date();
+        document.getElementById('timestampRascunho').textContent = data.toLocaleString();
+        document.getElementById('statusRascunho').style.display = 'block';
+        
+        mostrarToast('Rascunho salvo com sucesso!', 'success');
+        
+        setTimeout(() => {
+            document.getElementById('statusRascunho').style.opacity = '0.5';
+        }, 3000);
+    }
+
+    // Inserir template
+    function inserirTemplate(tipo) {
+        const template = templates[tipo];
+        if (!template) return;
+        
+        if (template.tipo_exame) {
+            const tipoExameField = document.querySelector('[name="tipo_exame"]');
+            if (!tipoExameField.value) {
+                tipoExameField.value = template.tipo_exame;
+            }
+        }
+        
+        if (template.resultado) {
+            const resultadoField = document.querySelector('[name="resultado"]');
+            resultadoField.value = template.resultado;
+            resultadoField.focus();
+        }
+        
+        if (template.diagnostico_final) {
+            const diagnosticoField = document.querySelector('[name="diagnostico_final"]');
+            diagnosticoField.value = template.diagnostico_final;
+        }
+        
+        if (template.observacoes) {
+            const observacoesField = document.querySelector('[name="observacoes"]');
+            if (!observacoesField.value) {
+                observacoesField.value = template.observacoes;
+            }
+        }
+        
+        mostrarToast(`Template "${tipo}" inserido!`, 'success');
+    }
+
+    function cancelar() {
+        if (confirm('Tem certeza que deseja cancelar? As alterações não salvas serão perdidas.')) {
+            window.location.href = "{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}";
+        }
+    }
+
+    function mostrarToast(mensagem, tipo = 'info') {
+        const toastDiv = document.createElement('div');
+        toastDiv.className = `toast align-items-center text-white bg-${tipo} border-0 position-fixed bottom-0 end-0 m-3`;
+        toastDiv.setAttribute('role', 'alert');
+        toastDiv.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'warning' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${mensagem}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        
+        document.body.appendChild(toastDiv);
+        const toast = new bootstrap.Toast(toastDiv, { delay: 3000 });
+        toast.show();
+        
+        toastDiv.addEventListener('hidden.bs.toast', () => toastDiv.remove());
+    }
+
+    // Auto-salvar a cada 30 segundos
+    let autoSaveInterval;
+    
+    function iniciarAutoSave() {
+        autoSaveInterval = setInterval(() => {
+            const resultado = document.querySelector('[name="resultado"]').value;
+            const diagnostico = document.querySelector('[name="diagnostico_final"]').value;
+            
+            if (resultado || diagnostico) {
+                salvarRascunho();
+            }
+        }, 30000);
+    }
+    
+    function pararAutoSave() {
+        if (autoSaveInterval) {
+            clearInterval(autoSaveInterval);
+        }
+    }
+    
+    // Iniciar quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        carregarRascunho();
+        iniciarAutoSave();
+        
+        // Parar auto-save ao enviar formulário
+        const form = document.getElementById('formAnaliseManual');
+        if (form) {
+            form.addEventListener('submit', pararAutoSave);
+        }
+    });
+</script>
+
+<style>
+    textarea.form-control {
+        font-family: 'Segoe UI', monospace;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        resize: vertical;
+    }
+    
+    textarea.form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .card-header {
+        font-weight: 600;
+    }
+    
+    .btn-outline-primary:hover,
+    .btn-outline-warning:hover,
+    .btn-outline-info:hover,
+    .btn-outline-success:hover {
+        transform: translateY(-1px);
+        transition: all 0.2s;
+    }
+    
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 0.5rem;
+        }
+        
+        textarea.form-control {
+            font-size: 0.85rem;
+        }
+        
+        .btn {
+            font-size: 0.85rem;
+            padding: 0.5rem;
+        }
+    }
+</style>
+{% endblock %}

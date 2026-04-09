@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagamento de Licença - DoctorIA Angola</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2A5C9A;
+            --primary-light: #3B7BC4;
+            --primary-dark: #1E3F6F;
+            --secondary: #47B5FF;
+            --success: #28A745;
+            --warning: #FFC107;
+            --danger: #DC3545;
+            --info: #17A2B8;
+            --dark: #1E293B;
+            --light: #F8FAFC;
+            --gray: #64748B;
+            --white: #FFFFFF;
+            
+            --gradient-primary: linear-gradient(135deg, #2A5C9A 0%, #1E3F6F 100%);
+            --gradient-success: linear-gradient(135deg, #28A745 0%, #1E7E34 100%);
+            --box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            --border-radius: 20px;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .payment-card {
+            background: white;
+            border-radius: 30px;
+            overflow: hidden;
+            box-shadow: var(--box-shadow);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .payment-header {
+            background: var(--gradient-primary);
+            padding: 40px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .payment-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .payment-header::after {
+            content: '';
+            position: absolute;
+            bottom: -50%;
+            left: -10%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .payment-header i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .payment-header h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .payment-header p {
+            font-size: 1rem;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .payment-body {
+            padding: 40px;
+        }
+
+        .price-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 2px dashed #e9ecef;
+        }
+
+        .price-label {
+            color: var(--gray);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .price-value {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        .price-value small {
+            font-size: 1rem;
+            color: var(--gray);
+            font-weight: 400;
+        }
+
+        .benefits-section {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .benefits-section h4 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .benefits-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .benefits-list li {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            color: var(--dark);
+        }
+
+        .benefits-list i {
+            color: var(--success);
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+
+        .payment-methods {
+            margin-bottom: 30px;
+        }
+
+        .payment-methods h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: var(--dark);
+        }
+
+        .method-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .method-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            background: white;
+            color: var(--dark);
+            font-weight: 600;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .method-btn:hover {
+            border-color: var(--primary);
+            background: rgba(42, 92, 154, 0.05);
+        }
+
+        .method-btn.active {
+            border-color: var(--primary);
+            background: rgba(42, 92, 154, 0.1);
+            color: var(--primary);
+        }
+
+        .method-btn i {
+            font-size: 1.2rem;
+        }
+
+        .method-btn i.fa-money-bill-wave { color: #28a745; }
+        .method-btn i.fa-university { color: var(--primary); }
+        .method-btn i.fa-mobile-alt { color: #dc3545; }
+        .method-btn i.fa-credit-card { color: #17a2b8; }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h4 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--dark);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .form-control, .form-select {
+            padding: 12px 15px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+            transition: var(--transition);
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: none;
+            outline: none;
+        }
+
+        .input-group-text {
+            background: #f8fafc;
+            border: 2px solid #e9ecef;
+            border-right: none;
+            border-radius: 15px 0 0 15px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .input-group .form-control {
+            border-left: none;
+            border-radius: 0 15px 15px 0;
+        }
+
+        .row-cvv {
+            display: flex;
+            gap: 15px;
+        }
+
+        .row-cvv .form-group {
+            flex: 1;
+        }
+
+        .btn-pay {
+            background: var(--gradient-success);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            border-radius: 15px;
+            width: 100%;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-pay::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-pay:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn-pay:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(40, 167, 69, 0.3);
+        }
+
+        .btn-pay i {
+            margin-right: 10px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            color: var(--gray);
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 20px;
+            transition: var(--transition);
+        }
+
+        .btn-back:hover {
+            color: var(--primary);
+            transform: translateX(-5px);
+        }
+
+        .btn-back i {
+            margin-right: 8px;
+        }
+
+        .security-badge {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .security-badge p {
+            color: var(--gray);
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .security-badge i {
+            color: var(--success);
+            margin-right: 5px;
+        }
+
+        /* Modal de Sucesso */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+
+        .modal-header {
+            background: var(--gradient-success);
+            color: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+        }
+
+        .modal-body {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .success-animation {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: var(--gradient-success);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .success-animation i {
+            font-size: 2.5rem;
+            color: white;
+        }
+
+        .modal-footer {
+            border-top: none;
+            padding: 20px;
+            justify-content: center;
+        }
+
+        .btn-modal {
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: 600;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .payment-header {
+                padding: 30px;
+            }
+            
+            .payment-body {
+                padding: 25px;
+            }
+            
+            .price-value {
+                font-size: 2.5rem;
+            }
+            
+            .method-buttons {
+                flex-direction: column;
+            }
+            
+            .method-btn {
+                width: 100%;
+            }
+            
+            .row-cvv {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <!-- Botão Voltar -->
+        <a href="{{ url_for('auth.index') }}" class="btn-back">
+            <i class="fas fa-arrow-left"></i>
+            Voltar para página inicial
+        </a>
+
+        <!-- Card de Pagamento -->
+        <div class="payment-card" data-aos="fade-up">
+            <div class="payment-header">
+                <i class="fas fa-crown"></i>
+                <h2>Licença do Administrador</h2>
+                <p>Ative seu acesso completo como diretor/dono do hospital</p>
+            </div>
+            
+            <div class="payment-body">
+                <!-- Preço -->
+                <div class="price-section">
+                    <div class="price-label">Valor da Licença</div>
+                    <div class="price-value">
+                        250.000 <small>Kz</small>
+                    </div>
+                    <p class="text-muted mt-2">Pagamento único - válido por 12 meses</p>
+                </div>
+
+                <!-- Benefícios -->
+                <div class="benefits-section">
+                    <h4><i class="fas fa-gem text-primary me-2"></i>Benefícios Inclusos:</h4>
+                    <ul class="benefits-list">
+                        <li><i class="fas fa-check-circle"></i> Acesso total ao sistema</li>
+                        <li><i class="fas fa-check-circle"></i> Gestão completa de usuários</li>
+                        <li><i class="fas fa-check-circle"></i> Relatórios avançados</li>
+                        <li><i class="fas fa-check-circle"></i> Suporte prioritário 24/7</li>
+                        <li><i class="fas fa-check-circle"></i> Backups exclusivos</li>
+                        <li><i class="fas fa-check-circle"></i> Personalização avançada</li>
+                    </ul>
+                </div>
+
+                <!-- Métodos de Pagamento -->
+                <div class="payment-methods">
+                    <h4>Método de Pagamento:</h4>
+                    <div class="method-buttons">
+                        <button type="button" class="method-btn active" onclick="selectMethod('multicaixa', this)">
+                            <i class="fas fa-money-bill-wave"></i>
+                            Multicaixa
+                        </button>
+                        <button type="button" class="method-btn" onclick="selectMethod('transferencia', this)">
+                            <i class="fas fa-university"></i>
+                            Transferência
+                        </button>
+                        <button type="button" class="method-btn" onclick="selectMethod('emis', this)">
+                            <i class="fas fa-mobile-alt"></i>
+                            EMIS
+                        </button>
+                        <button type="button" class="method-btn" onclick="selectMethod('cartao', this)">
+                            <i class="fas fa-credit-card"></i>
+                            Cartão
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Formulário de Pagamento -->
+                <div class="form-section">
+                    <h4>Dados de Pagamento:</h4>
+                    
+                    <form id="paymentForm">
+                        <!-- Número de Referência / Documento -->
+                        <div class="form-group">
+                            <label class="form-label">Número de Referência/Documento</label>
+                            <input type="text" class="form-control" id="referenceNumber" placeholder="Digite o número da operação" required>
+                        </div>
+
+                        <!-- Nome do Titular -->
+                        <div class="form-group">
+                            <label class="form-label">Nome do Titular</label>
+                            <input type="text" class="form-control" id="cardholderName" placeholder="Nome completo" required>
+                        </div>
+
+                        <!-- Número do Cartão (se aplicável) -->
+                        <div class="form-group" id="cardNumberGroup">
+                            <label class="form-label">Número do Cartão</label>
+                            <input type="text" class="form-control" id="cardNumber" placeholder="**** **** **** ****">
+                        </div>
+
+                        <!-- Validade e CVV -->
+                        <div class="row-cvv">
+                            <div class="form-group">
+                                <label class="form-label">Validade</label>
+                                <input type="text" class="form-control" id="expiryDate" placeholder="MM/AA">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CVV</label>
+                                <input type="text" class="form-control" id="cvv" placeholder="***">
+                            </div>
+                        </div>
+
+                        <!-- Botão Pagar -->
+                        <button type="button" class="btn-pay" onclick="processPayment()">
+                            <i class="fas fa-lock"></i>
+                            Pagar 250.000 Kz
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Selo de Segurança -->
+                <div class="security-badge">
+                    <p><i class="fas fa-shield-alt"></i> Pagamento 100% seguro</p>
+                    <p class="small">Seus dados estão protegidos com criptografia SSL de 256-bit</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Pagamento -->
+    <div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-check-circle me-2"></i>Pagamento Confirmado</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="success-animation">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h4 class="fw-bold mb-3">Licença Ativada com Sucesso!</h4>
+                    <p class="mb-2">Sua licença de administrador foi ativada por 12 meses.</p>
+                    <p class="mb-0 text-success fw-semibold">
+                        <i class="fas fa-calendar-check me-2"></i>
+                        Válida até: <span id="modalExpiryDate"></span>
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ url_for('auth.index') }}" class="btn btn-primary btn-modal">
+                        <i class="fas fa-home me-2"></i>Voltar para Página Inicial
+                    </a>
+                    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-success btn-modal">
+                        <i class="fas fa-tachometer-alt me-2"></i>Ir para Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <script>
+        // Inicializar AOS
+        AOS.init({
+            duration: 800,
+            once: true
+        });
+
+        // Método de pagamento selecionado
+        let selectedMethod = 'multicaixa';
+
+        // Função para selecionar método de pagamento
+        function selectMethod(method, element) {
+            selectedMethod = method;
+            
+            // Remover classe active de todos os botões
+            document.querySelectorAll('.method-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Adicionar classe active ao botão clicado
+            element.classList.add('active');
+            
+            // Mostrar/esconder campos específicos baseado no método
+            const cardNumberGroup = document.getElementById('cardNumberGroup');
+            const expiryDate = document.getElementById('expiryDate');
+            const cvv = document.getElementById('cvv');
+            
+            if (method === 'cartao') {
+                cardNumberGroup.style.display = 'block';
+                document.getElementById('cardNumber').required = true;
+                expiryDate.required = true;
+                cvv.required = true;
+            } else {
+                cardNumberGroup.style.display = 'none';
+                document.getElementById('cardNumber').required = false;
+                expiryDate.required = false;
+                cvv.required = false;
+            }
+        }
+
+        // Formatar número do cartão
+        document.getElementById('cardNumber')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            value = value.replace(/(\d{4})(?=\d)/g, '$1 ');
+            e.target.value = value.substring(0, 19);
+        });
+
+        // Formatar data de validade
+        document.getElementById('expiryDate')?.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+            }
+            e.target.value = value.substring(0, 5);
+        });
+
+        // Limitar CVV a 3 dígitos
+        document.getElementById('cvv')?.addEventListener('input', function(e) {
+            e.target.value = e.target.value.replace(/\D/g, '').substring(0, 3);
+        });
+
+        // Processar pagamento
+        function processPayment() {
+            // Validar campos obrigatórios
+            const reference = document.getElementById('referenceNumber').value;
+            const name = document.getElementById('cardholderName').value;
+            
+            if (!reference || !name) {
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return;
+            }
+
+            // Validar cartão se método for cartão
+            if (selectedMethod === 'cartao') {
+                const cardNumber = document.getElementById('cardNumber').value;
+                const expiryDate = document.getElementById('expiryDate').value;
+                const cvv = document.getElementById('cvv').value;
+                
+                if (!cardNumber || !expiryDate || !cvv) {
+                    alert('Por favor, preencha todos os dados do cartão.');
+                    return;
+                }
+            }
+
+            // Simular processamento
+            const payButton = document.querySelector('.btn-pay');
+            const originalText = payButton.innerHTML;
+            payButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando...';
+            payButton.disabled = true;
+
+            setTimeout(() => {
+                // Gerar data de expiração
+                const today = new Date();
+                const expiryDate = new Date(today);
+                expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+                
+                const formatDate = (date) => {
+                    return date.toLocaleDateString('pt-AO', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                    });
+                };
+
+                // Atualizar modal
+                document.getElementById('modalExpiryDate').textContent = formatDate(expiryDate);
+
+                // Mostrar modal de sucesso
+                const successModal = new bootstrap.Modal(document.getElementById('paymentSuccessModal'));
+                successModal.show();
+
+                // Restaurar botão
+                payButton.innerHTML = originalText;
+                payButton.disabled = false;
+
+                // Limpar formulário (opcional)
+                document.getElementById('paymentForm').reset();
+                
+            }, 2000);
+        }
+
+        // Inicializar escondendo campos de cartão
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('cardNumberGroup').style.display = 'none';
+        });
+    </script>
+</body>
+</html>

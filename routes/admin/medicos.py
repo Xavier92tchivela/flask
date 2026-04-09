@@ -4,6 +4,7 @@ import logging
 import traceback
 import uuid
 from datetime import datetime
+from werkzeug.security import generate_password_hash  # 👈 IMPORTANTE: Adicionar esta linha
 
 logger = logging.getLogger(__name__)
 
@@ -92,7 +93,7 @@ def init_medicos_routes(admin_bp, mysql):
             return render_template('admin/medicos.html', medicos=[], user=session)
     
     # ======================================================================
-    # CADASTRAR MÉDICO (CORRIGIDO)
+    # CADASTRAR MÉDICO (COM SENHA CRIPTOGRAFADA)
     # ======================================================================
     @admin_bp.route('/medicos/cadastrar', methods=['GET', 'POST'])
     @admin_required
@@ -146,11 +147,15 @@ def init_medicos_routes(admin_bp, mysql):
             try:
                 cur = mysql.connection.cursor()
                 
-                # Inserir na tabela usuarios com UUID
+                # 👇 GERAR HASH DA SENHA
+                senha_hash = generate_password_hash(senha)
+                logger.info(f"Senha criptografada gerada para {email}")
+                
+                # Inserir na tabela usuarios com UUID e senha HASH
                 cur.execute("""
                     INSERT INTO usuarios (uuid, nome, email, senha, tipo, ativo, criado_em)
                     VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                """, (user_uuid, nome, email, senha, 'medico', True))
+                """, (user_uuid, nome, email, senha_hash, 'medico', True))
                 
                 mysql.connection.commit()
                 usuario_id = cur.lastrowid
@@ -178,7 +183,7 @@ def init_medicos_routes(admin_bp, mysql):
         return render_template('admin/cadastrar_medico.html', user=session)
     
     # ======================================================================
-    # EDITAR MÉDICO (CORRIGIDO)
+    # EDITAR MÉDICO (COM OPÇÃO DE ALTERAR SENHA)
     # ======================================================================
     @admin_bp.route('/medicos/<int:medico_id>/editar', methods=['GET', 'POST'])
     @admin_required
@@ -193,6 +198,7 @@ def init_medicos_routes(admin_bp, mysql):
             telefone = request.form.get('telefone', '').strip()
             status = request.form.get('status', 'ativo')
             ativo = 1 if request.form.get('ativo') else 0
+            nova_senha = request.form.get('nova_senha', '').strip()
             
             # Log para debug
             logger.info(f"Editando médico ID {medico_id}: {nome}, {email}")
@@ -203,12 +209,30 @@ def init_medicos_routes(admin_bp, mysql):
                 return redirect(url_for('admin.editar_medico', medico_id=medico_id))
             
             try:
-                # Atualizar usuário (UUID não é alterado)
-                execute_query("""
-                    UPDATE usuarios 
-                    SET nome = %s, email = %s, ativo = %s
-                    WHERE id = %s AND tipo = 'medico'
-                """, (nome, email, ativo, medico_id))
+                # Se foi fornecida uma nova senha, atualizar com hash
+                if nova_senha:
+                    if len(nova_senha) < 6:
+                        flash('A nova senha deve ter pelo menos 6 caracteres.', 'danger')
+                        return redirect(url_for('admin.editar_medico', medico_id=medico_id))
+                    
+                    # 👇 GERAR HASH DA NOVA SENHA
+                    senha_hash = generate_password_hash(nova_senha)
+                    
+                    # Atualizar usuário com nova senha
+                    execute_query("""
+                        UPDATE usuarios 
+                        SET nome = %s, email = %s, senha = %s, ativo = %s
+                        WHERE id = %s AND tipo = 'medico'
+                    """, (nome, email, senha_hash, ativo, medico_id))
+                    
+                    logger.info(f"Senha atualizada para médico ID {medico_id}")
+                else:
+                    # Atualizar usuário sem alterar senha
+                    execute_query("""
+                        UPDATE usuarios 
+                        SET nome = %s, email = %s, ativo = %s
+                        WHERE id = %s AND tipo = 'medico'
+                    """, (nome, email, ativo, medico_id))
                 
                 # Atualizar médico com telefone e status
                 execute_query("""

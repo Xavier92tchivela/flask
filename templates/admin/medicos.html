@@ -2,613 +2,1037 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Gerenciar Médicos - DoctorIA</title>
     
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --success-color: #10b981;
-            --warning-color: #f59e0b;
-            --danger-color: #ef4444;
-            --dark-color: #2c3e50;
+            --primary: #4361ee;
+            --primary-dark: #3a0ca3;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --sidebar-width: 280px;
+            --border-radius: 24px;
+            --transition: all 0.3s ease;
         }
-        
+
         body {
-            background-color: #f4f6f9;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .sidebar {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            background: linear-gradient(135deg, #2b2d42 0%, #1e1f2e 100%);
-            color: white;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+            color: var(--gray-800);
+            overflow-x: hidden;
         }
-        
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.7);
-            padding: 14px 20px;
-            margin: 6px 12px;
+
+        /* ==================== SIDEBAR ==================== */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1a1c2e 0%, #2d2f42 100%);
+            color: white;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: var(--transition);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .logo-icon {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .logo-text {
+            font-size: 22px;
+            font-weight: 800;
+        }
+
+        .logo-text span {
+            font-weight: 300;
+            color: var(--primary);
+        }
+
+        .user-info {
+            padding: 20px;
+            margin: 20px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-avatar {
+            width: 45px;
+            height: 45px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             border-radius: 12px;
-            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: var(--gray-400);
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            margin: 4px 12px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: var(--transition);
             font-weight: 500;
         }
-        
-        .sidebar .nav-link:hover {
-            background: rgba(255,255,255,0.12);
-            color: white;
-            transform: translateX(5px);
-        }
-        
-        .sidebar .nav-link.active {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
-            color: white;
-            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
-        }
-        
-        .sidebar .nav-link i {
+
+        .nav-link i {
+            width: 24px;
             margin-right: 12px;
-            width: 22px;
-            text-align: center;
         }
-        
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        /* ==================== MENU TOGGLE ==================== */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1100;
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(67,97,238,0.4);
+        }
+
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        /* ==================== MAIN CONTENT ==================== */
         .main-content {
+            margin-left: var(--sidebar-width);
             padding: 30px;
-            background-color: #f4f6f9;
+            min-height: 100vh;
+            transition: var(--transition);
         }
-        
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 70px 15px 20px;
+            }
+        }
+
+        /* ==================== TOP BAR ==================== */
+        .top-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+        }
+
+        @media (min-width: 768px) {
+            .top-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
         .page-title {
-            margin-bottom: 30px;
-            color: var(--dark-color);
-            font-weight: 800;
-            font-size: 28px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
         }
-        
-        .page-title i {
-            margin-right: 12px;
-            color: var(--primary-color);
+
+        @media (min-width: 768px) {
+            .page-title {
+                margin-bottom: 0;
+            }
         }
-        
-        .btn-add {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+
+        .page-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .page-title h1 {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--gray-800);
+            margin: 0;
+        }
+
+        .page-title p {
+            color: var(--gray-500);
+            font-size: 14px;
+            margin: 5px 0 0 0;
+        }
+
+        /* ==================== BOTÕES ==================== */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 12px;
+            border-radius: 14px;
             font-weight: 600;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            font-size: 15px;
+            text-decoration: none;
+            width: 100%;
         }
-        
-        .btn-add:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 30px rgba(67, 97, 238, 0.3);
+
+        @media (min-width: 768px) {
+            .btn-primary {
+                width: auto;
+            }
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67,97,238,0.3);
             color: white;
         }
-        
-        .card {
+
+        .btn-action {
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
             border: none;
-            border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-            margin-bottom: 25px;
-            border: 1px solid rgba(0,0,0,0.03);
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
-        
-        .card-header {
+
+        .btn-edit {
+            background: rgba(67, 97, 238, 0.1);
+            color: var(--primary);
+        }
+
+        .btn-view {
+            background: rgba(100, 116, 139, 0.1);
+            color: var(--gray-600);
+        }
+
+        .btn-delete {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-edit:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: var(--gray-600);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        /* ==================== SEARCH ==================== */
+        .search-box {
+            background: var(--gray-100);
+            border-radius: 14px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+
+        @media (min-width: 768px) {
+            .search-box {
+                width: 300px;
+            }
+        }
+
+        .search-box i {
+            color: var(--gray-400);
+            margin-right: 10px;
+        }
+
+        .search-box input {
+            border: none;
             background: transparent;
-            border-bottom: 1px solid #e9ecef;
-            padding: 20px 25px;
-            border-radius: 24px 24px 0 0 !important;
+            outline: none;
+            width: 100%;
         }
-        
-        .card-header h5 {
-            margin: 0;
-            color: var(--dark-color);
-            font-weight: 700;
-            font-size: 1.2rem;
+
+        /* ==================== STATS CARD ==================== */
+        .stats-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 20px;
+            padding: 20px;
+            color: white;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stats-number {
+            font-size: 32px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .stats-label {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .stats-icon {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        /* ==================== CARD ==================== */
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        @media (min-width: 768px) {
+            .card-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+
+        .card-title {
             display: flex;
             align-items: center;
             gap: 10px;
+            margin-bottom: 15px;
         }
-        
-        .card-header h5 i {
-            color: var(--primary-color);
-            font-size: 1.4rem;
+
+        @media (min-width: 768px) {
+            .card-title {
+                margin-bottom: 0;
+            }
         }
-        
-        .card-body {
-            padding: 0;
+
+        .card-title i {
+            color: var(--primary);
+            font-size: 20px;
         }
-        
-        .table {
+
+        .card-title h3 {
+            font-size: 18px;
+            font-weight: 700;
             margin: 0;
         }
-        
-        .table thead th {
-            border-top: none;
-            border-bottom: 2px solid #e9ecef;
-            color: #6c757d;
+
+        .card-title span {
+            background: var(--gray-200);
+            color: var(--gray-600);
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        /* ==================== TABELA RESPONSIVA ==================== */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            display: none;
+            padding: 16px 20px;
+            background: var(--gray-50);
+            color: var(--gray-600);
             font-weight: 600;
-            font-size: 13px;
+            font-size: 12px;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 18px 15px;
-            background-color: #f8f9fa;
+            border-bottom: 1px solid var(--gray-200);
         }
-        
-        .table tbody td {
-            padding: 18px 15px;
-            vertical-align: middle;
-            border-bottom: 1px solid #e9ecef;
-            color: #2c3e50;
+
+        .table td {
+            display: block;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            position: relative;
+            padding-left: 40%;
         }
-        
-        .table tbody tr:hover {
-            background-color: rgba(67, 97, 238, 0.02);
+
+        .table td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 15px;
+            width: 35%;
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 12px;
+            text-transform: uppercase;
         }
-        
-        .badge-status {
-            padding: 6px 14px;
+
+        @media (min-width: 768px) {
+            .table th {
+                display: table-cell;
+            }
+            
+            .table td {
+                display: table-cell;
+                padding: 16px 20px;
+            }
+            
+            .table td::before {
+                display: none;
+            }
+        }
+
+        /* Informação do médico */
+        .info-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-avatar {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .info-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+
+        .info-email {
+            font-size: 12px;
+            color: var(--gray-500);
+        }
+
+        /* Badges */
+        .badge {
+            padding: 6px 12px;
             border-radius: 30px;
             font-size: 12px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 5px;
         }
-        
+
         .badge-active {
             background: rgba(16, 185, 129, 0.1);
-            color: #10b981;
+            color: var(--success);
         }
-        
+
         .badge-inactive {
             background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
+            color: var(--danger);
         }
-        
+
         .badge-ferias {
             background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
+            color: var(--warning);
         }
-        
+
         .badge-licenca {
             background: rgba(99, 102, 241, 0.1);
             color: #6366f1;
         }
-        
-        .btn-action {
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 13px;
-            margin: 0 4px;
-            transition: all 0.3s;
-            border: none;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            text-decoration: none;
-        }
-        
-        .btn-action:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
-        }
-        
-        .btn-edit {
-            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+
+        .badge-especialidade {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
             color: white;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
         }
-        
-        .btn-view {
-            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-            color: white;
+
+        .badge-crm {
+            background: var(--gray-200);
+            color: var(--gray-700);
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-family: monospace;
         }
-        
-        .btn-delete {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
-        
-        .search-box {
-            background: white;
-            border-radius: 12px;
-            padding: 8px 16px;
-            border: 1px solid #e9ecef;
-            transition: all 0.3s;
-            width: 280px;
+
+        /* Ações */
+        .action-group {
             display: flex;
-            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
         }
-        
-        .search-box:focus-within {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 4px rgba(67, 97, 238, 0.1);
-        }
-        
-        .search-box i {
-            color: #94a3b8;
-            margin-right: 10px;
-            font-size: 1rem;
-        }
-        
-        .search-box input {
-            border: none;
-            padding: 8px 0;
-            outline: none;
-            width: 100%;
-            font-size: 14px;
-        }
-        
-        .search-box input::placeholder {
-            color: #94a3b8;
-        }
-        
+
+        /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
         }
-        
+
         .empty-state i {
-            font-size: 4rem;
-            color: #cbd5e0;
+            font-size: 60px;
+            color: var(--gray-300);
             margin-bottom: 20px;
         }
-        
-        .empty-state h5 {
-            color: #64748b;
-            font-weight: 600;
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gray-700);
             margin-bottom: 10px;
         }
-        
+
         .empty-state p {
-            color: #94a3b8;
+            color: var(--gray-500);
             margin-bottom: 25px;
         }
-        
-        /* Estilo para o UUID compacto */
+
+        /* Alertas */
+        .alert {
+            border-radius: 16px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .btn-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            color: var(--gray-500);
+            font-size: 12px;
+            margin-top: 30px;
+        }
+
+        .footer hr {
+            border: none;
+            border-top: 1px solid var(--gray-200);
+            margin: 20px 0;
+        }
+
+        /* UUID compacto */
         .uuid-compact {
             font-family: monospace;
-            font-size: 0.8rem;
-            background: #f1f5f9;
-            padding: 3px 8px;
+            font-size: 11px;
+            background: var(--gray-100);
+            padding: 4px 8px;
             border-radius: 12px;
-            color: #475569;
+            color: var(--gray-600);
             display: inline-block;
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar {
-                min-height: auto;
-                padding: 10px;
-            }
-            
-            .main-content {
-                padding: 20px;
-            }
-            
-            .page-title {
-                font-size: 24px;
-                flex-direction: column;
-                gap: 15px;
-                align-items: flex-start;
-            }
-            
-            .btn-add {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .search-box {
-                width: 100%;
-            }
-            
-            .table thead {
-                display: none;
-            }
-            
-            .table tbody td {
-                display: block;
-                text-align: right;
-                padding: 12px 15px;
-                position: relative;
-                border-bottom: 1px solid #e9ecef;
-            }
-            
-            .table tbody td:before {
-                content: attr(data-label);
-                float: left;
-                font-weight: 600;
-                color: #64748b;
-            }
-            
-            .btn-action {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
         }
     </style>
 </head>
 
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <div class="col-md-3 col-lg-2 px-0 sidebar">
-                <div class="p-4">
-                    <h4 class="text-white mb-4">
-                        <i class="fas fa-brain me-2"></i>
-                        Doctor<span style="font-weight: 300;">IA</span>
-                    </h4>
-                    <p class="text-white-50 small mb-4">Painel Administrativo</p>
-                    
-                    <nav class="nav flex-column">
-                        <a class="nav-link" href="{{ url_for('admin.dashboard') }}">
-                            <i class="fas fa-home"></i> Dashboard
-                        </a>
-                        <a class="nav-link active" href="{{ url_for('admin.medicos') }}">
-                            <i class="fas fa-user-md"></i> Médicos
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.analistas') }}">
-                            <i class="fas fa-microscope"></i> Analistas
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.pacientes') }}">
-                            <i class="fas fa-users"></i> Pacientes
-                        </a>
-                        <a class="nav-link" href="{{ url_for('admin.consultas') }}">
-                            <i class="fas fa-calendar-check"></i> Consultas
-                        </a>
-                        <hr class="bg-white-50">
-                        <a class="nav-link" href="{{ url_for('admin.logout') }}">
-                            <i class="fas fa-sign-out-alt"></i> Sair
-                        </a>
-                    </nav>
+    <!-- Menu Toggle -->
+    <button class="menu-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="{{ url_for('admin.dashboard') }}" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="logo-text">
+                    Doctor<span>IA</span>
+                </div>
+            </a>
+        </div>
+
+        <div class="user-info">
+            <div class="user-avatar">
+                {{ session.user_name[:1] if session.user_name else 'A' }}
+            </div>
+            <div>
+                <div class="user-name">{{ session.user_name if session.user_name else 'Admin' }}</div>
+                <div class="user-role">Administrador</div>
+            </div>
+        </div>
+        
+        <nav>
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+                <i class="fas fa-home"></i> Dashboard
+            </a>
+            <a href="{{ url_for('admin.medicos') }}" class="nav-link active">
+                <i class="fas fa-user-md"></i> Médicos
+            </a>
+            <a href="{{ url_for('admin.analistas') }}" class="nav-link">
+                <i class="fas fa-microscope"></i> Analistas
+            </a>
+            <a href="{{ url_for('admin.enfermeiros') }}" class="nav-link">
+                <i class="fas fa-user-nurse"></i> Enfermeiros
+            </a>
+            <a href="{{ url_for('admin.pacientes') }}" class="nav-link">
+                <i class="fas fa-users"></i> Pacientes
+            </a>
+            <a href="{{ url_for('admin.consultas') }}" class="nav-link">
+                <i class="fas fa-calendar-check"></i> Consultas
+            </a>
+            <a href="{{ url_for('admin.estatisticas') }}" class="nav-link">
+                <i class="fas fa-chart-bar"></i> Estatísticas
+            </a>
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px;">
+            <a href="{{ url_for('admin.logout') }}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="page-title">
+                <div class="page-icon">
+                    <i class="fas fa-user-md"></i>
+                </div>
+                <div>
+                    <h1>Médicos</h1>
+                    <p>Gerencie os médicos do sistema</p>
                 </div>
             </div>
-            
-            <!-- Main Content -->
-            <div class="col-md-9 col-lg-10 main-content">
-                <!-- Page Title -->
-                <div class="page-title">
-                    <div>
-                        <i class="fas fa-user-md"></i>
-                        Gerenciar Médicos
+            <a href="{{ url_for('admin.cadastrar_medico') }}" class="btn-primary">
+                <i class="fas fa-plus"></i> Novo Médico
+            </a>
+        </div>
+
+        <!-- Stats Card -->
+        {% if medicos and medicos|length > 0 %}
+        <div class="stats-card">
+            <div>
+                <div class="stats-number">{{ medicos|length }}</div>
+                <div class="stats-label">Total de Médicos</div>
+            </div>
+            <div class="stats-icon">
+                <i class="fas fa-user-md"></i>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button class="btn-close">&times;</button>
                     </div>
-                    <a href="{{ url_for('admin.cadastrar_medico') }}" class="btn-add">
-                        <i class="fas fa-plus"></i>
-                        Novo Médico
-                    </a>
-                </div>
-                
-                <!-- Flash Messages -->
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-4">
-                                <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main Card -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-list"></i>
+                    <h3>Lista de Médicos</h3>
+                    {% if medicos and medicos|length > 0 %}
+                    <span>{{ medicos|length }} registros</span>
                     {% endif %}
-                {% endwith %}
-                
-                <!-- Médicos Card -->
-                <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5>
-                            <i class="fas fa-list"></i>
-                            Lista de Médicos
-                        </h5>
-                        <div class="search-box">
-                            <i class="fas fa-search"></i>
-                            <input type="text" id="searchInput" placeholder="Buscar médicos..." onkeyup="filterTable()">
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table" id="medicosTable">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>UUID</th>
-                                        <th>Nome</th>
-                                        <th>Email</th>
-                                        <th>Especialidade</th>
-                                        <th>CRM</th>
-                                        <th>Telefone</th>
-                                        <th>Status</th>
-                                        <th>Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if medicos and medicos|length > 0 %}
-                                        {% for m in medicos %}
-                                        <tr>
-                                            <td data-label="ID">#{{ m[0] }}</td>
-                                            <td data-label="UUID">
-                                                <span class="uuid-compact" title="{{ m[1] }}">
-                                                    {{ m[1][:8] }}...
-                                                </span>
-                                            </td>
-                                            <td data-label="Nome">
-                                                <div class="d-flex align-items-center">
-                                                    <div class="bg-light rounded-circle p-2 me-2" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
-                                                        <i class="fas fa-user-md text-primary"></i>
-                                                    </div>
-                                                    <strong>{{ m[2] }}</strong>
-                                                </div>
-                                            </td>
-                                            <td data-label="Email">{{ m[3] }}</td>
-                                            <td data-label="Especialidade">
-                                                <span class="badge bg-primary" style="background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);">
-                                                    {{ m[5] if m[5] else 'Não definida' }}
-                                                </span>
-                                            </td>
-                                            <td data-label="CRM">
-                                                <strong>{{ m[6] if m[6] else '---' }}</strong>
-                                            </td>
-                                            <td data-label="Telefone">{{ m[7] or 'Não informado' }}</td>
-                                            <td data-label="Status">
-                                                {% if m[8] == 'ativo' %}
-                                                    <span class="badge-status badge-active">
-                                                        <i class="fas fa-circle" style="font-size: 8px;"></i>
-                                                        Ativo
-                                                    </span>
-                                                {% elif m[8] == 'inativo' %}
-                                                    <span class="badge-status badge-inactive">
-                                                        <i class="fas fa-circle" style="font-size: 8px;"></i>
-                                                        Inativo
-                                                    </span>
-                                                {% elif m[8] == 'ferias' %}
-                                                    <span class="badge-status badge-ferias">
-                                                        <i class="fas fa-umbrella-beach"></i>
-                                                        Férias
-                                                    </span>
-                                                {% elif m[8] == 'licenca' %}
-                                                    <span class="badge-status badge-licenca">
-                                                        <i class="fas fa-heartbeat"></i>
-                                                        Licença
-                                                    </span>
-                                                {% else %}
-                                                    <span class="badge-status badge-secondary">{{ m[8] or 'Ativo' }}</span>
-                                                {% endif %}
-                                            </td>
-                                            <td data-label="Ações">
-                                                <a href="{{ url_for('admin.editar_medico', medico_id=m[0]) }}" class="btn-action btn-edit" title="Editar">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <button class="btn-action btn-view" onclick="visualizarMedico({{ m[0] }})" title="Visualizar">
-                                                    <i class="fas fa-eye"></i>
-                                                </button>
-                                                <button class="btn-action btn-delete" onclick="excluirMedico({{ m[0] }})" title="Excluir">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
+                </div>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Buscar médicos...">
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table" id="medicosTable">
+                    <thead>
+                        <tr>
+                            <th>Médico</th>
+                            <th>Especialidade</th>
+                            <th>CRM</th>
+                            <th>Telefone</th>
+                            <th>Status</th>
+                            <th>UUID</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if medicos and medicos|length > 0 %}
+                            {% for m in medicos %}
+                            <tr>
+                                <td data-label="Médico">
+                                    <div class="info-cell">
+                                        <div class="info-avatar">
+                                            <i class="fas fa-user-md"></i>
+                                        </div>
+                                        <div>
+                                            <div class="info-name">{{ m[2] }}</div>
+                                            <div class="info-email">{{ m[3] }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-label="Especialidade">
+                                    <span class="badge-especialidade">
+                                        <i class="fas fa-flask"></i> {{ m[5] if m[5] else 'Não definida' }}
+                                    </span>
+                                </td>
+                                <td data-label="CRM">
+                                    <span class="badge-crm">{{ m[6] if m[6] else '---' }}</span>
+                                </td>
+                                <td data-label="Telefone">{{ m[7] or 'Não informado' }}</td>
+                                <td data-label="Status">
+                                    {% if m[8] == 'ativo' %}
+                                        <span class="badge badge-active">
+                                            <i class="fas fa-circle"></i> Ativo
+                                        </span>
+                                    {% elif m[8] == 'inativo' %}
+                                        <span class="badge badge-inactive">
+                                            <i class="fas fa-circle"></i> Inativo
+                                        </span>
+                                    {% elif m[8] == 'ferias' %}
+                                        <span class="badge badge-ferias">
+                                            <i class="fas fa-umbrella-beach"></i> Férias
+                                        </span>
+                                    {% elif m[8] == 'licenca' %}
+                                        <span class="badge badge-licenca">
+                                            <i class="fas fa-heartbeat"></i> Licença
+                                        </span>
                                     {% else %}
-                                        <tr>
-                                            <td colspan="9" class="empty-state">
-                                                <i class="fas fa-user-md"></i>
-                                                <h5>Nenhum médico cadastrado</h5>
-                                                <p>Comece cadastrando o primeiro médico do sistema.</p>
-                                                <a href="{{ url_for('admin.cadastrar_medico') }}" class="btn-add" style="display: inline-flex; width: auto;">
-                                                    <i class="fas fa-plus me-2"></i>
-                                                    Cadastrar Médico
-                                                </a>
-                                            </td>
-                                        </tr>
+                                        <span class="badge badge-active">{{ m[8] or 'Ativo' }}</span>
                                     {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
+                                </td>
+                                <td data-label="UUID">
+                                    <span class="uuid-compact" title="{{ m[1] }}">
+                                        {{ m[1][:8] }}...
+                                    </span>
+                                </td>
+                                <td data-label="Ações">
+                                    <div class="action-group">
+                                        <a href="{{ url_for('admin.editar_medico', medico_id=m[0]) }}" class="btn-action btn-edit" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn-action btn-view" onclick="visualizarMedico({{ m[0] }})" title="Visualizar">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick="excluirMedico({{ m[0] }})" title="Excluir">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="empty-state">
+                                    <i class="fas fa-user-md"></i>
+                                    <h3>Nenhum médico cadastrado</h3>
+                                    <p>Comece cadastrando o primeiro médico do sistema.</p>
+                                    <a href="{{ url_for('admin.cadastrar_medico') }}" class="btn-primary" style="display: inline-flex; width: auto;">
+                                        <i class="fas fa-plus"></i> Cadastrar Médico
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Links Rápidos para Enfermeiros -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center p-4">
+                        <i class="fas fa-user-nurse fa-3x mb-3" style="color: #10b981;"></i>
+                        <h4>Gerenciar Enfermeiros</h4>
+                        <p class="text-muted">Acesse o módulo de enfermeiros para gerenciar os profissionais de enfermagem</p>
+                        <a href="{{ url_for('admin.enfermeiros') }}" class="btn-primary" style="display: inline-flex; width: auto; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            <i class="fas fa-arrow-right"></i> Ir para Enfermeiros
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <hr>
+            <p>
+                <i class="fas fa-heart" style="color: #ef4444;"></i> 
+                DoctorIA - Sistema de Gestão Médica
+                <br>
+                <span>© 2024 - Painel Administrativo</span>
+            </p>
+        </div>
     </div>
-    
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <script>
-        // Filter Table
-        function filterTable() {
-            const input = document.getElementById('searchInput');
-            const filter = input.value.toLowerCase();
-            const table = document.getElementById('medicosTable');
-            const rows = table.getElementsByTagName('tr');
-            
-            for (let i = 1; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName('td');
-                let found = false;
-                
-                for (let j = 0; j < cells.length - 1; j++) {
-                    const cell = cells[j];
-                    if (cell) {
-                        const text = cell.textContent || cell.innerText;
-                        if (text.toLowerCase().indexOf(filter) > -1) {
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                
-                rows[i].style.display = found ? '' : 'none';
-            }
+        // Toggle Sidebar
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
         }
-        
+
+        // Fechar sidebar ao clicar fora
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.menu-toggle');
+            
+            if (window.innerWidth <= 768 && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target) && 
+                sidebar.classList.contains('active')) {
+                sidebar.classList.remove('active');
+            }
+        });
+
+        // Função de busca
+        document.getElementById('searchInput').addEventListener('keyup', function() {
+            const input = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#medicosTable tbody tr');
+            
+            rows.forEach(row => {
+                if (row.querySelector('.empty-state')) return;
+                
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(input) ? '' : 'none';
+            });
+        });
+
         // Visualizar Médico
-        function visualizarMedico(medicoId) {
-            fetch(`/admin/medicos/${medicoId}/visualizar`)
+        function visualizarMedico(id) {
+            Swal.fire({
+                title: 'Carregando...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            fetch(`/admin/medicos/${id}/visualizar`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        alert(data.error);
+                        Swal.fire('Erro', data.error, 'error');
                     } else {
-                        const detalhes = `📋 DETALHES DO MÉDICO
-                        
-👤 Nome: ${data.nome}
-📧 Email: ${data.email}
-🔬 Especialidade: ${data.especialidade}
-📝 CRM: ${data.crm}
-📞 Telefone: ${data.telefone || 'Não informado'}
-📊 Status: ${data.status}
-📆 Cadastro: ${data.criado_em}
-📊 Total de Consultas: ${data.total_consultas || 0}
-✅ Realizadas: ${data.consultas_realizadas || 0}
-❌ Canceladas: ${data.consultas_canceladas || 0}
-🔑 UUID: ${data.uuid}`;
-                        
-                        alert(detalhes);
+                        Swal.fire({
+                            title: data.nome,
+                            html: `
+                                <div class="text-start" style="font-size: 14px;">
+                                    <p><strong><i class="fas fa-envelope"></i> Email:</strong> ${data.email}</p>
+                                    <p><strong><i class="fas fa-flask"></i> Especialidade:</strong> ${data.especialidade}</p>
+                                    <p><strong><i class="fas fa-id-card"></i> CRM:</strong> ${data.crm || '---'}</p>
+                                    <p><strong><i class="fas fa-phone"></i> Telefone:</strong> ${data.telefone || '—'}</p>
+                                    <p><strong><i class="fas fa-circle"></i> Status:</strong> ${data.status}</p>
+                                    <p><strong><i class="fas fa-chart-bar"></i> Total Consultas:</strong> ${data.total_consultas}</p>
+                                    <p><strong><i class="fas fa-check-circle"></i> Realizadas:</strong> ${data.consultas_realizadas}</p>
+                                    <p><strong><i class="fas fa-times-circle"></i> Canceladas:</strong> ${data.consultas_canceladas}</p>
+                                    <p><strong><i class="fas fa-key"></i> UUID:</strong> <span class="uuid-compact">${data.uuid}</span></p>
+                                    <p><strong><i class="fas fa-calendar"></i> Cadastro:</strong> ${data.criado_em}</p>
+                                </div>
+                            `,
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#4361ee'
+                        });
                     }
                 })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('Erro ao carregar dados do médico');
+                .catch(() => {
+                    Swal.fire('Erro', 'Erro ao carregar dados', 'error');
                 });
         }
-        
+
         // Excluir Médico
-        function excluirMedico(medicoId) {
-            if (confirm('⚠️ Tem certeza que deseja excluir este médico?')) {
-                fetch(`/admin/medicos/${medicoId}/excluir`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('✅ Médico excluído com sucesso!');
-                        location.reload();
-                    } else {
-                        alert('❌ ' + (data.error || 'Erro ao excluir médico'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Erro:', error);
-                    alert('❌ Erro ao excluir médico');
-                });
-            }
+        function excluirMedico(id) {
+            Swal.fire({
+                title: 'Confirmar exclusão',
+                text: "Esta ação não poderá ser desfeita!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin/medicos/${id}/excluir`, {
+                        method: 'POST'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Sucesso!', data.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Erro!', data.error, 'error');
+                        }
+                    });
+                }
+            });
         }
+
+        // Fechar alerts
+        document.querySelectorAll('.btn-close').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.closest('.alert').remove();
+            });
+        });
+
+        // Auto-fechar alerts após 5 segundos
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => {
+                alert.remove();
+            });
+        }, 5000);
     </script>
 </body>
 </html>

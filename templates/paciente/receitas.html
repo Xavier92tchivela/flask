@@ -4,10 +4,10 @@
 
 {% block content %}
 <div class="container-fluid px-2 px-md-3">
-    <!-- Cabeçalho Responsivo -->
+    <!-- Cabeçalho -->
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 mb-md-4 gap-2">
         <h2 class="h4 h3-sm mb-0">
-            <i class="fas fa-prescription me-2 text-primary"></i> Minhas Receitas
+            <i class="fas fa-prescription me-2 text-success"></i> Minhas Receitas
         </h2>
         <a href="{{ url_for('paciente.dashboard') }}" class="btn btn-outline-secondary btn-sm w-100 w-sm-auto">
             <i class="fas fa-arrow-left me-1"></i> Voltar
@@ -37,13 +37,7 @@
                         <div>
                             <h6 class="mb-0 small">Ativas</h6>
                             <h3 class="mb-0 mt-1">
-                                {% set ativas = [] %}
-                                {% for r in receitas %}
-                                    {% if r.status == 'ativa' %}
-                                        {% set _ = ativas.append(1) %}
-                                    {% endif %}
-                                {% endfor %}
-                                {{ ativas|length }}
+                                {{ receitas|selectattr('status', 'equalto', 'ativa')|list|length }}
                             </h3>
                         </div>
                         <i class="fas fa-check-circle fa-2x opacity-50"></i>
@@ -59,13 +53,7 @@
                         <div>
                             <h6 class="mb-0 small">PDF</h6>
                             <h3 class="mb-0 mt-1">
-                                {% set pdfs = [] %}
-                                {% for r in receitas %}
-                                    {% if r.pdf_gerado %}
-                                        {% set _ = pdfs.append(1) %}
-                                    {% endif %}
-                                {% endfor %}
-                                {{ pdfs|length }}
+                                {{ receitas|selectattr('pdf_gerado', 'equalto', 1)|list|length }}
                             </h3>
                         </div>
                         <i class="fas fa-file-pdf fa-2x opacity-50"></i>
@@ -80,10 +68,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="mb-0 small">Mês</h6>
-                            <h3 class="mb-0 mt-1">
-                                <!-- Esta é apenas uma estatística visual, sem cálculo real -->
-                                <i class="fas fa-calendar fa-1x"></i>
-                            </h3>
+                            <h3 class="mb-0 mt-1">{{ receitas_mes }}</h3>
                         </div>
                         <i class="fas fa-calendar fa-2x opacity-50"></i>
                     </div>
@@ -92,52 +77,9 @@
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body p-3">
-            <form method="GET" class="row g-2">
-                <div class="col-12 col-sm-6 col-md-4">
-                    <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-light border-end-0">
-                            <i class="fas fa-search text-muted"></i>
-                        </span>
-                        <input type="text" name="busca" class="form-control form-control-sm border-start-0" 
-                               placeholder="Buscar por médico ou diagnóstico..." value="{{ request.args.get('busca', '') }}">
-                    </div>
-                </div>
-                
-                <div class="col-6 col-sm-3 col-md-2">
-                    <select name="status" class="form-select form-select-sm">
-                        <option value="">Todos status</option>
-                        <option value="ativa" {% if request.args.get('status') == 'ativa' %}selected{% endif %}>Ativas</option>
-                        <option value="cancelada" {% if request.args.get('status') == 'cancelada' %}selected{% endif %}>Canceladas</option>
-                    </select>
-                </div>
-                
-                <div class="col-6 col-sm-3 col-md-2">
-                    <select name="ordenar" class="form-select form-select-sm">
-                        <option value="recente" {% if request.args.get('ordenar') == 'recente' or not request.args.get('ordenar') %}selected{% endif %}>Mais recente</option>
-                        <option value="antiga" {% if request.args.get('ordenar') == 'antiga' %}selected{% endif %}>Mais antiga</option>
-                    </select>
-                </div>
-                
-                <div class="col-12 col-sm-12 col-md-4">
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
-                            <i class="fas fa-filter me-1"></i> Filtrar
-                        </button>
-                        <a href="{{ url_for('paciente.minhas_receitas') }}" class="btn btn-outline-secondary btn-sm">
-                            <i class="fas fa-undo"></i>
-                        </a>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Lista de Receitas -->
     {% if receitas %}
-        <!-- Versão Mobile - Cards -->
+        <!-- Versão Mobile -->
         <div class="d-block d-md-none">
             {% for receita in receitas %}
             <div class="card shadow-sm mb-3 {% if receita.status == 'ativa' %}border-success border-2{% endif %}">
@@ -160,20 +102,13 @@
                         <div>
                             <small class="text-muted d-block">Médico</small>
                             <strong>{{ receita.medico_nome }}</strong>
-                            <small class="text-muted d-block">{{ receita.especialidade }}</small>
                         </div>
                     </div>
                     
                     <!-- Diagnóstico (resumo) -->
                     <div class="mb-2">
                         <small class="text-muted d-block">Diagnóstico</small>
-                        <p class="mb-1 small">{{ receita.diagnostico_resumo|safe }}</p>
-                    </div>
-                    
-                    <!-- Prescrição (resumo) -->
-                    <div class="mb-2">
-                        <small class="text-muted d-block">Prescrição</small>
-                        <p class="mb-1 small">{{ receita.prescricao_resumo|safe }}</p>
+                        <p class="mb-1 small">{{ receita.diagnostico|truncate(100) }}</p>
                     </div>
                     
                     <!-- Data da consulta -->
@@ -192,7 +127,7 @@
                     </div>
                     {% endif %}
                     
-                    <!-- Botões de ação -->
+                    <!-- Botões -->
                     <div class="d-flex gap-2 mt-3">
                         <a href="{{ url_for('paciente.visualizar_receita', receita_id=receita.id) }}" 
                            class="btn btn-primary btn-sm flex-grow-1">
@@ -211,7 +146,7 @@
             {% endfor %}
         </div>
 
-        <!-- Versão Desktop - Tabela -->
+        <!-- Versão Desktop -->
         <div class="d-none d-md-block">
             <div class="card shadow-sm">
                 <div class="table-responsive">
@@ -220,7 +155,6 @@
                             <tr>
                                 <th class="px-3 py-3">ID</th>
                                 <th class="px-3 py-3">Médico</th>
-                                <th class="px-3 py-3">Especialidade</th>
                                 <th class="px-3 py-3">Data</th>
                                 <th class="px-3 py-3">Diagnóstico</th>
                                 <th class="px-3 py-3">Status</th>
@@ -231,26 +165,12 @@
                         <tbody>
                             {% for receita in receitas %}
                             <tr>
-                                <td class="px-3">
-                                    <strong>#{{ receita.id }}</strong>
-                                </td>
-                                <td class="px-3">
-                                    <div class="d-flex align-items-center">
-                                        <i class="fas fa-user-md text-primary me-2"></i>
-                                        <span>{{ receita.medico_nome }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-3">
-                                    <span class="badge bg-light text-dark">{{ receita.especialidade }}</span>
-                                </td>
-                                <td class="px-3">
-                                    <small class="text-muted">
-                                        <i class="fas fa-calendar me-1"></i> {{ receita.consulta_data }}
-                                    </small>
-                                </td>
+                                <td class="px-3">#{{ receita.id }}</td>
+                                <td class="px-3">{{ receita.medico_nome }}</td>
+                                <td class="px-3">{{ receita.created_at }}</td>
                                 <td class="px-3">
                                     <span class="d-inline-block text-truncate" style="max-width: 200px;">
-                                        {{ receita.diagnostico_resumo|striptags }}
+                                        {{ receita.diagnostico|striptags }}
                                     </span>
                                 </td>
                                 <td class="px-3">
@@ -266,18 +186,10 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-3 text-end">
-                                    <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('paciente.visualizar_receita', receita_id=receita.id) }}" 
-                                           class="btn btn-outline-primary" title="Visualizar">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        {% if receita.pdf_gerado and receita.receita_pdf_path %}
-                                        <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita.id) }}" 
-                                           class="btn btn-outline-success" title="Download PDF">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                        {% endif %}
-                                    </div>
+                                    <a href="{{ url_for('paciente.visualizar_receita', receita_id=receita.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Ver
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -287,7 +199,7 @@
             </div>
         </div>
 
-        <!-- Informação de total -->
+        <!-- Total -->
         <div class="text-center text-muted small mt-3">
             Total de {{ receitas|length }} receita(s) encontrada(s)
         </div>
@@ -309,111 +221,41 @@
     {% endif %}
 </div>
 
-<!-- Estilos adicionais -->
 <style>
-    /* Cards para mobile */
-    @media (max-width: 767px) {
-        .card-header {
-            border-radius: 10px 10px 0 0 !important;
-        }
-        
-        .card-body {
-            padding: 1rem !important;
-        }
-        
-        .bg-opacity-10 {
-            background-color: rgba(13, 110, 253, 0.1) !important;
-        }
-        
-        /* Melhorar legibilidade */
-        .small {
-            font-size: 0.8rem;
-        }
-        
-        /* Ajustar botões */
-        .btn-sm {
-            padding: 0.4rem 0.8rem;
-            font-size: 0.85rem;
-        }
-        
-        /* Badge de status */
-        .badge {
-            padding: 0.5rem 0.8rem;
-            font-size: 0.7rem;
-        }
+@media (max-width: 767px) {
+    .btn-sm {
+        padding: 8px 12px;
+        min-height: 44px;
     }
     
-    /* Hover effects */
-    .card {
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    
-    .card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1) !important;
-    }
-    
-    /* Tabela desktop */
-    .table td {
-        vertical-align: middle;
-    }
-    
-    /* Badges */
-    .badge.bg-success {
-        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-    }
-    
-    .badge.bg-secondary {
-        background: linear-gradient(135deg, #858796 0%, #6c757d 100%);
-    }
-    
-    /* Animações */
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .btn {
+        min-height: 44px;
     }
     
     .card {
         animation: fadeIn 0.3s ease-out;
     }
-    
-    /* Paginação responsiva */
-    .pagination {
-        flex-wrap: wrap;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
     }
-    
-    .page-link {
-        margin: 2px;
-        border-radius: 5px !important;
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Adicionar classe para melhor visualização
+    // Animações
     const cards = document.querySelectorAll('.card');
     cards.forEach((card, index) => {
         card.style.animationDelay = `${index * 0.05}s`;
     });
-    
-    // Feedback tátil para mobile
-    if ('ontouchstart' in window) {
-        const buttons = document.querySelectorAll('.btn');
-        buttons.forEach(btn => {
-            btn.addEventListener('touchstart', function() {
-                this.style.opacity = '0.8';
-            });
-            btn.addEventListener('touchend', function() {
-                this.style.opacity = '1';
-            });
-        });
-    }
 });
 </script>
 {% endblock %}

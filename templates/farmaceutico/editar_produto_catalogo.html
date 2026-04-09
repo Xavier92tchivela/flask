@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Produto - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-warning">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>
+                        Editar Produto
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Nome do Produto *</label>
+                                <input type="text" name="nome" class="form-control" value="{{ produto.nome }}" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Código Interno</label>
+                                <input type="text" name="codigo_interno" class="form-control" value="{{ produto.codigo_interno }}">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Unidade de Medida *</label>
+                                <select name="unidade_medida" class="form-select" required>
+                                    <option value="unidade" {% if produto.unidade_medida == 'unidade' %}selected{% endif %}>Unidade</option>
+                                    <option value="comprimido" {% if produto.unidade_medida == 'comprimido' %}selected{% endif %}>Comprimido</option>
+                                    <option value="cápsula" {% if produto.unidade_medida == 'cápsula' %}selected{% endif %}>Cápsula</option>
+                                    <option value="ml" {% if produto.unidade_medida == 'ml' %}selected{% endif %}>ml</option>
+                                    <option value="ampola" {% if produto.unidade_medida == 'ampola' %}selected{% endif %}>Ampola</option>
+                                    <option value="frasco" {% if produto.unidade_medida == 'frasco' %}selected{% endif %}>Frasco</option>
+                                    <option value="caixa" {% if produto.unidade_medida == 'caixa' %}selected{% endif %}>Caixa</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Descrição</label>
+                                <textarea name="descricao" class="form-control" rows="3">{{ produto.descricao }}</textarea>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Categoria</label>
+                                <select name="categoria" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    <option value="Analgésico" {% if produto.categoria == 'Analgésico' %}selected{% endif %}>Analgésico</option>
+                                    <option value="Antibiótico" {% if produto.categoria == 'Antibiótico' %}selected{% endif %}>Antibiótico</option>
+                                    <option value="Anti-inflamatório" {% if produto.categoria == 'Anti-inflamatório' %}selected{% endif %}>Anti-inflamatório</option>
+                                    <option value="Cardiovascular" {% if produto.categoria == 'Cardiovascular' %}selected{% endif %}>Cardiovascular</option>
+                                    <option value="Antidiabético" {% if produto.categoria == 'Antidiabético' %}selected{% endif %}>Antidiabético</option>
+                                    <option value="Anti-hipertensivo" {% if produto.categoria == 'Anti-hipertensivo' %}selected{% endif %}>Anti-hipertensivo</option>
+                                    <option value="Gastrointestinal" {% if produto.categoria == 'Gastrointestinal' %}selected{% endif %}>Gastrointestinal</option>
+                                    <option value="Outros" {% if produto.categoria == 'Outros' %}selected{% endif %}>Outros</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estoque Mínimo</label>
+                                <input type="number" name="estoque_minimo" class="form-control" value="{{ produto.estoque_minimo }}" min="0">
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Localização no Estoque</label>
+                                <input type="text" name="localizacao" class="form-control" value="{{ produto.localizacao }}">
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Fornecedor</label>
+                                <select name="fornecedor_id" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    {% for f in fornecedores %}
+                                    <option value="{{ f.id }}" {% if produto.fornecedor_id == f.id %}selected{% endif %}>{{ f.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('farmaceutico.produtos') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-save me-2"></i>Atualizar Produto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

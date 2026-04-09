@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Detalhes da Consulta #{{ consulta[0] }}{% endblock %}
+{% block title %}Detalhes da Consulta #{{ consulta.id }}{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-2 px-md-3">
@@ -8,7 +8,7 @@
     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3 mb-md-4 gap-2">
         <h2 class="h4 h3-sm mb-0">
             <i class="fas fa-file-medical me-2 text-primary"></i> 
-            Detalhes da Consulta #{{ consulta[0] }}
+            Detalhes da Consulta #{{ consulta.id }}
         </h2>
         <a href="{{ url_for('paciente.minhas_consultas') }}" class="btn btn-outline-primary btn-sm w-100 w-sm-auto">
             <i class="fas fa-arrow-left me-1"></i> Voltar
@@ -30,40 +30,40 @@
                         <div class="col-12 col-md-6">
                             <p class="mb-2">
                                 <strong><i class="fas fa-user-md me-2 text-primary"></i>Médico:</strong><br>
-                                <span class="ms-4">{{ consulta[1] }}</span>
+                                <span class="ms-4">{{ consulta.medico_nome }}</span>
                             </p>
                             <p class="mb-2">
                                 <strong><i class="fas fa-stethoscope me-2 text-primary"></i>Especialidade:</strong><br>
-                                <span class="ms-4">{{ consulta[2] }}</span>
+                                <span class="ms-4">{{ consulta.especialidade }}</span>
                             </p>
                             <p class="mb-2">
                                 <strong><i class="fas fa-id-card me-2 text-primary"></i>CRM:</strong><br>
-                                <span class="ms-4">{{ consulta[3] }}</span>
+                                <span class="ms-4">{{ consulta.crm }}</span>
                             </p>
                         </div>
                         <div class="col-12 col-md-6">
                             <p class="mb-2">
                                 <strong><i class="fas fa-calendar me-2 text-primary"></i>Data/Hora:</strong><br>
-                                <span class="ms-4">{{ formatar_data(consulta[4], '%d/%m/%Y às %H:%M') }}</span>
+                                <span class="ms-4">{{ consulta.data_hora }}</span>
                             </p>
                             <p class="mb-2">
                                 <strong><i class="fas fa-tag me-2 text-primary"></i>Status:</strong><br>
                                 <span class="ms-4">
                                     <span class="badge bg-{{ status_class }} fs-6 p-2">
-                                        {{ consulta[5]|upper }}
+                                        {{ consulta.status|upper }}
                                     </span>
                                 </span>
                             </p>
                         </div>
                     </div>
 
-                    {% if consulta[6] %}
+                    {% if consulta.observacoes %}
                     <hr class="my-3">
                     <div class="mt-2">
                         <h6 class="fw-bold">
                             <i class="fas fa-sticky-note me-2 text-primary"></i>Observações:
                         </h6>
-                        <p class="text-muted ms-4">{{ consulta[6] }}</p>
+                        <p class="text-muted ms-4">{{ consulta.observacoes }}</p>
                     </div>
                     {% endif %}
                 </div>
@@ -89,23 +89,78 @@
             </div>
             {% endif %}
 
-            <!-- ===== RECEITAS MÉDICAS - TOTALMENTE RESPONSIVO ===== -->
-            {% if receitas and receitas|length > 0 %}
+            <!-- ===== RECEITA DA TABELA CONSULTAS (CAMPO DIRETO) ===== -->
+            {% if consulta.receita_texto %}
             <div class="card shadow-sm mb-3 mb-md-4">
                 <div class="card-header bg-success text-white py-2 py-md-3">
-                    <h5 class="mb-0 fs-6 fs-md-5 d-flex align-items-center">
-                        <i class="fas fa-prescription me-2"></i>
-                        Receitas Médicas
-                        <span class="badge bg-white text-success ms-2">{{ receitas|length }}</span>
+                    <h5 class="mb-0 fs-6 fs-md-5">
+                        <i class="fas fa-prescription me-2"></i>Receita Médica
                     </h5>
                 </div>
                 <div class="card-body p-3 p-md-4">
-                    <!-- Versão Mobile - Design Especial para Celular -->
+                    {% if consulta.receita_diag %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-stethoscope me-2 text-success"></i>Diagnóstico:</strong>
+                        <div class="mt-2 p-3 bg-light rounded">
+                            {{ consulta.receita_diag }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <strong><i class="fas fa-prescription-bottle-alt me-2 text-success"></i>Prescrição:</strong>
+                        <div class="receita-texto-completo p-3 bg-light rounded border-start border-success border-4 mt-2">
+                            {% if consulta.receita_texto is string %}
+                                {{ consulta.receita_texto|replace('\n', '<br>')|safe }}
+                            {% else %}
+                                {{ consulta.receita_texto }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if consulta.receita_rec %}
+                    <div class="mb-3">
+                        <strong><i class="fas fa-clipboard-list me-2 text-success"></i>Recomendações:</strong>
+                        <div class="mt-2 p-3 bg-light rounded">
+                            {{ consulta.receita_rec }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Receita emitida pelo médico {{ consulta.medico_nome }}
+                            {% if consulta.receita_data %}
+                            em {{ formatar_data(consulta.receita_data, '%d/%m/%Y %H:%M') }}
+                            {% endif %}
+                        </small>
+                        {% if consulta.pdf_gerado and consulta.receita_pdf_path %}
+                        <a href="{{ url_for('paciente.download_receita_pdf', receita_id=consulta.receita_id) }}" 
+                           class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download me-1"></i> Baixar PDF
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ===== RECEITAS DA TABELA RECEITA (COM ANÁLISE COMPLETA) ===== -->
+            {% if receitas and receitas|length > 0 %}
+            <div class="card shadow-sm mb-3 mb-md-4">
+                <div class="card-header bg-success text-white py-2 py-md-3 d-flex align-items-center">
+                    <i class="fas fa-prescription me-2"></i>
+                    <h5 class="mb-0 fs-6 fs-md-5 flex-grow-1">Receitas com Análise</h5>
+                    <span class="badge bg-white text-success ms-2">{{ receitas|length }}</span>
+                </div>
+                <div class="card-body p-3 p-md-4">
+                    <!-- Versão Mobile -->
                     <div class="d-block d-md-none">
                         <div class="receitas-mobile-list">
                             {% for receita in receitas %}
                             <div class="receita-mobile-card mb-3 {% if receita.status == 'ativa' %}border-success{% endif %}">
-                                <!-- Cabeçalho da Receita Mobile -->
+                                <!-- Cabeçalho -->
                                 <div class="receita-mobile-header d-flex justify-content-between align-items-center p-3">
                                     <div class="d-flex align-items-center">
                                         <div class="receita-icon bg-success bg-opacity-20 rounded-circle p-2 me-2">
@@ -121,31 +176,35 @@
                                     </span>
                                 </div>
                                 
-                                <!-- Conteúdo da Receita Mobile -->
+                                <!-- Conteúdo -->
                                 <div class="receita-mobile-content p-3">
-                                    <!-- Diagnóstico (resumido) -->
+                                    <!-- Diagnóstico -->
+                                    {% if receita.diagnostico %}
                                     <div class="receita-section mb-3">
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="fas fa-stethoscope text-success me-2"></i>
                                             <strong>Diagnóstico:</strong>
                                         </div>
                                         <div class="receita-texto ps-4 small">
-                                            {{ receita.diagnostico_texto }}
+                                            {{ receita.diagnostico|truncate(100) }}
                                         </div>
                                     </div>
+                                    {% endif %}
                                     
-                                    <!-- Prescrição (resumida) -->
+                                    <!-- Prescrição -->
+                                    {% if receita.prescricao %}
                                     <div class="receita-section mb-3">
                                         <div class="d-flex align-items-center mb-2">
                                             <i class="fas fa-prescription-bottle-alt text-success me-2"></i>
                                             <strong>Prescrição:</strong>
                                         </div>
                                         <div class="receita-texto ps-4 small">
-                                            {{ receita.prescricao_texto }}
+                                            {{ receita.prescricao|truncate(100) }}
                                         </div>
                                     </div>
+                                    {% endif %}
                                     
-                                    <!-- PDF disponível (se houver) -->
+                                    <!-- PDF disponível -->
                                     {% if receita.pdf_gerado %}
                                     <div class="receita-pdf-indicator mb-3">
                                         <span class="badge bg-success bg-opacity-10 text-success">
@@ -154,11 +213,11 @@
                                     </div>
                                     {% endif %}
                                     
-                                    <!-- Botões de ação -->
+                                    <!-- Botões -->
                                     <div class="receita-actions d-flex gap-2">
                                         <a href="{{ url_for('paciente.visualizar_receita', receita_id=receita.id) }}" 
                                            class="btn btn-success btn-sm flex-grow-1">
-                                            <i class="fas fa-eye me-1"></i> Ver Receita Completa
+                                            <i class="fas fa-eye me-1"></i> Ver Completa
                                         </a>
                                         {% if receita.pdf_gerado and receita.receita_pdf_path %}
                                         <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita.id) }}" 
@@ -173,7 +232,7 @@
                         </div>
                     </div>
 
-                    <!-- Versão Tablet/Desktop - Cards Melhorados -->
+                    <!-- Versão Desktop -->
                     <div class="d-none d-md-block">
                         <div class="row g-3">
                             {% for receita in receitas %}
@@ -185,36 +244,33 @@
                                                 <i class="fas fa-file-prescription text-success fs-5 me-2"></i>
                                                 <h6 class="mb-0 text-success fw-bold">Receita #{{ receita.id }}</h6>
                                             </div>
-                                            <span class="badge bg-{{ 'success' if receita.status == 'ativa' else 'secondary' }} px-3 py-2">
-                                                <i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i>
+                                            <span class="badge bg-{{ 'success' if receita.status == 'ativa' else 'secondary' }}">
                                                 {{ receita.status }}
                                             </span>
                                         </div>
                                     </div>
                                     <div class="card-body p-3">
-                                        <div class="mb-3">
-                                            <small class="text-muted d-block mb-1">
-                                                <i class="fas fa-calendar me-1"></i> Emitida em:
-                                            </small>
-                                            <span class="fw-medium">{{ receita.created_at }}</span>
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Emitida em:</small>
+                                            <span>{{ receita.created_at }}</span>
                                         </div>
                                         
-                                        <div class="mb-3">
-                                            <small class="text-muted d-block mb-1">
-                                                <i class="fas fa-stethoscope me-1"></i> Diagnóstico:
-                                            </small>
-                                            <p class="mb-0 small">{{ receita.diagnostico_texto }}</p>
+                                        {% if receita.diagnostico %}
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Diagnóstico:</small>
+                                            <p class="mb-1 small">{{ receita.diagnostico|truncate(80) }}</p>
                                         </div>
+                                        {% endif %}
                                         
-                                        <div class="mb-3">
-                                            <small class="text-muted d-block mb-1">
-                                                <i class="fas fa-prescription-bottle-alt me-1"></i> Prescrição:
-                                            </small>
-                                            <p class="mb-0 small">{{ receita.prescricao_texto }}</p>
+                                        {% if receita.prescricao %}
+                                        <div class="mb-2">
+                                            <small class="text-muted d-block">Prescrição:</small>
+                                            <p class="mb-1 small">{{ receita.prescricao|truncate(80) }}</p>
                                         </div>
+                                        {% endif %}
                                         
                                         {% if receita.pdf_gerado %}
-                                        <div class="mb-3">
+                                        <div>
                                             <span class="badge bg-success bg-opacity-10 text-success">
                                                 <i class="fas fa-check-circle me-1"></i> PDF disponível
                                             </span>
@@ -222,44 +278,15 @@
                                         {% endif %}
                                     </div>
                                     <div class="card-footer bg-transparent border-0 pb-3 px-3">
-                                        <div class="d-flex gap-2">
-                                            <a href="{{ url_for('paciente.visualizar_receita', receita_id=receita.id) }}" 
-                                               class="btn btn-success btn-sm flex-grow-1">
-                                                <i class="fas fa-eye me-1"></i> Visualizar
-                                            </a>
-                                            {% if receita.pdf_gerado and receita.receita_pdf_path %}
-                                            <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita.id) }}" 
-                                               class="btn btn-outline-success btn-sm">
-                                                <i class="fas fa-download"></i>
-                                            </a>
-                                            {% endif %}
-                                        </div>
+                                        <a href="{{ url_for('paciente.visualizar_receita', receita_id=receita.id) }}" 
+                                           class="btn btn-success btn-sm w-100">
+                                            <i class="fas fa-eye me-1"></i> Visualizar
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Receita Antiga (campo receita da consulta) -->
-            {% if consulta[7] and consulta[7] != '<div class="receita-vazia text-center py-5"><i class="fas fa-file-medical fa-3x text-muted mb-3"></i><p class="text-muted">Nenhuma receita disponível</p></div>' and not receitas %}
-            <div class="card shadow-sm mb-3 mb-md-4">
-                <div class="card-header bg-success text-white py-2 py-md-3">
-                    <h5 class="mb-0 fs-6 fs-md-5">
-                        <i class="fas fa-prescription me-2"></i>Receita Médica
-                    </h5>
-                </div>
-                <div class="card-body p-3 p-md-4">
-                    <div class="receita-wrapper">
-                        {{ consulta[7]|safe }}
-                    </div>
-                    <div class="mt-3 text-end">
-                        <button class="btn btn-sm btn-outline-success w-100 w-sm-auto" onclick="window.print()">
-                            <i class="fas fa-print me-1"></i> Imprimir
-                        </button>
                     </div>
                 </div>
             </div>
@@ -281,7 +308,7 @@
                             <i class="fas fa-user-circle fa-2x text-secondary"></i>
                         </div>
                         <div>
-                            <h6 class="mb-1">{{ consulta[9] }}</h6>
+                            <h6 class="mb-1">{{ consulta.paciente_nome }}</h6>
                             <small class="text-muted">Paciente</small>
                         </div>
                     </div>
@@ -289,13 +316,19 @@
                     <div class="info-linha mb-2">
                         <i class="fas fa-calendar-alt text-secondary me-2" style="width: 20px;"></i>
                         <span class="text-muted small">Nascimento:</span>
-                        <strong class="ms-2">{{ consulta[10]|default('Não informado') }}</strong>
+                        <strong class="ms-2">{{ consulta.data_nascimento|default('Não informado') }}</strong>
                     </div>
                     
                     <div class="info-linha mb-2">
                         <i class="fas fa-venus-mars text-secondary me-2" style="width: 20px;"></i>
                         <span class="text-muted small">Gênero:</span>
-                        <strong class="ms-2">{{ consulta[11]|default('Não informado') }}</strong>
+                        <strong class="ms-2">{{ consulta.genero|default('Não informado') }}</strong>
+                    </div>
+                    
+                    <div class="info-linha mb-2">
+                        <i class="fas fa-phone-alt text-secondary me-2" style="width: 20px;"></i>
+                        <span class="text-muted small">Telefone:</span>
+                        <strong class="ms-2">{{ consulta.paciente_telefone|default('Não informado') }}</strong>
                     </div>
                 </div>
             </div>
@@ -309,19 +342,19 @@
                 </div>
                 <div class="card-body p-3 p-md-4">
                     <div class="d-grid gap-2">
-                        {% if consulta[5] == 'agendada' %}
-                        <form action="{{ url_for('paciente.cancelar_consulta', consulta_id=consulta[0]) }}" method="POST" 
+                        {% if receitas and receitas|length > 0 %}
+                        <a href="{{ url_for('paciente.visualizar_receita', receita_id=receitas[0].id) }}" class="btn btn-success w-100 py-2">
+                            <i class="fas fa-prescription me-2"></i>Visualizar Última Receita
+                        </a>
+                        {% endif %}
+                        
+                        {% if consulta.status == 'agendada' %}
+                        <form action="{{ url_for('paciente.cancelar_consulta', consulta_id=consulta.id) }}" method="POST" 
                               onsubmit="return confirm('Tem certeza que deseja cancelar esta consulta?');">
                             <button type="submit" class="btn btn-danger w-100 py-2">
                                 <i class="fas fa-times-circle me-2"></i>Cancelar Consulta
                             </button>
                         </form>
-                        {% endif %}
-                        
-                        {% if receitas and receitas|length > 0 %}
-                        <a href="{{ url_for('paciente.minhas_receitas') }}" class="btn btn-success w-100 py-2">
-                            <i class="fas fa-prescription-bottle-alt me-2"></i>Todas as Receitas
-                        </a>
                         {% endif %}
                         
                         <a href="{{ url_for('paciente.minhas_consultas') }}" class="btn btn-outline-secondary w-100 py-2">
@@ -335,7 +368,7 @@
 </div>
 
 <style>
-/* ESTILOS EXCLUSIVOS PARA RECEITAS MOBILE */
+/* Estilos para receitas mobile */
 .receitas-mobile-list {
     display: flex;
     flex-direction: column;
@@ -356,7 +389,7 @@
 }
 
 .receita-mobile-header {
-    background: linear-gradient(to right, #f8f9fa, white);
+    background: #f8f9fa;
     border-bottom: 1px solid #e9ecef;
 }
 
@@ -381,24 +414,15 @@
 }
 
 .status-ativa {
-    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    background: #d4edda;
     color: #155724;
     border: 1px solid #a3cfb4;
 }
 
 .status-cancelada {
-    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    background: #f8d7da;
     color: #721c24;
     border: 1px solid #f1b0b7;
-}
-
-.status-secondary {
-    background: #e9ecef;
-    color: #495057;
-}
-
-.receita-mobile-content {
-    background: white;
 }
 
 .receita-section {
@@ -417,6 +441,7 @@
     max-height: 80px;
     overflow-y: auto;
     font-size: 0.85rem;
+    -webkit-overflow-scrolling: touch;
 }
 
 .receita-texto::-webkit-scrollbar {
@@ -444,46 +469,59 @@
     box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
 }
 
-/* Info linhas */
-.info-linha {
-    display: flex;
-    align-items: center;
-    padding: 5px 0;
+/* Estilos para receita direto da consulta */
+.receita-texto-completo {
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: #fff9e6;
+    border-left: 4px solid #28a745;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
-/* Badges */
-.badge {
-    font-weight: 500;
-    letter-spacing: 0.3px;
+.receita-texto-completo::-webkit-scrollbar {
+    width: 6px;
 }
 
-/* Ajustes gerais para mobile */
-@media (max-width: 576px) {
-    .receita-mobile-header {
-        padding: 12px !important;
-    }
-    
-    .receita-mobile-content {
-        padding: 12px !important;
-    }
-    
-    .receita-icon {
-        width: 35px;
-        height: 35px;
-    }
-    
-    .receita-icon i {
-        font-size: 1rem;
-    }
-    
-    .status-badge {
-        font-size: 0.65rem;
-        padding: 3px 10px;
-    }
-    
+.receita-texto-completo::-webkit-scrollbar-thumb {
+    background: #28a745;
+    border-radius: 6px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
     .btn-sm {
         padding: 8px 12px;
-        font-size: 0.8rem;
+        min-height: 44px;
+    }
+    
+    .btn {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .receita-mobile-card:active {
+        transform: scale(0.98);
+    }
+    
+    .info-linha {
+        flex-wrap: wrap;
+    }
+    
+    .info-linha strong {
+        margin-left: 28px !important;
+        display: block;
+        width: 100%;
+    }
+    
+    .receita-texto-completo {
+        font-size: 0.85rem;
+        max-height: 300px;
     }
 }
 
@@ -504,26 +542,21 @@
     animation-fill-mode: both;
 }
 
-{% for receita in receitas %}
-.receita-mobile-card:nth-child({{ loop.index }}) {
-    animation-delay: {{ loop.index0 * 0.05 }}s;
-}
-{% endfor %}
-
-/* Touch feedback */
-.receita-mobile-card:active {
-    transform: scale(0.98);
-    transition: transform 0.1s;
-}
-
 /* Melhorias de acessibilidade */
 .btn:focus, .btn:active {
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    outline: none;
+}
+
+/* Remove tap highlight no mobile */
+* {
+    -webkit-tap-highlight-color: transparent;
 }
 
 /* Estilos para impressão */
 @media print {
-    .btn, .navbar, footer, .card-header, .col-lg-4, .receita-actions {
+    .btn, .navbar, footer, .card-header, .col-lg-4, 
+    .receita-actions {
         display: none !important;
     }
     
@@ -531,12 +564,6 @@
         border: 1px solid #000 !important;
         box-shadow: none !important;
         page-break-inside: avoid;
-    }
-    
-    .receita-mobile-header {
-        background: #f8f9fa !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
     }
 }
 </style>
@@ -546,14 +573,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para ajustar o layout em mobile
     function adjustForMobile() {
         const width = window.innerWidth;
+        const isMobile = width <= 768;
         
-        if (width <= 768) {
-            // Ajustes específicos para mobile
-            document.querySelectorAll('.card-header h5').forEach(function(el) {
-                el.classList.add('small');
+        // Ajustar botões para touch
+        if (isMobile) {
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.style.minHeight = '44px';
             });
             
-            // Adicionar feedback tátil
+            // Adicionar feedback tátil para cards de receita
             document.querySelectorAll('.receita-mobile-card').forEach(card => {
                 card.addEventListener('touchstart', function() {
                     this.style.backgroundColor = '#f8f9fa';
@@ -563,9 +591,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             });
             
+            // Ajustar altura máxima dos textos
+            document.querySelectorAll('.receita-texto').forEach(el => {
+                el.style.maxHeight = '100px';
+            });
+            
         } else {
-            document.querySelectorAll('.card-header h5').forEach(function(el) {
-                el.classList.remove('small');
+            document.querySelectorAll('.btn').forEach(btn => {
+                btn.style.minHeight = '';
             });
         }
     }
@@ -582,6 +615,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         lastTouchEnd = now;
     }, false);
+    
+    // Scroll suave para áreas com overflow
+    document.querySelectorAll('.receita-texto').forEach(el => {
+        el.addEventListener('touchstart', function() {
+            this.style.overflowY = 'auto';
+        });
+    });
 });
 </script>
 {% endblock %}

@@ -1,0 +1,84 @@
+<!-- templates/enfermeiro/medicamentos_historico.html -->
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Histórico de Medicamentos - {{ internacao.paciente_nome }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb bg-light p-2 rounded">
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.listar_internados') }}">Internados</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.medicamentos.listar_por_internacao', internacao_id=internacao.id) }}">Medicamentos</a></li>
+                    <li class="breadcrumb-item active">Histórico</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-10 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        Histórico de Administração de Medicamentos
+                        <span class="badge bg-light text-info ms-2">{{ internacao.paciente_nome }}</span>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if administracoes %}
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Medicamento</th>
+                                        <th>Dosagem</th>
+                                        <th>Via</th>
+                                        <th>Enfermeiro</th>
+                                        <th>Status</th>
+                                        <th>Observações</th>
+                                    </thead>
+                                <tbody>
+                                    {% for adm in administracoes %}
+                                    <tr class="{% if adm.administrado %}table-success{% else %}table-warning{% endif %}">
+                                        <td>{{ adm.data_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+                                        <td><strong>{{ adm.medicamento }}</strong></td>
+                                        <td>{{ adm.dosagem }}</td>
+                                        <td>{{ adm.via }}</td>
+                                        <td>{{ adm.enfermeiro_nome }}</td>
+                                        <td>
+                                            {% if adm.administrado %}
+                                                <span class="badge bg-success">Administrado</span>
+                                            {% else %}
+                                                <span class="badge bg-warning">Pendente</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ adm.observacoes or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-capsules fa-4x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhuma administração registrada</h5>
+                            <p class="text-muted">Não há histórico de administração de medicamentos</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('enfermeiro.medicamentos.listar_por_internacao', internacao_id=internacao.id) }}" 
+                       class="btn btn-secondary">
+                        <i class="fas fa-arrow-left me-2"></i> Voltar
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

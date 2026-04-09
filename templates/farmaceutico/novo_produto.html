@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Novo Produto - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Cadastrar Novo Produto
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('farmaceutico.entrada_estoque') }}">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Nome do Produto *</label>
+                                <input type="text" name="nome" class="form-control" required>
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Descrição</label>
+                                <textarea name="descricao" class="form-control" rows="3"></textarea>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Categoria *</label>
+                                <select name="categoria" class="form-select" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="Antimaláricos">Malária</option>
+                                    <option value="Febre Tifoide">Febre Tifoide</option>
+                                    <option value="Infecção Urinária">Infecção Urinária</option>
+                                    <option value="Pneumonia">Pneumonia</option>
+                                    <option value="Asma">Asma</option>
+                                    <option value="Cardiovasculares">Hipertensão</option>
+                                    <option value="Endócrinos">Diabetes</option>
+                                    <option value="Gastrointestinais">Gastrite/Úlcera</option>
+                                    <option value="Analgésicos">Dor/Cefaleia</option>
+                                    <option value="Anti-inflamatórios">Anti-inflamatórios</option>
+                                    <option value="Antibióticos">Antibióticos</option>
+                                    <option value="Corticoides">Corticoides</option>
+                                    <option value="Respiratórios">Respiratórios</option>
+                                    <option value="Dermatológicos">Dermatológicos</option>
+                                    <option value="Psicotrópicos">Psicotrópicos</option>
+                                    <option value="Antivirais">Antivirais</option>
+                                    <option value="Suporte">Suporte</option>
+                                    <option value="Vitaminas">Vitaminas</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Unidade de Medida *</label>
+                                <select name="unidade" class="form-select" required>
+                                    <option value="unidade">Unidade</option>
+                                    <option value="comprimido">Comprimido</option>
+                                    <option value="cápsula">Cápsula</option>
+                                    <option value="ml">ml</option>
+                                    <option value="ampola">Ampola</option>
+                                    <option value="frasco">Frasco</option>
+                                    <option value="caixa">Caixa</option>
+                                    <option value="spray">Spray</option>
+                                    <option value="bisnaga">Bisnaga</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Quantidade Inicial *</label>
+                                <input type="number" name="quantidade" class="form-control" value="0" min="0" required>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Estoque Mínimo</label>
+                                <input type="number" name="estoque_minimo" class="form-control" value="10" min="0">
+                                <small class="text-muted">Quantidade mínima para alerta</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Número do Lote</label>
+                                <input type="text" name="lote" class="form-control" placeholder="Ex: MAL-001, TIF-002">
+                                <small class="text-muted">Código de identificação do lote</small>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Data de Validade</label>
+                                <input type="date" name="data_validade" class="form-control">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Preço de Custo (R$)</label>
+                                <input type="number" name="preco_custo" class="form-control" step="0.01" value="0">
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Preço de Venda (R$)</label>
+                                <input type="number" name="preco_venda" class="form-control" step="0.01" value="0">
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Localização no Estoque</label>
+                                <input type="text" name="localizacao" class="form-control" placeholder="Ex: Prateleira A1, Armário Controlado...">
+                            </div>
+                            
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Fornecedor</label>
+                                <select name="fornecedor_id" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    {% for f in fornecedores %}
+                                    <option value="{{ f.id }}">{{ f.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Dica:</strong> Para medicamentos de Malária, use o prefixo "MAL-" no lote. Para Febre Tifoide, use "TIF-", etc.
+                        </div>
+                        
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('farmaceutico.estoque') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>Cadastrar Produto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -13,6 +13,11 @@
             <a href="{{ url_for('analista.dashboard') }}" class="btn btn-outline-secondary btn-sm w-100 w-sm-auto">
                 <i class="fas fa-arrow-left me-1"></i> Voltar
             </a>
+            <a href="{{ url_for('analista.analise_manual', pedido_id=0) }}" 
+               class="btn btn-outline-warning btn-sm w-100 w-sm-auto"
+               onclick="event.preventDefault(); alert('Selecione um pedido na lista abaixo para análise manual');">
+                <i class="fas fa-user-md me-1"></i> Análise Manual
+            </a>
             <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-primary btn-sm w-100 w-sm-auto">
                 <i class="fas fa-plus-circle me-1"></i> Atribuir Próximo
             </a>
@@ -134,7 +139,7 @@
         </div>
         <div class="card-body p-0">
             {% if pedidos %}
-            <!-- Versão Mobile: Cards (SEM ID) -->
+            <!-- Versão Mobile: Cards -->
             <div class="d-block d-md-none">
                 {% for pedido in pedidos %}
                 <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %} hover-bg-light">
@@ -184,24 +189,31 @@
                             </small>
                         </div>
                         
-                        <!-- Botão de Ação -->
-                        <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
-                           class="btn btn-{% if pedido.status == 'pendente' %}primary{% elif pedido.status == 'em_analise' %}info{% else %}outline-primary{% endif %} btn-sm px-3"
-                           style="min-width: 80px;">
-                            {% if pedido.status == 'pendente' %}
-                            <i class="fas fa-play me-1"></i> Iniciar
-                            {% elif pedido.status == 'em_analise' %}
-                            <i class="fas fa-edit me-1"></i> Analisar
-                            {% else %}
-                            <i class="fas fa-eye me-1"></i> Ver
-                            {% endif %}
-                        </a>
+                        <!-- Botões de Ação - Versão Mobile -->
+                        <div class="d-flex gap-2">
+                            <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
+                               class="btn btn-{% if pedido.status == 'pendente' %}primary{% elif pedido.status == 'em_analise' %}info{% else %}outline-primary{% endif %} btn-sm px-3"
+                               style="min-width: 80px;">
+                                {% if pedido.status == 'pendente' %}
+                                <i class="fas fa-play me-1"></i> Iniciar
+                                {% elif pedido.status == 'em_analise' %}
+                                <i class="fas fa-edit me-1"></i> Analisar
+                                {% else %}
+                                <i class="fas fa-eye me-1"></i> Ver
+                                {% endif %}
+                            </a>
+                            <a href="{{ url_for('analista.analise_manual', pedido_id=pedido.id) }}" 
+                               class="btn btn-outline-warning btn-sm px-3"
+                               title="Análise Manual">
+                                <i class="fas fa-user-md me-1"></i> Manual
+                            </a>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
 
-            <!-- Versão Desktop: Tabela (SEM ID) -->
+            <!-- Versão Desktop: Tabela -->
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-hover mb-0">
                     <thead class="table-light">
@@ -254,16 +266,22 @@
                                 <small><i class="fas fa-calendar-alt me-1"></i>{{ pedido.data_solicitacao }}</small>
                             </td>
                             <td class="px-3 py-2 text-end">
-                                <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
-                                   class="btn btn-{% if pedido.status == 'pendente' %}primary{% elif pedido.status == 'em_analise' %}info{% else %}outline-primary{% endif %} btn-sm">
-                                    {% if pedido.status == 'pendente' %}
-                                    <i class="fas fa-play me-1"></i> Iniciar
-                                    {% elif pedido.status == 'em_analise' %}
-                                    <i class="fas fa-edit me-1"></i> Analisar
-                                    {% else %}
-                                    <i class="fas fa-eye me-1"></i> Ver
-                                    {% endif %}
-                                </a>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
+                                       class="btn btn-{% if pedido.status == 'pendente' %}primary{% elif pedido.status == 'em_analise' %}info{% else %}outline-primary{% endif %}"
+                                       title="{% if pedido.status == 'pendente' %}Iniciar Análise com IA{% elif pedido.status == 'em_analise' %}Continuar Análise{% else %}Ver Detalhes{% endif %}">
+                                        <i class="fas fa-{% if pedido.status == 'pendente' %}play{% elif pedido.status == 'em_analise' %}edit{% else %}eye{% endif %}"></i>
+                                        <span class="d-none d-xl-inline ms-1">
+                                            {% if pedido.status == 'pendente' %}IA{% elif pedido.status == 'em_analise' %}Continuar{% else %}Ver{% endif %}
+                                        </span>
+                                    </a>
+                                    <a href="{{ url_for('analista.analise_manual', pedido_id=pedido.id) }}" 
+                                       class="btn btn-outline-warning"
+                                       title="Análise Manual - Preencher resultados manualmente">
+                                        <i class="fas fa-user-md"></i>
+                                        <span class="d-none d-xl-inline ms-1">Manual</span>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}

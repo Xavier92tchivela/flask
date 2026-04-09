@@ -1,0 +1,172 @@
+<!-- templates/medico/internacao/internar_paciente.html -->
+{% extends "base.html" %}
+
+{% block title %}Internar Paciente - Consulta #{{ consulta.id if consulta else '' }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+
+    {% if not consulta %}
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> 
+            Erro: Consulta não encontrada. Por favor, tente novamente.
+        </div>
+        <a href="{{ url_for('medico.consultas') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Voltar para Consultas
+        </a>
+    {% else %}
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+
+            <div class="card shadow border-0">
+
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-procedures me-2"></i>Internar Paciente
+                    </h5>
+                </div>
+
+                <div class="card-body">
+
+                    <!-- INFO -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Consulta #{{ consulta.id }} | 
+                        Data: {{ consulta.data_consulta.strftime('%d/%m/%Y %H:%M') if consulta.data_consulta else 'Sem data' }}
+                    </div>
+
+                    <!-- FORM - CORRIGIDO: usando o endpoint correto -->
+                    <form method="POST" action="{{ url_for('medico.consulta.internar_paciente', consulta_id=consulta.id) }}">
+
+                        <!-- PACIENTE -->
+                        <div class="mb-4">
+                            <h6 class="text-primary"><i class="fas fa-user me-2"></i>Paciente</h6>
+                            <div class="border p-3 rounded bg-light">
+                                <p><strong>{{ consulta.paciente_nome }}</strong></p>
+                                <p><i class="fas fa-id-card me-2"></i>CPF: {{ consulta.cpf or 'Não informado' }}</p>
+                                <p><i class="fas fa-phone me-2"></i>Telefone: {{ consulta.telefone or 'Não informado' }}</p>
+                                <p><i class="fas fa-user-md me-2"></i>Médico: {{ consulta.medico_nome }} (CRM: {{ consulta.crm }})</p>
+                            </div>
+                        </div>
+
+                        <!-- INTERNAÇÃO -->
+                        <div class="mb-4">
+                            <h6 class="text-primary"><i class="fas fa-notes-medical me-2"></i>Dados da Internação</h6>
+
+                            <div class="mb-3">
+                                <label class="fw-bold">Leito <span class="text-danger">*</span></label>
+                                <select name="leito_id" class="form-select" required>
+                                    <option value="">-- Selecione um leito disponível --</option>
+                                    {% for leito in leitos_disponiveis %}
+                                        <option value="{{ leito.id }}">
+                                            {{ leito.alas }} - Leito {{ leito.numero }} ({{ leito.tipo }})
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">{{ leitos_disponiveis|length }} leito(s) disponível(is)</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="fw-bold">Tipo de Internação <span class="text-danger">*</span></label>
+                                <select name="tipo_internacao" class="form-select" required>
+                                    <option value="">-- Selecione --</option>
+                                    <option value="clinica">Clínica Médica</option>
+                                    <option value="cirurgica">Cirúrgica</option>
+                                    <option value="uti">UTI</option>
+                                    <option value="uti_neonatal">UTI Neonatal</option>
+                                    <option value="pediatrica">Pediátrica</option>
+                                    <option value="obstetricia">Obstetrícia</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="fw-bold">Diagnóstico / Motivo da Internação <span class="text-danger">*</span></label>
+                                <textarea name="diagnostico" class="form-control" rows="4" required 
+                                    placeholder="Descreva o diagnóstico principal e o motivo da internação..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="fw-bold">Observações Adicionais</label>
+                                <textarea name="observacoes" class="form-control" rows="3" 
+                                    placeholder="Observações importantes sobre o quadro clínico, alergias, etc..."></textarea>
+                            </div>
+
+                        </div>
+
+                        <!-- ALERTA IMPORTANTE -->
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Importante:</strong> A internação será registrada no prontuário do paciente.
+                            O leito selecionado será automaticamente marcado como ocupado.
+                        </div>
+
+                        <!-- BOTÕES -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="btnInternar">
+                                <i class="fas fa-procedures me-1"></i> Confirmar Internação
+                            </button>
+                        </div>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const btnInternar = document.getElementById('btnInternar');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const leito = document.querySelector('[name="leito_id"]').value;
+            const tipo = document.querySelector('[name="tipo_internacao"]').value;
+            const diagnostico = document.querySelector('[name="diagnostico"]').value;
+            
+            if (!leito || !tipo || !diagnostico.trim()) {
+                e.preventDefault();
+                alert('Por favor, preencha todos os campos obrigatórios.');
+                return false;
+            }
+            
+            btnInternar.disabled = true;
+            btnInternar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Processando...';
+        });
+    }
+});
+</script>
+
+<style>
+.form-select, .form-control {
+    border: 1px solid #dee2e6;
+    transition: all 0.2s;
+}
+.form-select:focus, .form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+}
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+    border: none;
+    font-weight: 600;
+}
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(13, 110, 253, 0.3);
+}
+.btn-secondary:hover {
+    transform: translateY(-2px);
+}
+</style>
+{% endblock %}

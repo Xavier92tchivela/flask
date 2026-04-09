@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Prescrever Medicamento{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-capsules me-2"></i>
+                        Prescrever Medicamento
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <strong>Paciente:</strong> {{ internacao[2] }}<br>
+                        <strong>Prontuário:</strong> {{ internacao[1] }}
+                    </div>
+                    
+                    <form id="formPrescricao">
+                        <input type="hidden" name="internacao_id" value="{{ internacao[0] }}">
+                        
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label required">Medicamento</label>
+                                <input type="text" class="form-control" name="medicamento" required placeholder="Ex: Paracetamol, Amoxicilina...">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">Dosagem</label>
+                                <input type="text" class="form-control" name="dosagem" required placeholder="Ex: 500mg, 1g...">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">Via de Administração</label>
+                                <select class="form-select" name="via" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="oral">Oral</option>
+                                    <option value="endovenosa">Endovenosa (EV)</option>
+                                    <option value="intramuscular">Intramuscular (IM)</option>
+                                    <option value="subcutânea">Subcutânea (SC)</option>
+                                    <option value="tópica">Tópica</option>
+                                    <option value="inalatória">Inalatória</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">Frequência</label>
+                                <select class="form-select" name="frequencia" required>
+                                    <option value="">Selecione...</option>
+                                    <option value="1x ao dia">1x ao dia (24/24h)</option>
+                                    <option value="12/12h">12/12h (2x ao dia)</option>
+                                    <option value="8/8h">8/8h (3x ao dia)</option>
+                                    <option value="6/6h">6/6h (4x ao dia)</option>
+                                    <option value="4/4h">4/4h (6x ao dia)</option>
+                                    <option value="contínuo">Infusão Contínua</option>
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">Horário Início</label>
+                                <input type="time" class="form-control" name="horario_inicio" value="06:00">
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <label class="form-label">Horário Fim</label>
+                                <input type="time" class="form-control" name="horario_fim" value="22:00">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label required">Data Início</label>
+                                <input type="date" class="form-control" name="data_inicio" required value="{{ hoje }}">
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <label class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" name="data_fim">
+                                <small class="text-muted">Deixe em branco para tempo indeterminado</small>
+                            </div>
+                            
+                            <div class="col-12">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" name="observacoes" rows="3" placeholder="Ex: Administrar com alimentos, não ingerir álcool..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 d-flex justify-content-between">
+                            <a href="{{ url_for('medico.internados') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i> Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="btnSalvar">
+                                <i class="fas fa-save me-2"></i> Prescrever
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .required:after {
+        content: " *";
+        color: red;
+    }
+</style>
+
+<script>
+    document.getElementById('formPrescricao').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const btn = document.getElementById('btnSalvar');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
+        
+        const formData = new FormData(this);
+        const data = {};
+        formData.forEach((value, key) => { data[key] = value; });
+        
+        fetch('/medico/api/prescrever-medicamento', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                window.location.href = '/medico/internados';
+            } else {
+                alert('Erro: ' + data.error);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save me-2"></i> Prescrever';
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao salvar prescrição');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save me-2"></i> Prescrever';
+        });
+    });
+</script>
+{% endblock %}

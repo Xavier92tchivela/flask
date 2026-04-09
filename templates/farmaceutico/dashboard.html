@@ -1,0 +1,346 @@
+{% extends "farmaceutico/base_farmaceutico.html" %}
+
+{% block title %}Estoque - Farmacêutico{% endblock %}
+
+{% block page_title %}Estoque de Medicamentos{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{{ url_for('farmaceutico.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+            <a href="{{ url_for('farmaceutico.entrada_estoque') }}" class="btn btn-success ms-2">
+                <i class="fas fa-plus me-2"></i>Nova Entrada
+            </a>
+        </div>
+    </div>
+
+    <!-- Cards de Estatísticas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Total de Produtos</h6>
+                            <h2 class="mb-0">{{ stats.total_produtos|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-capsules fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Estoque Baixo</h6>
+                            <h2 class="mb-0">{{ stats.estoque_baixo|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Esgotados</h6>
+                            <h2 class="mb-0">{{ stats.esgotados|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-times-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Total em Estoque</h6>
+                            <h2 class="mb-0">{{ stats.total_unidades|default(0) }}</h2>
+                        </div>
+                        <i class="fas fa-boxes fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros por Doença -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5><i class="fas fa-filter me-2"></i>Filtrar por Doença / Patologia</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2 mb-2">
+                    <button class="btn btn-primary w-100 filter-btn active" data-filter="all">
+                        <i class="fas fa-globe me-1"></i> Todos
+                    </button>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button class="btn btn-outline-danger w-100 filter-btn" data-filter="Antimaláricos">
+                        <i class="fas fa-mosquito me-1"></i> Malária
+                    </button>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button class="btn btn-outline-warning w-100 filter-btn" data-filter="Cardiovasculares">
+                        <i class="fas fa-heartbeat me-1"></i> Hipertensão
+                    </button>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button class="btn btn-outline-info w-100 filter-btn" data-filter="Gastrointestinais">
+                        <i class="fas fa-stomach me-1"></i> Gastrite
+                    </button>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button class="btn btn-outline-success w-100 filter-btn" data-filter="Antibióticos">
+                        <i class="fas fa-bacteria me-1"></i> Antibióticos
+                    </button>
+                </div>
+                <div class="col-md-2 mb-2">
+                    <button class="btn btn-outline-secondary w-100 filter-btn" data-filter="Analgésicos">
+                        <i class="fas fa-head-side-medical me-1"></i> Dor
+                    </button>
+                </div>
+            </div>
+            <input type="text" id="searchInput" class="form-control mt-3" placeholder="Buscar medicamento...">
+        </div>
+    </div>
+
+    <!-- Tabela de Estoque -->
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-list me-2"></i>Produtos em Estoque</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Medicamento</th>
+                            <th>Categoria</th>
+                            <th>Quantidade</th>
+                            <th>Unidade</th>
+                            <th>Est. Mínimo</th>
+                            <th>Status</th>
+                            <th>Lote</th>
+                            <th>Validade</th>
+                            <th>Ações</th>
+                        </thead>
+                    <tbody id="tabelaEstoque">
+                        {% for p in produtos %}
+                        <tr data-categoria="{{ p.categoria }}" data-nome="{{ p.nome|lower }}">
+                            <td>
+                                <strong>{{ p.nome }}</strong><br>
+                                <small class="text-muted">{{ p.descricao|truncate(50) if p.descricao else '-' }}</small>
+                            </td>
+                            <td class="text-center">
+                                {% if p.categoria == 'Antimaláricos' %}
+                                    <span class="badge bg-danger">Malária</span>
+                                {% elif p.categoria == 'Cardiovasculares' %}
+                                    <span class="badge bg-danger">Hipertensão</span>
+                                {% elif p.categoria == 'Gastrointestinais' %}
+                                    <span class="badge bg-info">Gastrite</span>
+                                {% elif p.categoria == 'Analgésicos' %}
+                                    <span class="badge bg-secondary">Dor</span>
+                                {% elif p.categoria == 'Antibióticos' %}
+                                    <span class="badge bg-success">Antibióticos</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ p.categoria }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="{% if p.quantidade <= p.estoque_minimo %}text-danger fw-bold{% endif %}">
+                                {{ p.quantidade }}
+                            </td>
+                            <td>{{ p.unidade or '-' }}</td>
+                            <td>{{ p.estoque_minimo }}</td>
+                            <td>
+                                <span class="badge bg-{{ p.status_class }}">
+                                    {{ p.status_text }}
+                                </span>
+                            </td>
+                            <td><code>{{ p.lote or '-' }}</code></td>
+                            <td>
+                                {% if p.data_validade %}
+                                    <span class="badge bg-{{ p.validade_class }}">
+                                        {{ p.data_validade.strftime('%d/%m/%Y') if p.data_validade is not string else p.data_validade[:10] }}
+                                    </span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-warning" onclick="reporEstoque({{ p.id }}, '{{ p.nome }}')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" onclick="baixarEstoque({{ p.id }}, '{{ p.nome }}', {{ p.quantidade }})">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-info" onclick="verDetalhes({{ p.id }})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="fas fa-box-open fa-2x mb-2 d-block"></i>
+                                Nenhum produto cadastrado no estoque.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modais -->
+<div class="modal fade" id="reporModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="reporForm">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">Repor Estoque</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Produto: <strong id="reporProdutoNome"></strong></p>
+                    <input type="number" name="quantidade" class="form-control" min="1" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Adicionar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="baixarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" id="baixarForm">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Baixar Estoque</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Produto: <strong id="baixarProdutoNome"></strong></p>
+                    <p>Disponível: <strong id="baixarQuantidadeDisponivel"></strong></p>
+                    <input type="number" name="quantidade" id="baixarQuantidade" class="form-control" min="1" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="detalhesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Detalhes do Produto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalhesConteudo"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Filtros
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const filter = this.getAttribute('data-filter');
+        const rows = document.querySelectorAll('#tabelaEstoque tr');
+        
+        document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('active', 'btn-primary');
+            b.classList.add('btn-outline-primary');
+        });
+        this.classList.remove('btn-outline-primary');
+        this.classList.add('active', 'btn-primary');
+        
+        rows.forEach(row => {
+            const categoria = row.getAttribute('data-categoria');
+            if (filter === 'all' || categoria === filter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Busca
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    const searchText = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#tabelaEstoque tr');
+    
+    rows.forEach(row => {
+        const nome = row.getAttribute('data-nome') || '';
+        row.style.display = nome.includes(searchText) ? '' : 'none';
+    });
+});
+
+function reporEstoque(id, nome) {
+    document.getElementById('reporProdutoNome').textContent = nome;
+    document.getElementById('reporForm').action = '/farmaceutico/estoque/repor/' + id;
+    new bootstrap.Modal(document.getElementById('reporModal')).show();
+}
+
+function baixarEstoque(id, nome, quantidade) {
+    document.getElementById('baixarProdutoNome').textContent = nome;
+    document.getElementById('baixarQuantidadeDisponivel').textContent = quantidade;
+    document.getElementById('baixarQuantidade').max = quantidade;
+    document.getElementById('baixarForm').action = '/farmaceutico/estoque/baixar/' + id;
+    new bootstrap.Modal(document.getElementById('baixarModal')).show();
+}
+
+function verDetalhes(id) {
+    fetch('/farmaceutico/api/produto/' + id)
+        .then(response => response.json())
+        .then(data => {
+            const html = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Nome:</strong> ${data.nome}</p>
+                        <p><strong>Descrição:</strong> ${data.descricao || '-'}</p>
+                        <p><strong>Categoria:</strong> ${data.categoria || '-'}</p>
+                        <p><strong>Quantidade:</strong> ${data.quantidade} ${data.unidade}</p>
+                        <p><strong>Estoque Mínimo:</strong> ${data.estoque_minimo}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Lote:</strong> ${data.lote || '-'}</p>
+                        <p><strong>Validade:</strong> ${data.data_validade || '-'}</p>
+                        <p><strong>Localização:</strong> ${data.localizacao || '-'}</p>
+                        <p><strong>Preço Custo:</strong> R$ ${parseFloat(data.preco_custo).toFixed(2)}</p>
+                        <p><strong>Preço Venda:</strong> R$ ${parseFloat(data.preco_venda).toFixed(2)}</p>
+                    </div>
+                </div>
+            `;
+            document.getElementById('detalhesConteudo').innerHTML = html;
+            new bootstrap.Modal(document.getElementById('detalhesModal')).show();
+        })
+        .catch(error => {
+            document.getElementById('detalhesConteudo').innerHTML = '<div class="alert alert-danger">Erro ao carregar detalhes</div>';
+            new bootstrap.Modal(document.getElementById('detalhesModal')).show();
+        });
+}
+</script>
+{% endblock %}

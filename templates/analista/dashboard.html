@@ -709,9 +709,17 @@
                 </div>
                 <h6 class="mb-1">
                     {% if analista_info and analista_info.nome %}
-                        {{ analista_info.nome }}
+                        {% if analista_info.nome.__class__.__name__ == 'bytes' %}
+                            {{ analista_info.nome.decode('utf-8') }}
+                        {% else %}
+                            {{ analista_info.nome }}
+                        {% endif %}
                     {% elif user and user.user_name %}
-                        {{ user.user_name }}
+                        {% if user.user_name.__class__.__name__ == 'bytes' %}
+                            {{ user.user_name.decode('utf-8') }}
+                        {% else %}
+                            {{ user.user_name }}
+                        {% endif %}
                     {% else %}
                         Analista
                     {% endif %}
@@ -776,9 +784,17 @@
                         Bem-vindo, 
                         <strong>
                             {% if analista_info and analista_info.nome %}
-                                {{ analista_info.nome }}
+                                {% if analista_info.nome.__class__.__name__ == 'bytes' %}
+                                    {{ analista_info.nome.decode('utf-8') }}
+                                {% else %}
+                                    {{ analista_info.nome }}
+                                {% endif %}
                             {% elif user and user.user_name %}
-                                {{ user.user_name }}
+                                {% if user.user_name.__class__.__name__ == 'bytes' %}
+                                    {{ user.user_name.decode('utf-8') }}
+                                {% else %}
+                                    {{ user.user_name }}
+                                {% endif %}
                             {% else %}
                                 Analista
                             {% endif %}
@@ -1131,13 +1147,23 @@
                     </div>
                     <div class="card-body p-0">
                         {% if pedidos_atribuidos and pedidos_atribuidos|length > 0 %}
-                        <!-- Mobile View - SEM ID -->
+                        <!-- Mobile View -->
                         <div class="d-block d-md-none">
                             {% for pedido in pedidos_atribuidos %}
                             <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
-                                        <div class="fw-semibold">{{ pedido.paciente_nome if pedido.paciente_nome is defined else 'N/A' }}</div>
+                                        <div class="fw-semibold">
+                                            {% if pedido.paciente_nome %}
+                                                {% if pedido.paciente_nome.__class__.__name__ == 'bytes' %}
+                                                    {{ pedido.paciente_nome.decode('utf-8') }}
+                                                {% else %}
+                                                    {{ pedido.paciente_nome }}
+                                                {% endif %}
+                                            {% else %}
+                                                N/A
+                                            {% endif %}
+                                        </div>
                                     </div>
                                     <div class="text-end">
                                         {% if pedido.urgencia is defined %}
@@ -1165,6 +1191,11 @@
                                            class="btn btn-{% if pedido.status is defined and pedido.status == 'pendente' %}primary{% else %}outline-primary{% endif %}">
                                             <i class="fas fa-{% if pedido.status is defined and pedido.status == 'pendente' %}play{% else %}search{% endif %}"></i>
                                         </a>
+                                        <a href="{{ url_for('analista.analise_manual', pedido_id=pedido.id) }}" 
+                                           class="btn btn-outline-warning"
+                                           title="Análise Manual">
+                                            <i class="fas fa-user-md"></i>
+                                        </a>
                                         <button type="button" class="btn btn-outline-info" 
                                                 onclick="viewPedidoDetails({{ pedido.id }})">
                                             <i class="fas fa-eye"></i>
@@ -1176,7 +1207,7 @@
                             {% endfor %}
                         </div>
                         
-                        <!-- Desktop View - SEM ID -->
+                        <!-- Desktop View -->
                         <div class="table-responsive d-none d-md-block">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light">
@@ -1191,11 +1222,21 @@
                                 </thead>
                                 <tbody>
                                     {% for pedido in pedidos_atribuidos %}
-                                    <tr>
+                                    <tr class="align-middle">
                                         <td class="px-3 py-2">
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-user-circle me-2 text-muted"></i>
-                                                <span>{{ pedido.paciente_nome if pedido.paciente_nome is defined else 'N/A' }}</span>
+                                                <span>
+                                                    {% if pedido.paciente_nome %}
+                                                        {% if pedido.paciente_nome.__class__.__name__ == 'bytes' %}
+                                                            {{ pedido.paciente_nome.decode('utf-8') }}
+                                                        {% else %}
+                                                            {{ pedido.paciente_nome }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </span>
                                             </div>
                                         </td>
                                         <td class="px-3 py-2">
@@ -1245,6 +1286,11 @@
                                                    class="btn btn-{% if pedido.status is defined and pedido.status == 'pendente' %}primary{% else %}outline-primary{% endif %}"
                                                    title="{% if pedido.status is defined and pedido.status == 'pendente' %}Iniciar Análise{% else %}Ver Detalhes{% endif %}">
                                                     <i class="fas fa-{% if pedido.status is defined and pedido.status == 'pendente' %}play{% else %}search{% endif %}"></i>
+                                                </a>
+                                                <a href="{{ url_for('analista.analise_manual', pedido_id=pedido.id) }}" 
+                                                   class="btn btn-outline-warning"
+                                                   title="Análise Manual - Preencher resultados manualmente">
+                                                    <i class="fas fa-user-md"></i>
                                                 </a>
                                                 <button type="button" class="btn btn-outline-info" 
                                                         onclick="viewPedidoDetails({{ pedido.id }})"
@@ -1316,11 +1362,12 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('analista.perfil') }}" 
-                                   class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-user fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Perfil</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">Meu perfil</small>
+                                <a href="{{ url_for('analista.analise_manual', pedido_id=0) }}" 
+                                   class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn"
+                                   onclick="event.preventDefault(); alert('Selecione um pedido na lista de pedidos para análise manual');">
+                                    <i class="fas fa-user-md fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Manual</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">Análise Manual</small>
                                 </a>
                             </div>
                         </div>

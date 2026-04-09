@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Dispensações - Farmacêutico{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-pills me-2 text-success"></i>Dispensações Realizadas</h2>
+        <div>
+            <a href="{{ url_for('farmaceutico.dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Voltar
+            </a>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-history me-2"></i>Histórico de Dispensações</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Data</th>
+                            <th>Paciente</th>
+                            <th>Médico</th>
+                            <th>Diagnóstico</th>
+                            <th>Data Dispensação</th>
+                            <th>PDF</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in dispensas %}
+                        <tr>
+                            <td>#{{ d.id }}</td>
+                            <td>
+                                {% if d.created_at %}
+                                    {% if d.created_at is string %}
+                                        {{ d.created_at[:16] }}
+                                    {% else %}
+                                        {{ d.created_at.strftime('%d/%m/%Y %H:%M') }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ d.paciente_nome if d.paciente_nome else '-' }}</strong>
+                            </td>
+                            <td>{{ d.medico_nome if d.medico_nome else '-' }}</td>
+                            <td>
+                                <div class="text-truncate" style="max-width: 200px;" title="{{ d.diagnostico }}">
+                                    {{ d.diagnostico|truncate(50) if d.diagnostico else '-' }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if d.data_geracao_pdf %}
+                                    {% if d.data_geracao_pdf is string %}
+                                        {{ d.data_geracao_pdf[:16] }}
+                                    {% else %}
+                                        {{ d.data_geracao_pdf.strftime('%d/%m/%Y %H:%M') }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if d.receita_pdf_path %}
+                                    <a href="{{ url_for('farmaceutico.visualizar_pdf', receita_id=d.id) }}" 
+                                       class="btn btn-sm btn-danger" title="Ver PDF" target="_blank">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('farmaceutico.dispensacao_detalhe', id=d.id) }}" 
+                                   class="btn btn-sm btn-info" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                Nenhuma dispensação encontrada
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-truncate {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+{% endblock %}

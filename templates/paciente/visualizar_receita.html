@@ -1,857 +1,864 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Visualizar Receita #{{ receita[0] if receita else '' }}</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        /* RESET E VARIÁVEIS */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --success: #4cc9f0;
-            --danger: #f72585;
-            --warning: #f8961e;
-            --dark: #1e1e2f;
-            --light: #f8f9fa;
-            --gray: #6c757d;
-            --border-radius: 16px;
-            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-        }
-
-        body {
-            background-color: #f1f5f9;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            padding: 12px;
-            min-height: 100vh;
-            display: flex;
-            align-items: flex-start;
-            justify-content: center;
-        }
-
-        .container {
-            max-width: 800px;
-            padding: 0;
-            width: 100%;
-        }
-
-        /* CARD PRINCIPAL */
-        .receita-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            overflow: hidden;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        /* HEADER - VERSÃO MOBILE */
-        .receita-header {
-            background: linear-gradient(145deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 20px 16px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .receita-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -50%;
-            width: 200%;
-            height: 200%;
-            background: rgba(255, 255, 255, 0.1);
-            transform: rotate(45deg);
-            pointer-events: none;
-        }
-
-        .header-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .header-content h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 4px;
-            letter-spacing: -0.5px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .header-content h2 i {
-            font-size: 1.8rem;
-        }
-
-        .header-content p {
-            font-size: 0.8rem;
-            opacity: 0.9;
-            margin: 0;
-            line-height: 1.4;
-        }
-
-        .header-badge {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(5px);
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 8px;
-        }
-
-        /* INFO SECTIONS - MOBILE FIRST */
-        .info-section {
-            background: var(--light);
-            border-radius: 14px;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .info-section h5 {
-            color: var(--primary);
-            font-size: 1rem;
-            font-weight: 700;
-            margin-bottom: 14px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid rgba(67, 97, 238, 0.2);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .info-section h5 i {
-            font-size: 1.1rem;
-            width: 24px;
-        }
-
-        .info-grid {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .info-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .info-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            color: var(--gray);
-        }
-
-        .info-value {
-            font-size: 0.95rem;
-            font-weight: 500;
-            color: var(--dark);
-            line-height: 1.4;
-            word-break: break-word;
-        }
-
-        .info-value strong {
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        /* BADGES */
-        .badge-status {
-            padding: 6px 14px;
-            border-radius: 40px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .badge-ativa {
-            background: linear-gradient(145deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .badge-cancelada {
-            background: linear-gradient(145deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
-
-        .badge-pdf {
-            background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.7rem;
-        }
-
-        /* CARDS DE CONTEÚDO */
-        .receita-content {
-            background: white;
-            border: 1px solid #e9ecef;
-            border-radius: 14px;
-            padding: 18px 16px;
-            margin-top: 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
-        }
-
-        .receita-content h4 {
-            color: var(--primary);
-            font-size: 1.1rem;
-            font-weight: 700;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e9ecef;
-        }
-
-        .receita-content h4 i {
-            font-size: 1.2rem;
-            width: 28px;
-            color: var(--primary);
-        }
-
-        /* ESTILOS PARA CONTEÚDO DAS RECEITAS */
-        .diagnostico-conteudo,
-        .prescricao-conteudo,
-        .recomendacoes-conteudo {
-            font-size: 0.9rem;
-            line-height: 1.6;
-            color: #334155;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .diagnostico-conteudo h1,
-        .diagnostico-conteudo h2,
-        .diagnostico-conteudo h3,
-        .diagnostico-conteudo h4 {
-            font-size: 1rem;
-            color: var(--primary);
-            margin: 16px 0 8px;
-            border: none;
-            padding: 0;
-        }
-
-        .diagnostico-conteudo p,
-        .prescricao-conteudo p,
-        .recomendacoes-conteudo p {
-            margin-bottom: 10px;
-        }
-
-        .diagnostico-conteudo ul,
-        .diagnostico-conteudo ol,
-        .prescricao-conteudo ul,
-        .prescricao-conteudo ol,
-        .recomendacoes-conteudo ul,
-        .recomendacoes-conteudo ol {
-            padding-left: 20px;
-            margin: 8px 0 12px;
-        }
-
-        .diagnostico-conteudo li,
-        .prescricao-conteudo li,
-        .recomendacoes-conteudo li {
-            margin-bottom: 4px;
-        }
-
-        .diagnostico-conteudo strong,
-        .prescricao-conteudo strong,
-        .recomendacoes-conteudo strong {
-            color: var(--primary);
-            font-weight: 600;
-        }
-
-        /* MEDICAMENTOS */
-        .medicamento-destaque {
-            background: #ecfdf5;
-            padding: 3px 10px;
-            border-radius: 30px;
-            color: #059669;
-            font-weight: 600;
-            font-size: 0.85rem;
-            border: 1px solid #a7f3d0;
-            display: inline-block;
-            margin: 2px 0;
-            white-space: nowrap;
-        }
-
-        .medicamento-item {
-            background: #f8fafc;
-            border-left: 4px solid #10b981;
-            padding: 14px;
-            margin-bottom: 10px;
-            border-radius: 10px;
-        }
-
-        .medicamento-nome {
-            font-weight: 700;
-            color: #059669;
-            margin-bottom: 8px;
-            font-size: 1rem;
-        }
-
-        .medicamento-detalhe {
-            font-size: 0.85rem;
-            color: #475569;
-            margin-bottom: 4px;
-            display: flex;
-            gap: 6px;
-        }
-
-        .medicamento-detalhe i {
-            color: #94a3b8;
-            width: 18px;
-            font-size: 0.8rem;
-            margin-top: 3px;
-        }
-
-        /* ALERTAS */
-        .alert-box {
-            background: #fee2e2;
-            border-left: 4px solid #dc2626;
-            padding: 14px 16px;
-            border-radius: 10px;
-            margin: 16px 0 0;
-            font-size: 0.9rem;
-        }
-
-        .alert-box i {
-            color: #dc2626;
-            margin-right: 8px;
-        }
-
-        .alert-box strong {
-            color: #991b1b;
-        }
-
-        /* ASSINATURA */
-        .assinatura {
-            margin-top: 30px;
-            padding: 20px 0 10px;
-            border-top: 2px dashed #d1d5db;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .assinatura-content {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .assinatura .nome-medico {
-            font-weight: 700;
-            color: var(--dark);
-            font-size: 1rem;
-        }
-
-        .assinatura .crm {
-            color: var(--gray);
-            font-size: 0.85rem;
-        }
-
-        .assinatura .digital {
-            font-size: 0.75rem;
-            color: var(--primary);
-            margin-top: 4px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .assinatura .digital i {
-            font-size: 0.9rem;
-        }
-
-        /* BOTÕES DE AÇÃO */
-        .btn-group-action {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin: 24px 0 16px;
-        }
-
-        .btn-action {
-            padding: 14px 20px;
-            border-radius: 40px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            border: none;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            text-decoration: none;
-            cursor: pointer;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        .btn-action:active {
-            transform: scale(0.98);
-        }
-
-        .btn-pdf {
-            background: linear-gradient(145deg, #10b981 0%, #059669 100%);
-            color: white;
-        }
-
-        .btn-print {
-            background: linear-gradient(145deg, #6366f1 0%, #4f46e5 100%);
-            color: white;
-        }
-
-        .btn-back {
-            background: #e9ecef;
-            color: #1e293b;
-        }
-
-        /* FOOTER */
-        .receita-footer {
-            background: #f1f5f9;
-            padding: 16px;
-            text-align: center;
-            border-top: 1px solid #e2e8f0;
-            margin-top: 8px;
-        }
-
-        .footer-text {
-            font-size: 0.7rem;
-            color: #64748b;
-            margin: 0;
-            line-height: 1.5;
-        }
-
-        .footer-text i {
-            color: #ef4444;
-            margin: 0 4px;
-        }
-
-        /* SEPARADORES */
-        hr {
-            margin: 20px 0;
-            border: none;
-            border-top: 1px solid #e9ecef;
-            opacity: 0.7;
-        }
-
-        /* UTILITÁRIOS */
-        .text-small {
-            font-size: 0.75rem;
-        }
-
-        .text-muted {
-            color: var(--gray) !important;
-        }
-
-        /* SCROLLBAR */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary);
-            border-radius: 2px;
-        }
-
-        /* IMPRESSÃO */
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-
-            .no-print,
-            .btn-group-action,
-            .receita-footer {
-                display: none !important;
-            }
-
-            .receita-card {
-                box-shadow: none;
-                border: 1px solid #ddd;
-                border-radius: 0;
-            }
-
-            .receita-header {
-                background: #f8f9fa !important;
-                color: black !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            .badge-ativa,
-            .badge-cancelada {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-        }
-
-        /* TABLETS */
-        @media (min-width: 576px) {
-            body {
-                padding: 20px;
-            }
-
-            .header-content h2 {
-                font-size: 1.8rem;
-            }
-
-            .info-grid {
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 16px;
-            }
-
-            .info-item {
-                margin-bottom: 0;
-            }
-
-            .btn-group-action {
-                flex-direction: row;
-                justify-content: center;
-            }
-
-            .btn-action {
-                width: auto;
-                min-width: 160px;
-                padding: 12px 24px;
-            }
-        }
-
-        /* TABLETS GRANDES E DESKTOP */
-        @media (min-width: 768px) {
-            .receita-header {
-                padding: 24px 30px;
-            }
-
-            .header-content h2 {
-                font-size: 2rem;
-            }
-
-            .info-section {
-                padding: 20px;
-            }
-
-            .info-label {
-                font-size: 0.75rem;
-            }
-
-            .info-value {
-                font-size: 1rem;
-            }
-
-            .receita-content {
-                padding: 25px;
-            }
-
-            .assinatura {
-                flex-direction: row;
-                justify-content: space-between;
-                align-items: center;
-            }
-
-            .assinatura-content {
-                align-items: flex-start;
-            }
-
-            .assinatura .digital {
-                margin-top: 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="receita-card">
-            <!-- Cabeçalho -->
-            <div class="receita-header">
-                <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                    <div class="header-content">
-                        <h2>
-                            <i class="fas fa-prescription"></i>
-                            Receita Médica
-                        </h2>
-                        <p>Documento válido em todo território nacional</p>
-                    </div>
-                    <div class="header-badge">
-                        <i class="fas fa-qrcode"></i>
-                        #{{ receita[0] if receita else '000' }}
-                    </div>
-                </div>
-            </div>
+{% extends "base.html" %}
+
+{% block title %}Receita #{{ receita.id }} | Sistema Médico{% endblock %}
+
+{% block content %}
+<div class="container py-3 py-md-4">
+
+    <!-- HEADER -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 mb-md-4">
+        <h4 class="text-primary mb-0 fs-5 fs-md-4">
+            <i class="fas fa-prescription me-2"></i>Receita Médica
+        </h4>
+
+        <div class="btn-group btn-group-sm" role="group">
+            <!-- Botão Voltar para Consulta - CORRIGIDO -->
+            <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=receita.consulta_id) }}" 
+               class="btn btn-outline-secondary" 
+               title="Voltar para Consulta">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+
+            {% if receita.pdf_gerado %}
+                {% if receita.receita_pdf_path %}
+                <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita.id) }}" 
+                   class="btn btn-primary" 
+                   title="Download PDF"
+                   download>
+                    <i class="fas fa-download"></i>
+                </a>
+                {% else %}
+                <button onclick="gerarPDF()" class="btn btn-warning" title="Gerar PDF agora">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
+                {% endif %}
+            {% else %}
+            <button onclick="gerarPDF()" class="btn btn-secondary" title="Gerar PDF">
+                <i class="fas fa-file-pdf"></i>
+            </button>
+            {% endif %}
+
+            <button onclick="window.print()" class="btn btn-info" title="Imprimir">
+                <i class="fas fa-print"></i>
+            </button>
             
-            <!-- Corpo da Receita -->
-            <div class="receita-body p-3 p-sm-4">
-                <!-- Informações da Receita -->
-                <div class="info-section">
-                    <h5><i class="fas fa-info-circle"></i> Informações da Receita</h5>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Nº da Receita</span>
-                            <span class="info-value"><strong>#{{ receita[0] if receita else 'N/A' }}</strong></span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Data de Emissão</span>
-                            <span class="info-value">{{ formatar_data(receita[6]) if receita and receita[6] else 'N/A' }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Status</span>
-                            <span class="info-value">
-                                <span class="badge-status {% if receita and receita[5] == 'ativa' %}badge-ativa{% else %}badge-cancelada{% endif %}">
-                                    <i class="fas fa-circle" style="font-size: 0.4rem;"></i>
-                                    {{ receita[5]|upper if receita and receita[5] else 'N/A' }}
-                                </span>
-                            </span>
-                        </div>
-                        {% if receita and receita[8] %}
-                        <div class="info-item">
-                            <span class="info-label">PDF</span>
-                            <span class="info-value">
-                                <span class="badge-pdf">
-                                    <i class="fas fa-check-circle me-1"></i> Disponível
-                                </span>
-                            </span>
-                        </div>
+            <button onclick="copyToClipboard()" class="btn btn-secondary" title="Copiar texto">
+                <i class="fas fa-copy"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ALERTA DE PDF NÃO ENCONTRADO -->
+    {% if not receita.pdf_gerado or not receita.receita_pdf_path %}
+    <div class="alert alert-warning alert-dismissible fade show mb-3" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>PDF não disponível!</strong> O arquivo PDF desta receita não foi encontrado no servidor. 
+        Clique no botão <i class="fas fa-file-pdf"></i> para gerar um novo PDF.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- RECEITA -->
+    <div class="receita-premium" id="receita-content">
+
+        <!-- TOPO -->
+        <div class="receita-topo">
+            <div class="text-center text-md-start mb-2 mb-md-0">
+                <h5 class="mb-0 text-primary fs-6 fs-md-5">DoctorIA</h5>
+                <small class="text-muted small">Documento Oficial</small>
+            </div>
+
+            <div class="text-center text-md-end">
+                <strong class="small">ID:</strong> <span class="small">#{{ receita.id }}</span><br>
+                <small class="text-muted" style="font-size: 0.7rem;">
+                    {% if receita.created_at %}
+                        {% if receita.created_at is string %}
+                            {{ receita.created_at }}
+                        {% else %}
+                            {{ receita.created_at.strftime('%d/%m/%Y %H:%M') }}
                         {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Informações do Médico -->
-                <div class="info-section">
-                    <h5><i class="fas fa-user-md"></i> Médico Responsável</h5>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Nome</span>
-                            <span class="info-value">{{ receita[11] if receita and receita[11] else 'N/A' }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">Especialidade</span>
-                            <span class="info-value">{{ receita[12] if receita and receita[12] else 'N/A' }}</span>
-                        </div>
-                        <div class="info-item">
-                            <span class="info-label">CRM</span>
-                            <span class="info-value">{{ receita[13] if receita and receita[13] else 'N/A' }}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Informações da Consulta -->
-                <div class="info-section">
-                    <h5><i class="fas fa-calendar-alt"></i> Consulta</h5>
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="info-label">Data da Consulta</span>
-                            <span class="info-value">{{ formatar_data(receita[10], '%d/%m/%Y às %H:%M') if receita and receita[10] else 'N/A' }}</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Diagnóstico -->
-                {% if diagnostico_html %}
-                <div class="receita-content">
-                    <h4><i class="fas fa-stethoscope"></i> Diagnóstico</h4>
-                    <div class="diagnostico-conteudo">
-                        {{ diagnostico_html|safe }}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Prescrição -->
-                {% if prescricao_html %}
-                <div class="receita-content">
-                    <h4><i class="fas fa-prescription-bottle-alt"></i> Prescrição</h4>
-                    <div class="prescricao-conteudo">
-                        {{ prescricao_html|safe }}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Recomendações -->
-                {% if recomendacoes_html %}
-                <div class="receita-content">
-                    <h4><i class="fas fa-clipboard-list"></i> Recomendações</h4>
-                    <div class="recomendacoes-conteudo">
-                        {{ recomendacoes_html|safe }}
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- Assinatura -->
-                <div class="assinatura">
-                    <div class="assinatura-content">
-                        <span class="nome-medico">{{ receita[11] if receita and receita[11] else 'Médico Responsável' }}</span>
-                        <span class="crm">CRM: {{ receita[13] if receita and receita[13] else 'N/A' }}</span>
-                    </div>
-                    <div class="digital">
-                        <i class="fas fa-certificate"></i>
-                        <span>Assinatura Digital - Documento eletrônico válido</span>
-                    </div>
-                </div>
-                
-                <!-- Botões de Ação -->
-                <div class="btn-group-action no-print">
-                    {% if receita and receita[7] and receita[8] %}
-                    <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita[0]) }}" 
-                       class="btn-action btn-pdf">
-                        <i class="fas fa-download"></i> Download PDF
-                    </a>
+                    {% else %}
+                        Data não disponível
                     {% endif %}
-                    
-                    <button onclick="window.print()" class="btn-action btn-print">
-                        <i class="fas fa-print"></i> Imprimir
-                    </button>
-                    
-                    <a href="{{ url_for('paciente.minhas_receitas') }}" class="btn-action btn-back">
-                        <i class="fas fa-arrow-left"></i> Voltar
-                    </a>
+                </small>
+            </div>
+        </div>
+
+        <hr class="my-3">
+
+        <!-- MÉDICO -->
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-user-md me-2"></i>Médico Responsável
+            </h6>
+            <p class="mb-1 fw-semibold">{{ receita.medico_nome or 'Não informado' }}</p>
+            <small class="text-muted d-block" style="font-size: 0.75rem;">
+                {% if receita.especialidade %}{{ receita.especialidade }} | {% endif %}
+                {% if receita.crm %}CRM: {{ receita.crm }}{% else %}CRM não informado{% endif %}
+            </small>
+        </div>
+
+        <!-- PACIENTE -->
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-user me-2"></i>Paciente
+            </h6>
+            <p class="mb-1 fw-semibold">{{ receita.paciente_nome or receita.nome_paciente or 'Não informado' }}</p>
+            <small class="text-muted" style="font-size: 0.75rem;">
+                {% if receita.paciente_idade %}Idade: {{ receita.paciente_idade }} anos{% endif %}
+                {% if receita.paciente_idade and receita.paciente_sexo %} | {% endif %}
+                {% if receita.paciente_sexo %}Sexo: {{ receita.paciente_sexo }}{% endif %}
+            </small>
+        </div>
+
+        <!-- DATA DA CONSULTA -->
+        {% if receita.data_consulta %}
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-calendar-alt me-2"></i>Data da Consulta
+            </h6>
+            <p class="mb-0">
+                {% if receita.data_consulta is string %}
+                    {{ receita.data_consulta }}
+                {% else %}
+                    {{ receita.data_consulta.strftime('%d/%m/%Y') if receita.data_consulta else 'Não informada' }}
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- DIAGNÓSTICO -->
+        {% if receita.diagnostico %}
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-stethoscope me-2"></i>Diagnóstico
+            </h6>
+            <div class="box-texto">
+                {{ receita.diagnostico|safe }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- PRESCRIÇÃO PROFISSIONAL -->
+        {% if receita.prescricao %}
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-prescription-bottle-alt me-2"></i>Prescrição Médica
+            </h6>
+
+            <div class="box-prescricao">
+                {% set medicamentos = receita.prescricao.split('\n\n') if receita.prescricao.find('\n\n') > -1 else [receita.prescricao] %}
+                
+                {% for med in medicamentos if med.strip() %}
+                    {% if med.strip() %}
+                    <div class="med-card">
+                        {% set linhas = med.split('\n') %}
+                        
+                        <!-- NOME DO MEDICAMENTO -->
+                        <div class="med-titulo">
+                            <i class="fas fa-capsules me-2"></i>{{ linhas[0].strip() }}
+                        </div>
+                        
+                        <!-- DETALHES -->
+                        <ul class="med-detalhes">
+                            {% for linha in linhas[1:] %}
+                                {% if linha.strip() %}
+                                <li>{{ linha.strip() }}</li>
+                                {% endif %}
+                            {% endfor %}
+                        </ul>
+                        
+                        <!-- STATUS DO MEDICAMENTO -->
+                        <div class="med-status mt-2">
+                            <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
+                                <i class="fas fa-check-circle text-success"></i> Válido
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bloco">
+            <div class="alert alert-warning py-2" style="font-size: 0.85rem;">
+                <i class="fas fa-exclamation-triangle me-2"></i> Nenhuma prescrição registrada.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- RECOMENDAÇÕES -->
+        {% if receita.recomendacoes %}
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-clipboard-list me-2"></i>Recomendações e Orientações
+            </h6>
+            <div class="box-texto">
+                {{ receita.recomendacoes|safe }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- VALIDADE -->
+        <div class="bloco">
+            <h6 class="fs-6 fw-semibold">
+                <i class="fas fa-hourglass-half me-2"></i>Validade da Receita
+            </h6>
+            <p class="mb-0 small">
+                <i class="fas fa-calendar-alt me-2"></i>
+                {% if receita.validade_dias %}
+                Válida por {{ receita.validade_dias }} dias a partir da data de emissão
+                {% else %}
+                Consulte o prazo de validade com seu médico
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="rodape-receita">
+            <div class="assinatura text-center">
+                <p class="mb-0" style="letter-spacing: 1px;">__________________________________</p>
+                <strong class="small">{{ receita.medico_nome or 'Médico Responsável' }}</strong><br>
+                <small class="text-muted" style="font-size: 0.65rem;">Assinatura do Médico</small>
+                <div class="mt-1">
+                    <small class="text-muted" style="font-size: 0.65rem;">CRM: {{ receita.crm or 'Não informado' }}</small>
                 </div>
             </div>
-            
-            <!-- Rodapé -->
-            <div class="receita-footer no-print">
-                <p class="footer-text">
-                    <i class="fas fa-heart"></i> Esta receita foi emitida digitalmente e possui validade legal em todo território nacional
-                </p>
+
+            <div class="validacao text-center text-md-end mt-3 mt-md-0">
+                <small class="d-block" style="font-size: 0.65rem;">Documento eletrônico emitido por sistema validado</small>
+                <small class="text-muted d-block" style="font-size: 0.65rem;">
+                    Emissão: 
+                    {% if receita.created_at %}
+                        {% if receita.created_at is string %}
+                            {{ receita.created_at }}
+                        {% else %}
+                            {{ receita.created_at.strftime('%d/%m/%Y %H:%M') }}
+                        {% endif %}
+                    {% else %}
+                        Data não disponível
+                    {% endif %}
+                </small>
+                {% if receita.pdf_gerado and receita.receita_pdf_path %}
+                <span class="badge bg-success mt-1" style="font-size: 0.7rem;">
+                    <i class="fas fa-check-circle"></i> PDF disponível
+                </span>
+                {% elif receita.pdf_gerado %}
+                <span class="badge bg-warning mt-1" style="font-size: 0.7rem;">
+                    <i class="fas fa-exclamation-triangle"></i> PDF não encontrado
+                </span>
+                {% else %}
+                <span class="badge bg-secondary mt-1" style="font-size: 0.7rem;">
+                    <i class="fas fa-clock"></i> PDF não gerado
+                </span>
+                {% endif %}
             </div>
         </div>
     </div>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- AÇÕES ADICIONAIS -->
+    <div class="mt-3 mt-md-4">
+        <div class="alert alert-info alert-dismissible fade show py-2 py-md-3" role="alert" style="font-size: 0.8rem;">
+            <i class="fas fa-info-circle me-2"></i>
+            Esta receita é um documento oficial. Em caso de dúvidas, entre em contato com seu médico.
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close" style="font-size: 0.7rem;"></button>
+        </div>
+        
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <button onclick="shareReceipt()" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-share-alt"></i> Compartilhar
+            </button>
+            
+            <button onclick="sendToEmail()" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-envelope"></i> Enviar e-mail
+            </button>
+            
+            <button onclick="saveToDevice()" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+            
+            <button onclick="gerarPDF()" class="btn btn-outline-danger btn-sm" id="btnGerarPDF">
+                <i class="fas fa-file-pdf"></i> Gerar PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Reset e configurações base */
+* {
+    box-sizing: border-box;
+}
+
+/* Container principal */
+.container {
+    max-width: 100%;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+/* Card da receita */
+.receita-premium {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+/* Topo responsivo */
+.receita-topo {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 5px;
+}
+
+/* Blocos */
+.bloco {
+    margin-bottom: 20px;
+    page-break-inside: avoid;
+}
+
+.bloco h6 {
+    color: #0d6efd;
+    font-weight: 600;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Caixas de texto */
+.box-texto {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 8px;
+    border-left: 3px solid #0d6efd;
+    line-height: 1.5;
+    font-size: 0.85rem;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* Prescrição */
+.box-prescricao {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+/* Cards de medicamentos */
+.med-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-left: 4px solid #28a745;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+}
+
+.med-card:active {
+    transform: scale(0.99);
+}
+
+.med-titulo {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #0d6efd;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    word-wrap: break-word;
+}
+
+.med-detalhes {
+    padding-left: 0;
+    margin: 0;
+    list-style: none;
+}
+
+.med-detalhes li {
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+    position: relative;
+    padding-left: 18px;
+    line-height: 1.4;
+    word-wrap: break-word;
+}
+
+.med-detalhes li::before {
+    content: "•";
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1rem;
+    position: absolute;
+    left: 0;
+    top: -1px;
+}
+
+/* Rodapé */
+.rodape-receita {
+    margin-top: 30px;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-top: 1px dashed #dee2e6;
+}
+
+.assinatura {
+    text-align: center;
+    flex: 1;
+}
+
+.assinatura p {
+    margin-bottom: 4px;
+    letter-spacing: 1px;
+}
+
+/* Badges */
+.badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+}
+
+/* Loading spinner */
+.spinner-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+}
+
+.spinner-content {
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    text-align: center;
+    min-width: 200px;
+}
+
+.spinner-border {
+    width: 2rem;
+    height: 2rem;
+}
+
+/* Toast notifications */
+.toast-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 12px;
+    padding: 12px 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 9999;
+    transform: translateY(100px);
+    transition: transform 0.3s ease;
+    border-left: 4px solid;
+    max-width: 90%;
+    margin: 0 auto;
+}
+
+.toast-notification.show {
+    transform: translateY(0);
+}
+
+.toast-success {
+    border-left-color: #28a745;
+}
+
+.toast-error {
+    border-left-color: #dc3545;
+}
+
+.toast-info {
+    border-left-color: #17a2b8;
+}
+
+.toast-warning {
+    border-left-color: #ffc107;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+.toast-content i {
+    font-size: 1rem;
+}
+
+/* Animação */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.receita-premium {
+    animation: fadeIn 0.4s ease-out;
+}
+
+/* Media Queries para responsividade */
+@media (min-width: 576px) {
+    .container {
+        max-width: 540px;
+        margin: 0 auto;
+    }
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Função para ajustar elementos no mobile
-            function adjustForMobile() {
-                const width = window.innerWidth;
-                const contentDivs = document.querySelectorAll('.diagnostico-conteudo, .prescricao-conteudo, .recomendacoes-conteudo');
-                
-                if (width <= 576) {
-                    contentDivs.forEach(div => {
-                        div.style.fontSize = '0.85rem';
-                    });
-                } else {
-                    contentDivs.forEach(div => {
-                        div.style.fontSize = '0.9rem';
-                    });
-                }
-            }
+    .receita-premium {
+        padding: 25px;
+    }
+    
+    .receita-topo {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .rodape-receita {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+    
+    .validacao {
+        text-align: right;
+    }
+    
+    .toast-notification {
+        left: auto;
+        right: 20px;
+        max-width: 320px;
+        transform: translateX(400px);
+    }
+    
+    .toast-notification.show {
+        transform: translateX(0);
+    }
+}
 
-            adjustForMobile();
-            window.addEventListener('resize', adjustForMobile);
+@media (min-width: 768px) {
+    .container {
+        max-width: 720px;
+    }
+    
+    .receita-premium {
+        padding: 30px;
+    }
+    
+    .bloco h6 {
+        font-size: 1rem;
+    }
+    
+    .med-titulo {
+        font-size: 1rem;
+    }
+    
+    .med-detalhes li {
+        font-size: 0.85rem;
+    }
+}
 
-            // Destacar medicamentos na prescrição
-            const prescricao = document.querySelector('.prescricao-conteudo');
-            if (prescricao) {
-                const medicamentos = ['mg', 'ml', 'g', 'comprimido', 'cápsula', 'gotas', 'xarope', 'solução', 'drágea'];
-                let html = prescricao.innerHTML;
-                medicamentos.forEach(med => {
-                    const regex = new RegExp(`\\b(\\d+)\\s*(${med})\\b`, 'gi');
-                    html = html.replace(regex, '<span class="medicamento-destaque">$1 $2</span>');
-                });
-                prescricao.innerHTML = html;
-            }
+@media (min-width: 992px) {
+    .container {
+        max-width: 960px;
+    }
+}
 
-            // Adicionar feedback tátil para botões em mobile
-            if ('ontouchstart' in window) {
-                document.querySelectorAll('.btn-action').forEach(btn => {
-                    btn.addEventListener('touchstart', function() {
-                        this.style.opacity = '0.8';
-                    });
-                    btn.addEventListener('touchend', function() {
-                        this.style.opacity = '1';
-                    });
-                });
+/* Melhorias para touch */
+button, .btn {
+    min-height: 44px;
+    cursor: pointer;
+}
+
+.btn-sm {
+    min-height: 38px;
+}
+
+/* Melhorias para impressão */
+@media print {
+    .btn, nav, footer, .btn-group, .alert, .mt-3.mt-md-4, .spinner-overlay {
+        display: none !important;
+    }
+    
+    .receita-premium {
+        padding: 0;
+        border: none;
+        box-shadow: none;
+        animation: none;
+    }
+    
+    .med-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ddd;
+    }
+    
+    .rodape-receita {
+        break-inside: avoid;
+    }
+    
+    body {
+        background: white;
+    }
+    
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    .receita-premium {
+        background: #1a1a1a;
+        border-color: #333;
+    }
+    
+    .box-texto, .box-prescricao {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+    
+    .med-card {
+        background: #2d2d2d;
+        border-left-color: #28a745;
+    }
+    
+    .med-titulo {
+        color: #4dabf7;
+    }
+    
+    .alert-info {
+        background-color: #0c5460;
+        border-color: #0c5460;
+        color: #d1ecf1;
+    }
+    
+    .toast-notification {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+    
+    .spinner-content {
+        background: #2d2d2d;
+        color: #e0e0e0;
+    }
+}
+</style>
+
+<script>
+console.log("Receita profissional carregada");
+
+// Função para gerar PDF
+async function gerarPDF() {
+    const btnGerar = document.getElementById('btnGerarPDF');
+    const originalText = btnGerar.innerHTML;
+    
+    // Mostrar loading
+    btnGerar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+    btnGerar.disabled = true;
+    
+    // Mostrar overlay de loading
+    showLoadingOverlay();
+    
+    try {
+        const response = await fetch(`{{ url_for('paciente.gerar_pdf_receita', receita_id=receita.id) }}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
             }
         });
-
-        // Função de impressão
-        function imprimirReceita() {
-            window.print();
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast('✓ PDF gerado com sucesso!', 'success');
+            // Recarregar a página após 1.5 segundos para mostrar o novo PDF
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            showToast('✗ Erro ao gerar PDF: ' + (result.message || 'Tente novamente'), 'error');
+            btnGerar.innerHTML = originalText;
+            btnGerar.disabled = false;
         }
-    </script>
+    } catch (error) {
+        console.error('Erro:', error);
+        showToast('✗ Erro de conexão ao gerar PDF', 'error');
+        btnGerar.innerHTML = originalText;
+        btnGerar.disabled = false;
+    } finally {
+        hideLoadingOverlay();
+    }
+}
 
-    <style>
-        /* Melhorias adicionais para mobile */
-        @media (max-width: 360px) {
-            .header-content h2 {
-                font-size: 1.3rem;
-            }
-            
-            .header-badge {
-                font-size: 0.75rem;
-                padding: 6px 12px;
-            }
-            
-            .info-section {
-                padding: 12px;
-            }
-            
-            .info-label {
-                font-size: 0.65rem;
-            }
-            
-            .info-value {
-                font-size: 0.85rem;
-            }
-            
-            .badge-status {
-                padding: 4px 10px;
-                font-size: 0.7rem;
-            }
-        }
+// Função para mostrar overlay de loading
+function showLoadingOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.className = 'spinner-overlay';
+    overlay.innerHTML = `
+        <div class="spinner-content">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-2 mb-0">Gerando PDF, aguarde...</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
 
-        /* Ajuste para toque */
-        .btn-action {
-            -webkit-tap-highlight-color: transparent;
-        }
+// Função para esconder overlay de loading
+function hideLoadingOverlay() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
 
-        .btn-action:focus {
-            outline: none;
-        }
+// Função para copiar texto da receita
+function copyToClipboard() {
+    const content = document.getElementById('receita-content');
+    const range = document.createRange();
+    range.selectNode(content);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    
+    try {
+        document.execCommand('copy');
+        showToast('✓ Receita copiada com sucesso!', 'success');
+    } catch (err) {
+        showToast('✗ Erro ao copiar receita', 'error');
+    }
+    
+    window.getSelection().removeAllRanges();
+}
 
-        /* Animações suaves */
-        .info-section, .receita-content {
-            transition: all 0.3s ease;
-        }
+// Função para compartilhar receita
+function shareReceipt() {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Receita Médica',
+            text: 'Receita médica do sistema DoctorIA',
+            url: window.location.href
+        }).catch(console.error);
+    } else {
+        copyToClipboard();
+        showToast('Link copiado para compartilhar', 'info');
+    }
+}
 
-        .info-section:active {
-            background: #f3f4f6;
+// Função para enviar por e-mail
+function sendToEmail() {
+    const email = prompt('Digite o e-mail para envio da receita:');
+    if (email && email.includes('@')) {
+        showToast('✓ Receita enviada para ' + email, 'success');
+        // Aqui você pode implementar o envio real via backend
+    } else if (email) {
+        showToast('✗ E-mail inválido', 'error');
+    }
+}
+
+// Função para salvar no dispositivo
+function saveToDevice() {
+    // Salvar como HTML
+    const content = document.getElementById('receita-content').outerHTML;
+    const blob = new Blob([content], {type: 'text/html'});
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `receita_${Date.now()}.html`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast('✓ Receita salva no dispositivo', 'success');
+}
+
+// Função para mostrar notificações
+function showToast(message, type = 'info') {
+    // Remove toast existente
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    if (type === 'error') icon = 'fa-exclamation-circle';
+    if (type === 'warning') icon = 'fa-exclamation-triangle';
+    
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    
+    // Forçar reflow
+    toast.offsetHeight;
+    
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Adicionar suporte a gestos touch
+let touchStartX = 0;
+let touchEndX = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+});
+
+document.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+});
+
+function handleSwipe() {
+    const swipeThreshold = 50;
+    const diff = touchEndX - touchStartX;
+    
+    if (Math.abs(diff) > swipeThreshold) {
+        if (diff > 0) {
+            // Swipe direita - voltar
+            window.history.back();
         }
-    </style>
-</body>
-</html>
+    }
+}
+</script>
+
+{% endblock %}

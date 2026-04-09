@@ -1,0 +1,277 @@
+{% extends "enfermeiro/base_enfermeiro.html" %}
+
+{% block title %}Triagem - Consultas Pendentes{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="{{ url_for('enfermeiro.dashboard.index') }}">
+                            <i class="fas fa-home me-1"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        <i class="fas fa-clock me-1"></i> Triagem
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-0">
+                <i class="fas fa-clock text-primary me-2"></i>
+                Consultas para Triagem
+            </h2>
+            <p class="text-muted">
+                <i class="fas fa-calendar-alt me-1"></i>
+                {{ hoje.strftime('%d/%m/%Y') }}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais') }}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-1"></i>
+                Nova Aferição
+            </a>
+        </div>
+    </div>
+
+    <!-- Card de Resumo -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Total Hoje</h6>
+                            <h3 class="mb-0">{{ consultas|length }}</h3>
+                        </div>
+                        <i class="fas fa-calendar-day fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-warning stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Pendentes</h6>
+                            <h3 class="mb-0">{{ consultas|selectattr('status_triagem', 'equalto', 'NAO_REALIZADA')|list|length }}</h3>
+                        </div>
+                        <i class="fas fa-hourglass-half fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success stat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-white-50 mb-1">Realizadas</h6>
+                            <h3 class="mb-0">{{ consultas|selectattr('status_triagem', 'equalto', 'REALIZADA')|list|length }}</h3>
+                        </div>
+                        <i class="fas fa-check-circle fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Consultas -->
+    <div class="card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span>
+                <i class="fas fa-list me-2 text-primary"></i>
+                <strong>Lista de Consultas</strong>
+            </span>
+            <span class="badge bg-primary">{{ consultas|length }} consulta(s)</span>
+        </div>
+        <div class="card-body p-0">
+            {% if consultas %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Hora</th>
+                            <th>Paciente</th>
+                            <th>Status</th>
+                            <th>Triagem</th>
+                            <th>Sinais</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for consulta in consultas %}
+                        <tr class="{% if consulta.status_triagem == 'REALIZADA' %}table-success{% endif %}">
+                            <td class="align-middle">
+                                <span class="fw-bold">{{ consulta.hora_chegada }}</span>
+                            </td>
+                            <td class="align-middle">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-paciente me-2">
+                                        {{ consulta.paciente_nome[0] }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ consulta.paciente_nome }}</strong>
+                                        <br>
+                                        <small class="text-muted">ID: {{ consulta.paciente_id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="align-middle">
+                                {% if consulta.status == 'AGUARDANDO' %}
+                                    <span class="badge bg-warning">Aguardando</span>
+                                {% elif consulta.status == 'EM_ATENDIMENTO' %}
+                                    <span class="badge bg-primary">Em Atendimento</span>
+                                {% elif consulta.status == 'FINALIZADA' %}
+                                    <span class="badge bg-success">Finalizada</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ consulta.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                {% if consulta.status_triagem == 'REALIZADA' %}
+                                    <span class="badge bg-success">Realizada</span>
+                                {% else %}
+                                    <span class="badge bg-warning">Pendente</span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                {% if consulta.tem_sinais_vitais > 0 %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        {{ consulta.tem_sinais_vitais }} registro(s)
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Nenhum</span>
+                                {% endif %}
+                            </td>
+                            <td class="align-middle">
+                                <div class="btn-group" role="group">
+                                    {% if consulta.status_triagem != 'REALIZADA' %}
+                                    <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                       class="btn btn-sm btn-primary" title="Realizar Triagem">
+                                        <i class="fas fa-stethoscope"></i>
+                                    </a>
+                                    {% endif %}
+                                    <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" 
+                                       class="btn btn-sm btn-info" title="Detalhes da Consulta">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais', paciente=consulta.paciente_nome) }}" 
+                                       class="btn btn-sm btn-secondary" title="Ver Sinais Vitais">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-calendar-check fa-4x text-muted mb-3"></i>
+                <h4>Nenhuma consulta para hoje</h4>
+                <p class="text-muted">
+                    Não há consultas agendadas para {{ hoje.strftime('%d/%m/%Y') }}.
+                </p>
+                <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="btn btn-outline-primary mt-3">
+                    <i class="fas fa-arrow-left me-1"></i>
+                    Voltar ao Dashboard
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Informações Adicionais -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    Instruções para Triagem
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li class="mb-2">✓ Realize a triagem antes do atendimento médico</li>
+                        <li class="mb-2">✓ Registre todos os sinais vitais do paciente</li>
+                        <li class="mb-2">✓ Verifique valores alterados e comunique ao médico</li>
+                        <li class="mb-2">✓ Anote observações relevantes no campo apropriado</li>
+                        <li>✓ Utilize equipamentos calibrados e siga os protocolos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <i class="fas fa-exclamation-triangle me-2 text-warning"></i>
+                    Alertas
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning py-2 mb-2">
+                        <i class="fas fa-clock me-2"></i>
+                        Pacientes em espera há mais de 30 minutos devem ser priorizados
+                    </div>
+                    <div class="alert alert-danger py-2 mb-0">
+                        <i class="fas fa-heartbeat me-2"></i>
+                        Valores críticos requerem atenção imediata do médico
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        border: none;
+        border-radius: 12px;
+        transition: transform 0.3s;
+    }
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    .avatar-paciente {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1rem;
+    }
+    .breadcrumb {
+        background-color: transparent;
+        padding: 0;
+    }
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    .breadcrumb-item a:hover {
+        text-decoration: underline;
+    }
+    .table > :not(caption) > * > * {
+        vertical-align: middle;
+    }
+    .btn-group .btn {
+        padding: 0.25rem 0.5rem;
+    }
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.4em 0.6em;
+    }
+</style>
+{% endblock %}
