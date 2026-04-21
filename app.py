@@ -34,7 +34,7 @@ from routes.pedido_analise import init_pedido_analise
 from routes.enfermeiro import init_enfermeiro
 from routes.assinatura import assinatura_bp
 from routes.admin import init_admin
-from routes.farmaceutico import farmaceutico_bp  # NOVO: importar farmacêutico
+from routes.farmaceutico import farmaceutico_bp
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -44,8 +44,58 @@ app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = TimingMiddleware(app.wsgi_app)
 
-# ========== INICIALIZAÇÃO DO BANCO DE DADOS ==========
-mysql = MySQL(app)
+# ========== INICIALIZAÇÃO DO BANCO DE DADOS COM PYMYSQL ==========
+class MySQLConnection:
+    """Classe substituta para flask_mysqldb usando PyMySQL"""
+    
+    def __init__(self, app=None):
+        self.app = app
+        self._connection = None
+        if app is not None:
+            self.init_app(app)
+    
+    def init_app(self, app):
+        self.app = app
+    
+    def get_connection(self):
+        """Retorna uma conexão ativa com o banco"""
+        if self._connection is None or not self._connection.open:
+            import pymysql
+            import os
+            
+            # Obter configurações do app ou environment variables
+            config = {
+                'host': os.environ.get('MYSQL_HOST', app.config.get('MYSQL_HOST', 'localhost')),
+                'user': os.environ.get('MYSQL_USER', app.config.get('MYSQL_USER', 'root')),
+                'password': os.environ.get('MYSQL_PASSWORD', app.config.get('MYSQL_PASSWORD', '')),
+                'database': os.environ.get('MYSQL_DB', app.config.get('MYSQL_DB', 'defaultdb')),
+                'port': int(os.environ.get('MYSQL_PORT', app.config.get('MYSQL_PORT', 3306))),
+                'cursorclass': pymysql.cursors.DictCursor,
+                'autocommit': False
+            }
+            
+            # Adicionar SSL se necessário
+            ssl_mode = os.environ.get('MYSQL_SSL_MODE', app.config.get('MYSQL_SSL_MODE', 'DISABLED'))
+            if ssl_mode == 'REQUIRED':
+                config['ssl'] = {'ssl-mode': 'REQUIRED'}
+            
+            self._connection = pymysql.connect(**config)
+        
+        return self._connection
+    
+    @property
+    def connection(self):
+        """Propriedade para compatibilidade com código existente"""
+        return self.get_connection()
+    
+    def close(self):
+        """Fecha a conexão"""
+        if self._connection and self._connection.open:
+            self._connection.close()
+            self._connection = None
+
+# Instanciar o objeto mysql para compatibilidade
+mysql = MySQLConnection(app)
 
 # ========== CONFIGURAÇÃO GEMINI AI ==========
 api_key = app.config.get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY')
@@ -83,7 +133,7 @@ except Exception as e:
     print(f"[1/10] Erro ao registrar Auth: {e}")
     raise
 
-# 2. Médico (COM serviço de receitas)
+# 2. Médico
 try:
     medico_bp = init_medico(
         mysql=mysql, 
@@ -205,7 +255,7 @@ except Exception as e:
     print(f"[9/10] Erro ao registrar Admin: {e}")
     raise
 
-# 10. FARMACÊUTICO - NOVO
+# 10. FARMACÊUTICO
 try:
     app.register_blueprint(farmaceutico_bp)
     print("[10/10] Farmaceutico blueprint registrado com sucesso!")
@@ -236,7 +286,7 @@ with app.app_context():
         'enfermeiro.dashboard.index',
         'admin.login', 'admin.dashboard',
         'assinatura.index',
-        'farmaceutico.dashboard'  # NOVO
+        'farmaceutico.dashboard'
     ]
     
     for endpoint in endpoints_procurados:
@@ -420,7 +470,8 @@ def api_pedidos_recentes():
     medico_id = session.get('medico_id')
     
     try:
-        cur = mysql.connection.cursor()
+        conn = mysql.get_connection()
+        cur = conn.cursor()
         cur.execute("""
             SELECT 
                 pa.id,
@@ -491,7 +542,8 @@ def api_notificacoes():
     medico_id = session.get('medico_id')
     
     try:
-        cur = mysql.connection.cursor()
+        conn = mysql.get_connection()
+        cur = conn.cursor()
         cur.execute("""
             SELECT 
                 pa.id,
@@ -575,7 +627,8 @@ def dashboard_geral():
 def health_check():
     db_status = 'connected'
     try:
-        mysql.connection.ping(True)
+        conn = mysql.get_connection()
+        conn.ping()
     except:
         db_status = 'disconnected'
     
@@ -663,7 +716,6 @@ def criar_pedido_teste_analista():
         logger.error(f"Erro ao criar pedido de teste: {e}")
         flash(f'Erro: {str(e)}', 'danger')
         return redirect(url_for('analista.dashboard'))
-        
 
 if __name__ == '__main__':
     app.secret_key = app.config.get('SECRET_KEY', 'default_secret_key')
@@ -672,16 +724,16 @@ if __name__ == '__main__':
     print("\n" + "=" * 70)
     print(" SISTEMA MEDICO INICIADO COM SUCESSO!")
     print("=" * 70)
-    print(f" URL principal: http://localhost:50048")
-    print(f" Health check: http://localhost:50048/health")
-    print(f" Teste Gemini: http://localhost:50048/api/test-gemini")
-    print(f" Criar pedido teste: http://localhost:50048/criar-pedido-teste-analista")
-    print(f" Admin login: http://localhost:50048/admin/login")
-    print(f" Enfermeiro dashboard: http://localhost:50048/enfermeiro/dashboard/")
-    print(f" FARMACÊUTICO login: http://localhost:50048/auth/login")
-    print(f" FARMACÊUTICO dashboard: http://localhost:50048/farmaceutico/dashboard")
-    print(f" ASSINATURA: http://localhost:50048/assinatura/")
-    print(f" Teste assinatura: http://localhost:50048/assinatura/teste")
+    print(f" URL principal: http://localhost:5000")
+    print(f" Health check: http://localhost:5000/health")
+    print(f" Teste Gemini: http://localhost:5000/api/test-gemini")
+    print(f" Criar pedido teste: http://localhost:5000/criar-pedido-teste-analista")
+    print(f" Admin login: http://localhost:5000/admin/login")
+    print(f" Enfermeiro dashboard: http://localhost:5000/enfermeiro/dashboard/")
+    print(f" FARMACÊUTICO login: http://localhost:5000/auth/login")
+    print(f" FARMACÊUTICO dashboard: http://localhost:5000/farmaceutico/dashboard")
+    print(f" ASSINATURA: http://localhost:5000/assinatura/")
+    print(f" Teste assinatura: http://localhost:5000/assinatura/teste")
     print(f"\n Gemini: {' ATIVO' if gemini_available else ' INATIVO'}")
     print(f"   Modelo: {MODEL_NAME or 'Nenhum'}")
     if not gemini_available:
@@ -700,7 +752,7 @@ if __name__ == '__main__':
     print("    FARMACÊUTICO")
     print("=" * 70)
     print("\n SISTEMA PRONTO PARA USO!")
-    print(" Acesse: http://localhost:50048")
+    print(" Acesse: http://localhost:5000")
     print("=" * 70 + "\n")
     
-    app.run(host='0.0.0.0', port=50048, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
