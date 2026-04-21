@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session, send_file, current_app
-from flask_mysqldb import MySQL
+import pymysql
+pymysql.install_as_MySQLdb()
 import os
 from datetime import datetime, timedelta, date
 import traceback
