@@ -1,9 +1,6 @@
-# app.py - VERSÃO FINAL COMPLETA E CORRIGIDA COM ADMIN COMPLETO E ENFERMEIRO
-# COM DASHBOARD OTIMIZADO - UMA ÚNICA CONSULTA AO BANCO
-# COM FARMACÊUTICO INTEGRADO
-
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
-from flask_mysqldb import MySQL
+import pymysql
+pymysql.install_as_MySQLdb()
 import uuid
 from datetime import datetime
 from config import Config
