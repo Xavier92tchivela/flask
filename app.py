@@ -861,6 +861,9 @@ def init_database():
         logger.error(f"❌ Erro ao inicializar banco de dados: {e}")
         return False
 
+# Criar uma variável 'application' para o Gunicorn
+application = app
+
 if __name__ == '__main__':
     # Inicializar banco de dados
     init_database()
