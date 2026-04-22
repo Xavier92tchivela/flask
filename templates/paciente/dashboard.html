@@ -14,7 +14,7 @@
                          style="width: 60px; height: 60px;">
                         <i class="fas fa-user-injured text-white fs-4"></i>
                     </div>
-                    <h6 class="mb-0 fw-bold">{{ paciente_nome|truncate(15) }}</h6>
+                    <h6 class="mb-0 fw-bold">{{ paciente_nome|truncate(15) if paciente_nome else 'Paciente' }}</h6>
                     <small class="text-muted">Paciente</small>
                 </div>
 
@@ -24,7 +24,7 @@
                         <a class="nav-link active" href="{{ url_for('paciente.dashboard') }}">
                             <i class="fas fa-tachometer-alt me-2"></i>
                             Dashboard
-                            <span class="badge bg-primary float-end">{{ stats.total_consultas }}</span>
+                            <span class="badge bg-primary float-end">{{ stats.total_consultas if stats else 0 }}</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -117,7 +117,7 @@
                     <h1 class="h2 mb-0">
                         <i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard
                     </h1>
-                    <p class="text-muted mb-0">Bem-vindo, {{ paciente_nome|truncate(20) }}!</p>
+                    <p class="text-muted mb-0">Bem-vindo, {{ paciente_nome|truncate(20) if paciente_nome else 'Usuário' }}!</p>
                 </div>
                 <div class="btn-toolbar mb-2 mb-md-0 w-100 w-md-auto">
                     <div class="btn-group w-100 w-md-auto">
@@ -139,8 +139,8 @@
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
                                     <h6 class="card-title text-white-50 mb-1 small">Consultas Totais</h6>
-                                    <h2 class="mb-0 fs-3 fs-md-2">{{ stats.total_consultas }}</h2>
-                                    <small class="d-none d-sm-inline">+2 esta semana</small>
+                                    <h2 class="mb-0 fs-3 fs-md-2">{{ stats.total_consultas if stats else 0 }}</h2>
+                                    <small class="d-none d-sm-inline">Total de consultas</small>
                                 </div>
                                 <div class="rounded-circle bg-white-20 p-2 p-md-3">
                                     <i class="fas fa-calendar-alt fa-1x fa-md-2x"></i>
@@ -157,7 +157,7 @@
                                 <div>
                                     <h6 class="card-title text-white-50 mb-1 small">Realizadas</h6>
                                     <h2 class="mb-0 fs-3 fs-md-2">{{ consultas_realizadas or 0 }}</h2>
-                                    <small class="d-none d-sm-inline">80% comparecimento</small>
+                                    <small class="d-none d-sm-inline">Consultas realizadas</small>
                                 </div>
                                 <div class="rounded-circle bg-white-20 p-2 p-md-3">
                                     <i class="fas fa-check-circle fa-1x fa-md-2x"></i>
@@ -174,7 +174,7 @@
                                 <div>
                                     <h6 class="card-title text-white-50 mb-1 small">Agendadas</h6>
                                     <h2 class="mb-0 fs-3 fs-md-2">{{ consultas_agendadas or 0 }}</h2>
-                                    <small class="d-none d-sm-inline">{{ stats.consultas_hoje }} hoje</small>
+                                    <small class="d-none d-sm-inline">{{ stats.consultas_hoje if stats else 0 }} hoje</small>
                                 </div>
                                 <div class="rounded-circle bg-white-20 p-2 p-md-3">
                                     <i class="fas fa-clock fa-1x fa-md-2x"></i>
@@ -191,7 +191,7 @@
                                 <div>
                                     <h6 class="card-title text-white-50 mb-1 small">Canceladas</h6>
                                     <h2 class="mb-0 fs-3 fs-md-2">{{ consultas_canceladas or 0 }}</h2>
-                                    <small class="d-none d-sm-inline">20% cancelamento</small>
+                                    <small class="d-none d-sm-inline">Consultas canceladas</small>
                                 </div>
                                 <div class="rounded-circle bg-white-20 p-2 p-md-3">
                                     <i class="fas fa-times-circle fa-1x fa-md-2x"></i>
@@ -220,11 +220,11 @@
                             <div class="row">
                                 <div class="col-12 col-md-6 mb-3">
                                     <label class="small text-muted mb-1">Nome Completo</label>
-                                    <p class="mb-2 fw-bold text-break">{{ paciente_nome }}</p>
+                                    <p class="mb-2 fw-bold text-break">{{ paciente_nome or 'Não informado' }}</p>
                                 </div>
                                 <div class="col-12 col-md-6 mb-3">
                                     <label class="small text-muted mb-1">Email</label>
-                                    <p class="mb-2 text-break">{{ paciente_email }}</p>
+                                    <p class="mb-2 text-break">{{ paciente_email or 'Não informado' }}</p>
                                 </div>
                                 <div class="col-6 col-md-6 mb-3">
                                     <label class="small text-muted mb-1">Telefone</label>
@@ -256,15 +256,15 @@
                             </h5>
                         </div>
                         <div class="card-body p-3 p-md-4">
-                            {% if consultas %}
+                            {% if consultas and consultas|length > 0 %}
                                 {% set proxima = consultas[0] %}
                                 <div class="text-center mb-3">
                                     <div class="mb-3">
                                         <div class="display-6 fw-bold text-primary">{{ proxima.data_hora.split(' ')[1] if proxima.data_hora else '--:--' }}</div>
                                         <div class="small text-muted">{{ proxima.data_hora.split(' ')[0] if proxima.data_hora else '--/--/----' }}</div>
                                     </div>
-                                    <h6 class="mb-2 text-truncate">{{ proxima.medico_nome }}</h6>
-                                    <span class="badge bg-{{ proxima.status_class }} mb-3">{{ proxima.status|capitalize }}</span>
+                                    <h6 class="mb-2 text-truncate">{{ proxima.medico_nome or 'Médico' }}</h6>
+                                    <span class="badge bg-{{ proxima.status_class }} mb-3">{{ proxima.status|capitalize if proxima.status else 'Agendada' }}</span>
                                     <div class="mt-3">
                                         <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=proxima.id) }}" 
                                            class="btn btn-sm btn-outline-primary w-100">
@@ -299,7 +299,7 @@
                     </div>
                 </div>
                 <div class="card-body p-0">
-                    {% if consultas %}
+                    {% if consultas and consultas|length > 0 %}
                     <!-- Visualização Mobile: Cards -->
                     <div class="d-block d-md-none">
                         {% for consulta in consultas[:5] %}
@@ -309,11 +309,11 @@
                                     <i class="fas fa-user-md text-primary"></i>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <h6 class="mb-0">{{ consulta.medico_nome }}</h6>
-                                    <small class="text-muted">{{ consulta.especialidade }}</small>
+                                    <h6 class="mb-0">{{ consulta.medico_nome or 'Médico' }}</h6>
+                                    <small class="text-muted">{{ consulta.especialidade or 'Clínico Geral' }}</small>
                                 </div>
                                 <span class="badge bg-{{ consulta.status_class }} rounded-pill">
-                                    {{ consulta.status|capitalize }}
+                                    {{ consulta.status|capitalize if consulta.status else 'Agendada' }}
                                 </span>
                             </div>
                             <div class="row g-2 mb-2">
@@ -372,8 +372,8 @@
                                                 <i class="fas fa-user-md text-primary"></i>
                                             </div>
                                             <div>
-                                                <h6 class="mb-0">{{ consulta.medico_nome }}</h6>
-                                                <small class="text-muted">{{ consulta.especialidade }}</small>
+                                                <h6 class="mb-0">{{ consulta.medico_nome or 'Médico' }}</h6>
+                                                <small class="text-muted">{{ consulta.especialidade or 'Clínico Geral' }}</small>
                                             </div>
                                         </div>
                                     </td>
@@ -384,7 +384,7 @@
                                     <td>
                                         <span class="badge bg-{{ consulta.status_class }} py-2 px-3 rounded-pill">
                                             <i class="fas fa-{{ 'clock' if consulta.status == 'agendada' else 'check' if consulta.status == 'realizada' else 'times' }} me-1"></i>
-                                            {{ consulta.status|capitalize }}
+                                            {{ consulta.status|capitalize if consulta.status else 'Agendada' }}
                                         </span>
                                     </td>
                                     <td>
