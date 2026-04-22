@@ -42,39 +42,30 @@ def execute_query_auth(query, params=None, fetch=False, one=False):
 
 
 def validar_email(email):
-    """Valida qualquer email válido"""
     if not email or not isinstance(email, str):
         return False
-    
     email = email.lower().strip()
     padrao = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-    
     return re.match(padrao, email) is not None
 
 
 def formatar_email(email):
-    """Formata email removendo espaços e convertendo para minúsculas"""
     if not email:
         return email
-    
     return email.lower().strip()
 
 
 def verificar_senha(senha_banco, senha_digitada):
-    """Verifica senha usando werkzeug check_password_hash"""
     if not senha_banco or not senha_digitada:
         return False
-    
     try:
         if check_password_hash(senha_banco, senha_digitada):
             return True
     except Exception as e:
         logger.error(f"Erro no check_password_hash: {e}")
-    
     if senha_banco == senha_digitada:
         logger.warning("Usando comparação de senha em texto plano!")
         return True
-    
     return False
 
 
@@ -85,62 +76,45 @@ def create_auth_blueprint():
     def index():
         return render_template('index.html')
 
-    # ================= LOGIN =================
     @auth_bp.route('/login', methods=['GET', 'POST'])
     def login():
         if request.method == 'POST':
             email = request.form.get('email', '').lower().strip()
             password = request.form.get('password', '')
             
-            print("\n===== LOGIN DEBUG =====")
-            print(f"Email digitado: {email}")
+            print(f"Login attempt: {email}")
             
             if not validar_email(email):
                 flash('Email inválido. Digite um email válido.', 'danger')
                 return redirect(url_for('auth.login'))
             
             email_formatado = formatar_email(email)
-            print(f"Email formatado: {email_formatado}")
 
-            # Buscar usuário
             user = execute_query_auth("""
                 SELECT id, nome, email, senha, tipo 
                 FROM usuarios 
                 WHERE email = %s AND ativo = 1
             """, (email_formatado,), fetch=True, one=True)
 
-            print(f"Resultado query: {user}")
-
             if not user:
-                print("Usuário não encontrado!")
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
 
             user_id = user['id']
             nome = user['nome']
-            email_bd = user['email']
             senha_banco = user['senha']
             tipo = user['tipo']
-            
-            print(f"Usuário encontrado: ID={user_id}, Nome={nome}, Tipo={tipo}")
 
-            # Verificar senha
             if not verificar_senha(senha_banco, password):
-                print("Senha incorreta!")
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            print("Senha correta! Login realizado com sucesso.")
-            
-            # LIMPAR E CONFIGURAR SESSÃO
             session.clear()
             session['user_id'] = user_id
             session['user_name'] = nome
             session['user_type'] = tipo
             session['logged_in'] = True
             session.modified = True
-            
-            print(f"Sessão configurada: user_type={tipo}, logged_in=True")
 
             # Buscar IDs específicos
             if tipo == 'medico':
@@ -158,6 +132,16 @@ def create_auth_blueprint():
                 )
                 if paciente:
                     session['paciente_id'] = paciente['id']
+                else:
+                    # Criar registro de paciente se não existir
+                    execute_query_auth(
+                        "INSERT INTO pacientes (usuario_id) VALUES (%s)",
+                        (user_id,)
+                    )
+                    session['paciente_id'] = execute_query_auth(
+                        "SELECT id FROM pacientes WHERE usuario_id = %s",
+                        (user_id,), fetch=True, one=True
+                    )['id']
             
             elif tipo == 'analista':
                 analista = execute_query_auth(
@@ -186,11 +170,10 @@ def create_auth_blueprint():
                     session['farmaceutico_id'] = farmaceutico['id']
                     session['farmaceutico_crf'] = farmaceutico['crf']
                     session['farmaceutico_especialidade'] = farmaceutico['especialidade']
-                    print(f"Farmacêutico ID: {farmaceutico['id']}")
 
             flash(f'Bem-vindo, {nome}!', 'success')
             
-            # REDIRECIONAMENTOS - USANDO try/except
+            # REDIRECIONAMENTOS COM FALLBACK
             try:
                 if tipo == 'medico':
                     return redirect(url_for('medico.dashboard'))
@@ -202,16 +185,30 @@ def create_auth_blueprint():
                     return redirect(url_for('enfermeiro.dashboard.index'))
                 elif tipo == 'farmaceutico':
                     return redirect(url_for('farmaceutico.dashboard'))
+                elif tipo == 'admin':
+                    return redirect(url_for('admin.dashboard'))
                 else:
-                    return redirect(url_for('dashboard'))
+                    return redirect('/dashboard')
             except Exception as e:
                 print(f"Erro no redirecionamento: {e}")
-                # Fallback: redirecionar para dashboard geral
-                return redirect(url_for('dashboard'))
+                # FALLBACK: URLs diretas
+                if tipo == 'paciente':
+                    return redirect('/paciente/dashboard')
+                elif tipo == 'medico':
+                    return redirect('/medico/dashboard')
+                elif tipo == 'farmaceutico':
+                    return redirect('/farmaceutico/dashboard')
+                elif tipo == 'analista':
+                    return redirect('/analista/dashboard')
+                elif tipo == 'enfermeiro':
+                    return redirect('/enfermeiro/dashboard/')
+                elif tipo == 'admin':
+                    return redirect('/admin/dashboard')
+                else:
+                    return redirect('/')
 
         return render_template('login.html')
 
-    # ================= REGISTER =================
     @auth_bp.route('/register', methods=['GET', 'POST'])
     def register():
         if request.method == 'POST':
@@ -235,7 +232,6 @@ def create_auth_blueprint():
             
             email_formatado = formatar_email(email)
 
-            # Verificar se email já existe
             existing_user = execute_query_auth(
                 "SELECT id FROM usuarios WHERE email = %s",
                 (email_formatado,), fetch=True, one=True
@@ -248,13 +244,11 @@ def create_auth_blueprint():
             senha_hash = generate_password_hash(senha)
             user_uuid = str(uuid.uuid4())
 
-            # Inserir usuário
             execute_query_auth("""
                 INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo)
                 VALUES (%s, %s, %s, %s, %s, %s, 1)
             """, (user_uuid, nome, email_formatado, senha_hash, telefone, tipo))
 
-            # Buscar o ID do usuário criado
             user = execute_query_auth(
                 "SELECT id FROM usuarios WHERE email = %s",
                 (email_formatado,), fetch=True, one=True
@@ -266,41 +260,23 @@ def create_auth_blueprint():
             
             user_id = user['id']
 
-            # Criar registro na tabela específica
             if tipo == 'paciente':
-                execute_query_auth(
-                    "INSERT INTO pacientes (usuario_id) VALUES (%s)",
-                    (user_id,)
-                )
+                execute_query_auth("INSERT INTO pacientes (usuario_id) VALUES (%s)", (user_id,))
                 flash('Conta de paciente criada com sucesso!', 'success')
-
             elif tipo == 'medico':
-                execute_query_auth(
-                    "INSERT INTO medicos (usuario_id) VALUES (%s)",
-                    (user_id,)
-                )
+                execute_query_auth("INSERT INTO medicos (usuario_id) VALUES (%s)", (user_id,))
                 flash('Conta de médico criada com sucesso!', 'success')
-
             elif tipo == 'analista':
-                execute_query_auth(
-                    "INSERT INTO analistas (usuario_id, status, ativo) VALUES (%s, 'ativo', 1)",
-                    (user_id,)
-                )
+                execute_query_auth("INSERT INTO analistas (usuario_id, status, ativo) VALUES (%s, 'ativo', 1)", (user_id,))
                 flash('Conta de analista criada com sucesso!', 'success')
-            
             elif tipo == 'enfermeiro':
-                execute_query_auth(
-                    "INSERT INTO enfermeiros (usuario_id) VALUES (%s)",
-                    (user_id,)
-                )
+                execute_query_auth("INSERT INTO enfermeiros (usuario_id) VALUES (%s)", (user_id,))
                 flash('Conta de enfermeiro criada com sucesso!', 'success')
-            
             elif tipo == 'farmaceutico':
                 execute_query_auth("""
                     INSERT INTO farmaceuticos (usuario_id, crf, especialidade, ativo) 
                     VALUES (%s, %s, %s, 1)
                 """, (user_id, 'AGUARDANDO_CRF', 'Aguardando cadastro'))
-                
                 flash('Conta de farmacêutico criada! Complete seu cadastro com CRF.', 'info')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
 
@@ -308,7 +284,6 @@ def create_auth_blueprint():
 
         return render_template('register.html')
 
-    # ================= COMPLETAR CADASTRO DO FARMACÊUTICO =================
     @auth_bp.route('/completar-cadastro-farmaceutico', methods=['GET', 'POST'])
     def completar_cadastro_farmaceutico():
         if request.method == 'POST':
@@ -347,7 +322,6 @@ def create_auth_blueprint():
         
         return render_template('completar_cadastro_farmaceutico.html')
 
-    # ================= RECUPERAR SENHA =================
     @auth_bp.route('/recuperar-senha', methods=['GET', 'POST'])
     def recuperar_senha():
         if request.method == 'POST':
@@ -389,7 +363,6 @@ def create_auth_blueprint():
         
         return render_template('recuperar_senha.html')
 
-    # ================= RESET SENHA =================
     @auth_bp.route('/reset-senha/<token>', methods=['GET', 'POST'])
     def reset_senha(token):
         user = execute_query_auth("""
@@ -404,7 +377,6 @@ def create_auth_blueprint():
             return redirect(url_for('auth.recuperar_senha'))
         
         user_id = user['id']
-        nome = user['nome']
         email = user['email']
         
         if request.method == 'POST':
@@ -435,7 +407,6 @@ def create_auth_blueprint():
         
         return render_template('reset_senha.html', token=token)
 
-    # ================= LOGOUT =================
     @auth_bp.route('/logout')
     def logout():
         session.clear()
