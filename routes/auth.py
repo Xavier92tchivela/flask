@@ -113,67 +113,21 @@ def create_auth_blueprint():
             session['logged_in'] = True
 
             print(f"DEBUG: Tipo do usuário = {tipo}")
-            print(f"DEBUG: Session = {dict(session)}")
 
-            # Buscar IDs específicos
-            if tipo == 'paciente':
-                paciente = execute_query_auth(
-                    "SELECT id FROM pacientes WHERE usuario_id = %s",
-                    (user_id,), fetch=True, one=True
-                )
-                if paciente:
-                    session['paciente_id'] = paciente['id']
-                else:
-                    execute_query_auth(
-                        "INSERT INTO pacientes (usuario_id) VALUES (%s)",
-                        (user_id,)
-                    )
-                    paciente = execute_query_auth(
-                        "SELECT id FROM pacientes WHERE usuario_id = %s",
-                        (user_id,), fetch=True, one=True
-                    )
-                    if paciente:
-                        session['paciente_id'] = paciente['id']
+            flash('Login realizado com sucesso!', 'success')
             
-            elif tipo == 'medico':
-                medico = execute_query_auth(
-                    "SELECT id FROM medicos WHERE usuario_id = %s",
-                    (user_id,), fetch=True, one=True
-                )
-                if medico:
-                    session['medico_id'] = medico['id']
-            
-            elif tipo == 'farmaceutico':
-                farmaceutico = execute_query_auth(
-                    "SELECT id FROM farmaceuticos WHERE usuario_id = %s AND ativo = 1",
-                    (user_id,), fetch=True, one=True
-                )
-                if farmaceutico:
-                    session['farmaceutico_id'] = farmaceutico['id']
-
-            flash(f'Bem-vindo, {nome}!', 'success')
-            
-            # REDIRECIONAMENTO DIRETO
-            if tipo == 'paciente':
-                print("DEBUG: Redirecionando para /paciente/dashboard")
-                return redirect('/paciente/dashboard')
-            elif tipo == 'medico':
-                print("DEBUG: Redirecionando para /medico/dashboard")
+            # REDIRECIONAMENTOS DIRETOS
+            if tipo == 'medico':
                 return redirect('/medico/dashboard')
-            elif tipo == 'farmaceutico':
-                print("DEBUG: Redirecionando para /farmaceutico/dashboard")
-                return redirect('/farmaceutico/dashboard')
+            elif tipo == 'paciente':
+                return redirect('/paciente/dashboard')
             elif tipo == 'analista':
-                print("DEBUG: Redirecionando para /analista/dashboard")
                 return redirect('/analista/dashboard')
             elif tipo == 'enfermeiro':
-                print("DEBUG: Redirecionando para /enfermeiro/dashboard/")
                 return redirect('/enfermeiro/dashboard/')
-            elif tipo == 'admin':
-                print("DEBUG: Redirecionando para /admin/dashboard")
-                return redirect('/admin/dashboard')
+            elif tipo == 'farmaceutico':
+                return redirect('/farmaceutico/dashboard')
             else:
-                print(f"DEBUG: Tipo desconhecido: {tipo}, redirecionando para /")
                 return redirect('/')
 
         return render_template('login.html')
