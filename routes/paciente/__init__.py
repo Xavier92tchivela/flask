@@ -40,31 +40,6 @@ def init_paciente(mysql, app):
         return decorated_function
     
     # ========== FUNÇÕES AUXILIARES ==========
-    def execute_query(query, params=None, fetch=False, one=False):
-        try:
-            cur = mysql.connection.cursor()
-            if params:
-                cur.execute(query, params)
-            else:
-                cur.execute(query)
-            
-            if fetch:
-                if one:
-                    result = cur.fetchone()
-                else:
-                    result = cur.fetchall()
-            else:
-                mysql.connection.commit()
-                result = None
-            
-            cur.close()
-            return result
-        except Exception as e:
-            mysql.connection.rollback()
-            logger.error(f"Database error: {e}")
-            logger.error(traceback.format_exc())
-            return None
-    
     def formatar_data(data, formato='%d/%m/%Y %H:%M'):
         if not data:
             return ''
@@ -75,15 +50,22 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
+        """Obtém o ID do paciente logado"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
             return None
         
-        result = execute_query(
-            "SELECT id FROM pacientes WHERE usuario_id = %s", 
-            (session['user_id'],), fetch=True, one=True
-        )
-        
-        return result[0] if result else None
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            result = cur.fetchone()
+            cur.close()
+            
+            if result:
+                return result[0]
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao obter paciente_id: {e}")
+            return None
     
     # ========== ROTA: DASHBOARD ==========
     @paciente_bp.route('/dashboard')
@@ -183,7 +165,7 @@ def init_paciente(mysql, app):
                                user=session)
     
     # ========== ROTA: AGENDAR CONSULTA ==========
-    @paciente_bp.route('/agendar')
+    @paciente_bp.route('/agendar', methods=['GET'])
     @paciente_required
     def agendar_consulta():
         paciente_id = obter_paciente_id()
@@ -194,6 +176,7 @@ def init_paciente(mysql, app):
             FROM medicos m
             JOIN usuarios u ON m.usuario_id = u.id
             WHERE u.ativo = 1
+            ORDER BY u.nome
         """)
         medicos_raw = cur.fetchall()
         cur.close()
