@@ -36,8 +36,6 @@ def execute_query_auth(query, params=None, fetch=False, one=False):
     except Exception as e:
         _mysql.connection.rollback()
         logger.error(f"Database error in auth: {e}")
-        logger.error(f"Query: {query}")
-        logger.error(f"Params: {params}")
         return None
 
 
@@ -64,7 +62,6 @@ def verificar_senha(senha_banco, senha_digitada):
     except Exception as e:
         logger.error(f"Erro no check_password_hash: {e}")
     if senha_banco == senha_digitada:
-        logger.warning("Usando comparação de senha em texto plano!")
         return True
     return False
 
@@ -85,7 +82,7 @@ def create_auth_blueprint():
             print(f"Login attempt: {email}")
             
             if not validar_email(email):
-                flash('Email inválido. Digite um email válido.', 'danger')
+                flash('Email inválido.', 'danger')
                 return redirect(url_for('auth.login'))
             
             email_formatado = formatar_email(email)
@@ -109,23 +106,15 @@ def create_auth_blueprint():
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
             
+            # Configurar sessão
             session.clear()
             session['user_id'] = user_id
             session['user_name'] = nome
             session['user_type'] = tipo
             session['logged_in'] = True
-            session.modified = True
 
-            # Buscar IDs específicos
-            if tipo == 'medico':
-                medico = execute_query_auth(
-                    "SELECT id FROM medicos WHERE usuario_id = %s",
-                    (user_id,), fetch=True, one=True
-                )
-                if medico:
-                    session['medico_id'] = medico['id']
-            
-            elif tipo == 'paciente':
+            # Buscar ou criar IDs específicos
+            if tipo == 'paciente':
                 paciente = execute_query_auth(
                     "SELECT id FROM pacientes WHERE usuario_id = %s",
                     (user_id,), fetch=True, one=True
@@ -133,79 +122,50 @@ def create_auth_blueprint():
                 if paciente:
                     session['paciente_id'] = paciente['id']
                 else:
-                    # Criar registro de paciente se não existir
                     execute_query_auth(
                         "INSERT INTO pacientes (usuario_id) VALUES (%s)",
                         (user_id,)
                     )
-                    session['paciente_id'] = execute_query_auth(
+                    paciente = execute_query_auth(
                         "SELECT id FROM pacientes WHERE usuario_id = %s",
                         (user_id,), fetch=True, one=True
-                    )['id']
+                    )
+                    if paciente:
+                        session['paciente_id'] = paciente['id']
             
-            elif tipo == 'analista':
-                analista = execute_query_auth(
-                    "SELECT id FROM analistas WHERE usuario_id = %s",
+            elif tipo == 'medico':
+                medico = execute_query_auth(
+                    "SELECT id FROM medicos WHERE usuario_id = %s",
                     (user_id,), fetch=True, one=True
                 )
-                if analista:
-                    session['analista_id'] = analista['id']
-            
-            elif tipo == 'enfermeiro':
-                enfermeiro = execute_query_auth(
-                    "SELECT id FROM enfermeiros WHERE usuario_id = %s",
-                    (user_id,), fetch=True, one=True
-                )
-                if enfermeiro:
-                    session['enfermeiro_id'] = enfermeiro['id']
+                if medico:
+                    session['medico_id'] = medico['id']
             
             elif tipo == 'farmaceutico':
-                farmaceutico = execute_query_auth("""
-                    SELECT id, crf, especialidade 
-                    FROM farmaceuticos 
-                    WHERE usuario_id = %s AND ativo = 1
-                """, (user_id,), fetch=True, one=True)
-                
+                farmaceutico = execute_query_auth(
+                    "SELECT id FROM farmaceuticos WHERE usuario_id = %s AND ativo = 1",
+                    (user_id,), fetch=True, one=True
+                )
                 if farmaceutico:
                     session['farmaceutico_id'] = farmaceutico['id']
-                    session['farmaceutico_crf'] = farmaceutico['crf']
-                    session['farmaceutico_especialidade'] = farmaceutico['especialidade']
 
             flash(f'Bem-vindo, {nome}!', 'success')
             
-            # REDIRECIONAMENTOS COM FALLBACK
-            try:
-                if tipo == 'medico':
-                    return redirect(url_for('medico.dashboard'))
-                elif tipo == 'paciente':
-                    return redirect(url_for('paciente.dashboard'))
-                elif tipo == 'analista':
-                    return redirect(url_for('analista.dashboard'))
-                elif tipo == 'enfermeiro':
-                    return redirect(url_for('enfermeiro.dashboard.index'))
-                elif tipo == 'farmaceutico':
-                    return redirect(url_for('farmaceutico.dashboard'))
-                elif tipo == 'admin':
-                    return redirect(url_for('admin.dashboard'))
-                else:
-                    return redirect('/dashboard')
-            except Exception as e:
-                print(f"Erro no redirecionamento: {e}")
-                # FALLBACK: URLs diretas
-                if tipo == 'paciente':
-                    return redirect('/paciente/dashboard')
-                elif tipo == 'medico':
-                    return redirect('/medico/dashboard')
-                elif tipo == 'farmaceutico':
-                    return redirect('/farmaceutico/dashboard')
-                elif tipo == 'analista':
-                    return redirect('/analista/dashboard')
-                elif tipo == 'enfermeiro':
-                    return redirect('/enfermeiro/dashboard/')
-                elif tipo == 'admin':
-                    return redirect('/admin/dashboard')
-                else:
-                    return redirect('/')
+            # REDIRECIONAMENTO DIRETO - SEM try/except
+            if tipo == 'paciente':
+                return redirect('/paciente/dashboard')
+            elif tipo == 'medico':
+                return redirect('/medico/dashboard')
+            elif tipo == 'farmaceutico':
+                return redirect('/farmaceutico/dashboard')
+            elif tipo == 'analista':
+                return redirect('/analista/dashboard')
+            elif tipo == 'enfermeiro':
+                return redirect('/enfermeiro/dashboard/')
+            elif tipo == 'admin':
+                return redirect('/admin/dashboard')
+            else:
+                return redirect('/')
 
         return render_template('login.html')
 
@@ -255,30 +215,26 @@ def create_auth_blueprint():
             )
             
             if not user:
-                flash('Erro ao criar usuário. Tente novamente.', 'danger')
+                flash('Erro ao criar usuário.', 'danger')
                 return redirect(url_for('auth.register'))
             
             user_id = user['id']
 
             if tipo == 'paciente':
                 execute_query_auth("INSERT INTO pacientes (usuario_id) VALUES (%s)", (user_id,))
-                flash('Conta de paciente criada com sucesso!', 'success')
+                flash('Conta criada com sucesso! Faça login.', 'success')
             elif tipo == 'medico':
                 execute_query_auth("INSERT INTO medicos (usuario_id) VALUES (%s)", (user_id,))
-                flash('Conta de médico criada com sucesso!', 'success')
-            elif tipo == 'analista':
-                execute_query_auth("INSERT INTO analistas (usuario_id, status, ativo) VALUES (%s, 'ativo', 1)", (user_id,))
-                flash('Conta de analista criada com sucesso!', 'success')
-            elif tipo == 'enfermeiro':
-                execute_query_auth("INSERT INTO enfermeiros (usuario_id) VALUES (%s)", (user_id,))
-                flash('Conta de enfermeiro criada com sucesso!', 'success')
+                flash('Conta criada com sucesso! Faça login.', 'success')
             elif tipo == 'farmaceutico':
                 execute_query_auth("""
                     INSERT INTO farmaceuticos (usuario_id, crf, especialidade, ativo) 
                     VALUES (%s, %s, %s, 1)
                 """, (user_id, 'AGUARDANDO_CRF', 'Aguardando cadastro'))
-                flash('Conta de farmacêutico criada! Complete seu cadastro com CRF.', 'info')
+                flash('Conta de farmacêutico criada! Complete seu cadastro.', 'info')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
+            else:
+                flash('Conta criada com sucesso! Faça login.', 'success')
 
             return redirect(url_for('auth.login'))
 
@@ -289,7 +245,7 @@ def create_auth_blueprint():
         if request.method == 'POST':
             user_id = session.get('user_id')
             if not user_id:
-                flash('Sessão expirada. Faça login novamente.', 'danger')
+                flash('Sessão expirada.', 'danger')
                 return redirect(url_for('auth.login'))
             
             crf = request.form.get('crf', '').strip().upper()
@@ -300,7 +256,7 @@ def create_auth_blueprint():
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
             
             if len(crf) < 5:
-                flash('CRF inválido. Digite um CRF válido.', 'danger')
+                flash('CRF inválido.', 'danger')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
             
             existe_crf = execute_query_auth(
@@ -308,7 +264,7 @@ def create_auth_blueprint():
                 (crf, user_id), fetch=True, one=True
             )
             if existe_crf:
-                flash('Este CRF já está cadastrado para outro farmacêutico.', 'danger')
+                flash('Este CRF já está cadastrado.', 'danger')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
             
             execute_query_auth("""
@@ -317,7 +273,7 @@ def create_auth_blueprint():
                 WHERE usuario_id = %s
             """, (crf, especialidade, user_id))
             
-            flash('Cadastro completo! Agora você pode acessar o sistema.', 'success')
+            flash('Cadastro completo! Faça login.', 'success')
             return redirect(url_for('auth.login'))
         
         return render_template('completar_cadastro_farmaceutico.html')
@@ -328,17 +284,17 @@ def create_auth_blueprint():
             email = request.form.get('email', '').strip().lower()
             
             if not email:
-                flash('Por favor, informe seu email.', 'danger')
+                flash('Informe seu email.', 'danger')
                 return redirect(url_for('auth.recuperar_senha'))
             
             if not validar_email(email):
-                flash('Digite um email válido.', 'danger')
+                flash('Email inválido.', 'danger')
                 return redirect(url_for('auth.recuperar_senha'))
             
             email_formatado = formatar_email(email)
             
             user = execute_query_auth("""
-                SELECT id, nome, email, tipo FROM usuarios 
+                SELECT id, nome, email FROM usuarios 
                 WHERE email = %s AND ativo = 1
             """, (email_formatado,), fetch=True, one=True)
             
@@ -348,16 +304,13 @@ def create_auth_blueprint():
                 
                 execute_query_auth("""
                     UPDATE usuarios 
-                    SET reset_token = %s, 
-                        reset_token_expira = %s
+                    SET reset_token = %s, reset_token_expira = %s
                     WHERE id = %s
                 """, (reset_token, expiracao, user['id']))
                 
-                logger.info(f"Token de recuperação gerado para: {email_formatado}")
-                flash('Instruções de recuperação enviadas para seu email.', 'success')
+                flash('Instruções enviadas para seu email.', 'success')
             else:
-                logger.info(f"Tentativa de recuperação para email não encontrado: {email_formatado}")
-                flash('Se o email existir no sistema, instruções serão enviadas.', 'info')
+                flash('Se o email existir, instruções serão enviadas.', 'info')
             
             return redirect(url_for('auth.login'))
         
@@ -368,16 +321,14 @@ def create_auth_blueprint():
         user = execute_query_auth("""
             SELECT id, nome, email 
             FROM usuarios 
-            WHERE reset_token = %s 
-            AND reset_token_expira > NOW()
+            WHERE reset_token = %s AND reset_token_expira > NOW()
         """, (token,), fetch=True, one=True)
         
         if not user:
-            flash('Link inválido ou expirado. Solicite nova recuperação.', 'danger')
+            flash('Link inválido ou expirado.', 'danger')
             return redirect(url_for('auth.recuperar_senha'))
         
         user_id = user['id']
-        email = user['email']
         
         if request.method == 'POST':
             nova_senha = request.form.get('nova_senha', '')
@@ -395,13 +346,10 @@ def create_auth_blueprint():
             
             execute_query_auth("""
                 UPDATE usuarios 
-                SET senha = %s, 
-                    reset_token = NULL, 
-                    reset_token_expira = NULL 
+                SET senha = %s, reset_token = NULL, reset_token_expira = NULL 
                 WHERE id = %s
             """, (senha_hash, user_id))
             
-            logger.info(f"Senha resetada para: {email}")
             flash('Senha alterada com sucesso! Faça login.', 'success')
             return redirect(url_for('auth.login'))
         
