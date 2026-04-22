@@ -50,21 +50,47 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente logado"""
+        """Obtém o ID do paciente logado - CRIA AUTOMATICAMENTE SE NÃO EXISTIR"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
+            print("DEBUG: Usuário não é paciente ou não está logado")
             return None
         
         try:
             cur = mysql.connection.cursor()
-            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            user_id = session['user_id']
+            print(f"DEBUG: Buscando paciente para usuario_id = {user_id}")
+            
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (user_id,))
+            result = cur.fetchone()
+            
+            if result:
+                paciente_id = result[0]
+                print(f"DEBUG: Paciente encontrado - ID: {paciente_id}")
+                cur.close()
+                return paciente_id
+            
+            # Se não existe, criar registro
+            print(f"DEBUG: Criando registro de paciente para usuario_id {user_id}")
+            cur.execute("INSERT INTO pacientes (usuario_id) VALUES (%s)", (user_id,))
+            mysql.connection.commit()
+            
+            # Buscar o ID criado
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (user_id,))
             result = cur.fetchone()
             cur.close()
             
             if result:
-                return result[0]
+                paciente_id = result[0]
+                print(f"DEBUG: Paciente criado com sucesso - ID: {paciente_id}")
+                return paciente_id
+            
+            print("DEBUG: Falha ao criar paciente")
             return None
+            
         except Exception as e:
-            logger.error(f"Erro ao obter paciente_id: {e}")
+            print(f"DEBUG: Erro ao obter/criar paciente_id: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     # ========== ROTA: DASHBOARD ==========
