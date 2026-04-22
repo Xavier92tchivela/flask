@@ -128,7 +128,7 @@
                     {% endif %}
                 {% endwith %}
                 
-                <!-- CORRIGIDO: action agora é /login (sem /auth) -->
+                <!-- CORRIGIDO: action agora é /login -->
                 <form method="POST" action="/login" id="loginForm">
                     <div class="mb-3">
                         <label for="email" class="form-label small fw-bold">
@@ -156,7 +156,6 @@
                             <input type="checkbox" class="form-check-input" id="remember" name="remember">
                             <label class="form-check-label small" for="remember">Lembrar-me</label>
                         </div>
-                        <!-- CORRIGIDO: link para /recuperar-senha (sem /auth) -->
                         <a href="/recuperar-senha" class="small text-decoration-none">
                             Esqueceu a senha?
                         </a>
@@ -173,7 +172,6 @@
                 
                 <div class="text-center">
                     <p class="small mb-2">Não tem uma conta?</p>
-                    <!-- CORRIGIDO: link para /register (sem /auth) -->
                     <a href="/register" class="btn btn-outline-primary btn-sm w-100">
                         <i class="fas fa-user-plus me-2"></i>Cadastre-se
                     </a>
