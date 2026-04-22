@@ -50,56 +50,42 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente logado - CORRIGIDO"""
+        """Obtém o ID do paciente logado - CORRIGIDO FINAL"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
             return None
         
         try:
             cur = mysql.connection.cursor()
             user_id = session['user_id']
-            print(f"DEBUG: Buscando paciente para usuario_id = {user_id}")
             
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (user_id,))
             result = cur.fetchone()
-            cur.close()
             
             if result:
-                # result é um dicionário (DictCursor)
                 paciente_id = result['id']
-                print(f"DEBUG: Paciente encontrado - ID: {paciente_id}")
+                cur.close()
                 return paciente_id
             
-            print("DEBUG: Nenhum paciente encontrado, criando...")
             # Criar registro se não existir
-            cur = mysql.connection.cursor()
             cur.execute("INSERT INTO pacientes (usuario_id) VALUES (%s)", (user_id,))
             mysql.connection.commit()
-            cur.close()
             
-            # Buscar o ID criado
-            cur = mysql.connection.cursor()
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (user_id,))
             result = cur.fetchone()
             cur.close()
             
             if result:
-                paciente_id = result['id']
-                print(f"DEBUG: Paciente criado - ID: {paciente_id}")
-                return paciente_id
-            
+                return result['id']
             return None
             
         except Exception as e:
-            print(f"DEBUG: Erro ao obter/criar paciente_id: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Erro ao obter paciente_id: {e}")
             return None
     
     # ========== ROTA: DASHBOARD ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
-        print("=== DASHBOARD PACIENTE ACESSADO ===")
         paciente_id = obter_paciente_id()
         if not paciente_id:
             flash('Perfil de paciente não encontrado.', 'danger')
@@ -154,7 +140,8 @@ def init_paciente(mysql, app):
         total_consultas = stats_row['total'] if stats_row and stats_row['total'] else 0
         
         cur.execute("SELECT COUNT(*) as total FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
-        consultas_hoje = cur.fetchone()['total'] if cur.fetchone() else 0
+        result_hoje = cur.fetchone()
+        consultas_hoje = result_hoje['total'] if result_hoje else 0
         cur.close()
         
         consultas = []
