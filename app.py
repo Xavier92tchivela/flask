@@ -37,12 +37,17 @@ from routes.admin import init_admin
 from routes.farmaceutico import farmaceutico_bp
 
 # Configurar logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = TimingMiddleware(app.wsgi_app)
+
+# Configuração para mostrar erros detalhados
+app.config['DEBUG'] = True
+app.config['PROPAGATE_EXCEPTIONS'] = True
+app.secret_key = app.config.get('SECRET_KEY', 'chave_secreta_padrao_para_desenvolvimento')
 
 # ========== INICIALIZAÇÃO DO BANCO DE DADOS COM PYMYSQL ==========
 class MySQLConnection:
@@ -59,29 +64,35 @@ class MySQLConnection:
     
     def get_connection(self):
         """Retorna uma conexão ativa com o banco"""
-        if self._connection is None or not self._connection.open:
-            import pymysql
-            import os
+        try:
+            if self._connection is None or not self._connection.open:
+                import pymysql
+                import os
+                
+                # Obter configurações do app ou environment variables
+                config = {
+                    'host': os.environ.get('MYSQL_HOST', app.config.get('MYSQL_HOST', 'localhost')),
+                    'user': os.environ.get('MYSQL_USER', app.config.get('MYSQL_USER', 'root')),
+                    'password': os.environ.get('MYSQL_PASSWORD', app.config.get('MYSQL_PASSWORD', '')),
+                    'database': os.environ.get('MYSQL_DB', app.config.get('MYSQL_DB', 'defaultdb')),
+                    'port': int(os.environ.get('MYSQL_PORT', app.config.get('MYSQL_PORT', 3306))),
+                    'cursorclass': pymysql.cursors.DictCursor,
+                    'autocommit': False
+                }
+                
+                # Adicionar SSL se necessário
+                ssl_mode = os.environ.get('MYSQL_SSL_MODE', app.config.get('MYSQL_SSL_MODE', 'DISABLED'))
+                if ssl_mode == 'REQUIRED':
+                    config['ssl'] = {'ssl-mode': 'REQUIRED'}
+                
+                logger.info(f"Conectando ao banco: {config['host']}:{config['port']}/{config['database']}")
+                self._connection = pymysql.connect(**config)
+                logger.info("Conexão com banco de dados estabelecida com sucesso!")
             
-            # Obter configurações do app ou environment variables
-            config = {
-                'host': os.environ.get('MYSQL_HOST', app.config.get('MYSQL_HOST', 'localhost')),
-                'user': os.environ.get('MYSQL_USER', app.config.get('MYSQL_USER', 'root')),
-                'password': os.environ.get('MYSQL_PASSWORD', app.config.get('MYSQL_PASSWORD', '')),
-                'database': os.environ.get('MYSQL_DB', app.config.get('MYSQL_DB', 'defaultdb')),
-                'port': int(os.environ.get('MYSQL_PORT', app.config.get('MYSQL_PORT', 3306))),
-                'cursorclass': pymysql.cursors.DictCursor,
-                'autocommit': False
-            }
-            
-            # Adicionar SSL se necessário
-            ssl_mode = os.environ.get('MYSQL_SSL_MODE', app.config.get('MYSQL_SSL_MODE', 'DISABLED'))
-            if ssl_mode == 'REQUIRED':
-                config['ssl'] = {'ssl-mode': 'REQUIRED'}
-            
-            self._connection = pymysql.connect(**config)
-        
-        return self._connection
+            return self._connection
+        except Exception as e:
+            logger.error(f"Erro ao conectar ao banco: {e}")
+            raise
     
     @property
     def connection(self):
@@ -95,7 +106,15 @@ class MySQLConnection:
             self._connection = None
 
 # Instanciar o objeto mysql para compatibilidade
-mysql = MySQLConnection(app)
+try:
+    mysql = MySQLConnection(app)
+    # Testar conexão
+    conn = mysql.get_connection()
+    conn.ping()
+    logger.info("✅ Conexão com MySQL estabelecida com sucesso!")
+except Exception as e:
+    logger.error(f"❌ Falha ao conectar ao MySQL: {e}")
+    mysql = None
 
 # ========== CONFIGURAÇÃO GEMINI AI ==========
 api_key = app.config.get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY')
@@ -126,11 +145,16 @@ print("=" * 70)
 
 # 1. Auth
 try:
-    auth_bp = init_auth(mysql)
-    app.register_blueprint(auth_bp)
-    print("[1/10] Auth blueprint registrado com sucesso!")
+    if mysql:
+        auth_bp = init_auth(mysql)
+        app.register_blueprint(auth_bp)
+        print("[1/10] Auth blueprint registrado com sucesso!")
+    else:
+        print("[1/10] ERRO: MySQL não disponível para Auth")
+        raise Exception("MySQL não disponível")
 except Exception as e:
     print(f"[1/10] Erro ao registrar Auth: {e}")
+    traceback.print_exc()
     raise
 
 # 2. Médico
@@ -158,6 +182,7 @@ try:
     print("[3/10] Paciente blueprint registrado com sucesso!")
 except Exception as e:
     print(f"[3/10] Erro ao registrar Paciente: {e}")
+    traceback.print_exc()
     raise
 
 # 4. Analista
@@ -177,6 +202,7 @@ try:
 except Exception as e:
     print(f"[4/10] Erro ao registrar Analista: {e}")
     print("   Verifique o arquivo routes/analista/__init__.py")
+    traceback.print_exc()
     raise
 
 # 5. Pedido Análise
@@ -186,6 +212,7 @@ try:
     print("[5/10] Pedido_analise blueprint registrado com sucesso!")
 except Exception as e:
     print(f"[5/10] Erro ao registrar Pedido_analise: {e}")
+    traceback.print_exc()
     raise
 
 # 6. Consulta
@@ -195,6 +222,7 @@ try:
     print("[6/10] Consulta blueprint registrado com sucesso!")
 except Exception as e:
     print(f"[6/10] Erro ao registrar Consulta: {e}")
+    traceback.print_exc()
     raise
 
 # 7. Enfermeiro
@@ -234,6 +262,7 @@ try:
             
 except Exception as e:
     print(f"[8/10] Erro ao registrar Assinatura: {e}")
+    traceback.print_exc()
     raise
 
 # 9. Admin
@@ -253,6 +282,7 @@ try:
     print("      • configuracoes - Configuracoes do sistema")
 except Exception as e:
     print(f"[9/10] Erro ao registrar Admin: {e}")
+    traceback.print_exc()
     raise
 
 # 10. FARMACÊUTICO
@@ -292,9 +322,9 @@ with app.app_context():
     for endpoint in endpoints_procurados:
         try:
             url = url_for(endpoint)
-            print(f"    {endpoint}: {url}")
+            print(f"    ✅ {endpoint}: {url}")
         except Exception as e:
-            print(f"    {endpoint}: ERRO - {str(e)}")
+            print(f"    ❌ {endpoint}: ERRO - {str(e)}")
     
     # Verificar rotas do farmacêutico
     rotas_farmaceutico = []
@@ -307,19 +337,22 @@ with app.app_context():
             })
     
     if rotas_farmaceutico:
-        print(f"\n Rotas do farmacêutico encontradas: {len(rotas_farmaceutico)}")
+        print(f"\n✅ Rotas do farmacêutico encontradas: {len(rotas_farmaceutico)}")
         for rota in rotas_farmaceutico[:5]:
             print(f"    • {rota['rota']} - {rota['endpoint']}")
         if len(rotas_farmaceutico) > 5:
             print(f"    ... e mais {len(rotas_farmaceutico) - 5} rotas")
     else:
-        print("\n NENHUMA ROTA DO FARMACÊUTICO ENCONTRADA!")
+        print("\n❌ NENHUMA ROTA DO FARMACÊUTICO ENCONTRADA!")
 
 print("=" * 70 + "\n")
 
 # ========== FUNCOES AUXILIARES ==========
 def obter_diagnostico_consulta(consulta_id):
     try:
+        if not mysql:
+            return None
+            
         diagnostico = execute_query(mysql, """
             SELECT d.*, c.data_hora,
                    p_u.nome as paciente_nome, p.data_nascimento, p.genero,
@@ -385,9 +418,9 @@ def internal_server_error(e):
     logger.error(f"Erro interno do servidor: {e}")
     logger.error(traceback.format_exc())
     try:
-        return render_template('500.html'), 500
+        return render_template('500.html', error=str(e)), 500
     except:
-        return "<h1>Erro 500 - Erro Interno do Servidor</h1>", 500
+        return f"<h1>Erro 500 - Erro Interno do Servidor</h1><pre>{traceback.format_exc()}</pre>", 500
 
 # ========== ROTAS GERAIS ==========
 @app.route('/')
@@ -428,7 +461,7 @@ def detalhes_consulta(consulta_id):
         return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
     elif user_type == 'analista':
         return redirect(url_for('analista.analisar_pedido', pedido_id=consulta_id))
-    elif user_type == 'enfermeiro':
+    elif user_type == 'enfermeiro' and mysql:
         sinais = execute_query(mysql, """
             SELECT id FROM sinais_vitais WHERE consulta_id = %s
         """, (consulta_id,), fetch=True, one=True)
@@ -437,6 +470,10 @@ def detalhes_consulta(consulta_id):
         else:
             return redirect(url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta_id))
     else:
+        if not mysql:
+            flash('Banco de dados não disponível', 'danger')
+            return redirect(url_for('dashboard'))
+            
         consulta = execute_query(mysql, """
             SELECT c.id, m_u.nome as medico_nome, m.especialidade, m.crm,
                    c.data_hora, c.status, c.observacoes, c.receita,
@@ -470,6 +507,9 @@ def api_pedidos_recentes():
     medico_id = session.get('medico_id')
     
     try:
+        if not mysql:
+            return jsonify({'error': 'Banco de dados indisponível'}), 500
+            
         conn = mysql.get_connection()
         cur = conn.cursor()
         cur.execute("""
@@ -478,7 +518,7 @@ def api_pedidos_recentes():
                 pa.tipo_exame,
                 pa.status,
                 pa.status_aprovacao,
-                DATE_FORMAT(pa.data_solicitacao, '%d/%m/%Y %H:%i') as data_solicitacao,
+                DATE_FORMAT(pa.data_solicitacao, '%%d/%%m/%%Y %%H:%%i') as data_solicitacao,
                 u.nome as paciente_nome
             FROM pedidos_analise pa
             JOIN pacientes p ON pa.paciente_id = p.id
@@ -494,12 +534,12 @@ def api_pedidos_recentes():
         pedidos_lista = []
         for p in pedidos:
             pedidos_lista.append({
-                'id': p[0],
-                'tipo_exame': p[1],
-                'status': p[2],
-                'status_aprovacao': p[3],
-                'data_solicitacao': p[4],
-                'paciente_nome': p[5]
+                'id': p['id'],
+                'tipo_exame': p['tipo_exame'],
+                'status': p['status'],
+                'status_aprovacao': p['status_aprovacao'],
+                'data_solicitacao': p['data_solicitacao'],
+                'paciente_nome': p['paciente_nome']
             })
         
         return jsonify({'pedidos': pedidos_lista})
@@ -516,6 +556,9 @@ def api_contadores():
     medico_id = session.get('medico_id')
     
     try:
+        if not mysql:
+            return jsonify({'error': 'Banco de dados indisponível'}), 500
+            
         dados = DashboardService.get_dados_dashboard(medico_id, mysql)
         
         return jsonify({
@@ -542,6 +585,9 @@ def api_notificacoes():
     medico_id = session.get('medico_id')
     
     try:
+        if not mysql:
+            return jsonify({'error': 'Banco de dados indisponível'}), 500
+            
         conn = mysql.get_connection()
         cur = conn.cursor()
         cur.execute("""
@@ -549,7 +595,7 @@ def api_notificacoes():
                 pa.id,
                 pa.tipo_exame,
                 u.nome as paciente_nome,
-                DATE_FORMAT(pa.data_conclusao, '%d/%m/%Y %H:%i') as data_conclusao,
+                DATE_FORMAT(pa.data_conclusao, '%%d/%%m/%%Y %%H:%%i') as data_conclusao,
                 TIMESTAMPDIFF(HOUR, pa.data_conclusao, NOW()) as horas_atras
             FROM pedidos_analise pa
             JOIN pacientes p ON pa.paciente_id = p.id
@@ -567,13 +613,13 @@ def api_notificacoes():
         
         notificacoes_lista = []
         for n in notificacoes:
-            tempo = f"há {n[4]} horas" if n[4] < 24 else f"há {n[4]//24} dias"
+            tempo = f"há {n['horas_atras']} horas" if n['horas_atras'] < 24 else f"há {n['horas_atras']//24} dias"
             notificacoes_lista.append({
-                'id': n[0],
-                'titulo': f"Resultado: {n[1]}",
-                'mensagem': f"{n[2]} - Aguardando revisão",
+                'id': n['id'],
+                'titulo': f"Resultado: {n['tipo_exame']}",
+                'mensagem': f"{n['paciente_nome']} - Aguardando revisão",
                 'tempo': tempo,
-                'link': f"/medico/revisar-analise/{n[0]}"
+                'link': f"/medico/revisar-analise/{n['id']}"
             })
         
         return jsonify({'notificacoes': notificacoes_lista})
@@ -604,18 +650,29 @@ def dashboard():
     elif user_type == 'farmaceutico':
         return redirect(url_for('farmaceutico.dashboard'))
     else:
-        stats = {
-            'pacientes': execute_query(mysql, "SELECT COUNT(*) FROM pacientes", fetch=True, one=True)[0] or 0,
-            'medicos': execute_query(mysql, "SELECT COUNT(*) FROM medicos", fetch=True, one=True)[0] or 0,
-            'analistas': execute_query(mysql, "SELECT COUNT(*) FROM analistas", fetch=True, one=True)[0] or 0,
-            'enfermeiros': execute_query(mysql, "SELECT COUNT(*) FROM enfermeiros", fetch=True, one=True)[0] or 0,
-            'consultas_hoje': execute_query(mysql,
-                "SELECT COUNT(*) FROM consultas WHERE DATE(data_hora) = CURDATE()", 
-                fetch=True, one=True
-            )[0] or 0,
-            'diagnosticos': execute_query(mysql, "SELECT COUNT(*) FROM diagnostico", fetch=True, one=True)[0] or 0,
-            'sinais_vitais': execute_query(mysql, "SELECT COUNT(*) FROM sinais_vitais", fetch=True, one=True)[0] or 0
-        }
+        if not mysql:
+            stats = {
+                'pacientes': 0,
+                'medicos': 0,
+                'analistas': 0,
+                'enfermeiros': 0,
+                'consultas_hoje': 0,
+                'diagnosticos': 0,
+                'sinais_vitais': 0
+            }
+        else:
+            stats = {
+                'pacientes': execute_query(mysql, "SELECT COUNT(*) as total FROM pacientes", fetch=True, one=True)['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM pacientes", fetch=True, one=True) else 0,
+                'medicos': execute_query(mysql, "SELECT COUNT(*) as total FROM medicos", fetch=True, one=True)['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM medicos", fetch=True, one=True) else 0,
+                'analistas': execute_query(mysql, "SELECT COUNT(*) as total FROM analistas", fetch=True, one=True)['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM analistas", fetch=True, one=True) else 0,
+                'enfermeiros': execute_query(mysql, "SELECT COUNT(*) as total FROM enfermeiros", fetch=True, one=True)['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM enfermeiros", fetch=True, one=True) else 0,
+                'consultas_hoje': execute_query(mysql,
+                    "SELECT COUNT(*) as total FROM consultas WHERE DATE(data_hora) = CURDATE()", 
+                    fetch=True, one=True
+                )['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM consultas WHERE DATE(data_hora) = CURDATE()", fetch=True, one=True) else 0,
+                'diagnosticos': execute_query(mysql, "SELECT COUNT(*) as total FROM diagnostico", fetch=True, one=True)['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM diagnostico", fetch=True, one=True) else 0,
+                'sinais_vitais': execute_query(mysql, "SELECT COUNT(*) as total FROM sinais_vitais", fetch=True, one=True)['total'] if execute_query(mysql, "SELECT COUNT(*) as total FROM sinais_vitais", fetch=True, one=True) else 0
+            }
         
         return render_template('dashboard.html', user=session, stats=stats)
 
@@ -626,11 +683,17 @@ def dashboard_geral():
 @app.route('/health')
 def health_check():
     db_status = 'connected'
+    db_error = None
     try:
-        conn = mysql.get_connection()
-        conn.ping()
-    except:
+        if mysql:
+            conn = mysql.get_connection()
+            conn.ping()
+        else:
+            db_status = 'disconnected'
+            db_error = 'MySQL not initialized'
+    except Exception as e:
         db_status = 'disconnected'
+        db_error = str(e)
     
     status = {
         'status': 'ok',
@@ -638,6 +701,7 @@ def health_check():
         'gemini_available': gemini_available,
         'gemini_model': MODEL_NAME,
         'database': db_status,
+        'database_error': db_error,
         'upload_folder': os.path.isdir(UPLOAD_FOLDER),
         'blueprints': ['auth', 'medico', 'paciente', 'analista', 'consulta', 'pedido_analise', 'enfermeiro', 'admin', 'assinatura', 'farmaceutico']
     }
@@ -688,10 +752,14 @@ def criar_pedido_teste_analista():
         return "Acesso negado", 403
     
     try:
+        if not mysql:
+            flash('Banco de dados não disponível', 'danger')
+            return redirect(url_for('analista.dashboard'))
+            
         pedido = execute_query(mysql, "SELECT id FROM pedidos_analise LIMIT 1", fetch=True, one=True)
         
         if pedido:
-            return redirect(url_for('analista.analisar_pedido', pedido_id=pedido[0]))
+            return redirect(url_for('analista.analisar_pedido', pedido_id=pedido['id']))
         
         result = execute_query(mysql, """
             INSERT INTO pedidos_analise 
@@ -705,9 +773,8 @@ def criar_pedido_teste_analista():
         ), commit=True)
         
         if result:
-            novo_id = result
-            flash(f'Pedido de teste #{novo_id} criado com sucesso!', 'success')
-            return redirect(url_for('analista.analisar_pedido', pedido_id=novo_id))
+            flash(f'Pedido de teste criado com sucesso!', 'success')
+            return redirect(url_for('analista.dashboard'))
         else:
             flash('Erro ao criar pedido de teste', 'danger')
             return redirect(url_for('analista.dashboard'))
@@ -717,42 +784,121 @@ def criar_pedido_teste_analista():
         flash(f'Erro: {str(e)}', 'danger')
         return redirect(url_for('analista.dashboard'))
 
+# ========== INICIALIZAÇÃO DO BANCO DE DADOS ==========
+def init_database():
+    """Cria as tabelas necessárias se não existirem"""
+    if not mysql:
+        logger.error("MySQL não disponível para inicialização")
+        return False
+    
+    try:
+        conn = mysql.get_connection()
+        cursor = conn.cursor()
+        
+        # Criar tabela usuarios
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                uuid VARCHAR(36) UNIQUE NOT NULL,
+                nome VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                senha VARCHAR(255) NOT NULL,
+                telefone VARCHAR(20),
+                tipo ENUM('paciente', 'medico', 'analista', 'enfermeiro', 'farmaceutico') NOT NULL,
+                ativo BOOLEAN DEFAULT TRUE,
+                reset_token VARCHAR(255),
+                reset_token_expira DATETIME,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Criar tabela pacientes
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS pacientes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT UNIQUE,
+                data_nascimento DATE,
+                endereco TEXT,
+                genero ENUM('masculino', 'feminino', 'outro'),
+                telefone VARCHAR(255),
+                alergias TEXT,
+                medicamentos_uso TEXT,
+                historico_doencas TEXT,
+                contato_emergencia VARCHAR(255),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Criar tabela medicos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS medicos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT UNIQUE,
+                crm VARCHAR(20),
+                especialidade VARCHAR(100),
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Criar tabela farmaceuticos
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS farmaceuticos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT UNIQUE,
+                crf VARCHAR(20),
+                especialidade VARCHAR(100),
+                ativo BOOLEAN DEFAULT TRUE,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            )
+        """)
+        
+        conn.commit()
+        cursor.close()
+        logger.info("✅ Banco de dados inicializado com sucesso!")
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao inicializar banco de dados: {e}")
+        return False
+
 if __name__ == '__main__':
-    app.secret_key = app.config.get('SECRET_KEY', 'default_secret_key')
+    # Inicializar banco de dados
+    init_database()
+    
     logger.info(f"Aplicacao iniciada. Gemini disponivel: {gemini_available}")
     
     print("\n" + "=" * 70)
-    print(" SISTEMA MEDICO INICIADO COM SUCESSO!")
+    print("🚀 SISTEMA MEDICO INICIADO COM SUCESSO!")
     print("=" * 70)
-    print(f" URL principal: http://localhost:5000")
-    print(f" Health check: http://localhost:5000/health")
-    print(f" Teste Gemini: http://localhost:5000/api/test-gemini")
-    print(f" Criar pedido teste: http://localhost:5000/criar-pedido-teste-analista")
-    print(f" Admin login: http://localhost:5000/admin/login")
-    print(f" Enfermeiro dashboard: http://localhost:5000/enfermeiro/dashboard/")
-    print(f" FARMACÊUTICO login: http://localhost:5000/auth/login")
-    print(f" FARMACÊUTICO dashboard: http://localhost:5000/farmaceutico/dashboard")
-    print(f" ASSINATURA: http://localhost:5000/assinatura/")
-    print(f" Teste assinatura: http://localhost:5000/assinatura/teste")
-    print(f"\n Gemini: {' ATIVO' if gemini_available else ' INATIVO'}")
+    print(f"📍 URL principal: http://localhost:5000")
+    print(f"🔍 Health check: http://localhost:5000/health")
+    print(f"🤖 Teste Gemini: http://localhost:5000/api/test-gemini")
+    print(f"🧪 Criar pedido teste: http://localhost:5000/criar-pedido-teste-analista")
+    print(f"👑 Admin login: http://localhost:5000/admin/login")
+    print(f"👨‍⚕️ Enfermeiro dashboard: http://localhost:5000/enfermeiro/dashboard/")
+    print(f"💊 FARMACÊUTICO login: http://localhost:5000/auth/login")
+    print(f"💊 FARMACÊUTICO dashboard: http://localhost:5000/farmaceutico/dashboard")
+    print(f"✍️ ASSINATURA: http://localhost:5000/assinatura/")
+    print(f"🧪 Teste assinatura: http://localhost:5000/assinatura/teste")
+    print(f"\n🤖 Gemini: {'✅ ATIVO' if gemini_available else '❌ INATIVO'}")
     print(f"   Modelo: {MODEL_NAME or 'Nenhum'}")
     if not gemini_available:
-        print("     Limite da API excedido! Use analise manual.")
-    print(f"\n Servico de Receitas: ATIVO")
-    print(f"\n Blueprints registrados: 10/10")
-    print("    Auth")
-    print("    Medico")
-    print("    Paciente")
-    print("    Analista")
-    print("    Pedido Análise")
-    print("    Consulta")
-    print("    Enfermeiro")
-    print("    Assinatura")
-    print("    Admin")
-    print("    FARMACÊUTICO")
+        print("     ⚠️ Limite da API excedido! Use análise manual.")
+    print(f"\n📦 Servico de Receitas: ✅ ATIVO")
+    print(f"\n📋 Blueprints registrados: 10/10")
+    print("    ✅ Auth")
+    print("    ✅ Medico")
+    print("    ✅ Paciente")
+    print("    ✅ Analista")
+    print("    ✅ Pedido Análise")
+    print("    ✅ Consulta")
+    print("    ✅ Enfermeiro")
+    print("    ✅ Assinatura")
+    print("    ✅ Admin")
+    print("    ✅ FARMACÊUTICO")
     print("=" * 70)
-    print("\n SISTEMA PRONTO PARA USO!")
-    print(" Acesse: http://localhost:5000")
+    print("\n🎯 SISTEMA PRONTO PARA USO!")
+    print("🌐 Acesse: http://localhost:5000")
     print("=" * 70 + "\n")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
