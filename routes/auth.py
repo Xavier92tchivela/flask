@@ -114,19 +114,57 @@ def create_auth_blueprint():
 
             print(f"DEBUG: Tipo do usuário = {tipo}")
 
-            flash('Login realizado com sucesso!', 'success')
+            # Buscar IDs específicos (se necessário)
+            if tipo == 'paciente':
+                paciente = execute_query_auth(
+                    "SELECT id FROM pacientes WHERE usuario_id = %s",
+                    (user_id,), fetch=True, one=True
+                )
+                if paciente:
+                    session['paciente_id'] = paciente['id']
+                else:
+                    execute_query_auth(
+                        "INSERT INTO pacientes (usuario_id) VALUES (%s)",
+                        (user_id,)
+                    )
+                    paciente = execute_query_auth(
+                        "SELECT id FROM pacientes WHERE usuario_id = %s",
+                        (user_id,), fetch=True, one=True
+                    )
+                    if paciente:
+                        session['paciente_id'] = paciente['id']
             
-            # REDIRECIONAMENTOS DIRETOS
-            if tipo == 'medico':
-                return redirect('/medico/dashboard')
-            elif tipo == 'paciente':
+            elif tipo == 'medico':
+                medico = execute_query_auth(
+                    "SELECT id FROM medicos WHERE usuario_id = %s",
+                    (user_id,), fetch=True, one=True
+                )
+                if medico:
+                    session['medico_id'] = medico['id']
+            
+            elif tipo == 'farmaceutico':
+                farmaceutico = execute_query_auth(
+                    "SELECT id FROM farmaceuticos WHERE usuario_id = %s AND ativo = 1",
+                    (user_id,), fetch=True, one=True
+                )
+                if farmaceutico:
+                    session['farmaceutico_id'] = farmaceutico['id']
+
+            flash(f'Bem-vindo, {nome}!', 'success')
+            
+            # REDIRECIONAMENTO DIRETO - URLs absolutas
+            if tipo == 'paciente':
                 return redirect('/paciente/dashboard')
+            elif tipo == 'medico':
+                return redirect('/medico/dashboard')
+            elif tipo == 'farmaceutico':
+                return redirect('/farmaceutico/dashboard')
             elif tipo == 'analista':
                 return redirect('/analista/dashboard')
             elif tipo == 'enfermeiro':
                 return redirect('/enfermeiro/dashboard/')
-            elif tipo == 'farmaceutico':
-                return redirect('/farmaceutico/dashboard')
+            elif tipo == 'admin':
+                return redirect('/admin/dashboard')
             else:
                 return redirect('/')
 
