@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = TimingMiddleware(app.wsgi_app)
+app.secret_key = app.config.get('SECRET_KEY', 'chave_secreta_padrao_para_desenvolvimento')
 
 # ========== INICIALIZAÇÃO DO BANCO DE DADOS COM PYMYSQL ==========
 class MySQLConnection:
@@ -717,8 +718,11 @@ def criar_pedido_teste_analista():
         flash(f'Erro: {str(e)}', 'danger')
         return redirect(url_for('analista.dashboard'))
 
+# ========== EXPORTAR PARA GUNICORN ==========
+# Esta linha é CRÍTICA para o Render
+application = app
+
 if __name__ == '__main__':
-    app.secret_key = app.config.get('SECRET_KEY', 'default_secret_key')
     logger.info(f"Aplicacao iniciada. Gemini disponivel: {gemini_available}")
     
     print("\n" + "=" * 70)
