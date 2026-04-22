@@ -67,7 +67,6 @@ def verificar_senha(senha_banco, senha_digitada):
 
 
 def create_auth_blueprint():
-    # SEM PREFIXO - as rotas serão diretamente /login, /register, etc
     auth_bp = Blueprint('auth', __name__)
 
     @auth_bp.route('/')
@@ -79,6 +78,8 @@ def create_auth_blueprint():
         if request.method == 'POST':
             email = request.form.get('email', '').lower().strip()
             password = request.form.get('password', '')
+            
+            print(f"Login attempt: {email}")
             
             if not validar_email(email):
                 flash('Email inválido.', 'danger')
@@ -110,6 +111,9 @@ def create_auth_blueprint():
             session['user_name'] = nome
             session['user_type'] = tipo
             session['logged_in'] = True
+
+            print(f"DEBUG: Tipo do usuário = {tipo}")
+            print(f"DEBUG: Session = {dict(session)}")
 
             # Buscar IDs específicos
             if tipo == 'paciente':
@@ -151,18 +155,25 @@ def create_auth_blueprint():
             
             # REDIRECIONAMENTO DIRETO
             if tipo == 'paciente':
+                print("DEBUG: Redirecionando para /paciente/dashboard")
                 return redirect('/paciente/dashboard')
             elif tipo == 'medico':
+                print("DEBUG: Redirecionando para /medico/dashboard")
                 return redirect('/medico/dashboard')
             elif tipo == 'farmaceutico':
+                print("DEBUG: Redirecionando para /farmaceutico/dashboard")
                 return redirect('/farmaceutico/dashboard')
             elif tipo == 'analista':
+                print("DEBUG: Redirecionando para /analista/dashboard")
                 return redirect('/analista/dashboard')
             elif tipo == 'enfermeiro':
+                print("DEBUG: Redirecionando para /enfermeiro/dashboard/")
                 return redirect('/enfermeiro/dashboard/')
             elif tipo == 'admin':
+                print("DEBUG: Redirecionando para /admin/dashboard")
                 return redirect('/admin/dashboard')
             else:
+                print(f"DEBUG: Tipo desconhecido: {tipo}, redirecionando para /")
                 return redirect('/')
 
         return render_template('login.html')
@@ -357,7 +368,7 @@ def create_auth_blueprint():
     def logout():
         session.clear()
         flash('Você saiu da sua conta.', 'info')
-        return redirect(url_for('auth.index'))
+        return redirect('/')
 
     return auth_bp
 
