@@ -59,8 +59,8 @@ def verificar_senha(senha_banco, senha_digitada):
     try:
         if check_password_hash(senha_banco, senha_digitada):
             return True
-    except Exception as e:
-        logger.error(f"Erro no check_password_hash: {e}")
+    except Exception:
+        pass
     if senha_banco == senha_digitada:
         return True
     return False
@@ -78,8 +78,6 @@ def create_auth_blueprint():
         if request.method == 'POST':
             email = request.form.get('email', '').lower().strip()
             password = request.form.get('password', '')
-            
-            print(f"Login attempt: {email}")
             
             if not validar_email(email):
                 flash('Email inválido.', 'danger')
@@ -106,14 +104,13 @@ def create_auth_blueprint():
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # Configurar sessão
             session.clear()
             session['user_id'] = user_id
             session['user_name'] = nome
             session['user_type'] = tipo
             session['logged_in'] = True
 
-            # Buscar ou criar IDs específicos
+            # Buscar IDs específicos
             if tipo == 'paciente':
                 paciente = execute_query_auth(
                     "SELECT id FROM pacientes WHERE usuario_id = %s",
@@ -151,7 +148,7 @@ def create_auth_blueprint():
 
             flash(f'Bem-vindo, {nome}!', 'success')
             
-            # REDIRECIONAMENTO DIRETO - SEM try/except
+            # REDIRECIONAMENTO DIRETO - URLs diretas
             if tipo == 'paciente':
                 return redirect('/paciente/dashboard')
             elif tipo == 'medico':
