@@ -50,27 +50,56 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente logado"""
+        """Obtém o ID do paciente logado - CORRIGIDO"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
             return None
         
         try:
             cur = mysql.connection.cursor()
-            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            user_id = session['user_id']
+            print(f"DEBUG: Buscando paciente para usuario_id = {user_id}")
+            
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (user_id,))
             result = cur.fetchone()
             cur.close()
             
             if result:
-                return result['id'] if isinstance(result, dict) else result[0]
+                # result é um dicionário (DictCursor)
+                paciente_id = result['id']
+                print(f"DEBUG: Paciente encontrado - ID: {paciente_id}")
+                return paciente_id
+            
+            print("DEBUG: Nenhum paciente encontrado, criando...")
+            # Criar registro se não existir
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO pacientes (usuario_id) VALUES (%s)", (user_id,))
+            mysql.connection.commit()
+            cur.close()
+            
+            # Buscar o ID criado
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (user_id,))
+            result = cur.fetchone()
+            cur.close()
+            
+            if result:
+                paciente_id = result['id']
+                print(f"DEBUG: Paciente criado - ID: {paciente_id}")
+                return paciente_id
+            
             return None
+            
         except Exception as e:
-            print(f"Erro ao obter paciente_id: {e}")
+            print(f"DEBUG: Erro ao obter/criar paciente_id: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     # ========== ROTA: DASHBOARD ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
+        print("=== DASHBOARD PACIENTE ACESSADO ===")
         paciente_id = obter_paciente_id()
         if not paciente_id:
             flash('Perfil de paciente não encontrado.', 'danger')
