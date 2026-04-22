@@ -18,7 +18,6 @@ class Config:
     
     # SSL para Aiven
     MYSQL_SSL_MODE = os.getenv('MYSQL_SSL_MODE', 'REQUIRED')
-    MYSQL_SSL_CA = os.getenv('MYSQL_SSL_CA', '')  # Se tiver o certificado CA
     
     # Configurações da API Gemini
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
@@ -29,4 +28,4 @@ class Config:
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
     
     # Configurações Flask
-    DEBUG = os.getenv('FLASK_DEBUG', 'True').lower() in ['true', '1', 'yes']
+    DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1', 'yes']
