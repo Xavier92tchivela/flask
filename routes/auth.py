@@ -67,7 +67,7 @@ def verificar_senha(senha_banco, senha_digitada):
 
 
 def create_auth_blueprint():
-    auth_bp = Blueprint('auth', __name__)
+    auth_bp = Blueprint('auth', __name__, url_prefix='/auth')
 
     @auth_bp.route('/')
     def index():
@@ -148,7 +148,7 @@ def create_auth_blueprint():
 
             flash(f'Bem-vindo, {nome}!', 'success')
             
-            # REDIRECIONAMENTO DIRETO - URLs diretas
+            # REDIRECIONAMENTO DIRETO
             if tipo == 'paciente':
                 return redirect('/paciente/dashboard')
             elif tipo == 'medico':
@@ -164,7 +164,8 @@ def create_auth_blueprint():
             else:
                 return redirect('/')
 
-        return render_template('login.html')
+        # IMPORTANTE: Usar o caminho correto do template
+        return render_template('auth/login.html')
 
     @auth_bp.route('/register', methods=['GET', 'POST'])
     def register():
@@ -235,7 +236,7 @@ def create_auth_blueprint():
 
             return redirect(url_for('auth.login'))
 
-        return render_template('register.html')
+        return render_template('auth/register.html')
 
     @auth_bp.route('/completar-cadastro-farmaceutico', methods=['GET', 'POST'])
     def completar_cadastro_farmaceutico():
@@ -273,7 +274,7 @@ def create_auth_blueprint():
             flash('Cadastro completo! Faça login.', 'success')
             return redirect(url_for('auth.login'))
         
-        return render_template('completar_cadastro_farmaceutico.html')
+        return render_template('auth/completar_cadastro_farmaceutico.html')
 
     @auth_bp.route('/recuperar-senha', methods=['GET', 'POST'])
     def recuperar_senha():
@@ -311,7 +312,7 @@ def create_auth_blueprint():
             
             return redirect(url_for('auth.login'))
         
-        return render_template('recuperar_senha.html')
+        return render_template('auth/recuperar_senha.html')
 
     @auth_bp.route('/reset-senha/<token>', methods=['GET', 'POST'])
     def reset_senha(token):
@@ -333,11 +334,11 @@ def create_auth_blueprint():
             
             if not nova_senha or len(nova_senha) < 6:
                 flash('A senha deve ter pelo menos 6 caracteres.', 'danger')
-                return render_template('reset_senha.html', token=token)
+                return render_template('auth/reset_senha.html', token=token)
             
             if nova_senha != confirmar_senha:
                 flash('As senhas não coincidem.', 'danger')
-                return render_template('reset_senha.html', token=token)
+                return render_template('auth/reset_senha.html', token=token)
             
             senha_hash = generate_password_hash(nova_senha)
             
@@ -350,7 +351,7 @@ def create_auth_blueprint():
             flash('Senha alterada com sucesso! Faça login.', 'success')
             return redirect(url_for('auth.login'))
         
-        return render_template('reset_senha.html', token=token)
+        return render_template('auth/reset_senha.html', token=token)
 
     @auth_bp.route('/logout')
     def logout():
