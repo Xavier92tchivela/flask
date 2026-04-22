@@ -66,13 +66,11 @@ def verificar_senha(senha_banco, senha_digitada):
         return False
     
     try:
-        # Método padrão: hash do werkzeug
         if check_password_hash(senha_banco, senha_digitada):
             return True
     except Exception as e:
         logger.error(f"Erro no check_password_hash: {e}")
     
-    # Fallback: comparação direta (apenas para desenvolvimento)
     if senha_banco == senha_digitada:
         logger.warning("Usando comparação de senha em texto plano!")
         return True
@@ -96,7 +94,6 @@ def create_auth_blueprint():
             
             print("\n===== LOGIN DEBUG =====")
             print(f"Email digitado: {email}")
-            print(f"Senha digitada: {password[:3]}***")
             
             if not validar_email(email):
                 flash('Email inválido. Digite um email válido.', 'danger')
@@ -105,7 +102,7 @@ def create_auth_blueprint():
             email_formatado = formatar_email(email)
             print(f"Email formatado: {email_formatado}")
 
-            # Buscar usuário (usando fetch=True, one=True para dicionário)
+            # Buscar usuário
             user = execute_query_auth("""
                 SELECT id, nome, email, senha, tipo 
                 FROM usuarios 
@@ -119,7 +116,6 @@ def create_auth_blueprint():
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
 
-            # Agora user é um dicionário, não tupla
             user_id = user['id']
             nome = user['nome']
             email_bd = user['email']
@@ -127,7 +123,6 @@ def create_auth_blueprint():
             tipo = user['tipo']
             
             print(f"Usuário encontrado: ID={user_id}, Nome={nome}, Tipo={tipo}")
-            print(f"Hash da senha no banco: {senha_banco[:20]}...")
 
             # Verificar senha
             if not verificar_senha(senha_banco, password):
@@ -147,9 +142,7 @@ def create_auth_blueprint():
             
             print(f"Sessão configurada: user_type={tipo}, logged_in=True")
 
-            # ================= REDIRECIONAMENTOS =================
-            
-            # MÉDICO
+            # Buscar IDs específicos
             if tipo == 'medico':
                 medico = execute_query_auth(
                     "SELECT id FROM medicos WHERE usuario_id = %s",
@@ -157,10 +150,7 @@ def create_auth_blueprint():
                 )
                 if medico:
                     session['medico_id'] = medico['id']
-                flash(f'Bem-vindo, Dr(a). {nome}!', 'success')
-                return redirect(url_for('medico.dashboard'))
             
-            # PACIENTE
             elif tipo == 'paciente':
                 paciente = execute_query_auth(
                     "SELECT id FROM pacientes WHERE usuario_id = %s",
@@ -168,10 +158,7 @@ def create_auth_blueprint():
                 )
                 if paciente:
                     session['paciente_id'] = paciente['id']
-                flash(f'Bem-vindo, {nome}!', 'success')
-                return redirect(url_for('paciente.dashboard'))
             
-            # ANALISTA
             elif tipo == 'analista':
                 analista = execute_query_auth(
                     "SELECT id FROM analistas WHERE usuario_id = %s",
@@ -179,10 +166,7 @@ def create_auth_blueprint():
                 )
                 if analista:
                     session['analista_id'] = analista['id']
-                flash(f'Bem-vindo, {nome}!', 'success')
-                return redirect(url_for('analista.dashboard'))
             
-            # ENFERMEIRO
             elif tipo == 'enfermeiro':
                 enfermeiro = execute_query_auth(
                     "SELECT id FROM enfermeiros WHERE usuario_id = %s",
@@ -190,39 +174,39 @@ def create_auth_blueprint():
                 )
                 if enfermeiro:
                     session['enfermeiro_id'] = enfermeiro['id']
-                flash(f'Bem-vindo, Enfermeiro(a) {nome}!', 'success')
-                return redirect(url_for('enfermeiro.dashboard.index'))
             
-            # FARMACÊUTICO
             elif tipo == 'farmaceutico':
-                print("\n===== FARMACÊUTICO LOGIN =====")
-                print(f"User ID: {user_id}")
-                
-                # Buscar dados do farmacêutico
                 farmaceutico = execute_query_auth("""
                     SELECT id, crf, especialidade 
                     FROM farmaceuticos 
                     WHERE usuario_id = %s AND ativo = 1
                 """, (user_id,), fetch=True, one=True)
                 
-                print(f"Farmacêutico encontrado: {farmaceutico}")
-                
                 if farmaceutico:
                     session['farmaceutico_id'] = farmaceutico['id']
                     session['farmaceutico_crf'] = farmaceutico['crf']
                     session['farmaceutico_especialidade'] = farmaceutico['especialidade']
-                    
-                    print(f"Sessão final farmacêutico: {dict(session)}")
-                    logger.info(f"Farmacêutico logado: {nome} - CRF: {farmaceutico['crf']}")
-                    flash(f'Bem-vindo, Farmacêutico(a) {nome}!', 'success')
+                    print(f"Farmacêutico ID: {farmaceutico['id']}")
+
+            flash(f'Bem-vindo, {nome}!', 'success')
+            
+            # REDIRECIONAMENTOS - USANDO try/except
+            try:
+                if tipo == 'medico':
+                    return redirect(url_for('medico.dashboard'))
+                elif tipo == 'paciente':
+                    return redirect(url_for('paciente.dashboard'))
+                elif tipo == 'analista':
+                    return redirect(url_for('analista.dashboard'))
+                elif tipo == 'enfermeiro':
+                    return redirect(url_for('enfermeiro.dashboard.index'))
+                elif tipo == 'farmaceutico':
                     return redirect(url_for('farmaceutico.dashboard'))
                 else:
-                    print("FARMACÊUTICO NÃO ENCONTRADO NA TABELA!")
-                    flash('Dados do farmacêutico não encontrados. Contate o suporte.', 'danger')
-                    return redirect(url_for('auth.logout'))
-            
-            else:
-                flash(f'Bem-vindo, {nome}!', 'success')
+                    return redirect(url_for('dashboard'))
+            except Exception as e:
+                print(f"Erro no redirecionamento: {e}")
+                # Fallback: redirecionar para dashboard geral
                 return redirect(url_for('dashboard'))
 
         return render_template('login.html')
