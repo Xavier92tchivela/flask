@@ -1,4 +1,3 @@
-
 # config.py
 import os
 from dotenv import load_dotenv
@@ -18,5 +17,3 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
     DEBUG = os.getenv('FLASK_DEBUG', 'False').lower() in ['true', '1', 'yes']
-Use Control + Shift + m to toggle the tab key moving focus. Alternatively, use esc then tab to move to the next interactive element on the page.
- 
