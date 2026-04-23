@@ -64,23 +64,25 @@ class MySQLConnection:
             import pymysql
             import os
             
-            # Obter configurações do app ou environment variables
+            # CORRIGIDO: usar self.app (NÃO app diretamente)
             config = {
-                'host': os.environ.get('MYSQL_HOST', app.config.get('MYSQL_HOST', 'localhost')),
-                'user': os.environ.get('MYSQL_USER', app.config.get('MYSQL_USER', 'root')),
-                'password': os.environ.get('MYSQL_PASSWORD', app.config.get('MYSQL_PASSWORD', '')),
-                'database': os.environ.get('MYSQL_DB', app.config.get('MYSQL_DB', 'defaultdb')),
-                'port': int(os.environ.get('MYSQL_PORT', app.config.get('MYSQL_PORT', 3306))),
+                'host': os.environ.get('MYSQL_HOST', self.app.config.get('MYSQL_HOST', 'localhost')),
+                'user': os.environ.get('MYSQL_USER', self.app.config.get('MYSQL_USER', 'root')),
+                'password': os.environ.get('MYSQL_PASSWORD', self.app.config.get('MYSQL_PASSWORD', '')),
+                'database': os.environ.get('MYSQL_DB', self.app.config.get('MYSQL_DB', 'defaultdb')),
+                'port': int(os.environ.get('MYSQL_PORT', self.app.config.get('MYSQL_PORT', 3306))),
                 'cursorclass': pymysql.cursors.DictCursor,
                 'autocommit': False
             }
             
             # Adicionar SSL se necessário
-            ssl_mode = os.environ.get('MYSQL_SSL_MODE', app.config.get('MYSQL_SSL_MODE', 'DISABLED'))
+            ssl_mode = os.environ.get('MYSQL_SSL_MODE', self.app.config.get('MYSQL_SSL_MODE', 'DISABLED'))
             if ssl_mode == 'REQUIRED':
                 config['ssl'] = {'ssl-mode': 'REQUIRED'}
             
+            print(f"🔍 Conectando ao banco: {config['host']}:{config['port']}/{config['database']}")
             self._connection = pymysql.connect(**config)
+            print("✅ Conexão com banco estabelecida com sucesso!")
         
         return self._connection
     
@@ -96,7 +98,9 @@ class MySQLConnection:
             self._connection = None
 
 # Instanciar o objeto mysql para compatibilidade
+print("📡 Inicializando conexão com MySQL...")
 mysql = MySQLConnection(app)
+print("✅ MySQL inicializado com sucesso!")
 
 # ========== CONFIGURAÇÃO GEMINI AI ==========
 api_key = app.config.get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY')
@@ -630,8 +634,8 @@ def health_check():
     try:
         conn = mysql.get_connection()
         conn.ping()
-    except:
-        db_status = 'disconnected'
+    except Exception as e:
+        db_status = f'disconnected: {str(e)}'
     
     status = {
         'status': 'ok',
