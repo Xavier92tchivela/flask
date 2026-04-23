@@ -31,9 +31,11 @@ def init_paciente(mysql, app):
             logger.warning("obter_paciente_id: user_id não está na sessão")
             return None
         
+        # Primeiro tenta da sessão
         if 'paciente_id' in session and session['paciente_id']:
             return session['paciente_id']
         
+        # Busca no banco
         try:
             cur = mysql.connection.cursor()
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
@@ -45,7 +47,7 @@ def init_paciente(mysql, app):
                 session['paciente_id'] = paciente_id
                 return paciente_id
             
-            # Criar paciente automaticamente se não existir
+            # Se não existe, cria o paciente automaticamente
             logger.info(f"Criando paciente para usuario_id={session['user_id']}")
             cur = mysql.connection.cursor()
             cur.execute("INSERT INTO pacientes (usuario_id) VALUES (%s)", (session['user_id'],))
