@@ -49,264 +49,9 @@ def init_paciente(mysql, app):
             return data.strftime(formato)
         return str(data)
     
-    # ========== FUNÇÕES DE FATURA ==========
-    def gerar_numero_fatura():
-        try:
-            cursor = mysql.connection.cursor()
-            cursor.execute("SELECT COUNT(*) FROM faturas WHERE DATE(data_emissao) = CURDATE()")
-            total_hoje = cursor.fetchone()[0] + 1
-            cursor.close()
-            return f"FAT-{datetime.now().strftime('%Y%m%d')}-{str(total_hoje).zfill(4)}"
-        except:
-            return f"FAT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-
-    def emitir_fatura(consulta_id, paciente_id, paciente_nome, paciente_telefone, valor, data_consulta):
-        cursor = mysql.connection.cursor()
-        try:
-            numero_fatura = gerar_numero_fatura()
-            cursor.execute("""
-                INSERT INTO faturas 
-                (numero_fatura, consulta_id, paciente_id, paciente_nome, paciente_telefone, 
-                 data_consulta, valor_consulta, status_pagamento)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pendente')
-            """, (numero_fatura, consulta_id, paciente_id, paciente_nome, 
-                  paciente_telefone, data_consulta, valor))
-            fatura_id = cursor.lastrowid
-            mysql.connection.commit()
-            return {'id': fatura_id, 'numero': numero_fatura, 'valor': valor}
-        except Exception as e:
-            mysql.connection.rollback()
-            raise e
-        finally:
-            cursor.close()
-
-    def gerar_pdf_fatura(fatura_data):
-        pdf_dir = os.path.join(app.root_path, 'static', 'pdfs', 'faturas')
-        os.makedirs(pdf_dir, exist_ok=True)
-        filename = f"fatura_{fatura_data['numero_fatura']}.pdf"
-        output_path = os.path.join(pdf_dir, filename)
-        
-        doc = SimpleDocTemplate(output_path, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm,
-                               leftMargin=2*cm, rightMargin=2*cm)
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=16,
-                                      textColor=colors.HexColor('#1e466e'), alignment=1, spaceAfter=20)
-        subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'], fontSize=12,
-                                         textColor=colors.HexColor('#666666'), alignment=1, spaceAfter=30)
-        normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, spaceAfter=5)
-        
-        story = []
-        story.append(Paragraph("HOSPITAL MUNICIPAL DA CACULA", title_style))
-        story.append(Paragraph("Rua Principal, Bairro Central - Cacula, Huíla, Angola", subtitle_style))
-        story.append(Paragraph("Tel: 924 042 244 | Email: cacula@hospital.ao", subtitle_style))
-        story.append(Spacer(1, 20))
-        story.append(Table([['']], colWidths=[500], style=[('LINEBELOW', (0,0), (-1,-1), 1, colors.HexColor('#1e466e'))]))
-        story.append(Spacer(1, 20))
-        story.append(Paragraph("FATURA DE CONSULTA", ParagraphStyle('FaturaTitle', parent=styles['Heading2'],
-                              fontSize=14, textColor=colors.HexColor('#28a745'), alignment=1, spaceAfter=20)))
-        
-        data_emissao = fatura_data['data_emissao'].strftime('%d/%m/%Y %H:%M') if fatura_data.get('data_emissao') else datetime.now().strftime('%d/%m/%Y %H:%M')
-        data_consulta = fatura_data['data_consulta'].strftime('%d/%m/%Y %H:%M') if fatura_data.get('data_consulta') else 'Não informada'
-        
-        info_data = [['NÚMERO DA FATURA:', fatura_data['numero_fatura']],
-                     ['DATA DE EMISSÃO:', data_emissao],
-                     ['STATUS:', 'PENDENTE'],
-                     ['DATA DA CONSULTA:', data_consulta]]
-        info_table = Table(info_data, colWidths=[150, 350])
-        info_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                        ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1e466e')),
-                                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0'))]))
-        story.append(info_table)
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("DADOS DO PACIENTE", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=12, textColor=colors.HexColor('#1e466e'), spaceAfter=10)))
-        paciente_data = [['NOME:', fatura_data['paciente_nome']],
-                         ['TELEFONE:', fatura_data.get('paciente_telefone', 'Não informado') or 'Não informado']]
-        paciente_table = Table(paciente_data, colWidths=[150, 350])
-        paciente_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1e466e')),
-                                            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                            ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0'))]))
-        story.append(paciente_table)
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("DADOS DA CONSULTA", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=12, textColor=colors.HexColor('#1e466e'), spaceAfter=10)))
-        medico_data = [['MÉDICO:', fatura_data.get('medico_nome', 'Não informado')],
-                       ['ESPECIALIDADE:', fatura_data.get('especialidade', 'Clínico Geral')]]
-        medico_table = Table(medico_data, colWidths=[150, 350])
-        medico_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                          ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1e466e')),
-                                          ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                          ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0'))]))
-        story.append(medico_table)
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("ITENS DA FATURA", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=12, textColor=colors.HexColor('#1e466e'), spaceAfter=10)))
-        items_data = [['ITEM', 'DESCRIÇÃO', 'QUANTIDADE', 'VALOR UNIT.', 'TOTAL'],
-                      ['1', 'Consulta Médica', '1', f"{fatura_data['valor_consulta']:.2f} Kz", f"{fatura_data['valor_consulta']:.2f} Kz"]]
-        items_table = Table(items_data, colWidths=[40, 300, 80, 100, 100])
-        items_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                         ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e466e')),
-                                         ('TEXTCOLOR', (0,0), (-1,0), colors.white), ('ALIGN', (0,0), (-1,-1), 'CENTER'),
-                                         ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                         ('BACKGROUND', (0,1), (-1,-2), colors.HexColor('#f9f9f9')),
-                                         ('BACKGROUND', (0,-1), (-1,-1), colors.HexColor('#e8f5e9')),
-                                         ('FONTNAME', (0,-1), (-1,-1), 'Helvetica-Bold')]))
-        story.append(items_table)
-        story.append(Spacer(1, 20))
-        
-        total_data = [['TOTAL GERAL:', f"{fatura_data['valor_consulta']:.2f} Kz"]]
-        total_table = Table(total_data, colWidths=[450, 100])
-        total_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica-Bold'), ('FONTSIZE', (0,0), (-1,-1), 12),
-                                         ('TEXTCOLOR', (0,0), (-1,-1), colors.HexColor('#28a745')),
-                                         ('ALIGN', (1,0), (1,0), 'RIGHT'), ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-                                         ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#e8f5e9'))]))
-        story.append(total_table)
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("FORMAS DE PAGAMENTO", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=11, textColor=colors.HexColor('#1e466e'), spaceAfter=10)))
-        pagamento_text = """
-        <b>Balcão de Atendimento:</b> Dinheiro ou Cartão<br/>
-        <b>MB WAY:</b> 924 042 244<br/>
-        <b>Depósito Bancário:</b> BAI - 123456789 (Hospital Municipal da Cacula)<br/>
-        <b>Transferência:</b> IBAN: AO06 0040 0000 1234 5678 9012 3
-        """
-        story.append(Paragraph(pagamento_text, normal_style))
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("INFORMAÇÕES IMPORTANTES", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=11, textColor=colors.HexColor('#dc3545'), spaceAfter=10)))
-        info_text = """
-        • Apresente este documento no dia da consulta<br/>
-        • Cancelamentos devem ser feitos com 24 horas de antecedência<br/>
-        • Chegue com 15 minutos de antecedência<br/>
-        • Traga seus documentos e exames anteriores (se houver)
-        """
-        story.append(Paragraph(info_text, normal_style))
-        story.append(Spacer(1, 30))
-        
-        story.append(Paragraph("-" * 80, normal_style))
-        story.append(Paragraph("Documento emitido por sistema eletrônico - Validade legal",
-                              ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
-        story.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                              ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
-        
-        doc.build(story)
-        return output_path
-
-    def gerar_pdf_receita_completo(receita_data, app):
-        pdf_dir = os.path.join(app.root_path, 'static', 'pdfs', 'receitas')
-        os.makedirs(pdf_dir, exist_ok=True)
-        filename = f"receita_{receita_data['id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-        output_path = os.path.join(pdf_dir, filename)
-        
-        doc = SimpleDocTemplate(output_path, pagesize=A4, topMargin=2*cm, bottomMargin=2*cm,
-                               leftMargin=2*cm, rightMargin=2*cm)
-        styles = getSampleStyleSheet()
-        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'], fontSize=16,
-                                      textColor=colors.HexColor('#28a745'), alignment=1, spaceAfter=20)
-        subtitle_style = ParagraphStyle('CustomSubtitle', parent=styles['Normal'], fontSize=10,
-                                         textColor=colors.HexColor('#666666'), alignment=1, spaceAfter=30)
-        normal_style = ParagraphStyle('CustomNormal', parent=styles['Normal'], fontSize=10, spaceAfter=5)
-        
-        story = []
-        story.append(Paragraph("HOSPITAL MUNICIPAL DA CACULA", title_style))
-        story.append(Paragraph("RECEITA MÉDICA", subtitle_style))
-        story.append(Spacer(1, 20))
-        
-        info_data = [['NÚMERO DA RECEITA:', f"#{receita_data['id']}"],
-                     ['DATA DE EMISSÃO:', receita_data['created_at'].strftime('%d/%m/%Y %H:%M') if receita_data['created_at'] else datetime.now().strftime('%d/%m/%Y %H:%M')],
-                     ['STATUS:', receita_data['status'].upper() if receita_data['status'] else 'ATIVA']]
-        info_table = Table(info_data, colWidths=[150, 350])
-        info_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                        ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1e466e')),
-                                        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0'))]))
-        story.append(info_table)
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("MÉDICO RESPONSÁVEL", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=12, textColor=colors.HexColor('#1e466e'), spaceAfter=10)))
-        medico_data = [['NOME:', receita_data['medico_nome']],
-                       ['ESPECIALIDADE:', receita_data['especialidade']],
-                       ['CRM:', receita_data['crm']]]
-        medico_table = Table(medico_data, colWidths=[150, 350])
-        medico_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                          ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1e466e')),
-                                          ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                          ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0'))]))
-        story.append(medico_table)
-        story.append(Spacer(1, 20))
-        
-        story.append(Paragraph("PACIENTE", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                              fontSize=12, textColor=colors.HexColor('#1e466e'), spaceAfter=10)))
-        idade_text = f"{receita_data.get('idade', 'N/I')} anos" if receita_data.get('idade') else 'Não informada'
-        paciente_data = [['NOME:', receita_data['paciente_nome']],
-                         ['IDADE:', idade_text],
-                         ['GÊNERO:', receita_data.get('genero', 'Não informado')]]
-        paciente_table = Table(paciente_data, colWidths=[150, 350])
-        paciente_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10),
-                                            ('TEXTCOLOR', (0,0), (0,-1), colors.HexColor('#1e466e')),
-                                            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
-                                            ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0'))]))
-        story.append(paciente_table)
-        story.append(Spacer(1, 20))
-        
-        if receita_data.get('diagnostico'):
-            story.append(Paragraph("DIAGNÓSTICO", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                                  fontSize=12, textColor=colors.HexColor('#28a745'), spaceAfter=10)))
-            diagnostico_text = receita_data['diagnostico'].replace('\n', '<br/>')
-            story.append(Paragraph(diagnostico_text, normal_style))
-            story.append(Spacer(1, 15))
-        
-        if receita_data.get('prescricao'):
-            story.append(Paragraph("PRESCRIÇÃO MÉDICA", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                                  fontSize=12, textColor=colors.HexColor('#28a745'), spaceAfter=10)))
-            prescricao_text = receita_data['prescricao'].replace('\n', '<br/>')
-            story.append(Paragraph(prescricao_text, normal_style))
-            story.append(Spacer(1, 15))
-        
-        if receita_data.get('recomendacoes'):
-            story.append(Paragraph("RECOMENDAÇÕES", ParagraphStyle('SectionTitle', parent=styles['Heading3'],
-                                  fontSize=12, textColor=colors.HexColor('#28a745'), spaceAfter=10)))
-            recomendacoes_text = receita_data['recomendacoes'].replace('\n', '<br/>')
-            story.append(Paragraph(recomendacoes_text, normal_style))
-            story.append(Spacer(1, 15))
-        
-        story.append(Spacer(1, 30))
-        story.append(Paragraph("-" * 80, normal_style))
-        story.append(Paragraph("Documento eletrônico emitido por sistema validado",
-                              ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
-        story.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}",
-                              ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
-        story.append(Spacer(1, 20))
-        story.append(Paragraph("_________________________________________",
-                              ParagraphStyle('Signature', parent=normal_style, alignment=1, fontSize=10)))
-        story.append(Paragraph(receita_data['medico_nome'],
-                              ParagraphStyle('SignatureName', parent=normal_style, alignment=1, fontSize=10, textColor=colors.HexColor('#1e466e'))))
-        story.append(Paragraph("Assinatura do Médico",
-                              ParagraphStyle('SignatureLabel', parent=normal_style, alignment=1, fontSize=8)))
-        
-        doc.build(story)
-        return f"static/pdfs/receitas/{filename}"
-    
-    # ========== DECORATORS ==========
-    def paciente_required(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if 'user_id' not in session or session.get('user_type') != 'paciente':
-                flash('Acesso restrito a pacientes.', 'warning')
-                return redirect(url_for('auth.login'))
-            return f(*args, **kwargs)
-        return decorated_function
-    
     # ========== FUNÇÃO PARA OBTER PACIENTE ID ==========
     def obter_paciente_id():
+        """Obtém o ID do paciente logado"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
             return None
         try:
@@ -320,6 +65,15 @@ def init_paciente(mysql, app):
         except Exception as e:
             logger.error(f"Erro ao obter paciente_id: {e}")
             return None
+    
+    def paciente_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session or session.get('user_type') != 'paciente':
+                flash('Acesso restrito a pacientes.', 'warning')
+                return redirect(url_for('auth.login'))
+            return f(*args, **kwargs)
+        return decorated_function
     
     # ========== DASHBOARD ==========
     @paciente_bp.route('/dashboard')
@@ -335,16 +89,43 @@ def init_paciente(mysql, app):
             
             # Buscar dados do paciente
             cur.execute("""
-                SELECT p_u.nome, p.data_nascimento, p.genero, p.telefone, p.endereco, p_u.email
+                SELECT COALESCE(p_u.nome, 'Paciente') as nome, 
+                       p.data_nascimento, 
+                       COALESCE(p.genero, '') as genero, 
+                       COALESCE(p.telefone, '') as telefone, 
+                       COALESCE(p.endereco, '') as endereco, 
+                       COALESCE(p_u.email, '') as email
                 FROM pacientes p 
                 JOIN usuarios p_u ON p.usuario_id = p_u.id 
                 WHERE p.id = %s
             """, (paciente_id,))
             paciente_info = cur.fetchone()
             
+            # Se não encontrou, buscar apenas o nome do usuario
+            if not paciente_info:
+                cur.execute("SELECT nome FROM usuarios WHERE id = %s", (session['user_id'],))
+                nome_result = cur.fetchone()
+                paciente_nome = garantir_string(nome_result[0]) if nome_result else session.get('user_name', 'Paciente')
+                paciente_data_nasc = None
+                paciente_genero = None
+                paciente_telefone = None
+                paciente_endereco = None
+                paciente_email = session.get('user_email', '')
+            else:
+                paciente_nome = garantir_string(paciente_info[0])
+                paciente_data_nasc = paciente_info[1]
+                paciente_genero = garantir_string(paciente_info[2])
+                paciente_telefone = garantir_string(paciente_info[3])
+                paciente_endereco = garantir_string(paciente_info[4])
+                paciente_email = garantir_string(paciente_info[5])
+            
+            paciente_data_nasc = formatar_data(paciente_data_nasc, '%d/%m/%Y') if paciente_data_nasc else None
+            
             # Buscar consultas
             cur.execute("""
-                SELECT c.id, m_u.nome as medico_nome, m.especialidade, c.data_hora, c.status
+                SELECT c.id, COALESCE(m_u.nome, 'Médico') as medico_nome, 
+                       COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
+                       c.data_hora, COALESCE(c.status, 'agendada') as status
                 FROM consultas c 
                 JOIN medicos m ON c.medico_id = m.id 
                 JOIN usuarios m_u ON m.usuario_id = m_u.id 
@@ -358,27 +139,111 @@ def init_paciente(mysql, app):
             # Processar consultas
             consultas = []
             for c in consultas_raw:
+                status = c[4] if len(c) > 4 else 'agendada'
                 consultas.append({
                     'id': c[0],
                     'medico_nome': garantir_string(c[1]),
                     'especialidade': garantir_string(c[2]),
                     'data_hora': formatar_data(c[3]),
-                    'status': garantir_string(c[4]),
+                    'status': garantir_string(status),
                     'status_class': {
                         'agendada': 'warning',
                         'realizada': 'success',
-                        'cancelada': 'danger'
-                    }.get(c[4], 'secondary')
+                        'cancelada': 'danger',
+                        'confirmada': 'info'
+                    }.get(status, 'secondary')
                 })
+            
+            # Estatísticas
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
+            total_consultas = cur.fetchone()[0] if cur.fetchone() else 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
+            consultas_hoje = cur.fetchone()[0] if cur.fetchone() else 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
+            consultas_agendadas = cur.fetchone()[0] if cur.fetchone() else 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
+            consultas_realizadas = cur.fetchone()[0] if cur.fetchone() else 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
+            consultas_canceladas = cur.fetchone()[0] if cur.fetchone() else 0
+            cur.close()
+            
+            stats = {
+                'total_consultas': total_consultas,
+                'consultas_hoje': consultas_hoje
+            }
             
             return render_template('paciente/dashboard.html', 
                                  consultas=consultas,
-                                 paciente_nome=garantir_string(paciente_info[0]) if paciente_info else session.get('user_name', 'Paciente'),
+                                 stats=stats,
+                                 consultas_agendadas=consultas_agendadas,
+                                 consultas_realizadas=consultas_realizadas,
+                                 consultas_canceladas=consultas_canceladas,
+                                 consultas_hoje=consultas_hoje,
+                                 paciente_id=paciente_id,
+                                 paciente_nome=paciente_nome,
+                                 paciente_data_nasc=paciente_data_nasc,
+                                 paciente_genero=paciente_genero,
+                                 paciente_telefone=paciente_telefone,
+                                 paciente_endereco=paciente_endereco,
+                                 paciente_email=paciente_email,
                                  user=session)
         except Exception as e:
             logger.error(f"Erro no dashboard: {e}")
+            logger.error(traceback.format_exc())
             flash(f'Erro ao carregar dashboard: {str(e)}', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
+    
+    # ========== MINHAS CONSULTAS ==========
+    @paciente_bp.route('/consultas')
+    @paciente_required
+    def minhas_consultas():
+        try:
+            paciente_id = obter_paciente_id()
+            if not paciente_id:
+                flash('Perfil de paciente não encontrado.', 'danger')
+                return redirect(url_for('auth.logout'))
+            
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                SELECT c.id, COALESCE(m_u.nome, 'Médico') as nome, 
+                       COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
+                       COALESCE(m.crm, '') as crm, 
+                       c.data_hora, COALESCE(c.status, 'agendada') as status
+                FROM consultas c
+                JOIN medicos m ON c.medico_id = m.id
+                JOIN usuarios m_u ON m.usuario_id = m_u.id
+                WHERE c.paciente_id = %s
+                ORDER BY c.data_hora DESC
+            """, (paciente_id,))
+            consultas_raw = cur.fetchall()
+            cur.close()
+            
+            consultas_formatadas = []
+            for c in consultas_raw:
+                status = c[5] if len(c) > 5 else 'agendada'
+                consultas_formatadas.append({
+                    'id': c[0],
+                    'medico_nome': garantir_string(c[1]),
+                    'especialidade': garantir_string(c[2]),
+                    'crm': garantir_string(c[3]),
+                    'data_hora': formatar_data(c[4]),
+                    'data_short': formatar_data(c[4], '%d/%m/%Y'),
+                    'hora': formatar_data(c[4], '%H:%M'),
+                    'status': garantir_string(status),
+                    'status_class': {
+                        'agendada': 'warning',
+                        'realizada': 'success',
+                        'cancelada': 'danger',
+                        'confirmada': 'info'
+                    }.get(status, 'secondary')
+                })
+            
+            return render_template('paciente/consultas.html', consultas=consultas_formatadas, user=session, user_type='paciente')
+        except Exception as e:
+            logger.error(f"Erro em minhas_consultas: {e}")
+            flash(f'Erro ao carregar consultas: {str(e)}', 'danger')
+            return redirect(url_for('paciente.dashboard'))
     
     # ========== AGENDAR CONSULTA ==========
     @paciente_bp.route('/agendar', methods=['GET', 'POST'])
@@ -388,7 +253,9 @@ def init_paciente(mysql, app):
         
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT m.id, u.nome, m.especialidade, m.crm
+            SELECT m.id, COALESCE(u.nome, 'Médico') as nome, 
+                   COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
+                   COALESCE(m.crm, '') as crm
             FROM medicos m
             JOIN usuarios u ON m.usuario_id = u.id
             WHERE u.ativo = 1
@@ -421,29 +288,35 @@ def init_paciente(mysql, app):
                 flash('Preencha todos os campos obrigatórios.', 'danger')
                 return redirect(request.url)
             
-            data_hora = datetime.strptime(f"{data_consulta} {hora_consulta}", "%Y-%m-%d %H:%M")
+            try:
+                data_hora = datetime.strptime(f"{data_consulta} {hora_consulta}", "%Y-%m-%d %H:%M")
+            except:
+                flash('Formato de data/hora inválido.', 'danger')
+                return redirect(request.url)
             
             if data_hora <= datetime.now():
                 flash('Não é possível agendar consultas em datas/horários passados.', 'danger')
                 return redirect(request.url)
             
+            hora = data_hora.hour
+            if hora < 8 or hora > 17 or (hora == 12 and data_hora.minute > 0):
+                flash('Horário fora do expediente. Consulte das 8h às 12h e das 14h às 17h.', 'danger')
+                return redirect(request.url)
+            
             cur = mysql.connection.cursor()
             cur.execute("SELECT COUNT(*) FROM consultas WHERE medico_id = %s AND data_hora = %s AND status != 'cancelada'",
                        (medico_id, data_hora))
-            if cur.fetchone()[0] > 0:
+            count = cur.fetchone()[0]
+            if count > 0:
                 cur.close()
                 flash('Horário indisponível. Escolha outro horário.', 'danger')
                 return redirect(request.url)
             
             try:
-                cur.execute("SELECT u.nome FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = %s", (paciente_id,))
-                paciente_nome = garantir_string(cur.fetchone()[0]) if cur.fetchone() else 'Paciente'
-                
                 cur.execute("""
                     INSERT INTO consultas (paciente_id, medico_id, data_hora, status, sintomas, observacoes)
                     VALUES (%s, %s, %s, 'agendada', %s, %s)
                 """, (paciente_id, medico_id, data_hora, sintomas, observacoes))
-                consulta_id = cur.lastrowid
                 mysql.connection.commit()
                 cur.close()
                 
@@ -457,44 +330,13 @@ def init_paciente(mysql, app):
                 flash(f'Erro ao agendar: {str(e)}', 'danger')
                 return redirect(request.url)
         
-        return render_template('paciente/agendar_consulta.html', medicos=medicos, horarios=horarios,
-                               data_minima=data_minima, data_maxima=data_maxima, user=session, user_type='paciente')
-    
-    # ========== MINHAS CONSULTAS ==========
-    @paciente_bp.route('/consultas')
-    @paciente_required
-    def minhas_consultas():
-        paciente_id = obter_paciente_id()
-        
-        if not paciente_id:
-            flash('Perfil de paciente não encontrado.', 'danger')
-            return redirect(url_for('auth.logout'))
-        
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT c.id, m_u.nome, m.especialidade, m.crm, c.data_hora, c.status
-            FROM consultas c
-            JOIN medicos m ON c.medico_id = m.id
-            JOIN usuarios m_u ON m.usuario_id = m_u.id
-            WHERE c.paciente_id = %s
-            ORDER BY c.data_hora DESC
-        """, (paciente_id,))
-        consultas_raw = cur.fetchall()
-        cur.close()
-        
-        consultas_formatadas = []
-        for c in consultas_raw:
-            consultas_formatadas.append({
-                'id': c[0],
-                'medico_nome': garantir_string(c[1]),
-                'especialidade': garantir_string(c[2]),
-                'crm': garantir_string(c[3]),
-                'data_hora': formatar_data(c[4]),
-                'status': garantir_string(c[5]),
-                'status_class': {'agendada': 'warning', 'realizada': 'success', 'cancelada': 'danger'}.get(c[5], 'secondary')
-            })
-        
-        return render_template('paciente/consultas.html', consultas=consultas_formatadas, user=session, user_type='paciente')
+        return render_template('paciente/agendar_consulta.html', 
+                               medicos=medicos, 
+                               horarios=horarios,
+                               data_minima=data_minima,
+                               data_maxima=data_maxima,
+                               user=session, 
+                               user_type='paciente')
     
     # ========== DETALHES CONSULTA ==========
     @paciente_bp.route('/consultas/<int:consulta_id>')
@@ -504,9 +346,17 @@ def init_paciente(mysql, app):
         cur = mysql.connection.cursor()
         
         cur.execute("""
-            SELECT c.id, m_u.nome, m.especialidade, m.crm, c.data_hora, c.status,
-                   c.observacoes, p_u.nome, p.data_nascimento, p.genero, p.telefone,
-                   p.endereco, c.sintomas
+            SELECT c.id, COALESCE(m_u.nome, 'Médico') as medico_nome, 
+                   COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
+                   COALESCE(m.crm, '') as crm, 
+                   c.data_hora, COALESCE(c.status, 'agendada') as status,
+                   COALESCE(c.observacoes, '') as observacoes, 
+                   COALESCE(p_u.nome, 'Paciente') as paciente_nome, 
+                   p.data_nascimento, 
+                   COALESCE(p.genero, '') as genero, 
+                   COALESCE(p.telefone, '') as telefone,
+                   COALESCE(p.endereco, '') as endereco, 
+                   COALESCE(c.sintomas, '') as sintomas
             FROM consultas c
             JOIN medicos m ON m.id = c.medico_id
             JOIN usuarios m_u ON m_u.id = m.usuario_id
@@ -539,7 +389,16 @@ def init_paciente(mysql, app):
         }
         
         # Buscar receitas
-        cur.execute("SELECT id, diagnostico, prescricao, recomendacoes, status, created_at FROM receita WHERE consulta_id = %s ORDER BY created_at DESC", (consulta_id,))
+        cur.execute("""
+            SELECT id, COALESCE(diagnostico, '') as diagnostico, 
+                   COALESCE(prescricao, '') as prescricao, 
+                   COALESCE(recomendacoes, '') as recomendacoes, 
+                   COALESCE(status, 'ativa') as status, 
+                   created_at
+            FROM receita 
+            WHERE consulta_id = %s 
+            ORDER BY created_at DESC
+        """, (consulta_id,))
         receitas_raw = cur.fetchall()
         cur.close()
         
@@ -547,18 +406,30 @@ def init_paciente(mysql, app):
         for r in receitas_raw:
             receitas.append({
                 'id': r[0],
-                'diagnostico': garantir_string(r[1]) if r[1] else '',
-                'prescricao': garantir_string(r[2]) if r[2] else '',
-                'recomendacoes': garantir_string(r[3]) if r[3] else '',
-                'status': garantir_string(r[4]) if r[4] else 'ativa',
+                'diagnostico': garantir_string(r[1]),
+                'prescricao': garantir_string(r[2]),
+                'recomendacoes': garantir_string(r[3]),
+                'status': garantir_string(r[4]),
                 'created_at': formatar_data(r[5], '%d/%m/%Y %H:%M') if r[5] else ''
             })
         
         sintomas_lista = [s.strip() for s in consulta['sintomas_raw'].split(',') if s.strip()] if consulta.get('sintomas_raw') else []
+        status_class = {
+            'agendada': 'warning',
+            'realizada': 'success',
+            'cancelada': 'danger',
+            'confirmada': 'info'
+        }.get(consulta['status'], 'secondary')
         
         return render_template('paciente/detalhes_consulta.html', 
-                             consulta=consulta, sintomas=sintomas_lista, receitas=receitas,
-                             user=session, formatar_data=formatar_data, datetime=datetime, user_type='paciente')
+                             consulta=consulta,
+                             sintomas=sintomas_lista,
+                             receitas=receitas,
+                             status_class=status_class,
+                             user=session,
+                             formatar_data=formatar_data,
+                             datetime=datetime,
+                             user_type='paciente')
     
     # ========== CANCELAR CONSULTA ==========
     @paciente_bp.route('/consultas/<int:consulta_id>/cancelar', methods=['POST'])
@@ -573,7 +444,8 @@ def init_paciente(mysql, app):
                 flash('Consulta não encontrada.', 'danger')
                 return redirect(url_for('paciente.minhas_consultas'))
             
-            if consulta[0] != 'agendada':
+            status = consulta[0] if consulta else 'agendada'
+            if status != 'agendada':
                 flash('Apenas consultas agendadas podem ser canceladas.', 'warning')
                 return redirect(url_for('paciente.detalhes_consulta', consulta_id=consulta_id))
             
@@ -581,10 +453,15 @@ def init_paciente(mysql, app):
             mysql.connection.commit()
             cur.close()
             
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': 'Consulta cancelada com sucesso!'})
+            
             flash('Consulta cancelada com sucesso!', 'success')
         except Exception as e:
             mysql.connection.rollback()
             logger.error(f"Erro ao cancelar consulta: {e}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': str(e)}), 500
             flash('Erro ao cancelar consulta.', 'danger')
         
         return redirect(url_for('paciente.minhas_consultas'))
@@ -615,7 +492,12 @@ def init_paciente(mysql, app):
         
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT p_u.nome, p.data_nascimento, p.genero, p.telefone, p.endereco, p_u.email
+            SELECT COALESCE(p_u.nome, 'Paciente') as nome, 
+                   p.data_nascimento, 
+                   COALESCE(p.genero, '') as genero, 
+                   COALESCE(p.telefone, '') as telefone, 
+                   COALESCE(p.endereco, '') as endereco, 
+                   COALESCE(p_u.email, '') as email
             FROM pacientes p
             JOIN usuarios p_u ON p.usuario_id = p_u.id
             WHERE p.id = %s
@@ -642,8 +524,18 @@ def init_paciente(mysql, app):
         paciente_id = obter_paciente_id()
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT r.id, r.diagnostico, r.prescricao, r.recomendacoes, r.status, r.created_at,
-                   c.id, c.data_hora, m_u.nome, m.especialidade, m.crm, p_u.nome, p.data_nascimento, p.genero
+            SELECT r.id, COALESCE(r.diagnostico, '') as diagnostico, 
+                   COALESCE(r.prescricao, '') as prescricao, 
+                   COALESCE(r.recomendacoes, '') as recomendacoes, 
+                   COALESCE(r.status, 'ativa') as status, 
+                   r.created_at,
+                   c.id as consulta_id, c.data_hora,
+                   COALESCE(m_u.nome, 'Médico') as medico_nome,
+                   COALESCE(m.especialidade, 'Clínico Geral') as especialidade,
+                   COALESCE(m.crm, '') as crm,
+                   COALESCE(p_u.nome, 'Paciente') as paciente_nome,
+                   p.data_nascimento,
+                   COALESCE(p.genero, '') as genero
             FROM receita r
             JOIN consultas c ON r.consulta_id = c.id
             JOIN medicos m ON c.medico_id = m.id
@@ -652,12 +544,26 @@ def init_paciente(mysql, app):
             JOIN usuarios p_u ON p.usuario_id = p_u.id
             WHERE r.id = %s AND c.paciente_id = %s
         """, (receita_id, paciente_id))
+        
         row = cur.fetchone()
         cur.close()
         
         if not row:
             flash('Receita não encontrada.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
+        
+        # Calcular idade
+        idade = None
+        data_nasc = row[13] if len(row) > 13 else None
+        if data_nasc:
+            try:
+                hoje = datetime.now().date()
+                nasc = data_nasc if isinstance(data_nasc, date) else datetime.strptime(str(data_nasc), '%Y-%m-%d').date()
+                idade = hoje.year - nasc.year
+                if hoje.month < nasc.month or (hoje.month == nasc.month and hoje.day < nasc.day):
+                    idade -= 1
+            except:
+                pass
         
         receita = {
             'id': row[0],
@@ -673,10 +579,10 @@ def init_paciente(mysql, app):
             'crm': garantir_string(row[10]),
             'paciente_nome': garantir_string(row[11]),
             'data_nascimento': formatar_data(row[12], '%d/%m/%Y') if row[12] else '',
-            'genero': garantir_string(row[13])
+            'genero': garantir_string(row[13]) if len(row) > 13 else '',
+            'idade': idade
         }
         
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
     return paciente_bp
-EOF
