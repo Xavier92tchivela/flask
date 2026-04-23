@@ -345,17 +345,21 @@ def init_paciente(mysql, app):
         
         cur.execute("""
             SELECT c.id, m_u.nome as medico_nome, m.especialidade, c.data_hora, c.status
-            FROM consultas c JOIN medicos m ON c.medico_id = m.id 
-            JOIN usuarios m_u ON m.usuario_id = m.u.id 
-            WHERE c.paciente_id = %s ORDER BY c.data_hora DESC LIMIT 10
+            FROM consultas c 
+            JOIN medicos m ON c.medico_id = m.id 
+            JOIN usuarios m_u ON m.usuario_id = m_u.id 
+            WHERE c.paciente_id = %s 
+            ORDER BY c.data_hora DESC 
+            LIMIT 10
         """, (paciente_id,))
         consultas_raw = cur.fetchall()
         
         cur.execute("""
-            SELECT SUM(CASE WHEN status = 'agendada' THEN 1 ELSE 0 END) as agendadas,
-                   SUM(CASE WHEN status = 'realizada' THEN 1 ELSE 0 END) as realizadas,
-                   SUM(CASE WHEN status = 'cancelada' THEN 1 ELSE 0 END) as canceladas,
-                   COUNT(*) as total
+            SELECT 
+                SUM(CASE WHEN status = 'agendada' THEN 1 ELSE 0 END) as agendadas,
+                SUM(CASE WHEN status = 'realizada' THEN 1 ELSE 0 END) as realizadas,
+                SUM(CASE WHEN status = 'cancelada' THEN 1 ELSE 0 END) as canceladas,
+                COUNT(*) as total
             FROM consultas WHERE paciente_id = %s
         """, (paciente_id,))
         stats_row = cur.fetchone()
@@ -474,8 +478,10 @@ def init_paciente(mysql, app):
             SELECT f.id, f.numero_fatura, f.paciente_nome, f.paciente_telefone,
                    f.data_consulta, f.valor_consulta, f.status_pagamento, f.data_emissao,
                    c.id as consulta_id, u.nome as medico_nome, m.especialidade
-            FROM faturas f JOIN consultas c ON f.consulta_id = c.id
-            JOIN medicos m ON c.medico_id = m.id JOIN usuarios u ON m.usuario_id = u.id
+            FROM faturas f 
+            JOIN consultas c ON f.consulta_id = c.id
+            JOIN medicos m ON c.medico_id = m.id 
+            JOIN usuarios u ON m.usuario_id = u.id
             WHERE f.id = %s
         """, (fatura_id,))
         fatura_raw = cursor.fetchone()
@@ -502,9 +508,11 @@ def init_paciente(mysql, app):
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT c.id, m_u.nome, m.especialidade, c.data_hora, c.status
-            FROM consultas c JOIN medicos m ON c.medico_id = m.id
+            FROM consultas c 
+            JOIN medicos m ON c.medico_id = m.id
             JOIN usuarios m_u ON m.usuario_id = m_u.id
-            WHERE c.paciente_id = %s ORDER BY c.data_hora DESC
+            WHERE c.paciente_id = %s 
+            ORDER BY c.data_hora DESC
         """, (paciente_id,))
         consultas_raw = cur.fetchall()
         cur.close()
@@ -537,7 +545,9 @@ def init_paciente(mysql, app):
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT p_u.nome, p.data_nascimento, p.genero, p.telefone, p.endereco, p_u.email
-            FROM pacientes p JOIN usuarios p_u ON p.usuario_id = p_u.id WHERE p.id = %s
+            FROM pacientes p 
+            JOIN usuarios p_u ON p.usuario_id = p_u.id 
+            WHERE p.id = %s
         """, (paciente_id,))
         info = cur.fetchone()
         cur.close()
@@ -557,7 +567,8 @@ def init_paciente(mysql, app):
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT c.id, m_u.nome, m.especialidade, c.data_hora, c.status, c.observacoes
-            FROM consultas c JOIN medicos m ON c.medico_id = m.id
+            FROM consultas c 
+            JOIN medicos m ON c.medico_id = m.id
             JOIN usuarios m_u ON m.usuario_id = m_u.id
             WHERE c.id = %s AND c.paciente_id = %s
         """, (consulta_id, paciente_id))
