@@ -3,58 +3,310 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<h2>Dashboard</h2>
-<p>Olá, {{ user.username }}! Seu papel é: {{ user.role }}</p>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Olá, <strong>{{ user.get('user_name', session.get('user_name', 'Usuário')) }}</strong>! 
+                        Seu papel é: <strong>{{ user.get('user_type', session.get('user_type', 'desconhecido')) }}</strong>
+                    </div>
+                    
+                    {% set user_type = user.get('user_type', session.get('user_type')) %}
+                    
+                    {% if user_type == 'paciente' %}
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-calendar-alt fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Minhas Consultas</h5>
+                                        <p class="card-text">Visualize todo o histórico das suas consultas médicas.</p>
+                                        <a href="/paciente/consultas" class="btn btn-primary">
+                                            <i class="fas fa-eye me-2"></i>Ver Consultas
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-calendar-plus fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Agendar Consulta</h5>
+                                        <p class="card-text">Marque uma nova consulta com um de nossos especialistas.</p>
+                                        <a href="/paciente/agendar" class="btn btn-success">
+                                            <i class="fas fa-plus me-2"></i>Agendar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-user-edit fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">Meu Perfil</h5>
+                                        <p class="card-text">Atualize seus dados pessoais e informações de contato.</p>
+                                        <a href="/paciente/perfil" class="btn btn-info">
+                                            <i class="fas fa-edit me-2"></i>Editar Perfil
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-prescription fa-3x text-warning mb-3"></i>
+                                        <h5 class="card-title">Minhas Receitas</h5>
+                                        <p class="card-text">Acesse suas receitas médicas e medicamentos prescritos.</p>
+                                        <a href="/paciente/consultas" class="btn btn-warning">
+                                            <i class="fas fa-prescription me-2"></i>Ver Receitas
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user_type == 'medico' %}
+                        <div class="row mt-4">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-calendar-check fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Minhas Consultas</h5>
+                                        <p class="card-text">Gerencie suas consultas agendadas e realizadas.</p>
+                                        <a href="/medico/consultas" class="btn btn-primary">
+                                            <i class="fas fa-list me-2"></i>Ver Consultas
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-flask fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Pedidos de Análise</h5>
+                                        <p class="card-text">Solicite e acompanhe exames laboratoriais.</p>
+                                        <a href="/medico/pedidos" class="btn btn-success">
+                                            <i class="fas fa-microscope me-2"></i>Ver Pedidos
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-prescription fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">Receitas</h5>
+                                        <p class="card-text">Emita e gerencie receitas médicas.</p>
+                                        <a href="/medico/receitas" class="btn btn-info">
+                                            <i class="fas fa-file-alt me-2"></i>Receitas
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user_type == 'farmaceutico' %}
+                        <div class="row mt-4">
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-prescription-bottle fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Prescrições</h5>
+                                        <p class="card-text">Visualize e gerencie prescrições médicas.</p>
+                                        <a href="/farmaceutico/prescricoes" class="btn btn-primary">
+                                            <i class="fas fa-list me-2"></i>Ver Prescrições
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-exchange-alt fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Dispensações</h5>
+                                        <p class="card-text">Registre e controle a dispensação de medicamentos.</p>
+                                        <a href="/farmaceutico/dispensacoes" class="btn btn-success">
+                                            <i class="fas fa-truck me-2"></i>Dispensações
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-boxes fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">Estoque</h5>
+                                        <p class="card-text">Gerencie o estoque de medicamentos.</p>
+                                        <a href="/farmaceutico/estoque" class="btn btn-info">
+                                            <i class="fas fa-warehouse me-2"></i>Estoque
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user_type == 'admin' %}
+                        <div class="row mt-4">
+                            <div class="col-md-3 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Pacientes</h5>
+                                        <p class="card-text">Gerencie todos os pacientes do sistema.</p>
+                                        <a href="/admin/pacientes" class="btn btn-primary">
+                                            <i class="fas fa-user-md me-2"></i>Gerenciar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-user-md fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Médicos</h5>
+                                        <p class="card-text">Gerencie os médicos e suas especialidades.</p>
+                                        <a href="/admin/medicos" class="btn btn-success">
+                                            <i class="fas fa-stethoscope me-2"></i>Gerenciar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-calendar-alt fa-3x text-info mb-3"></i>
+                                        <h5 class="card-title">Consultas</h5>
+                                        <p class="card-text">Visualize todas as consultas do sistema.</p>
+                                        <a href="/admin/consultas" class="btn btn-info">
+                                            <i class="fas fa-list me-2"></i>Ver Consultas
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-chart-line fa-3x text-warning mb-3"></i>
+                                        <h5 class="card-title">Estatísticas</h5>
+                                        <p class="card-text">Acompanhe métricas e relatórios do sistema.</p>
+                                        <a href="/admin/estatisticas" class="btn btn-warning">
+                                            <i class="fas fa-chart-bar me-2"></i>Relatórios
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user_type == 'analista' %}
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-microscope fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Pedidos Pendentes</h5>
+                                        <p class="card-text">Exames aguardando análise laboratorial.</p>
+                                        <a href="/analista/pedidos" class="btn btn-primary">
+                                            <i class="fas fa-flask me-2"></i>Ver Pedidos
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Resultados</h5>
+                                        <p class="card-text">Resultados de exames concluídos.</p>
+                                        <a href="/analista/resultados" class="btn btn-success">
+                                            <i class="fas fa-file-alt me-2"></i>Ver Resultados
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% elif user_type == 'enfermeiro' %}
+                        <div class="row mt-4">
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-thermometer-half fa-3x text-primary mb-3"></i>
+                                        <h5 class="card-title">Triagem</h5>
+                                        <p class="card-text">Realize a triagem de pacientes.</p>
+                                        <a href="/enfermeiro/triagem" class="btn btn-primary">
+                                            <i class="fas fa-clinic-medical me-2"></i>Fazer Triagem
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-heartbeat fa-3x text-success mb-3"></i>
+                                        <h5 class="card-title">Sinais Vitais</h5>
+                                        <p class="card-text">Registre sinais vitais dos pacientes.</p>
+                                        <a href="/enfermeiro/sinais-vitais" class="btn btn-success">
+                                            <i class="fas fa-stethoscope me-2"></i>Registrar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                    {% else %}
+                        <div class="alert alert-warning mt-4">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Tipo de usuário não reconhecido: <strong>{{ user_type }}</strong>
+                            <p class="mt-2 mb-0">Entre em contato com o administrador do sistema.</p>
+                        </div>
+                    {% endif %}
+                    
+                    <hr class="mt-4">
+                    <div class="text-center">
+                        <a href="/logout" class="btn btn-danger btn-lg">
+                            <i class="fas fa-sign-out-alt me-2"></i>Sair do Sistema
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-{% if user.role == 'paciente' %}
-    <div class="d-flex justify-content-start">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Suas Consultas</h5>
-                <p class="card-text">Aqui você pode ver suas consultas agendadas.</p>
-                <a href="{{ url_for('consultas') }}" class="btn btn-primary">Ver Consultas</a>
-            </div>
-        </div>
-    </div>
-{% elif user.role == 'medico' %}
-    <div class="d-flex justify-content-start">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Suas Consultas</h5>
-                <p class="card-text">Aqui você pode ver suas consultas agendadas.</p>
-                <a href="{{ url_for('consultas') }}" class="btn btn-primary">Ver Consultas</a>
-            </div>
-        </div>
-    </div>
-{% else %}
-    <div class="row justify-content-start">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Pacientes</h5>
-                    <p class="card-text">Gerencie os pacientes do sistema.</p>
-                    <a href="{{ url_for('pacientes') }}" class="btn btn-primary">Gerenciar</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Médicos</h5>
-                    <p class="card-text">Gerencie os médicos do sistema.</p>
-                    <a href="{{ url_for('medicos') }}" class="btn btn-primary">Gerenciar</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Consultas</h5>
-                    <p class="card-text">Visualize todas as consultas.</p>
-                    <a href="{{ url_for('consultas') }}" class="btn btn-primary">Ver Consultas</a>
-                </div>
-            </div>
-        </div>
-    </div>
-{% endif %}
+<style>
+    .card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .btn {
+        transition: all 0.3s ease;
+    }
+    .btn:hover {
+        transform: scale(1.05);
+    }
+    .card h5 {
+        font-size: 1.25rem;
+        font-weight: 600;
+    }
+    @media (max-width: 768px) {
+        .card h5 {
+            font-size: 1rem;
+        }
+        .btn {
+            font-size: 0.875rem;
+            padding: 8px 12px;
+        }
+    }
+</style>
 {% endblock %}
