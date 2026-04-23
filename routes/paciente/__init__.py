@@ -548,25 +548,29 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente logado - CORRIGIDO"""
+        """Obtém o ID do paciente logado - VERSÃO CORRIGIDA"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
             return None
         
-        resultado = execute_query(
-            "SELECT id FROM pacientes WHERE usuario_id = %s", 
-            (session['user_id'],), fetch=True, one=True
-        )
-        
-        if not resultado:
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            resultado = cur.fetchone()
+            cur.close()
+            
+            if resultado:
+                if isinstance(resultado, tuple):
+                    return resultado[0]
+                elif isinstance(resultado, dict):
+                    return resultado.get('id')
+                elif isinstance(resultado, list) and len(resultado) > 0:
+                    if isinstance(resultado[0], dict):
+                        return resultado[0].get('id')
+                    return resultado[0]
             return None
-        
-        # Suporta diferentes formatos de retorno (dicionário ou tupla)
-        if isinstance(resultado, dict):
-            return resultado.get('id')
-        elif isinstance(resultado, (list, tuple)):
-            return resultado[0] if len(resultado) > 0 else None
-        else:
-            return resultado
+        except Exception as e:
+            logger.error(f"Erro ao obter paciente_id: {e}")
+            return None
     
     # ========== ROTAS ==========
     
