@@ -6,8 +6,6 @@ from datetime import datetime, timedelta, date
 logger = logging.getLogger(__name__)
 
 def init_paciente(mysql, app):
-    """Inicializa o blueprint do paciente"""
-    
     paciente_bp = Blueprint('paciente', __name__, url_prefix='/paciente')
     
     def garantir_string(valor):
@@ -28,7 +26,6 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente a partir do user_id da sessão"""
         if 'user_id' not in session:
             return None
         if session.get('paciente_id'):
@@ -39,7 +36,7 @@ def init_paciente(mysql, app):
             resultado = cur.fetchone()
             cur.close()
             if resultado:
-                paciente_id = resultado[0] if isinstance(resultado, (list, tuple)) else resultado.get('id')
+                paciente_id = resultado[0]
                 session['paciente_id'] = paciente_id
                 return paciente_id
             return None
@@ -56,10 +53,14 @@ def init_paciente(mysql, app):
             if session.get('user_type') != 'paciente':
                 flash('Acesso restrito a pacientes.', 'danger')
                 return redirect(url_for('auth.login'))
+            paciente_id = obter_paciente_id()
+            if paciente_id is None:
+                flash('Perfil de paciente não encontrado.', 'danger')
+                return redirect(url_for('auth.logout'))
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== ROTA DO DASHBOARD ==========
+    # ========== DASHBOARD ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -71,7 +72,7 @@ def init_paciente(mysql, app):
             
             cur = mysql.connection.cursor()
             
-            # Buscar dados do paciente
+            # Dados do paciente
             cur.execute("""
                 SELECT u.nome, COALESCE(p.telefone, '') as telefone, 
                        COALESCE(p.endereco, '') as endereco, COALESCE(u.email, '') as email,
@@ -97,7 +98,7 @@ def init_paciente(mysql, app):
                 paciente_data_nasc = None
                 paciente_genero = ''
             
-            # Buscar consultas
+            # Consultas
             cur.execute("""
                 SELECT c.id, COALESCE(mu.nome, 'Médico') as medico_nome, 
                        COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
@@ -123,33 +124,24 @@ def init_paciente(mysql, app):
                     'status_class': {
                         'agendada': 'warning',
                         'realizada': 'success',
-                        'cancelada': 'danger',
-                        'confirmada': 'info'
+                        'cancelada': 'danger'
                     }.get(status, 'secondary')
                 })
             
             # Estatísticas
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
             total_consultas = cur.fetchone()[0] if cur.fetchone() else 0
-            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
             consultas_hoje = cur.fetchone()[0] if cur.fetchone() else 0
-            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
             consultas_agendadas = cur.fetchone()[0] if cur.fetchone() else 0
-            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
             consultas_realizadas = cur.fetchone()[0] if cur.fetchone() else 0
-            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
             consultas_canceladas = cur.fetchone()[0] if cur.fetchone() else 0
-            
             cur.close()
             
-            stats = {
-                'total_consultas': total_consultas,
-                'consultas_hoje': consultas_hoje
-            }
+            stats = {'total_consultas': total_consultas, 'consultas_hoje': consultas_hoje}
             
             return render_template('paciente/dashboard.html', 
                                  consultas=consultas,
@@ -168,7 +160,7 @@ def init_paciente(mysql, app):
                                  user=session)
         except Exception as e:
             logger.error(f"Erro no dashboard: {e}")
-            flash('Erro ao carregar dashboard. Tente novamente.', 'danger')
+            flash('Erro ao carregar dashboard.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
     
     # ========== MINHAS CONSULTAS ==========
@@ -284,7 +276,7 @@ def init_paciente(mysql, app):
             count = cur.fetchone()[0]
             if count > 0:
                 cur.close()
-                flash('Horário indisponível. Escolha outro horário.', 'danger')
+                flash('Horário indisponível.', 'danger')
                 return redirect(request.url)
             
             try:
@@ -309,4 +301,239 @@ def init_paciente(mysql, app):
                                data_minima=data_minima, data_maxima=data_maxima,
                                user=session, user_type='paciente')
     
+    # ========== DETALHES DA CONSULTA ==========
+    @paciente_bp.route('/consultas/<int:consulta_id>')
+    @paciente_required
+    def detalhes_consulta(consulta_id):
+        paciente_id = obter_paciente_id()
+        if not paciente_id:
+            flash('Perfil de paciente não encontrado.', 'danger')
+            return redirect(url_for('auth.logout'))
+        
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT c.id, COALESCE(mu.nome, 'Médico') as medico_nome, 
+                   COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
+                   c.data_hora, COALESCE(c.status, 'agendada') as status,
+                   COALESCE(c.observacoes, '') as observacoes, 
+                   COALESCE(p_u.nome, 'Paciente') as paciente_nome,
+                   COALESCE(c.sintomas, '') as sintomas
+            FROM consultas c
+            JOIN medicos m ON m.id = c.medico_id
+            JOIN usuarios mu ON mu.id = m.usuario_id
+            JOIN pacientes p ON p.id = c.paciente_id
+            JOIN usuarios p_u ON p_u.id = p.usuario_id
+            WHERE c.id = %s AND c.paciente_id = %s
+        """, (consulta_id, paciente_id))
+        
+        row = cur.fetchone()
+        if not row:
+            cur.close()
+            flash('Consulta não encontrada.', 'danger')
+            return redirect(url_for('paciente.minhas_consultas'))
+        
+        consulta = {
+            'id': row[0],
+            'medico_nome': garantir_string(row[1]),
+            'especialidade': garantir_string(row[2]),
+            'data_hora': formatar_data(row[3]),
+            'status': garantir_string(row[4]),
+            'observacoes': garantir_string(row[5]),
+            'paciente_nome': garantir_string(row[6]),
+            'sintomas_raw': garantir_string(row[7]) if len(row) > 7 else ''
+        }
+        
+        cur.execute("""
+            SELECT id, COALESCE(diagnostico, '') as diagnostico, 
+                   COALESCE(prescricao, '') as prescricao, created_at
+            FROM receita WHERE consulta_id = %s ORDER BY created_at DESC
+        """, (consulta_id,))
+        receitas_raw = cur.fetchall()
+        cur.close()
+        
+        receitas = []
+        for r in receitas_raw:
+            receitas.append({
+                'id': r[0],
+                'diagnostico': garantir_string(r[1]),
+                'prescricao': garantir_string(r[2]),
+                'created_at': formatar_data(r[3], '%d/%m/%Y %H:%M') if r[3] else ''
+            })
+        
+        sintomas_lista = [s.strip() for s in consulta['sintomas_raw'].split(',') if s.strip()] if consulta.get('sintomas_raw') else []
+        status_class = {
+            'agendada': 'warning', 'realizada': 'success',
+            'cancelada': 'danger'
+        }.get(consulta['status'], 'secondary')
+        
+        return render_template('paciente/detalhes_consulta.html', 
+                             consulta=consulta, sintomas=sintomas_lista, receitas=receitas,
+                             status_class=status_class, user=session,
+                             formatar_data=formatar_data, datetime=datetime, user_type='paciente')
+    
+    # ========== CANCELAR CONSULTA ==========
+    @paciente_bp.route('/consultas/<int:consulta_id>/cancelar', methods=['POST'])
+    @paciente_required
+    def cancelar_consulta(consulta_id):
+        paciente_id = obter_paciente_id()
+        if not paciente_id:
+            return jsonify({'success': False, 'message': 'Perfil não encontrado'}), 400
+        
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT status FROM consultas WHERE id = %s AND paciente_id = %s", (consulta_id, paciente_id))
+            consulta = cur.fetchone()
+            if not consulta:
+                return jsonify({'success': False, 'message': 'Consulta não encontrada'}), 404
+            
+            if consulta[0] != 'agendada':
+                return jsonify({'success': False, 'message': 'Apenas consultas agendadas podem ser canceladas'}), 400
+            
+            cur.execute("UPDATE consultas SET status = 'cancelada' WHERE id = %s AND paciente_id = %s", (consulta_id, paciente_id))
+            mysql.connection.commit()
+            cur.close()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': 'Consulta cancelada!'})
+            
+            flash('Consulta cancelada com sucesso!', 'success')
+            return redirect(url_for('paciente.minhas_consultas'))
+        except Exception as e:
+            mysql.connection.rollback()
+            logger.error(f"Erro ao cancelar: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
+    
+    # ========== PERFIL ==========
+    @paciente_bp.route('/perfil', methods=['GET', 'POST'])
+    @paciente_required
+    def perfil():
+        paciente_id = obter_paciente_id()
+        if not paciente_id:
+            flash('Perfil de paciente não encontrado.', 'danger')
+            return redirect(url_for('auth.logout'))
+        
+        if request.method == 'POST':
+            telefone = request.form.get('telefone', '')
+            endereco = request.form.get('endereco', '')
+            data_nascimento = request.form.get('data_nascimento')
+            genero = request.form.get('genero', '')
+            
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                UPDATE pacientes SET telefone=%s, endereco=%s, data_nascimento=%s, genero=%s WHERE id=%s
+            """, (telefone, endereco, data_nascimento, genero, paciente_id))
+            mysql.connection.commit()
+            cur.close()
+            
+            flash('Perfil atualizado!', 'success')
+            return redirect(url_for('paciente.perfil'))
+        
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT u.nome, COALESCE(p.telefone, '') as telefone, COALESCE(p.endereco, '') as endereco,
+                   COALESCE(u.email, '') as email, p.data_nascimento, COALESCE(p.genero, '') as genero
+            FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = %s
+        """, (paciente_id,))
+        info = cur.fetchone()
+        cur.close()
+        
+        if info:
+            return render_template('paciente/perfil.html',
+                paciente_nome=garantir_string(info[0]),
+                telefone=garantir_string(info[1]),
+                endereco=garantir_string(info[2]),
+                email=garantir_string(info[3]),
+                data_nascimento=info[4] if len(info) > 4 else None,
+                genero=garantir_string(info[5]) if len(info) > 5 else '',
+                user=session)
+        
+        return render_template('paciente/perfil.html', user=session)
+    
+    # ========== VISUALIZAR RECEITA ==========
+    @paciente_bp.route('/receita/<int:receita_id>')
+    @paciente_required
+    def visualizar_receita(receita_id):
+        paciente_id = obter_paciente_id()
+        if not paciente_id:
+            flash('Perfil de paciente não encontrado.', 'danger')
+            return redirect(url_for('auth.logout'))
+        
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT r.id, COALESCE(r.diagnostico, '') as diagnostico, COALESCE(r.prescricao, '') as prescricao,
+                   r.created_at, c.id, c.data_hora, COALESCE(mu.nome, 'Médico') as medico_nome,
+                   COALESCE(m.especialidade, 'Clínico Geral') as especialidade,
+                   COALESCE(p_u.nome, 'Paciente') as paciente_nome
+            FROM receita r
+            JOIN consultas c ON r.consulta_id = c.id
+            JOIN medicos m ON c.medico_id = m.id
+            JOIN usuarios mu ON m.usuario_id = mu.id
+            JOIN pacientes p ON c.paciente_id = p.id
+            JOIN usuarios p_u ON p.usuario_id = p_u.id
+            WHERE r.id = %s AND c.paciente_id = %s
+        """, (receita_id, paciente_id))
+        
+        row = cur.fetchone()
+        cur.close()
+        
+        if not row:
+            flash('Receita não encontrada.', 'danger')
+            return redirect(url_for('paciente.minhas_consultas'))
+        
+        receita = {
+            'id': row[0],
+            'diagnostico': garantir_string(row[1]),
+            'prescricao': garantir_string(row[2]),
+            'created_at': row[3],
+            'consulta_id': row[4],
+            'data_consulta': formatar_data(row[5]),
+            'medico_nome': garantir_string(row[6]),
+            'especialidade': garantir_string(row[7]),
+            'paciente_nome': garantir_string(row[8])
+        }
+        
+        return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
+    
     return paciente_bp
+EOF
+
+# 2. EXECUTAR SCRIPT PARA CORRIGIR O BANCO E CRIAR PACIENTE
+python3 << 'EOF'
+import pymysql
+from werkzeug.security import generate_password_hash
+
+conn = pymysql.connect(
+    host='mysql-23322c83-xaviertchivela53-0149.j.aivencloud.com',
+    user='avnadmin',
+    password='AVNS_N67xkQR_g7zx0KQbi8q',
+    database='defaultdb',
+    port=13574,
+    ssl={'ssl-mode': 'REQUIRED'}
+)
+cursor = conn.cursor()
+
+# Resetar senha do usuário ar@gmail.com
+NOVA_SENHA = '123456'
+senha_hash = generate_password_hash(NOVA_SENHA)
+
+cursor.execute("UPDATE usuarios SET senha = %s WHERE email = 'ar@gmail.com'", (senha_hash,))
+
+# Garantir que o paciente existe
+cursor.execute("""
+    INSERT IGNORE INTO pacientes (usuario_id)
+    SELECT id FROM usuarios WHERE email = 'ar@gmail.com'
+""")
+
+conn.commit()
+
+print("✅ Senha resetada para ar@gmail.com: 123456")
+print("✅ Paciente verificado/criado")
+
+cursor.close()
+conn.close()
+EOF
+
+echo ""
+echo "✅ ARQUIVO ATUALIZADO COM SUCESSO!"
+echo "🔑 Faça login com: ar@gmail.com / 123456"
+echo "🔄 Reinicie o serviço no Render Dashboard"
