@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import logging
 import re
+import hashlib
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -57,19 +58,47 @@ def formatar_email(email):
 
 
 def verificar_senha(senha_banco, senha_digitada):
-    """Verifica senha suportando múltiplos formatos"""
+    """
+    Verifica senha suportando múltiplos formatos:
+    1. Hash do Werkzeug (bcrypt, scrypt, pbkdf2)
+    2. Hash SHA256
+    3. Texto plano
+    """
+    if not senha_banco or not senha_digitada:
+        return False
+    
+    print(f"DEBUG: Verificando senha...")
+    print(f"DEBUG: Hash banco (primeiros 50 chars): {senha_banco[:50]}...")
     
     # 1. Tentar verificar como hash do werkzeug
     try:
         if check_password_hash(senha_banco, senha_digitada):
+            print("DEBUG: Werkzeug hash - SUCESSO!")
             return True
-    except:
-        pass
+        else:
+            print("DEBUG: Werkzeug hash - FALHOU")
+    except Exception as e:
+        print(f"DEBUG: Erro no werkzeug: {e}")
     
-    # 2. Comparação direta (texto plano)
+    # 2. Tentar comparar com SHA256
+    try:
+        sha256_hash = hashlib.sha256(senha_digitada.encode()).hexdigest()
+        if sha256_hash == senha_banco:
+            print("DEBUG: SHA256 - SUCESSO!")
+            return True
+        else:
+            print("DEBUG: SHA256 - FALHOU")
+    except Exception as e:
+        print(f"DEBUG: Erro no SHA256: {e}")
+    
+    # 3. Comparação direta (texto plano)
     if senha_banco == senha_digitada:
+        print("DEBUG: Texto plano - SUCESSO!")
         return True
+    else:
+        print("DEBUG: Texto plano - FALHOU")
     
+    print("DEBUG: Todas as verificações falharam!")
     return False
 
 
