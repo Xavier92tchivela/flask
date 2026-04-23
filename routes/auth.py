@@ -188,7 +188,6 @@ def create_auth_blueprint():
             )
             
             if user_result:
-                # CORRIGIDO: suporta dicionário ou tupla
                 if isinstance(user_result, dict):
                     user_id = user_result['id']
                 elif isinstance(user_result, (list, tuple)):
@@ -246,7 +245,6 @@ def create_auth_blueprint():
                 flash('CRF inválido. Digite um CRF válido (mínimo 5 caracteres).', 'danger')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
             
-            # Verificar se CRF já existe
             existe = execute_query_auth(
                 "SELECT id FROM farmaceuticos WHERE crf = %s AND usuario_id != %s",
                 (crf, user_id), fetch=True, one=True
@@ -255,14 +253,12 @@ def create_auth_blueprint():
                 flash('Este CRF já está cadastrado para outro farmacêutico.', 'danger')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
             
-            # Atualizar dados do farmacêutico
             execute_query_auth("""
                 UPDATE farmaceuticos 
                 SET crf = %s, especialidade = %s, ativo = 1
                 WHERE usuario_id = %s
             """, (crf, especialidade, user_id))
             
-            # Atualizar sessão
             session['farmaceutico_crf'] = crf
             session['farmaceutico_especialidade'] = especialidade
             
