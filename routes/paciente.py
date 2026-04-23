@@ -24,16 +24,43 @@ def init_paciente(mysql, app):
     
     paciente_bp = Blueprint('paciente', __name__, url_prefix='/paciente')
     
-    # ========== FUNÇÃO PARA CONVERTER BYTES ==========
+    # ========== FUNÇÃO PARA CONVERTER QUALQUER TIPO PARA STRING ==========
+    def formatar_data(data, formato='%d/%m/%Y %H:%M'):
+        """Formata data de forma segura"""
+        if not data:
+            return ''
+        if isinstance(data, datetime):
+            return data.strftime(formato)
+        elif isinstance(data, date):
+            return data.strftime(formato)
+        elif isinstance(data, str):
+            try:
+                if 'T' in data:
+                    return datetime.fromisoformat(data.replace('Z', '+00:00')).strftime(formato)
+                else:
+                    for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
+                        try:
+                            return datetime.strptime(data, fmt).strftime(formato)
+                        except ValueError:
+                            continue
+                    return data
+            except:
+                return data
+        return str(data)
+    
     def garantir_string(valor):
-        """Converte bytes para string se necessário"""
+        """Converte qualquer tipo para string de forma segura"""
         if valor is None:
             return ''
+        if isinstance(valor, str):
+            return valor
         if isinstance(valor, bytes):
             try:
                 return valor.decode('utf-8')
             except:
                 return str(valor)
+        if isinstance(valor, (datetime, date)):
+            return formatar_data(valor)
         if isinstance(valor, (int, float)):
             return str(valor)
         return str(valor) if valor is not None else ''
@@ -41,58 +68,65 @@ def init_paciente(mysql, app):
     # ========== FUNÇÕES DE FATURA ==========
     def gerar_numero_fatura():
         """Gera número único de fatura"""
-        cursor = mysql.connection.cursor()
-        cursor.execute("""
-            SELECT COUNT(*) FROM faturas 
-            WHERE DATE(data_emissao) = CURDATE()
-        """)
-        total_hoje = cursor.fetchone()[0] + 1
-        cursor.close()
-        
-        agora = datetime.now()
-        numero = f"FAT-{agora.strftime('%Y%m%d')}-{str(total_hoje).zfill(4)}"
-        return numero
+        try:
+            cursor = mysql.connection.cursor()
+            cursor.execute("""
+                SELECT COUNT(*) FROM faturas 
+                WHERE DATE(data_emissao) = CURDATE()
+            """)
+            total_hoje = cursor.fetchone()[0] + 1
+            cursor.close()
+            
+            agora = datetime.now()
+            numero = f"FAT-{agora.strftime('%Y%m%d')}-{str(total_hoje).zfill(4)}"
+            return numero
+        except Exception as e:
+            logger.error(f"Erro ao gerar número de fatura: {e}")
+            return f"FAT-{datetime.now().strftime('%Y%m%d%H%M%S')}"
 
     def emitir_fatura(consulta_id, paciente_id, paciente_nome, paciente_telefone, valor, data_consulta):
         """Emite fatura da consulta"""
         cursor = mysql.connection.cursor()
         
-        numero_fatura = gerar_numero_fatura()
-        
-        cursor.execute("""
-            INSERT INTO faturas 
-            (numero_fatura, consulta_id, paciente_id, paciente_nome, paciente_telefone, 
-             data_consulta, valor_consulta, status_pagamento)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'pendente')
-        """, (numero_fatura, consulta_id, paciente_id, paciente_nome, 
-              paciente_telefone, data_consulta, valor))
-        
-        fatura_id = cursor.lastrowid
-        mysql.connection.commit()
-        cursor.close()
-        
-        return {
-            'id': fatura_id,
-            'numero': numero_fatura,
-            'valor': valor
-        }
+        try:
+            numero_fatura = gerar_numero_fatura()
+            
+            cursor.execute("""
+                INSERT INTO faturas 
+                (numero_fatura, consulta_id, paciente_id, paciente_nome, paciente_telefone, 
+                 data_consulta, valor_consulta, status_pagamento)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, 'pendente')
+            """, (numero_fatura, consulta_id, paciente_id, paciente_nome, 
+                  paciente_telefone, data_consulta, valor))
+            
+            fatura_id = cursor.lastrowid
+            mysql.connection.commit()
+            
+            return {
+                'id': fatura_id,
+                'numero': numero_fatura,
+                'valor': valor
+            }
+        except Exception as e:
+            mysql.connection.rollback()
+            logger.error(f"Erro ao emitir fatura: {e}")
+            raise
+        finally:
+            cursor.close()
 
     def gerar_pdf_fatura(fatura_data):
         """Gera PDF da fatura"""
         
-        # Criar diretório se não existir
         pdf_dir = os.path.join(app.root_path, 'static', 'pdfs', 'faturas')
         os.makedirs(pdf_dir, exist_ok=True)
         
         filename = f"fatura_{fatura_data['numero_fatura']}.pdf"
         output_path = os.path.join(pdf_dir, filename)
         
-        # Criar documento PDF
         doc = SimpleDocTemplate(output_path, pagesize=A4,
                                topMargin=2*cm, bottomMargin=2*cm,
                                leftMargin=2*cm, rightMargin=2*cm)
         
-        # Estilos
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             'CustomTitle',
@@ -119,21 +153,17 @@ def init_paciente(mysql, app):
             spaceAfter=5
         )
         
-        # Conteúdo do PDF
         story = []
         
-        # Cabeçalho
         story.append(Paragraph("HOSPITAL MUNICIPAL DA CACULA", title_style))
         story.append(Paragraph("Rua Principal, Bairro Central - Cacula, Huíla, Angola", subtitle_style))
         story.append(Paragraph("Tel: 924 042 244 | Email: cacula@hospital.ao", subtitle_style))
         story.append(Spacer(1, 20))
         
-        # Linha separadora
         story.append(Table([['']], colWidths=[500], 
                           style=[('LINEBELOW', (0,0), (-1,-1), 1, colors.HexColor('#1e466e'))]))
         story.append(Spacer(1, 20))
         
-        # Título FATURA
         story.append(Paragraph("FATURA DE CONSULTA", ParagraphStyle(
             'FaturaTitle',
             parent=styles['Heading2'],
@@ -143,11 +173,9 @@ def init_paciente(mysql, app):
             spaceAfter=20
         )))
         
-        # Dados da Fatura
         data_emissao = fatura_data['data_emissao'].strftime('%d/%m/%Y %H:%M') if fatura_data.get('data_emissao') else datetime.now().strftime('%d/%m/%Y %H:%M')
         data_consulta = fatura_data['data_consulta'].strftime('%d/%m/%Y %H:%M') if fatura_data.get('data_consulta') else 'Não informada'
         
-        # Tabela de informações
         info_data = [
             ['NÚMERO DA FATURA:', fatura_data['numero_fatura']],
             ['DATA DE EMISSÃO:', data_emissao],
@@ -168,7 +196,6 @@ def init_paciente(mysql, app):
         story.append(info_table)
         story.append(Spacer(1, 20))
         
-        # Dados do Paciente
         story.append(Paragraph("DADOS DO PACIENTE", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -194,7 +221,6 @@ def init_paciente(mysql, app):
         story.append(paciente_table)
         story.append(Spacer(1, 20))
         
-        # Dados do Médico
         story.append(Paragraph("DADOS DA CONSULTA", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -220,7 +246,6 @@ def init_paciente(mysql, app):
         story.append(medico_table)
         story.append(Spacer(1, 20))
         
-        # Itens da Fatura
         story.append(Paragraph("ITENS DA FATURA", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -229,7 +254,6 @@ def init_paciente(mysql, app):
             spaceAfter=10
         )))
         
-        # Tabela de itens
         items_data = [
             ['ITEM', 'DESCRIÇÃO', 'QUANTIDADE', 'VALOR UNIT.', 'TOTAL'],
             ['1', 'Consulta Médica', '1', f'{fatura_data["valor_consulta"]:.2f} Kz', f'{fatura_data["valor_consulta"]:.2f} Kz'],
@@ -251,7 +275,6 @@ def init_paciente(mysql, app):
         story.append(items_table)
         story.append(Spacer(1, 20))
         
-        # TOTAL
         total_data = [
             ['TOTAL GERAL:', f'{fatura_data["valor_consulta"]:.2f} Kz'],
         ]
@@ -268,7 +291,6 @@ def init_paciente(mysql, app):
         story.append(total_table)
         story.append(Spacer(1, 20))
         
-        # Formas de Pagamento
         story.append(Paragraph("FORMAS DE PAGAMENTO", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -287,7 +309,6 @@ def init_paciente(mysql, app):
         story.append(Paragraph(pagamento_text, normal_style))
         story.append(Spacer(1, 20))
         
-        # Informações Importantes
         story.append(Paragraph("INFORMAÇÕES IMPORTANTES", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -306,14 +327,12 @@ def init_paciente(mysql, app):
         story.append(Paragraph(info_text, normal_style))
         story.append(Spacer(1, 30))
         
-        # Rodapé
         story.append(Paragraph("-" * 80, normal_style))
         story.append(Paragraph("Documento emitido por sistema eletrônico - Validade legal", 
                               ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
         story.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
                               ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
         
-        # Gerar PDF
         doc.build(story)
         
         return output_path
@@ -321,19 +340,16 @@ def init_paciente(mysql, app):
     def gerar_pdf_receita_completo(receita_data, app):
         """Gera PDF completo da receita"""
         
-        # Criar diretório se não existir
         pdf_dir = os.path.join(app.root_path, 'static', 'pdfs', 'receitas')
         os.makedirs(pdf_dir, exist_ok=True)
         
         filename = f"receita_{receita_data['id']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         output_path = os.path.join(pdf_dir, filename)
         
-        # Criar documento PDF
         doc = SimpleDocTemplate(output_path, pagesize=A4,
                                topMargin=2*cm, bottomMargin=2*cm,
                                leftMargin=2*cm, rightMargin=2*cm)
         
-        # Estilos
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             'CustomTitle',
@@ -360,15 +376,12 @@ def init_paciente(mysql, app):
             spaceAfter=5
         )
         
-        # Conteúdo do PDF
         story = []
         
-        # Cabeçalho
         story.append(Paragraph("HOSPITAL MUNICIPAL DA CACULA", title_style))
         story.append(Paragraph("RECEITA MÉDICA", subtitle_style))
         story.append(Spacer(1, 20))
         
-        # Dados da Receita
         info_data = [
             ['NÚMERO DA RECEITA:', f"#{receita_data['id']}"],
             ['DATA DE EMISSÃO:', receita_data['created_at'].strftime('%d/%m/%Y %H:%M') if receita_data['created_at'] else datetime.now().strftime('%d/%m/%Y %H:%M')],
@@ -387,7 +400,6 @@ def init_paciente(mysql, app):
         story.append(info_table)
         story.append(Spacer(1, 20))
         
-        # Dados do Médico
         story.append(Paragraph("MÉDICO RESPONSÁVEL", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -414,7 +426,6 @@ def init_paciente(mysql, app):
         story.append(medico_table)
         story.append(Spacer(1, 20))
         
-        # Dados do Paciente
         story.append(Paragraph("PACIENTE", ParagraphStyle(
             'SectionTitle',
             parent=styles['Heading3'],
@@ -442,7 +453,6 @@ def init_paciente(mysql, app):
         story.append(paciente_table)
         story.append(Spacer(1, 20))
         
-        # Diagnóstico
         if receita_data['diagnostico']:
             story.append(Paragraph("DIAGNÓSTICO", ParagraphStyle(
                 'SectionTitle',
@@ -456,7 +466,6 @@ def init_paciente(mysql, app):
             story.append(Paragraph(diagnostico_text, normal_style))
             story.append(Spacer(1, 15))
         
-        # Prescrição
         if receita_data['prescricao']:
             story.append(Paragraph("PRESCRIÇÃO MÉDICA", ParagraphStyle(
                 'SectionTitle',
@@ -470,7 +479,6 @@ def init_paciente(mysql, app):
             story.append(Paragraph(prescricao_text, normal_style))
             story.append(Spacer(1, 15))
         
-        # Recomendações
         if receita_data['recomendacoes']:
             story.append(Paragraph("RECOMENDAÇÕES", ParagraphStyle(
                 'SectionTitle',
@@ -484,7 +492,6 @@ def init_paciente(mysql, app):
             story.append(Paragraph(recomendacoes_text, normal_style))
             story.append(Spacer(1, 15))
         
-        # Rodapé
         story.append(Spacer(1, 30))
         story.append(Paragraph("-" * 80, normal_style))
         story.append(Paragraph("Documento eletrônico emitido por sistema validado", 
@@ -492,7 +499,6 @@ def init_paciente(mysql, app):
         story.append(Paragraph(f"Gerado em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", 
                               ParagraphStyle('Footer', parent=normal_style, alignment=1, fontSize=8)))
         
-        # Assinatura
         story.append(Spacer(1, 20))
         story.append(Paragraph("_________________________________________", 
                               ParagraphStyle('Signature', parent=normal_style, alignment=1, fontSize=10)))
@@ -501,10 +507,8 @@ def init_paciente(mysql, app):
         story.append(Paragraph("Assinatura do Médico", 
                               ParagraphStyle('SignatureLabel', parent=normal_style, alignment=1, fontSize=8)))
         
-        # Gerar PDF
         doc.build(story)
         
-        # Retornar caminho relativo
         return f"static/pdfs/receitas/{filename}"
     
     # ========== DECORATORS ==========
@@ -518,8 +522,8 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== FUNÇÕES AUXILIARES ==========
-    def execute_query(query, params=None, fetch=False):
+    # ========== FUNÇÕES AUXILIARES CORRIGIDAS ==========
+    def execute_query(query, params=None, fetch=False, one=False):
         """Função auxiliar para executar queries no banco de dados"""
         try:
             cur = mysql.connection.cursor()
@@ -530,6 +534,8 @@ def init_paciente(mysql, app):
             
             if fetch:
                 result = cur.fetchall()
+                if one and result:
+                    result = result[0]
             else:
                 mysql.connection.commit()
                 result = None
@@ -542,40 +548,31 @@ def init_paciente(mysql, app):
             logger.error(traceback.format_exc())
             return None
     
-    def formatar_data(data, formato='%d/%m/%Y %H:%M'):
-        """Formata data de forma segura"""
-        if not data:
-            return ''
-        if isinstance(data, datetime):
-            return data.strftime(formato)
-        elif isinstance(data, date):
-            return data.strftime(formato)
-        elif isinstance(data, str):
-            try:
-                if 'T' in data:
-                    return datetime.fromisoformat(data.replace('Z', '+00:00')).strftime(formato)
-                else:
-                    for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
-                        try:
-                            return datetime.strptime(data, fmt).strftime(formato)
-                        except ValueError:
-                            continue
-                    return data
-            except:
-                return data
-        return str(data)
-    
     def obter_paciente_id():
-        """Obtém o ID do paciente logado"""
+        """Obtém o ID do paciente logado - CORRIGIDO"""
         if 'user_id' not in session or session.get('user_type') != 'paciente':
             return None
         
-        paciente = execute_query(
-            "SELECT id FROM pacientes WHERE usuario_id = %s", 
-            (session['user_id'],), True
-        )
-        
-        return paciente[0][0] if paciente else None
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            resultado = cur.fetchone()
+            cur.close()
+            
+            if resultado:
+                # Se for tupla
+                if isinstance(resultado, tuple):
+                    return resultado[0]
+                # Se for dicionário
+                elif isinstance(resultado, dict):
+                    return resultado.get('id')
+                # Se for lista
+                elif isinstance(resultado, list) and len(resultado) > 0:
+                    return resultado[0]
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao obter paciente_id: {e}")
+            return None
     
     # ========== ROTAS ==========
     
@@ -583,78 +580,95 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
-        paciente_id = obter_paciente_id()
-        if not paciente_id:
-            flash('Perfil de paciente não encontrado.', 'danger')
-            return redirect(url_for('auth.logout'))
-        
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT p_u.nome, p.data_nascimento, p.genero, p.telefone, p.endereco, p_u.email
-            FROM pacientes p 
-            JOIN usuarios p_u ON p.usuario_id = p_u.id 
-            WHERE p.id = %s
-        """, (paciente_id,))
-        paciente_info = cur.fetchone()
-        cur.close()
-        
-        paciente_nome = garantir_string(paciente_info[0]) if paciente_info else session.get('user_name')
-        paciente_data_nasc = formatar_data(paciente_info[1], '%d/%m/%Y') if paciente_info and paciente_info[1] else None
-        paciente_genero = garantir_string(paciente_info[2]) if paciente_info else None
-        paciente_telefone = garantir_string(paciente_info[3]) if paciente_info else None
-        paciente_endereco = garantir_string(paciente_info[4]) if paciente_info else None
-        paciente_email = garantir_string(paciente_info[5]) if paciente_info else None
-        
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT c.id, m_u.nome as medico_nome, m.especialidade, 
-                   c.data_hora, c.status, c.sintomas
-            FROM consultas c 
-            JOIN medicos m ON c.medico_id = m.id 
-            JOIN usuarios m_u ON m.usuario_id = m_u.id 
-            WHERE c.paciente_id = %s 
-            ORDER BY c.data_hora DESC
-            LIMIT 10
-        """, (paciente_id,))
-        consultas_raw = cur.fetchall()
-        cur.close()
-        
-        consultas = []
-        for c in consultas_raw:
-            consultas.append({
-                'id': c[0],
-                'medico_nome': garantir_string(c[1]),
-                'especialidade': garantir_string(c[2]),
-                'data_hora': formatar_data(c[3]),
-                'status': garantir_string(c[4]),
-                'status_class': {
-                    'agendada': 'warning',
-                    'realizada': 'success',
-                    'cancelada': 'danger',
-                    'confirmada': 'info'
-                }.get(c[4], 'secondary')
-            })
-        
-        cur = mysql.connection.cursor()
-        cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
-        total_consultas = cur.fetchone()[0] or 0
-        cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
-        consultas_hoje = cur.fetchone()[0] or 0
-        cur.close()
-        
-        stats = {'total_consultas': total_consultas, 'consultas_hoje': consultas_hoje}
-        
-        return render_template('paciente/dashboard.html', 
-                               consultas=consultas,
-                               stats=stats,
-                               paciente_id=paciente_id,
-                               paciente_nome=paciente_nome,
-                               paciente_data_nasc=paciente_data_nasc,
-                               paciente_genero=paciente_genero,
-                               paciente_telefone=paciente_telefone,
-                               paciente_endereco=paciente_endereco,
-                               paciente_email=paciente_email,
-                               user=session)
+        try:
+            paciente_id = obter_paciente_id()
+            if not paciente_id:
+                flash('Perfil de paciente não encontrado.', 'danger')
+                return redirect(url_for('auth.logout'))
+            
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                SELECT p_u.nome, p.data_nascimento, p.genero, p.telefone, p.endereco, p_u.email
+                FROM pacientes p 
+                JOIN usuarios p_u ON p.usuario_id = p_u.id 
+                WHERE p.id = %s
+            """, (paciente_id,))
+            paciente_info = cur.fetchone()
+            
+            paciente_nome = garantir_string(paciente_info[0]) if paciente_info else session.get('user_name', 'Paciente')
+            paciente_data_nasc = formatar_data(paciente_info[1], '%d/%m/%Y') if paciente_info and paciente_info[1] else None
+            paciente_genero = garantir_string(paciente_info[2]) if paciente_info else None
+            paciente_telefone = garantir_string(paciente_info[3]) if paciente_info else None
+            paciente_endereco = garantir_string(paciente_info[4]) if paciente_info else None
+            paciente_email = garantir_string(paciente_info[5]) if paciente_info else None
+            
+            # Buscar consultas
+            cur.execute("""
+                SELECT c.id, m_u.nome as medico_nome, m.especialidade, 
+                       c.data_hora, c.status
+                FROM consultas c 
+                JOIN medicos m ON c.medico_id = m.id 
+                JOIN usuarios m_u ON m.usuario_id = m_u.id 
+                WHERE c.paciente_id = %s 
+                ORDER BY c.data_hora DESC
+                LIMIT 10
+            """, (paciente_id,))
+            consultas_raw = cur.fetchall()
+            
+            consultas = []
+            for c in consultas_raw:
+                consultas.append({
+                    'id': c[0],
+                    'medico_nome': garantir_string(c[1]),
+                    'especialidade': garantir_string(c[2]),
+                    'data_hora': formatar_data(c[3]),
+                    'status': garantir_string(c[4]),
+                    'status_class': {
+                        'agendada': 'warning',
+                        'realizada': 'success',
+                        'cancelada': 'danger',
+                        'confirmada': 'info'
+                    }.get(c[4], 'secondary')
+                })
+            
+            # Estatísticas
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
+            total_consultas = cur.fetchone()[0] or 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
+            consultas_hoje = cur.fetchone()[0] or 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
+            consultas_agendadas = cur.fetchone()[0] or 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
+            consultas_realizadas = cur.fetchone()[0] or 0
+            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
+            consultas_canceladas = cur.fetchone()[0] or 0
+            cur.close()
+            
+            stats = {
+                'total_consultas': total_consultas,
+                'consultas_hoje': consultas_hoje
+            }
+            
+            return render_template('paciente/dashboard.html', 
+                                 consultas=consultas,
+                                 stats=stats,
+                                 consultas_agendadas=consultas_agendadas,
+                                 consultas_realizadas=consultas_realizadas,
+                                 consultas_canceladas=consultas_canceladas,
+                                 consultas_hoje=consultas_hoje,
+                                 paciente_id=paciente_id,
+                                 paciente_nome=paciente_nome,
+                                 paciente_data_nasc=paciente_data_nasc,
+                                 paciente_genero=paciente_genero,
+                                 paciente_telefone=paciente_telefone,
+                                 paciente_endereco=paciente_endereco,
+                                 paciente_email=paciente_email,
+                                 user=session)
+        except Exception as e:
+            logger.error(f"Erro no dashboard: {e}")
+            logger.error(traceback.format_exc())
+            flash(f'Erro ao carregar dashboard: {str(e)}', 'danger')
+            return redirect(url_for('paciente.minhas_consultas'))
     
     # Agendar consulta com fatura
     @paciente_bp.route('/agendar', methods=['GET', 'POST'])
@@ -662,7 +676,6 @@ def init_paciente(mysql, app):
     def agendar_consulta():
         paciente_id = obter_paciente_id()
         
-        # GET: Mostrar formulário
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT m.id, u.nome, m.especialidade, m.crm
@@ -695,21 +708,17 @@ def init_paciente(mysql, app):
             sintomas = request.form.get('sintomas', '')
             observacoes = request.form.get('observacoes', '')
             
-            # Validar dados
             if not medico_id or not data_consulta or not hora_consulta:
                 flash('Preencha todos os campos obrigatórios.', 'danger')
                 return redirect(request.url)
             
-            # Combinar data e hora
             data_hora_str = f"{data_consulta} {hora_consulta}"
             data_hora = datetime.strptime(data_hora_str, "%Y-%m-%d %H:%M")
             
-            # Verificar se a data é válida
             if data_hora <= datetime.now():
                 flash('Não é possível agendar consultas em datas/horários passados.', 'danger')
                 return redirect(request.url)
             
-            # Verificar horário comercial
             hora = data_hora.hour
             if hora < 8 or hora > 17 or (hora == 12 and data_hora.minute > 0):
                 flash('Horário fora do expediente. Consulte das 8h às 12h e das 14h às 17h.', 'danger')
@@ -717,7 +726,6 @@ def init_paciente(mysql, app):
             
             cur = mysql.connection.cursor()
             
-            # Verificar se horário já está ocupado
             cur.execute("""
                 SELECT COUNT(*) FROM consultas 
                 WHERE medico_id = %s AND data_hora = %s AND status != 'cancelada'
@@ -729,7 +737,6 @@ def init_paciente(mysql, app):
                 return redirect(request.url)
             
             try:
-                # Buscar dados do paciente para a fatura
                 cur.execute("""
                     SELECT p.telefone, u.nome, u.email
                     FROM pacientes p
@@ -741,7 +748,6 @@ def init_paciente(mysql, app):
                 paciente_telefone = garantir_string(paciente_info[0]) if paciente_info else None
                 paciente_nome = garantir_string(paciente_info[1]) if paciente_info else 'Paciente'
                 
-                # Agendar consulta
                 cur.execute("""
                     INSERT INTO consultas 
                     (paciente_id, medico_id, data_hora, status, sintomas, observacoes)
@@ -751,7 +757,6 @@ def init_paciente(mysql, app):
                 consulta_id = cur.lastrowid
                 mysql.connection.commit()
                 
-                # Buscar dados do médico para a fatura
                 cur.execute("""
                     SELECT u.nome, m.especialidade
                     FROM medicos m
@@ -763,7 +768,6 @@ def init_paciente(mysql, app):
                 medico_nome = garantir_string(medico_info[0]) if medico_info else 'Médico'
                 especialidade = garantir_string(medico_info[1]) if medico_info else 'Clínico Geral'
                 
-                # Emitir fatura
                 valor_consulta = 2500.00
                 fatura = emitir_fatura(
                     consulta_id=consulta_id,
@@ -782,7 +786,6 @@ def init_paciente(mysql, app):
                 if paciente_telefone:
                     flash(f'SMS enviado para {paciente_telefone}', 'info')
                 
-                # Redirecionar para página de confirmação com fatura
                 return redirect(url_for('paciente.confirmacao_fatura', fatura_id=fatura['id']))
                 
             except Exception as e:
@@ -805,12 +808,9 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/confirmacao-fatura/<int:fatura_id>')
     @paciente_required
     def confirmacao_fatura(fatura_id):
-        """Página de confirmação com fatura"""
-        
         try:
             cursor = mysql.connection.cursor()
             
-            # Buscar dados da fatura com informações do médico
             cursor.execute("""
                 SELECT 
                     f.id,
@@ -864,12 +864,9 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/fatura-pdf/<int:fatura_id>')
     @paciente_required
     def fatura_pdf(fatura_id):
-        """Baixa o PDF da fatura"""
-        
         try:
             cursor = mysql.connection.cursor()
             
-            # Buscar dados da fatura
             cursor.execute("""
                 SELECT 
                     f.id,
@@ -911,7 +908,6 @@ def init_paciente(mysql, app):
                 'especialidade': garantir_string(fatura_raw[10])
             }
             
-            # Gerar PDF
             pdf_path = gerar_pdf_fatura(fatura_data)
             
             if not pdf_path or not os.path.exists(pdf_path):
@@ -939,7 +935,7 @@ def init_paciente(mysql, app):
         
         cur = mysql.connection.cursor()
         cur.execute("""
-            SELECT c.id, m_u.nome, m.especialidade, m.crm, c.data_hora, c.status, c.sintomas
+            SELECT c.id, m_u.nome, m.especialidade, m.crm, c.data_hora, c.status
             FROM consultas c
             JOIN medicos m ON c.medico_id = m.id
             JOIN usuarios m_u ON m.usuario_id = m_u.id
@@ -975,7 +971,7 @@ def init_paciente(mysql, app):
                                user=session,
                                user_type='paciente')
     
-    # ========== ROTA CORRIGIDA: Detalhes da consulta ==========
+    # Detalhes da consulta
     @paciente_bp.route('/consultas/<int:consulta_id>')
     @paciente_required
     def detalhes_consulta(consulta_id):
@@ -983,7 +979,6 @@ def init_paciente(mysql, app):
         
         cur = mysql.connection.cursor()
         
-        # Buscar dados da consulta (APENAS colunas que existem na tabela)
         cur.execute("""
             SELECT 
                 c.id, 
@@ -1030,7 +1025,6 @@ def init_paciente(mysql, app):
             'sintomas_raw': garantir_string(row[12]) if len(row) > 12 and row[12] else ''
         }
         
-        # ========== BUSCAR TODAS AS RECEITAS DA TABELA receita ==========
         cur.execute("""
             SELECT 
                 r.id,
@@ -1050,9 +1044,6 @@ def init_paciente(mysql, app):
         receitas_raw = cur.fetchall()
         cur.close()
         
-        # Log para debug
-        logger.info(f"Busca de receitas para consulta {consulta_id}: encontradas {len(receitas_raw)} receitas")
-        
         receitas = []
         for r in receitas_raw:
             receitas.append({
@@ -1067,12 +1058,10 @@ def init_paciente(mysql, app):
                 'data_geracao_pdf': r[8]
             })
         
-        # Processar sintomas
         sintomas_lista = []
         if consulta['sintomas_raw']:
             sintomas_lista = [s.strip() for s in consulta['sintomas_raw'].split(',') if s.strip()]
         
-        # Classe de status
         status_class = {
             'agendada': 'warning',
             'realizada': 'success',
@@ -1120,11 +1109,16 @@ def init_paciente(mysql, app):
             mysql.connection.commit()
             cur.close()
             
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': True, 'message': 'Consulta cancelada com sucesso!'})
+            
             flash('Consulta cancelada com sucesso!', 'success')
             
         except Exception as e:
             mysql.connection.rollback()
             logger.error(f"Erro ao cancelar consulta: {e}")
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': str(e)}), 500
             flash('Erro ao cancelar consulta. Tente novamente.', 'danger')
         
         return redirect(url_for('paciente.minhas_consultas'))
@@ -1133,7 +1127,6 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/receita/<int:receita_id>')
     @paciente_required
     def visualizar_receita(receita_id):
-        """Visualiza uma receita específica"""
         paciente_id = obter_paciente_id()
         
         cur = mysql.connection.cursor()
@@ -1171,7 +1164,6 @@ def init_paciente(mysql, app):
             flash('Receita não encontrada ou você não tem acesso.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
         
-        # Calcular idade
         idade = None
         if row[14]:
             hoje = datetime.now().date()
@@ -1210,13 +1202,11 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/receita/<int:receita_id>/gerar-pdf', methods=['POST'])
     @paciente_required
     def gerar_pdf_receita(receita_id):
-        """Gera o PDF da receita"""
         paciente_id = obter_paciente_id()
         
         try:
             cursor = mysql.connection.cursor()
             
-            # Buscar dados da receita
             cursor.execute("""
                 SELECT 
                     r.id,
@@ -1248,7 +1238,6 @@ def init_paciente(mysql, app):
                 cursor.close()
                 return jsonify({'success': False, 'message': 'Receita não encontrada'}), 404
             
-            # Preparar dados para o PDF
             receita_data = {
                 'id': row[0],
                 'diagnostico': garantir_string(row[1]) if row[1] else '',
@@ -1266,7 +1255,6 @@ def init_paciente(mysql, app):
                 'genero': garantir_string(row[13]) if row[13] else ''
             }
             
-            # Calcular idade
             if receita_data['data_nascimento']:
                 hoje = datetime.now()
                 nascimento = receita_data['data_nascimento']
@@ -1283,11 +1271,9 @@ def init_paciente(mysql, app):
                     idade -= 1
                 receita_data['idade'] = idade
             
-            # Gerar PDF
             pdf_path = gerar_pdf_receita_completo(receita_data, app)
             
             if pdf_path:
-                # Atualizar caminho do PDF no banco
                 cursor.execute("""
                     UPDATE receita 
                     SET receita_pdf_path = %s, pdf_gerado = 1, data_geracao_pdf = NOW()
@@ -1314,7 +1300,6 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/receita/<int:receita_id>/download')
     @paciente_required
     def download_receita_pdf(receita_id):
-        """Download do PDF da receita"""
         paciente_id = obter_paciente_id()
         
         cur = mysql.connection.cursor()
@@ -1338,7 +1323,6 @@ def init_paciente(mysql, app):
         
         pdf_path = row[0]
         
-        # Verificar se o caminho é absoluto ou relativo
         if not os.path.isabs(pdf_path):
             pdf_path = os.path.join(app.root_path, pdf_path)
         
@@ -1357,7 +1341,6 @@ def init_paciente(mysql, app):
     @paciente_bp.route('/consultas/<int:consulta_id>/receita')
     @paciente_required
     def visualizar_receita_consulta(consulta_id):
-        """Redireciona para a receita mais recente da consulta"""
         paciente_id = obter_paciente_id()
         
         cur = mysql.connection.cursor()
