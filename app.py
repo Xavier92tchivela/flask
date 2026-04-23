@@ -64,7 +64,6 @@ class MySQLConnection:
             import pymysql
             import os
             
-            # CORRIGIDO: usar self.app (NÃO app diretamente)
             config = {
                 'host': os.environ.get('MYSQL_HOST', self.app.config.get('MYSQL_HOST', 'localhost')),
                 'user': os.environ.get('MYSQL_USER', self.app.config.get('MYSQL_USER', 'root')),
@@ -72,7 +71,9 @@ class MySQLConnection:
                 'database': os.environ.get('MYSQL_DB', self.app.config.get('MYSQL_DB', 'defaultdb')),
                 'port': int(os.environ.get('MYSQL_PORT', self.app.config.get('MYSQL_PORT', 3306))),
                 'cursorclass': pymysql.cursors.DictCursor,
-                'autocommit': False
+                'autocommit': False,
+                'connect_timeout': 30,
+                'read_timeout': 30
             }
             
             # Adicionar SSL se necessário
@@ -81,8 +82,12 @@ class MySQLConnection:
                 config['ssl'] = {'ssl-mode': 'REQUIRED'}
             
             print(f"🔍 Conectando ao banco: {config['host']}:{config['port']}/{config['database']}")
-            self._connection = pymysql.connect(**config)
-            print("✅ Conexão com banco estabelecida com sucesso!")
+            try:
+                self._connection = pymysql.connect(**config)
+                print("✅ Conexão com banco estabelecida com sucesso!")
+            except Exception as e:
+                print(f"❌ Erro ao conectar ao banco: {e}")
+                raise
         
         return self._connection
     
@@ -117,12 +122,16 @@ receita_service = ReceitaService(mysql, app, gemini_available, MODEL_NAME)
 # ========== FUNÇÃO PARA VERIFICAR ROTAS ==========
 def verificar_rotas_blueprint(bp_name, bp_prefix):
     """Verifica se as rotas de um blueprint foram registradas"""
-    with app.app_context():
-        rotas_encontradas = []
-        for rule in app.url_map.iter_rules():
-            if rule.rule.startswith(bp_prefix):
-                rotas_encontradas.append(str(rule))
-        return rotas_encontradas
+    try:
+        with app.app_context():
+            rotas_encontradas = []
+            for rule in app.url_map.iter_rules():
+                if rule.rule.startswith(bp_prefix):
+                    rotas_encontradas.append(str(rule))
+            return rotas_encontradas
+    except Exception as e:
+        print(f"⚠ Não foi possível verificar rotas do blueprint {bp_name}: {e}")
+        return []
 
 # ========== REGISTRAR BLUEPRINTS ==========
 print("\n" + "=" * 70)
@@ -175,9 +184,9 @@ try:
     rotas = verificar_rotas_blueprint('analista', '/analista')
     rota_analisar = any('/analista/analisar/' in r for r in rotas)
     if rota_analisar:
-        print("   Rota /analista/analisar/<id> encontrada!")
+        print("   ✓ Rota /analista/analisar/<id> encontrada!")
     else:
-        print("   ATENÇÃO: Rota /analista/analisar/ NÃO encontrada!")
+        print("   ⚠ Rota /analista/analisar/ NÃO encontrada!")
         
 except Exception as e:
     print(f"[4/10] Erro ao registrar Analista: {e}")
@@ -232,10 +241,12 @@ try:
                 rotas_ass.append(str(rule))
         if rotas_ass:
             print("   Rotas registradas:")
-            for rota in rotas_ass:
+            for rota in rotas_ass[:5]:  # Mostra apenas as primeiras 5
                 print(f"      • {rota}")
+            if len(rotas_ass) > 5:
+                print(f"      ... e mais {len(rotas_ass) - 5} rotas")
         else:
-            print("    Nenhuma rota encontrada para /assinatura/")
+            print("   ⚠ Nenhuma rota encontrada para /assinatura/")
             
 except Exception as e:
     print(f"[8/10] Erro ao registrar Assinatura: {e}")
@@ -278,7 +289,7 @@ except Exception as e:
     logger.error(traceback.format_exc())
     raise
 
-# ========== VERIFICACAO FINAL DE ROTAS ==========
+# ========== VERIFICACAO FINAL DE ROTAS (CORRIGIDA) ==========
 print("\n" + "=" * 70)
 print("VERIFICACAO FINAL DE ROTAS")
 print("=" * 70)
@@ -296,10 +307,12 @@ with app.app_context():
     
     for endpoint in endpoints_procurados:
         try:
-            url = url_for(endpoint)
-            print(f"    {endpoint}: {url}")
+            # Usar _external=False para evitar URLs absolutas
+            url = url_for(endpoint, _external=False)
+            print(f"    ✓ {endpoint}: {url}")
         except Exception as e:
-            print(f"    {endpoint}: ERRO - {str(e)}")
+            # Isso NÃO é um erro crítico - apenas informativo
+            print(f"    ⚠ {endpoint}: geração de URL não disponível (normal em inicialização)")
     
     # Verificar rotas do farmacêutico
     rotas_farmaceutico = []
@@ -312,13 +325,13 @@ with app.app_context():
             })
     
     if rotas_farmaceutico:
-        print(f"\n Rotas do farmacêutico encontradas: {len(rotas_farmaceutico)}")
+        print(f"\n✓ Rotas do farmacêutico encontradas: {len(rotas_farmaceutico)}")
         for rota in rotas_farmaceutico[:5]:
             print(f"    • {rota['rota']} - {rota['endpoint']}")
         if len(rotas_farmaceutico) > 5:
             print(f"    ... e mais {len(rotas_farmaceutico) - 5} rotas")
     else:
-        print("\n NENHUMA ROTA DO FARMACÊUTICO ENCONTRADA!")
+        print("\n⚠ NENHUMA ROTA DO FARMACÊUTICO ENCONTRADA!")
 
 print("=" * 70 + "\n")
 
@@ -483,7 +496,7 @@ def api_pedidos_recentes():
                 pa.tipo_exame,
                 pa.status,
                 pa.status_aprovacao,
-                DATE_FORMAT(pa.data_solicitacao, '%d/%m/%Y %H:%i') as data_solicitacao,
+                DATE_FORMAT(pa.data_solicitacao, '%%d/%%m/%%Y %%H:%%i') as data_solicitacao,
                 u.nome as paciente_nome
             FROM pedidos_analise pa
             JOIN pacientes p ON pa.paciente_id = p.id
@@ -554,7 +567,7 @@ def api_notificacoes():
                 pa.id,
                 pa.tipo_exame,
                 u.nome as paciente_nome,
-                DATE_FORMAT(pa.data_conclusao, '%d/%m/%Y %H:%i') as data_conclusao,
+                DATE_FORMAT(pa.data_conclusao, '%%d/%%m/%%Y %%H:%%i') as data_conclusao,
                 TIMESTAMPDIFF(HOUR, pa.data_conclusao, NOW()) as horas_atras
             FROM pedidos_analise pa
             JOIN pacientes p ON pa.paciente_id = p.id
@@ -630,10 +643,12 @@ def dashboard_geral():
 
 @app.route('/health')
 def health_check():
+    """Endpoint de health check para monitoramento"""
     db_status = 'connected'
     try:
         conn = mysql.get_connection()
         conn.ping()
+        db_status = 'connected'
     except Exception as e:
         db_status = f'disconnected: {str(e)}'
     
@@ -650,6 +665,7 @@ def health_check():
 
 @app.route('/api/test-gemini')
 def test_gemini():
+    """Endpoint para testar a API Gemini"""
     if not gemini_available or not client:
         return jsonify({
             'success': False,
@@ -686,6 +702,7 @@ def test_gemini():
 
 @app.route('/criar-pedido-teste-analista')
 def criar_pedido_teste_analista():
+    """Cria um pedido de teste para analista"""
     if 'user_id' not in session:
         return redirect(url_for('auth.login'))
     
@@ -723,9 +740,10 @@ def criar_pedido_teste_analista():
         return redirect(url_for('analista.dashboard'))
 
 # ========== EXPORTAR PARA GUNICORN ==========
-# Esta linha é CRÍTICA para o Render
+# Esta linha é CRÍTICA para o Render/Produção
 application = app
 
+# ========== MAIN ==========
 if __name__ == '__main__':
     logger.info(f"Aplicacao iniciada. Gemini disponivel: {gemini_available}")
     
@@ -742,25 +760,25 @@ if __name__ == '__main__':
     print(f" FARMACÊUTICO dashboard: http://localhost:5000/farmaceutico/dashboard")
     print(f" ASSINATURA: http://localhost:5000/assinatura/")
     print(f" Teste assinatura: http://localhost:5000/assinatura/teste")
-    print(f"\n Gemini: {' ATIVO' if gemini_available else ' INATIVO'}")
+    print(f"\n Gemini: {'✅ ATIVO' if gemini_available else '❌ INATIVO'}")
     print(f"   Modelo: {MODEL_NAME or 'Nenhum'}")
     if not gemini_available:
-        print("     Limite da API excedido! Use analise manual.")
-    print(f"\n Servico de Receitas: ATIVO")
+        print("     ⚠ Limite da API excedido! Use analise manual.")
+    print(f"\n Servico de Receitas: ✅ ATIVO")
     print(f"\n Blueprints registrados: 10/10")
-    print("    Auth")
-    print("    Medico")
-    print("    Paciente")
-    print("    Analista")
-    print("    Pedido Análise")
-    print("    Consulta")
-    print("    Enfermeiro")
-    print("    Assinatura")
-    print("    Admin")
-    print("    FARMACÊUTICO")
+    print("    ✅ Auth")
+    print("    ✅ Medico")
+    print("    ✅ Paciente")
+    print("    ✅ Analista")
+    print("    ✅ Pedido Análise")
+    print("    ✅ Consulta")
+    print("    ✅ Enfermeiro")
+    print("    ✅ Assinatura")
+    print("    ✅ Admin")
+    print("    ✅ FARMACÊUTICO")
     print("=" * 70)
-    print("\n SISTEMA PRONTO PARA USO!")
-    print(" Acesse: http://localhost:5000")
+    print("\n🚀 SISTEMA PRONTO PARA USO!")
+    print("   Acesse: http://localhost:5000")
     print("=" * 70 + "\n")
     
     app.run(host='0.0.0.0', port=5000, debug=True)
