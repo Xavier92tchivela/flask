@@ -3,7 +3,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import logging
 import re
-import hashlib
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
@@ -16,7 +15,7 @@ def set_mysql(mysql_instance):
 
 
 def execute_query_auth(query, params=None, fetch=False):
-    """Executa query sem conversão de bytes (texto plano)"""
+    """Executa query no banco de dados"""
     try:
         cur = _mysql.connection.cursor()
         if params:
@@ -58,48 +57,14 @@ def formatar_email(email):
 
 
 def verificar_senha(senha_banco, senha_digitada):
-    """
-    Verifica senha suportando múltiplos formatos:
-    1. Hash do Werkzeug (bcrypt, scrypt, pbkdf2)
-    2. Hash SHA256
-    3. Texto plano
-    """
+    """Verifica senha usando Werkzeug hash"""
     if not senha_banco or not senha_digitada:
         return False
     
-    print(f"DEBUG: Verificando senha...")
-    print(f"DEBUG: Hash banco (primeiros 50 chars): {senha_banco[:50]}...")
-    
-    # 1. Tentar verificar como hash do werkzeug
     try:
-        if check_password_hash(senha_banco, senha_digitada):
-            print("DEBUG: Werkzeug hash - SUCESSO!")
-            return True
-        else:
-            print("DEBUG: Werkzeug hash - FALHOU")
-    except Exception as e:
-        print(f"DEBUG: Erro no werkzeug: {e}")
-    
-    # 2. Tentar comparar com SHA256
-    try:
-        sha256_hash = hashlib.sha256(senha_digitada.encode()).hexdigest()
-        if sha256_hash == senha_banco:
-            print("DEBUG: SHA256 - SUCESSO!")
-            return True
-        else:
-            print("DEBUG: SHA256 - FALHOU")
-    except Exception as e:
-        print(f"DEBUG: Erro no SHA256: {e}")
-    
-    # 3. Comparação direta (texto plano)
-    if senha_banco == senha_digitada:
-        print("DEBUG: Texto plano - SUCESSO!")
-        return True
-    else:
-        print("DEBUG: Texto plano - FALHOU")
-    
-    print("DEBUG: Todas as verificações falharam!")
-    return False
+        return check_password_hash(senha_banco, senha_digitada)
+    except:
+        return senha_banco == senha_digitada
 
 
 def create_auth_blueprint():
@@ -115,14 +80,11 @@ def create_auth_blueprint():
             email = request.form['email'].lower().strip()
             password = request.form['password']
             
-            print(f"Email digitado: {email}")
-            
             if not validar_email(email):
                 flash('Email inválido. Digite um email válido.', 'danger')
                 return redirect(url_for('auth.login'))
             
             email_formatado = formatar_email(email)
-            print(f"Email formatado: {email_formatado}")
 
             # Buscar usuário
             user = execute_query_auth("""
@@ -131,19 +93,14 @@ def create_auth_blueprint():
                 WHERE email = %s AND ativo = 1
             """, (email_formatado,), True)
 
-            print(f"Resultado query: {user}")
-
-            if not user or len(user) == 0:
-                print("Usuário não encontrado!")
+            if not user:
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
 
             user_id, nome, email_bd, senha_banco, tipo = user[0]
-            print(f"Usuário encontrado: ID={user_id}, Nome={nome}, Tipo={tipo}")
 
             # Verificar senha
             if not verificar_senha(senha_banco, password):
-                print("Senha incorreta!")
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
             
@@ -154,8 +111,6 @@ def create_auth_blueprint():
             session['user_type'] = tipo
             session['logged_in'] = True
             session.modified = True
-            
-            print(f"Sessão configurada: user_type={tipo}")
 
             flash('Login realizado com sucesso!', 'success')
 
@@ -205,20 +160,16 @@ def create_auth_blueprint():
                 
                 if farmaceutico:
                     session['farmaceutico_id'] = farmaceutico[0][0]
-                    session['farmaceutico_crf'] = farmaceutico[0][1] if farmaceutico[0][1] else ''
-                    session['farmaceutico_especialidade'] = farmaceutico[0][2] if farmaceutico[0][2] else ''
-                    print(f"Farmacêutico logado: ID={session['farmaceutico_id']}")
+                    session['farmaceutico_crf'] = farmaceutico[0][1]
+                    session['farmaceutico_especialidade'] = farmaceutico[0][2]
                     return redirect(url_for('farmaceutico.dashboard'))
                 else:
-                    print("FARMACÊUTICO NÃO ENCONTRADO!")
-                    flash('Dados do farmacêutico não encontrados. Contate o suporte.', 'danger')
+                    flash('Dados do farmacêutico não encontrados.', 'danger')
                     return redirect(url_for('auth.logout'))
             
-            # Admin
             elif tipo == 'admin':
                 return redirect(url_for('admin.dashboard'))
             
-            # Outros tipos
             else:
                 return redirect(url_for('dashboard'))
 
@@ -244,10 +195,11 @@ def create_auth_blueprint():
                 "SELECT id FROM usuarios WHERE email = %s",
                 (email_formatado,), True
             )
-            if existing and len(existing) > 0:
+            if existing:
                 flash('Este email já está cadastrado.', 'danger')
                 return redirect(url_for('auth.register'))
 
+            # Gerar hash da senha
             senha_hash = generate_password_hash(senha)
 
             # Inserir usuário
@@ -269,7 +221,7 @@ def create_auth_blueprint():
                 (email_formatado,), True
             )
             
-            if user_result and len(user_result) > 0:
+            if user_result:
                 user_id = user_result[0][0]
 
                 # Inserir na tabela específica conforme tipo
@@ -327,7 +279,7 @@ def create_auth_blueprint():
                 "SELECT id FROM farmaceuticos WHERE crf = %s AND usuario_id != %s",
                 (crf, user_id), True
             )
-            if existe and len(existe) > 0:
+            if existe:
                 flash('Este CRF já está cadastrado para outro farmacêutico.', 'danger')
                 return redirect(url_for('auth.completar_cadastro_farmaceutico'))
             
@@ -367,7 +319,7 @@ def create_auth_blueprint():
                 WHERE email = %s AND ativo = 1
             """, (email_formatado,), True)
             
-            if user and len(user) > 0:
+            if user:
                 reset_token = str(uuid.uuid4())
                 expiracao = datetime.now() + timedelta(hours=1)
                 
@@ -394,7 +346,7 @@ def create_auth_blueprint():
             WHERE reset_token = %s AND reset_token_expira > NOW()
         """, (token,), True)
         
-        if not user or len(user) == 0:
+        if not user:
             flash('Link inválido ou expirado. Solicite nova recuperação.', 'danger')
             return redirect(url_for('auth.recuperar_senha'))
         
