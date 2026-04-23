@@ -73,7 +73,7 @@ def init_paciente(mysql, app):
             print(f"Erro ao obter paciente_id: {e}")
             return None
     
-    # ========== ROTA: DASHBOARD ==========
+    # ========== ROTA: DASHBOARD (VERSÃO SIMPLIFICADA FUNCIONAL) ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -142,10 +142,17 @@ def init_paciente(mysql, app):
                 'especialidade': garantir_string(c['especialidade']),
                 'data_hora': formatar_data(c['data_hora']),
                 'status': status,
-                'status_class': {'agendada': 'warning', 'realizada': 'success', 'cancelada': 'danger'}.get(status, 'secondary')
+                'status_class': {
+                    'agendada': 'warning',
+                    'realizada': 'success',
+                    'cancelada': 'danger'
+                }.get(status, 'secondary')
             })
         
-        stats = {'total_consultas': total_consultas, 'consultas_hoje': consultas_hoje}
+        stats = {
+            'total_consultas': total_consultas,
+            'consultas_hoje': consultas_hoje
+        }
         
         return render_template('paciente/dashboard.html', 
                                consultas=consultas,
@@ -178,14 +185,23 @@ def init_paciente(mysql, app):
         """, (paciente_id,))
         consultas_raw = cur.fetchall()
         cur.close()
-        consultas = [{
-            'id': c['id'], 
-            'medico_nome': garantir_string(c['nome']),
-            'especialidade': garantir_string(c['especialidade']),
-            'data_hora': formatar_data(c['data_hora']), 
-            'status': garantir_string(c['status']),
-            'status_class': {'agendada': 'warning', 'realizada': 'success', 'cancelada': 'danger'}.get(c['status'], 'secondary')
-        } for c in consultas_raw]
+        
+        consultas = []
+        for c in consultas_raw:
+            status = garantir_string(c['status'])
+            consultas.append({
+                'id': c['id'],
+                'medico_nome': garantir_string(c['nome']),
+                'especialidade': garantir_string(c['especialidade']),
+                'data_hora': formatar_data(c['data_hora']),
+                'status': status,
+                'status_class': {
+                    'agendada': 'warning',
+                    'realizada': 'success',
+                    'cancelada': 'danger'
+                }.get(status, 'secondary')
+            })
+        
         return render_template('paciente/consultas.html', consultas=consultas, user=session)
     
     # ========== ROTA: PERFIL ==========
@@ -193,17 +209,27 @@ def init_paciente(mysql, app):
     @paciente_required
     def perfil():
         paciente_id = obter_paciente_id()
+        
         if request.method == 'POST':
             telefone = request.form.get('telefone', '')
             endereco = request.form.get('endereco', '')
             data_nascimento = request.form.get('data_nascimento')
             genero = request.form.get('genero', '')
-            cur = mysql.connection.cursor()
-            cur.execute("UPDATE pacientes SET telefone=%s, endereco=%s, data_nascimento=%s, genero=%s WHERE id=%s",
-                       (telefone, endereco, data_nascimento, genero, paciente_id))
-            mysql.connection.commit()
-            cur.close()
-            flash('Perfil atualizado com sucesso!', 'success')
+            
+            try:
+                cur = mysql.connection.cursor()
+                cur.execute("""
+                    UPDATE pacientes 
+                    SET telefone=%s, endereco=%s, data_nascimento=%s, genero=%s
+                    WHERE id=%s
+                """, (telefone, endereco, data_nascimento, genero, paciente_id))
+                mysql.connection.commit()
+                cur.close()
+                flash('Perfil atualizado com sucesso!', 'success')
+            except Exception as e:
+                logger.error(f"Erro ao atualizar perfil: {e}")
+                flash('Erro ao atualizar perfil.', 'danger')
+            
             return redirect(url_for('paciente.perfil'))
         
         cur = mysql.connection.cursor()
@@ -215,23 +241,39 @@ def init_paciente(mysql, app):
         """, (paciente_id,))
         info = cur.fetchone()
         cur.close()
+        
         return render_template('paciente/perfil.html',
                                paciente_nome=garantir_string(info['nome']) if info else '',
                                data_nascimento=info['data_nascimento'] if info else None,
                                genero=garantir_string(info['genero']) if info else '',
                                telefone=garantir_string(info['telefone']) if info else '',
                                endereco=garantir_string(info['endereco']) if info else '',
-                               email=garantir_string(info['email']) if info else '', user=session)
+                               email=garantir_string(info['email']) if info else '',
+                               user=session)
     
     # ========== ROTA: AGENDAR CONSULTA ==========
     @paciente_bp.route('/agendar', methods=['GET'])
     @paciente_required
     def agendar_consulta():
         cur = mysql.connection.cursor()
-        cur.execute("SELECT m.id, u.nome, m.especialidade FROM medicos m JOIN usuarios u ON m.usuario_id = u.id WHERE u.ativo = 1 ORDER BY u.nome")
+        cur.execute("""
+            SELECT m.id, u.nome, m.especialidade
+            FROM medicos m
+            JOIN usuarios u ON m.usuario_id = u.id
+            WHERE u.ativo = 1
+            ORDER BY u.nome
+        """)
         medicos_raw = cur.fetchall()
         cur.close()
-        medicos = [{'id': m['id'], 'nome': garantir_string(m['nome']), 'especialidade': garantir_string(m['especialidade'])} for m in medicos_raw]
+        
+        medicos = []
+        for m in medicos_raw:
+            medicos.append({
+                'id': m['id'],
+                'nome': garantir_string(m['nome']),
+                'especialidade': garantir_string(m['especialidade'])
+            })
+        
         return render_template('paciente/agendar_consulta.html', medicos=medicos, user=session)
     
     # ========== ROTA: DETALHES CONSULTA ==========
@@ -239,6 +281,7 @@ def init_paciente(mysql, app):
     @paciente_required
     def detalhes_consulta(consulta_id):
         paciente_id = obter_paciente_id()
+        
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT c.id, m_u.nome, m.especialidade, c.data_hora, c.status, c.observacoes
@@ -247,20 +290,32 @@ def init_paciente(mysql, app):
             JOIN usuarios m_u ON m.usuario_id = m_u.id
             WHERE c.id = %s AND c.paciente_id = %s
         """, (consulta_id, paciente_id))
+        
         row = cur.fetchone()
         cur.close()
+        
         if not row:
             flash('Consulta não encontrada.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
+        
         consulta = {
-            'id': row['id'], 
+            'id': row['id'],
             'medico_nome': garantir_string(row['nome']),
             'especialidade': garantir_string(row['especialidade']),
-            'data_hora': formatar_data(row['data_hora']), 
+            'data_hora': formatar_data(row['data_hora']),
             'status': garantir_string(row['status']),
             'observacoes': garantir_string(row['observacoes']) if row.get('observacoes') else ''
         }
-        status_class = {'agendada': 'warning', 'realizada': 'success', 'cancelada': 'danger'}.get(consulta['status'], 'secondary')
-        return render_template('paciente/detalhes_consulta.html', consulta=consulta, status_class=status_class, user=session)
+        
+        status_class = {
+            'agendada': 'warning',
+            'realizada': 'success',
+            'cancelada': 'danger'
+        }.get(consulta['status'], 'secondary')
+        
+        return render_template('paciente/detalhes_consulta.html',
+                               consulta=consulta,
+                               status_class=status_class,
+                               user=session)
     
     return paciente_bp
