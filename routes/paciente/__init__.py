@@ -1,6 +1,3 @@
-cd /opt/render/project/src
-
-cat > routes/paciente/__init__.py << 'EOF'
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session
 import logging
 from functools import wraps
@@ -9,6 +6,8 @@ from datetime import datetime, timedelta, date
 logger = logging.getLogger(__name__)
 
 def init_paciente(mysql, app):
+    """Inicializa o blueprint do paciente"""
+    
     paciente_bp = Blueprint('paciente', __name__, url_prefix='/paciente')
     
     def garantir_string(valor):
@@ -184,7 +183,7 @@ def init_paciente(mysql, app):
                 status = c[4] if len(c) > 4 else 'agendada'
                 consultas.append({
                     'id': c[0],
-                    'medico_nome': garantir_string(c[1]),
+                    'medico_nome': garantiy_string(c[1]),
                     'especialidade': garantir_string(c[2]),
                     'data_hora': formatar_data(c[3]),
                     'data_short': formatar_data(c[3], '%d/%m/%Y'),
@@ -487,6 +486,3 @@ def init_paciente(mysql, app):
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
     return paciente_bp
-EOF
-
-echo "✅ Arquivo routes/paciente/__init__.py atualizado com sucesso!"
