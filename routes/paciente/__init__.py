@@ -1,3 +1,6 @@
+cd /opt/render/project/src
+
+cat > routes/paciente/__init__.py << 'EOF'
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session
 import logging
 from functools import wraps
@@ -28,17 +31,13 @@ def init_paciente(mysql, app):
     def obter_paciente_id():
         if 'user_id' not in session:
             return None
-        if session.get('paciente_id'):
-            return session['paciente_id']
         try:
             cur = mysql.connection.cursor()
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
             resultado = cur.fetchone()
             cur.close()
             if resultado:
-                paciente_id = resultado[0]
-                session['paciente_id'] = paciente_id
-                return paciente_id
+                return resultado[0]
             return None
         except Exception as e:
             logger.error(f"Erro ao obter paciente_id: {e}")
@@ -53,10 +52,6 @@ def init_paciente(mysql, app):
             if session.get('user_type') != 'paciente':
                 flash('Acesso restrito a pacientes.', 'danger')
                 return redirect(url_for('auth.login'))
-            paciente_id = obter_paciente_id()
-            if paciente_id is None:
-                flash('Perfil de paciente não encontrado.', 'danger')
-                return redirect(url_for('auth.logout'))
             return f(*args, **kwargs)
         return decorated_function
     
@@ -72,7 +67,6 @@ def init_paciente(mysql, app):
             
             cur = mysql.connection.cursor()
             
-            # Dados do paciente
             cur.execute("""
                 SELECT u.nome, COALESCE(p.telefone, '') as telefone, 
                        COALESCE(p.endereco, '') as endereco, COALESCE(u.email, '') as email,
@@ -98,7 +92,6 @@ def init_paciente(mysql, app):
                 paciente_data_nasc = None
                 paciente_genero = ''
             
-            # Consultas
             cur.execute("""
                 SELECT c.id, COALESCE(mu.nome, 'Médico') as medico_nome, 
                        COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
@@ -128,7 +121,6 @@ def init_paciente(mysql, app):
                     }.get(status, 'secondary')
                 })
             
-            # Estatísticas
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
             total_consultas = cur.fetchone()[0] if cur.fetchone() else 0
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
@@ -497,43 +489,4 @@ def init_paciente(mysql, app):
     return paciente_bp
 EOF
 
-# 2. EXECUTAR SCRIPT PARA CORRIGIR O BANCO E CRIAR PACIENTE
-python3 << 'EOF'
-import pymysql
-from werkzeug.security import generate_password_hash
-
-conn = pymysql.connect(
-    host='mysql-23322c83-xaviertchivela53-0149.j.aivencloud.com',
-    user='avnadmin',
-    password='AVNS_N67xkQR_g7zx0KQbi8q',
-    database='defaultdb',
-    port=13574,
-    ssl={'ssl-mode': 'REQUIRED'}
-)
-cursor = conn.cursor()
-
-# Resetar senha do usuário ar@gmail.com
-NOVA_SENHA = '123456'
-senha_hash = generate_password_hash(NOVA_SENHA)
-
-cursor.execute("UPDATE usuarios SET senha = %s WHERE email = 'ar@gmail.com'", (senha_hash,))
-
-# Garantir que o paciente existe
-cursor.execute("""
-    INSERT IGNORE INTO pacientes (usuario_id)
-    SELECT id FROM usuarios WHERE email = 'ar@gmail.com'
-""")
-
-conn.commit()
-
-print("✅ Senha resetada para ar@gmail.com: 123456")
-print("✅ Paciente verificado/criado")
-
-cursor.close()
-conn.close()
-EOF
-
-echo ""
-echo "✅ ARQUIVO ATUALIZADO COM SUCESSO!"
-echo "🔑 Faça login com: ar@gmail.com / 123456"
-echo "🔄 Reinicie o serviço no Render Dashboard"
+echo "✅ Arquivo routes/paciente/__init__.py atualizado com sucesso!"
