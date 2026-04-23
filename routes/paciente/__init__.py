@@ -41,6 +41,15 @@ def init_paciente(mysql, app):
             return formatar_data(valor)
         return str(valor) if valor is not None else ''
     
+    def formatar_data(data, formato='%d/%m/%Y %H:%M'):
+        if not data:
+            return ''
+        if isinstance(data, datetime):
+            return data.strftime(formato)
+        if isinstance(data, date):
+            return data.strftime(formato)
+        return str(data)
+    
     # ========== FUNÇÕES DE FATURA ==========
     def gerar_numero_fatura():
         try:
@@ -297,7 +306,23 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== FUNÇÕES AUXILIARES ==========
+    # ========== FUNÇÃO PRINCIPAL PARA OBTER PACIENTE ID ==========
+    def obter_paciente_id():
+        """Obtém o ID do paciente logado"""
+        if 'user_id' not in session or session.get('user_type') != 'paciente':
+            return None
+        try:
+            cur = mysql.connection.cursor()
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            resultado = cur.fetchone()
+            cur.close()
+            if resultado:
+                return resultado[0]
+            return None
+        except Exception as e:
+            logger.error(f"Erro ao obter paciente_id: {e}")
+            return None
+    
     def execute_query(query, params=None, fetch=False, one=False):
         try:
             cur = mysql.connection.cursor()
@@ -317,21 +342,6 @@ def init_paciente(mysql, app):
         except Exception as e:
             mysql.connection.rollback()
             logger.error(f"Database error: {e}")
-            return None
-    
-    def obter_paciente_id():
-        if 'user_id' not in session or session.get('user_type') != 'paciente':
-            return None
-        try:
-            cur = mysql.connection.cursor()
-            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
-            resultado = cur.fetchone()
-            cur.close()
-            if resultado:
-                return resultado[0] if isinstance(resultado, (tuple, list)) else resultado.get('id')
-            return None
-        except Exception as e:
-            logger.error(f"Erro ao obter paciente_id: {e}")
             return None
     
     # ========== DASHBOARD ==========
@@ -355,20 +365,12 @@ def init_paciente(mysql, app):
             paciente_info = cur.fetchone()
             
             if paciente_info:
-                if isinstance(paciente_info, dict):
-                    paciente_nome = garantir_string(paciente_info.get('nome'))
-                    paciente_data_nasc = paciente_info.get('data_nascimento')
-                    paciente_genero = garantir_string(paciente_info.get('genero'))
-                    paciente_telefone = garantir_string(paciente_info.get('telefone'))
-                    paciente_endereco = garantir_string(paciente_info.get('endereco'))
-                    paciente_email = garantir_string(paciente_info.get('email'))
-                else:
-                    paciente_nome = garantir_string(paciente_info[0])
-                    paciente_data_nasc = paciente_info[1]
-                    paciente_genero = garantir_string(paciente_info[2])
-                    paciente_telefone = garantir_string(paciente_info[3])
-                    paciente_endereco = garantir_string(paciente_info[4])
-                    paciente_email = garantir_string(paciente_info[5])
+                paciente_nome = garantir_string(paciente_info[0])
+                paciente_data_nasc = paciente_info[1]
+                paciente_genero = garantir_string(paciente_info[2])
+                paciente_telefone = garantir_string(paciente_info[3])
+                paciente_endereco = garantir_string(paciente_info[4])
+                paciente_email = garantir_string(paciente_info[5])
             else:
                 paciente_nome = session.get('user_name', 'Paciente')
                 paciente_data_nasc = None
@@ -392,32 +394,18 @@ def init_paciente(mysql, app):
             
             consultas = []
             for c in consultas_raw:
-                if isinstance(c, dict):
-                    status = c.get('status', 'agendada')
-                    consultas.append({
-                        'id': c.get('id'),
-                        'medico_nome': garantir_string(c.get('medico_nome')),
-                        'especialidade': garantir_string(c.get('especialidade')),
-                        'data_hora': formatar_data(c.get('data_hora')),
-                        'status': garantir_string(status),
-                        'status_class': {
-                            'agendada': 'warning', 'realizada': 'success',
-                            'cancelada': 'danger', 'confirmada': 'info'
-                        }.get(status, 'secondary')
-                    })
-                else:
-                    status = c[4] if len(c) > 4 else 'agendada'
-                    consultas.append({
-                        'id': c[0],
-                        'medico_nome': garantir_string(c[1]),
-                        'especialidade': garantir_string(c[2]),
-                        'data_hora': formatar_data(c[3]),
-                        'status': garantir_string(status),
-                        'status_class': {
-                            'agendada': 'warning', 'realizada': 'success',
-                            'cancelada': 'danger', 'confirmada': 'info'
-                        }.get(status, 'secondary')
-                    })
+                status = c[4] if len(c) > 4 else 'agendada'
+                consultas.append({
+                    'id': c[0],
+                    'medico_nome': garantir_string(c[1]),
+                    'especialidade': garantir_string(c[2]),
+                    'data_hora': formatar_data(c[3]),
+                    'status': garantir_string(status),
+                    'status_class': {
+                        'agendada': 'warning', 'realizada': 'success',
+                        'cancelada': 'danger', 'confirmada': 'info'
+                    }.get(status, 'secondary')
+                })
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
             total_consultas = cur.fetchone()[0] if cur.fetchone() else 0
@@ -467,20 +455,12 @@ def init_paciente(mysql, app):
         
         medicos = []
         for m in medicos_raw:
-            if isinstance(m, dict):
-                medicos.append({
-                    'id': m.get('id'),
-                    'nome': garantir_string(m.get('nome')),
-                    'especialidade': garantir_string(m.get('especialidade')),
-                    'crm': garantir_string(m.get('crm'))
-                })
-            else:
-                medicos.append({
-                    'id': m[0],
-                    'nome': garantir_string(m[1]),
-                    'especialidade': garantir_string(m[2]),
-                    'crm': garantir_string(m[3])
-                })
+            medicos.append({
+                'id': m[0],
+                'nome': garantir_string(m[1]),
+                'especialidade': garantir_string(m[2]),
+                'crm': garantir_string(m[3])
+            })
         
         horarios = ['08:00', '09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00']
         data_minima = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
@@ -574,25 +554,14 @@ def init_paciente(mysql, app):
                 flash("Fatura não encontrada.", "danger")
                 return redirect(url_for("paciente.dashboard"))
             
-            if isinstance(fatura_raw, dict):
-                fatura = {
-                    'id': fatura_raw.get('id'), 'numero_fatura': fatura_raw.get('numero_fatura'),
-                    'paciente_nome': garantir_string(fatura_raw.get('paciente_nome')),
-                    'paciente_telefone': garantir_string(fatura_raw.get('paciente_telefone')),
-                    'data_consulta': fatura_raw.get('data_consulta'), 'valor_consulta': float(fatura_raw.get('valor_consulta', 0)),
-                    'status_pagamento': fatura_raw.get('status_pagamento'), 'data_emissao': fatura_raw.get('data_emissao'),
-                    'consulta_id': fatura_raw.get('consulta_id'), 'medico_nome': garantir_string(fatura_raw.get('medico_nome')),
-                    'especialidade': garantir_string(fatura_raw.get('especialidade'))
-                }
-            else:
-                fatura = {
-                    'id': fatura_raw[0], 'numero_fatura': fatura_raw[1],
-                    'paciente_nome': garantir_string(fatura_raw[2]), 'paciente_telefone': garantir_string(fatura_raw[3]),
-                    'data_consulta': fatura_raw[4], 'valor_consulta': float(fatura_raw[5]),
-                    'status_pagamento': fatura_raw[6], 'data_emissao': fatura_raw[7],
-                    'consulta_id': fatura_raw[8], 'medico_nome': garantir_string(fatura_raw[9]),
-                    'especialidade': garantir_string(fatura_raw[10])
-                }
+            fatura = {
+                'id': fatura_raw[0], 'numero_fatura': fatura_raw[1],
+                'paciente_nome': garantir_string(fatura_raw[2]), 'paciente_telefone': garantir_string(fatura_raw[3]),
+                'data_consulta': fatura_raw[4], 'valor_consulta': float(fatura_raw[5]),
+                'status_pagamento': fatura_raw[6], 'data_emissao': fatura_raw[7],
+                'consulta_id': fatura_raw[8], 'medico_nome': garantir_string(fatura_raw[9]),
+                'especialidade': garantir_string(fatura_raw[10])
+            }
             
             return render_template('paciente/confirmacao_fatura.html', fatura=fatura)
         except Exception as e:
@@ -605,6 +574,10 @@ def init_paciente(mysql, app):
     @paciente_required
     def minhas_consultas():
         paciente_id = obter_paciente_id()
+        
+        if not paciente_id:
+            flash('Perfil de paciente não encontrado.', 'danger')
+            return redirect(url_for('auth.logout'))
         
         cur = mysql.connection.cursor()
         cur.execute("""
@@ -622,24 +595,13 @@ def init_paciente(mysql, app):
         status_classes = {'agendada': 'warning', 'realizada': 'success', 'cancelada': 'danger', 'confirmada': 'info'}
         
         for c in consultas_raw:
-            if isinstance(c, dict):
-                status = c.get('status', 'agendada')
-                consultas_formatadas.append({
-                    'id': c.get('id'), 'medico_nome': garantir_string(c.get('nome')),
-                    'especialidade': garantir_string(c.get('especialidade')), 'crm': garantir_string(c.get('crm')),
-                    'data_hora': formatar_data(c.get('data_hora')), 'status': garantir_string(status),
-                    'data_short': formatar_data(c.get('data_hora'), '%d/%m/%Y'),
-                    'hora': formatar_data(c.get('data_hora'), '%H:%M'),
-                    'status_class': status_classes.get(status, 'secondary')
-                })
-            else:
-                status = c[5] if len(c) > 5 else 'agendada'
-                consultas_formatadas.append({
-                    'id': c[0], 'medico_nome': garantir_string(c[1]), 'especialidade': garantir_string(c[2]),
-                    'crm': garantir_string(c[3]), 'data_hora': formatar_data(c[4]), 'status': garantir_string(status),
-                    'data_short': formatar_data(c[4], '%d/%m/%Y'), 'hora': formatar_data(c[4], '%H:%M'),
-                    'status_class': status_classes.get(status, 'secondary')
-                })
+            status = c[5] if len(c) > 5 else 'agendada'
+            consultas_formatadas.append({
+                'id': c[0], 'medico_nome': garantir_string(c[1]), 'especialidade': garantir_string(c[2]),
+                'crm': garantir_string(c[3]), 'data_hora': formatar_data(c[4]), 'status': garantir_string(status),
+                'data_short': formatar_data(c[4], '%d/%m/%Y'), 'hora': formatar_data(c[4], '%H:%M'),
+                'status_class': status_classes.get(status, 'secondary')
+            })
         
         return render_template('paciente/consultas.html', consultas=consultas_formatadas, user=session, user_type='paciente')
     
@@ -669,46 +631,30 @@ def init_paciente(mysql, app):
             flash('Consulta não encontrada.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
         
-        if isinstance(row, dict):
-            consulta = {
-                'id': row.get('id'), 'medico_nome': garantir_string(row.get('nome')),
-                'especialidade': garantir_string(row.get('especialidade')), 'crm': garantir_string(row.get('crm')),
-                'data_hora': formatar_data(row.get('data_hora')), 'status': garantir_string(row.get('status')),
-                'observacoes': garantir_string(row.get('observacoes')), 'paciente_nome': garantir_string(row.get('nome')),
-                'data_nascimento': formatar_data(row.get('data_nascimento'), '%d/%m/%Y') if row.get('data_nascimento') else '',
-                'genero': garantir_string(row.get('genero')), 'paciente_telefone': garantir_string(row.get('telefone')),
-                'paciente_endereco': garantir_string(row.get('endereco')), 'sintomas_raw': garantir_string(row.get('sintomas'))
-            }
-        else:
-            consulta = {
-                'id': row[0], 'medico_nome': garantir_string(row[1]), 'especialidade': garantir_string(row[2]),
-                'crm': garantir_string(row[3]), 'data_hora': formatar_data(row[4]), 'status': garantir_string(row[5]),
-                'observacoes': garantir_string(row[6]), 'paciente_nome': garantir_string(row[7]),
-                'data_nascimento': formatar_data(row[8], '%d/%m/%Y') if row[8] else '',
-                'genero': garantir_string(row[9]), 'paciente_telefone': garantir_string(row[10]) if row[10] else '',
-                'paciente_endereco': garantir_string(row[11]) if row[11] else '', 'sintomas_raw': garantir_string(row[12]) if len(row) > 12 and row[12] else ''
-            }
+        consulta = {
+            'id': row[0], 'medico_nome': garantir_string(row[1]), 'especialidade': garantir_string(row[2]),
+            'crm': garantir_string(row[3]), 'data_hora': formatar_data(row[4]), 'status': garantir_string(row[5]),
+            'observacoes': garantir_string(row[6]), 'paciente_nome': garantir_string(row[7]),
+            'data_nascimento': formatar_data(row[8], '%d/%m/%Y') if row[8] else '',
+            'genero': garantir_string(row[9]), 'paciente_telefone': garantir_string(row[10]) if row[10] else '',
+            'paciente_endereco': garantir_string(row[11]) if row[11] else '', 'sintomas_raw': garantir_string(row[12]) if len(row) > 12 and row[12] else ''
+        }
         
-        cur.execute("SELECT id, diagnostico, prescricao, recomendacoes, status, created_at, receita_pdf_path, pdf_gerado FROM receita WHERE consulta_id = %s ORDER BY created_at DESC", (consulta_id,))
+        cur.execute("""
+            SELECT id, diagnostico, prescricao, recomendacoes, status, created_at, receita_pdf_path, pdf_gerado
+            FROM receita WHERE consulta_id = %s ORDER BY created_at DESC
+        """, (consulta_id,))
         receitas_raw = cur.fetchall()
         cur.close()
         
         receitas = []
         for r in receitas_raw:
-            if isinstance(r, dict):
-                receitas.append({
-                    'id': r.get('id'), 'diagnostico': garantir_string(r.get('diagnostico')),
-                    'prescricao': garantir_string(r.get('prescricao')), 'recomendacoes': garantir_string(r.get('recomendacoes')),
-                    'status': garantir_string(r.get('status', 'ativa')), 'created_at': formatar_data(r.get('created_at'), '%d/%m/%Y %H:%M'),
-                    'receita_pdf_path': r.get('receita_pdf_path'), 'pdf_gerado': r.get('pdf_gerado', 0)
-                })
-            else:
-                receitas.append({
-                    'id': r[0], 'diagnostico': garantir_string(r[1]) if r[1] else '',
-                    'prescricao': garantir_string(r[2]) if r[2] else '', 'recomendacoes': garantir_string(r[3]) if r[3] else '',
-                    'status': garantir_string(r[4]) if r[4] else 'ativa', 'created_at': formatar_data(r[5], '%d/%m/%Y %H:%M') if r[5] else '',
-                    'receita_pdf_path': r[6], 'pdf_gerado': r[7] if r[7] else 0
-                })
+            receitas.append({
+                'id': r[0], 'diagnostico': garantir_string(r[1]) if r[1] else '',
+                'prescricao': garantir_string(r[2]) if r[2] else '', 'recomendacoes': garantir_string(r[3]) if r[3] else '',
+                'status': garantir_string(r[4]) if r[4] else 'ativa', 'created_at': formatar_data(r[5], '%d/%m/%Y %H:%M') if r[5] else '',
+                'receita_pdf_path': r[6], 'pdf_gerado': r[7] if r[7] else 0
+            })
         
         sintomas_lista = [s.strip() for s in consulta['sintomas_raw'].split(',') if s.strip()] if consulta.get('sintomas_raw') else []
         status_class = {'agendada': 'warning', 'realizada': 'success', 'cancelada': 'danger', 'confirmada': 'info'}.get(consulta['status'], 'secondary')
@@ -730,7 +676,7 @@ def init_paciente(mysql, app):
                 flash('Consulta não encontrada.', 'danger')
                 return redirect(url_for('paciente.minhas_consultas'))
             
-            status = consulta[0] if isinstance(consulta, (tuple, list)) else consulta.get('status')
+            status = consulta[0]
             if status != 'agendada':
                 flash('Apenas consultas agendadas podem ser canceladas.', 'warning')
                 return redirect(url_for('paciente.detalhes_consulta', consulta_id=consulta_id))
@@ -751,6 +697,85 @@ def init_paciente(mysql, app):
             flash('Erro ao cancelar consulta.', 'danger')
         
         return redirect(url_for('paciente.minhas_consultas'))
+    
+    # ========== VISUALIZAR RECEITA ==========
+    @paciente_bp.route('/receita/<int:receita_id>')
+    @paciente_required
+    def visualizar_receita(receita_id):
+        paciente_id = obter_paciente_id()
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT r.id, r.diagnostico, r.prescricao, r.recomendacoes, r.status, r.created_at,
+                   r.receita_pdf_path, r.pdf_gerado, c.id, c.data_hora, m_u.nome, m.especialidade,
+                   m.crm, p_u.nome, p.data_nascimento, p.genero
+            FROM receita r
+            JOIN consultas c ON r.consulta_id = c.id
+            JOIN medicos m ON c.medico_id = m.id
+            JOIN usuarios m_u ON m.usuario_id = m_u.id
+            JOIN pacientes p ON c.paciente_id = p.id
+            JOIN usuarios p_u ON p.usuario_id = p_u.id
+            WHERE r.id = %s AND c.paciente_id = %s
+        """, (receita_id, paciente_id))
+        row = cur.fetchone()
+        cur.close()
+        
+        if not row:
+            flash('Receita não encontrada.', 'danger')
+            return redirect(url_for('paciente.minhas_consultas'))
+        
+        idade = None
+        data_nasc = row[14] if len(row) > 14 else None
+        if data_nasc:
+            hoje = datetime.now().date()
+            nasc = data_nasc if isinstance(data_nasc, date) else datetime.strptime(str(data_nasc), '%Y-%m-%d').date()
+            idade = hoje.year - nasc.year
+            if hoje.month < nasc.month or (hoje.month == nasc.month and hoje.day < nasc.day):
+                idade -= 1
+        
+        receita = {
+            'id': row[0], 'diagnostico': garantir_string(row[1]), 'prescricao': garantir_string(row[2]),
+            'recomendacoes': garantir_string(row[3]), 'status': garantir_string(row[4]), 'created_at': row[5],
+            'receita_pdf_path': row[6], 'pdf_gerado': row[7] if row[7] else 0, 'consulta_id': row[8],
+            'data_consulta': formatar_data(row[9]), 'medico_nome': garantir_string(row[10]),
+            'especialidade': garantir_string(row[11]), 'crm': garantir_string(row[12]),
+            'paciente_nome': garantir_string(row[13]), 'data_nascimento': formatar_data(row[14], '%d/%m/%Y') if row[14] else '',
+            'genero': garantir_string(row[15]), 'idade': idade
+        }
+        
+        return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
+    
+    # ========== DOWNLOAD PDF RECEITA ==========
+    @paciente_bp.route('/receita/<int:receita_id>/download')
+    @paciente_required
+    def download_receita_pdf(receita_id):
+        paciente_id = obter_paciente_id()
+        cur = mysql.connection.cursor()
+        cur.execute("""
+            SELECT r.receita_pdf_path, r.pdf_gerado
+            FROM receita r
+            JOIN consultas c ON r.consulta_id = c.id
+            WHERE r.id = %s AND c.paciente_id = %s
+        """, (receita_id, paciente_id))
+        row = cur.fetchone()
+        cur.close()
+        
+        if not row:
+            flash('Receita não encontrada.', 'danger')
+            return redirect(url_for('paciente.minhas_consultas'))
+        
+        if not row[1] or not row[0]:
+            flash('PDF não disponível para esta receita.', 'warning')
+            return redirect(url_for('paciente.visualizar_receita', receita_id=receita_id))
+        
+        pdf_path = row[0]
+        if not os.path.isabs(pdf_path):
+            pdf_path = os.path.join(app.root_path, pdf_path)
+        
+        if not os.path.exists(pdf_path):
+            flash('Arquivo PDF não encontrado no servidor.', 'danger')
+            return redirect(url_for('paciente.visualizar_receita', receita_id=receita_id))
+        
+        return send_file(pdf_path, as_attachment=True, download_name=f"receita_{receita_id}.pdf", mimetype='application/pdf')
     
     # ========== PERFIL ==========
     @paciente_bp.route('/perfil', methods=['GET', 'POST'])
@@ -785,86 +810,12 @@ def init_paciente(mysql, app):
         cur.close()
         
         if info:
-            if isinstance(info, dict):
-                return render_template('paciente/perfil.html',
-                    paciente_nome=garantir_string(info.get('nome')), data_nascimento=info.get('data_nascimento'),
-                    genero=garantir_string(info.get('genero')), telefone=garantir_string(info.get('telefone')),
-                    endereco=garantir_string(info.get('endereco')), email=garantir_string(info.get('email')),
-                    alergias=garantir_string(info.get('alergias')), medicamentos_uso=garantir_string(info.get('medicamentos_uso')),
-                    historico_doencas=garantir_string(info.get('historico_doencas')), contato_emergencia=garantir_string(info.get('contato_emergencia')), user=session)
-            else:
-                return render_template('paciente/perfil.html',
-                    paciente_nome=garantir_string(info[0]), data_nascimento=info[1], genero=garantir_string(info[2]),
-                    telefone=garantir_string(info[3]), endereco=garantir_string(info[4]), email=garantir_string(info[5]),
-                    alergias=garantir_string(info[6]), medicamentos_uso=garantir_string(info[7]),
-                    historico_doencas=garantir_string(info[8]), contato_emergencia=garantir_string(info[9]), user=session)
+            return render_template('paciente/perfil.html',
+                paciente_nome=garantir_string(info[0]), data_nascimento=info[1], genero=garantir_string(info[2]),
+                telefone=garantir_string(info[3]), endereco=garantir_string(info[4]), email=garantir_string(info[5]),
+                alergias=garantir_string(info[6]), medicamentos_uso=garantir_string(info[7]),
+                historico_doencas=garantir_string(info[8]), contato_emergencia=garantir_string(info[9]), user=session)
         
         return render_template('paciente/perfil.html', user=session)
-    
-    # ========== VISUALIZAR RECEITA ==========
-    @paciente_bp.route('/receita/<int:receita_id>')
-    @paciente_required
-    def visualizar_receita(receita_id):
-        paciente_id = obter_paciente_id()
-        cur = mysql.connection.cursor()
-        cur.execute("""
-            SELECT r.id, r.diagnostico, r.prescricao, r.recomendacoes, r.status, r.created_at,
-                   r.receita_pdf_path, r.pdf_gerado, c.id, c.data_hora, m_u.nome, m.especialidade,
-                   m.crm, p_u.nome, p.data_nascimento, p.genero
-            FROM receita r
-            JOIN consultas c ON r.consulta_id = c.id
-            JOIN medicos m ON c.medico_id = m.id
-            JOIN usuarios m_u ON m.usuario_id = m_u.id
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios p_u ON p.usuario_id = p_u.id
-            WHERE r.id = %s AND c.paciente_id = %s
-        """, (receita_id, paciente_id))
-        row = cur.fetchone()
-        cur.close()
-        
-        if not row:
-            flash('Receita não encontrada.', 'danger')
-            return redirect(url_for('paciente.minhas_consultas'))
-        
-        if isinstance(row, dict):
-            idade = None
-            data_nasc = row.get('data_nascimento')
-            if data_nasc:
-                hoje = datetime.now().date()
-                nasc = data_nasc if isinstance(data_nasc, date) else datetime.strptime(str(data_nasc), '%Y-%m-%d').date()
-                idade = hoje.year - nasc.year
-                if hoje.month < nasc.month or (hoje.month == nasc.month and hoje.day < nasc.day):
-                    idade -= 1
-            receita = {
-                'id': row.get('id'), 'diagnostico': garantir_string(row.get('diagnostico')),
-                'prescricao': garantir_string(row.get('prescricao')), 'recomendacoes': garantir_string(row.get('recomendacoes')),
-                'status': garantir_string(row.get('status')), 'created_at': row.get('created_at'),
-                'receita_pdf_path': row.get('receita_pdf_path'), 'pdf_gerado': row.get('pdf_gerado', 0),
-                'consulta_id': row.get('id'), 'data_consulta': formatar_data(row.get('data_hora')),
-                'medico_nome': garantir_string(row.get('nome')), 'especialidade': garantir_string(row.get('especialidade')),
-                'crm': garantir_string(row.get('crm')), 'paciente_nome': garantir_string(row.get('nome')),
-                'data_nascimento': formatar_data(row.get('data_nascimento'), '%d/%m/%Y'),
-                'genero': garantir_string(row.get('genero')), 'idade': idade
-            }
-        else:
-            idade = None
-            data_nasc = row[14] if len(row) > 14 else None
-            if data_nasc:
-                hoje = datetime.now().date()
-                nasc = data_nasc if isinstance(data_nasc, date) else datetime.strptime(str(data_nasc), '%Y-%m-%d').date()
-                idade = hoje.year - nasc.year
-                if hoje.month < nasc.month or (hoje.month == nasc.month and hoje.day < nasc.day):
-                    idade -= 1
-            receita = {
-                'id': row[0], 'diagnostico': garantir_string(row[1]), 'prescricao': garantir_string(row[2]),
-                'recomendacoes': garantir_string(row[3]), 'status': garantir_string(row[4]), 'created_at': row[5],
-                'receita_pdf_path': row[6], 'pdf_gerado': row[7] if row[7] else 0, 'consulta_id': row[8],
-                'data_consulta': formatar_data(row[9]), 'medico_nome': garantir_string(row[10]),
-                'especialidade': garantir_string(row[11]), 'crm': garantir_string(row[12]),
-                'paciente_nome': garantir_string(row[13]), 'data_nascimento': formatar_data(row[14], '%d/%m/%Y'),
-                'genero': garantir_string(row[15]), 'idade': idade
-            }
-        
-        return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
     return paciente_bp
