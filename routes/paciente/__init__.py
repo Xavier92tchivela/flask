@@ -59,7 +59,6 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== DASHBOARD ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -198,7 +197,6 @@ def init_paciente(mysql, app):
             flash('Erro ao carregar dashboard.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
     
-    # ========== MINHAS CONSULTAS ==========
     @paciente_bp.route('/consultas')
     @paciente_required
     def minhas_consultas():
@@ -264,7 +262,6 @@ def init_paciente(mysql, app):
             flash('Erro ao carregar consultas.', 'danger')
             return redirect(url_for('paciente.dashboard'))
     
-    # ========== AGENDAR CONSULTA ==========
     @paciente_bp.route('/agendar', methods=['GET', 'POST'])
     @paciente_required
     def agendar_consulta():
@@ -361,7 +358,6 @@ def init_paciente(mysql, app):
                                data_minima=data_minima, data_maxima=data_maxima,
                                user=session, user_type='paciente')
     
-    # ========== DETALHES DA CONSULTA ==========
     @paciente_bp.route('/consultas/<int:consulta_id>')
     @paciente_required
     def detalhes_consulta(consulta_id):
@@ -451,7 +447,6 @@ def init_paciente(mysql, app):
                              status_class=status_class, user=session,
                              formatar_data=formatar_data, datetime=datetime, user_type='paciente')
     
-    # ========== CANCELAR CONSULTA ==========
     @paciente_bp.route('/consultas/<int:consulta_id>/cancelar', methods=['POST'])
     @paciente_required
     def cancelar_consulta(consulta_id):
@@ -488,7 +483,6 @@ def init_paciente(mysql, app):
             logger.error(f"Erro ao cancelar: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
     
-    # ========== PERFIL ==========
     @paciente_bp.route('/perfil', methods=['GET', 'POST'])
     @paciente_required
     def perfil():
@@ -544,7 +538,6 @@ def init_paciente(mysql, app):
         
         return render_template('paciente/perfil.html', user=session)
     
-    # ========== VISUALIZAR RECEITA ==========
     @paciente_bp.route('/receita/<int:receita_id>')
     @paciente_required
     def visualizar_receita(receita_id):
