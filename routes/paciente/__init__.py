@@ -26,19 +26,15 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente da sessão ou do banco"""
         if session.get('paciente_id'):
             return session['paciente_id']
-        
         if 'user_id' not in session:
             return None
-        
         try:
             cur = mysql.connection.cursor()
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
             resultado = cur.fetchone()
             cur.close()
-            
             if resultado:
                 if isinstance(resultado, dict):
                     paciente_id = resultado.get('id')
@@ -57,11 +53,9 @@ def init_paciente(mysql, app):
             if 'user_id' not in session:
                 flash('Faça login para acessar.', 'warning')
                 return redirect(url_for('auth.login'))
-            
             if session.get('user_type') != 'paciente':
                 flash('Acesso restrito a pacientes.', 'danger')
                 return redirect(url_for('auth.login'))
-            
             return f(*args, **kwargs)
         return decorated_function
     
@@ -575,7 +569,7 @@ def init_paciente(mysql, app):
                 'consulta_id': row.get('consulta_id'),
                 'data_consulta': formatar_data(row.get('data_hora')),
                 'medico_nome': garantir_string(row.get('medico_nome', 'Médico')),
-                'especialidade': garantiy_string(row.get('especialidade', 'Clínico Geral')),
+                'especialidade': garantir_string(row.get('especialidade', 'Clínico Geral')),
                 'paciente_nome': garantir_string(row.get('paciente_nome', 'Paciente'))
             }
         else:
@@ -596,4 +590,4 @@ def init_paciente(mysql, app):
     return paciente_bp
 EOF
 
-echo "✅ Arquivo routes/paciente/__init__.py atualizado com sucesso!"
+echo "✅ Arquivo routes/paciente/__init__.py corrigido com sucesso!"
