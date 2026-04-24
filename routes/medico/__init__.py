@@ -1,4 +1,4 @@
-# routes/medico/__init__.py
+# routes/medico/__init__.py (VERSÃO CORRIGIDA - SEM DUPLICAR DASHBOARD)
 from flask import Blueprint, render_template, request, jsonify, flash, redirect, url_for, session
 import logging
 import traceback
@@ -115,83 +115,9 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     return str(value)
             return value
         
-        # ===================== ROTA: DASHBOARD =====================
-        @medico_bp.route('/dashboard')
-        @medico_required
-        def dashboard():
-            """Dashboard do médico"""
-            try:
-                medico_id = obter_medico_id()
-                if not medico_id:
-                    flash('Perfil de médico não encontrado.', 'danger')
-                    return redirect(url_for('auth.login'))
-                
-                cur = mysql.connection.cursor()
-                cur.execute("""
-                    SELECT COUNT(DISTINCT p.id) as total_pacientes
-                    FROM consultas c
-                    JOIN pacientes p ON c.paciente_id = p.id
-                    WHERE c.medico_id = %s
-                """, (medico_id,))
-                total_row = cur.fetchone()
-                total_pacientes = total_row['total_pacientes'] if total_row and isinstance(total_row, dict) else (total_row[0] if total_row else 0)
-                
-                cur.execute("""
-                    SELECT COUNT(*) as hoje
-                    FROM consultas 
-                    WHERE medico_id = %s AND DATE(data_hora) = CURDATE()
-                """, (medico_id,))
-                hoje_row = cur.fetchone()
-                consultas_hoje = hoje_row['hoje'] if hoje_row and isinstance(hoje_row, dict) else (hoje_row[0] if hoje_row else 0)
-                
-                cur.execute("""
-                    SELECT COUNT(*) as agendadas
-                    FROM consultas 
-                    WHERE medico_id = %s AND status = 'agendada'
-                """, (medico_id,))
-                agd_row = cur.fetchone()
-                consultas_agendadas = agd_row['agendadas'] if agd_row and isinstance(agd_row, dict) else (agd_row[0] if agd_row else 0)
-                
-                cur.execute("""
-                    SELECT c.id, c.data_hora, c.status, u.nome as paciente_nome
-                    FROM consultas c
-                    JOIN pacientes p ON c.paciente_id = p.id
-                    JOIN usuarios u ON p.usuario_id = u.id
-                    WHERE c.medico_id = %s
-                    ORDER BY c.data_hora DESC
-                    LIMIT 10
-                """, (medico_id,))
-                consultas_raw = cur.fetchall()
-                cur.close()
-                
-                consultas = []
-                for c in consultas_raw:
-                    if isinstance(c, dict):
-                        consultas.append({
-                            'id': c.get('id'),
-                            'data_hora': formatar_data(c.get('data_hora')),
-                            'status': garantir_string(c.get('status', 'agendada')),
-                            'paciente_nome': garantir_string(c.get('paciente_nome', 'Paciente'))
-                        })
-                    else:
-                        consultas.append({
-                            'id': c[0],
-                            'data_hora': formatar_data(c[1]),
-                            'status': garantir_string(c[2]),
-                            'paciente_nome': garantir_string(c[3]) if len(c) > 3 else 'Paciente'
-                        })
-                
-                return render_template('medico/dashboard.html',
-                                     total_pacientes=total_pacientes,
-                                     consultas_hoje=consultas_hoje,
-                                     consultas_agendadas=consultas_agendadas,
-                                     ultimas_consultas=consultas,
-                                     user=session)
-            except Exception as e:
-                logger.error(f"Erro no dashboard: {e}")
-                logger.error(traceback.format_exc())
-                flash('Erro ao carregar dashboard.', 'danger')
-                return redirect(url_for('medico.pacientes'))
+        # ===================== NÃO CRIAR ROTA /dashboard AQUI! =====================
+        # A rota /dashboard já será registrada pelo init_medico_dashboard
+        # Apenas adicionamos as funções auxiliares e decoradores que os módulos podem usar
         
         # ===================== ROTA: LISTAR INTERNADOS =====================
         @medico_bp.route('/internados')
@@ -531,6 +457,12 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         medico_bp.execute_query = base['execute_query']
         medico_bp.formatar_data = base['formatar_data']
         medico_bp.calcular_idade = base['calcular_idade']
+        
+        # Exportar funções auxiliares para uso nos módulos
+        medico_bp.garantir_string = garantir_string
+        medico_bp.formatar_data = formatar_data
+        medico_bp.obter_medico_id = obter_medico_id
+        medico_bp.medico_required = medico_required
         
         # Rota de debug
         @medico_bp.route('/debug-rotas')
