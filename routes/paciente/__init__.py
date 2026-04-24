@@ -593,6 +593,3 @@ def init_paciente(mysql, app):
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
     return paciente_bp
-EOF
-
-echo "✅ Arquivo routes/paciente/__init__.py atualizado com sucesso!"
