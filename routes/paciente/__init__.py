@@ -59,7 +59,7 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== DASHBOARD (VERSÃO SIMPLIFICADA E CORRIGIDA) ==========
+    # ========== DASHBOARD ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -71,7 +71,6 @@ def init_paciente(mysql, app):
             
             cur = mysql.connection.cursor()
             
-            # Buscar dados do paciente
             cur.execute("""
                 SELECT u.nome, COALESCE(p.telefone, '') as telefone, 
                        COALESCE(p.endereco, '') as endereco, COALESCE(u.email, '') as email,
@@ -107,7 +106,6 @@ def init_paciente(mysql, app):
             
             paciente_data_nasc = formatar_data(paciente_data_nasc, '%d/%m/%Y') if paciente_data_nasc else None
             
-            # Buscar consultas
             cur.execute("""
                 SELECT c.id, COALESCE(mu.nome, 'Médico') as medico_nome, 
                        COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
@@ -153,7 +151,6 @@ def init_paciente(mysql, app):
                             }.get(status, 'secondary')
                         })
             
-            # ESTATÍSTICAS – CORRIGIDAS (fetchone apenas uma vez)
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
             total = cur.fetchone()
             total_consultas = total[0] if total else 0
@@ -606,6 +603,3 @@ def init_paciente(mysql, app):
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
     return paciente_bp
-ENDPYTHON
-
-echo "✅ Arquivo routes/paciente/__init__.py atualizado com sucesso!"
