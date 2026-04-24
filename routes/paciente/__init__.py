@@ -81,7 +81,14 @@ def init_paciente(mysql, app):
             """, (paciente_id,))
             row = cur.fetchone()
             
-            if row:
+            if row is None:
+                paciente_nome = session.get('user_name', 'Paciente')
+                paciente_telefone = ''
+                paciente_endereco = ''
+                paciente_email = session.get('user_email', '')
+                paciente_data_nasc = None
+                paciente_genero = ''
+            else:
                 if isinstance(row, dict):
                     paciente_nome = garantir_string(row.get('nome', 'Paciente'))
                     paciente_telefone = garantir_string(row.get('telefone', ''))
@@ -96,13 +103,6 @@ def init_paciente(mysql, app):
                     paciente_email = garantir_string(row[3]) if len(row) > 3 else ''
                     paciente_data_nasc = row[4] if len(row) > 4 else None
                     paciente_genero = garantir_string(row[5]) if len(row) > 5 else ''
-            else:
-                paciente_nome = session.get('user_name', 'Paciente')
-                paciente_telefone = ''
-                paciente_endereco = ''
-                paciente_email = ''
-                paciente_data_nasc = None
-                paciente_genero = ''
             
             paciente_data_nasc = formatar_data(paciente_data_nasc, '%d/%m/%Y') if paciente_data_nasc else None
             
@@ -120,35 +120,36 @@ def init_paciente(mysql, app):
             consultas_raw = cur.fetchall()
             
             consultas = []
-            for c in consultas_raw:
-                if isinstance(c, dict):
-                    status = c.get('status', 'agendada')
-                    consultas.append({
-                        'id': c.get('id'),
-                        'medico_nome': garantir_string(c.get('medico_nome', 'Médico')),
-                        'especialidade': garantir_string(c.get('especialidade', 'Clínico Geral')),
-                        'data_hora': formatar_data(c.get('data_hora')),
-                        'status': status,
-                        'status_class': {
-                            'agendada': 'warning',
-                            'realizada': 'success',
-                            'cancelada': 'danger'
-                        }.get(status, 'secondary')
-                    })
-                else:
-                    status = c[4] if len(c) > 4 else 'agendada'
-                    consultas.append({
-                        'id': c[0],
-                        'medico_nome': garantir_string(c[1]),
-                        'especialidade': garantir_string(c[2]),
-                        'data_hora': formatar_data(c[3]),
-                        'status': status,
-                        'status_class': {
-                            'agendada': 'warning',
-                            'realizada': 'success',
-                            'cancelada': 'danger'
-                        }.get(status, 'secondary')
-                    })
+            if consultas_raw:
+                for c in consultas_raw:
+                    if isinstance(c, dict):
+                        status = c.get('status', 'agendada')
+                        consultas.append({
+                            'id': c.get('id'),
+                            'medico_nome': garantir_string(c.get('medico_nome', 'Médico')),
+                            'especialidade': garantir_string(c.get('especialidade', 'Clínico Geral')),
+                            'data_hora': formatar_data(c.get('data_hora')),
+                            'status': status,
+                            'status_class': {
+                                'agendada': 'warning',
+                                'realizada': 'success',
+                                'cancelada': 'danger'
+                            }.get(status, 'secondary')
+                        })
+                    else:
+                        status = c[4] if len(c) > 4 else 'agendada'
+                        consultas.append({
+                            'id': c[0],
+                            'medico_nome': garantir_string(c[1]),
+                            'especialidade': garantir_string(c[2]),
+                            'data_hora': formatar_data(c[3]),
+                            'status': status,
+                            'status_class': {
+                                'agendada': 'warning',
+                                'realizada': 'success',
+                                'cancelada': 'danger'
+                            }.get(status, 'secondary')
+                        })
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
             total_consultas = cur.fetchone()[0] if cur.fetchone() else 0
@@ -212,39 +213,40 @@ def init_paciente(mysql, app):
             cur.close()
             
             consultas = []
-            for c in consultas_raw:
-                if isinstance(c, dict):
-                    status = c.get('status', 'agendada')
-                    consultas.append({
-                        'id': c.get('id'),
-                        'medico_nome': garantir_string(c.get('medico_nome', 'Médico')),
-                        'especialidade': garantir_string(c.get('especialidade', 'Clínico Geral')),
-                        'data_hora': formatar_data(c.get('data_hora')),
-                        'data_short': formatar_data(c.get('data_hora'), '%d/%m/%Y'),
-                        'hora': formatar_data(c.get('data_hora'), '%H:%M'),
-                        'status': status,
-                        'status_class': {
-                            'agendada': 'warning',
-                            'realizada': 'success',
-                            'cancelada': 'danger'
-                        }.get(status, 'secondary')
-                    })
-                else:
-                    status = c[4] if len(c) > 4 else 'agendada'
-                    consultas.append({
-                        'id': c[0],
-                        'medico_nome': garantir_string(c[1]),
-                        'especialidade': garantir_string(c[2]),
-                        'data_hora': formatar_data(c[3]),
-                        'data_short': formatar_data(c[3], '%d/%m/%Y'),
-                        'hora': formatar_data(c[3], '%H:%M'),
-                        'status': status,
-                        'status_class': {
-                            'agendada': 'warning',
-                            'realizada': 'success',
-                            'cancelada': 'danger'
-                        }.get(status, 'secondary')
-                    })
+            if consultas_raw:
+                for c in consultas_raw:
+                    if isinstance(c, dict):
+                        status = c.get('status', 'agendada')
+                        consultas.append({
+                            'id': c.get('id'),
+                            'medico_nome': garantir_string(c.get('medico_nome', 'Médico')),
+                            'especialidade': garantir_string(c.get('especialidade', 'Clínico Geral')),
+                            'data_hora': formatar_data(c.get('data_hora')),
+                            'data_short': formatar_data(c.get('data_hora'), '%d/%m/%Y'),
+                            'hora': formatar_data(c.get('data_hora'), '%H:%M'),
+                            'status': status,
+                            'status_class': {
+                                'agendada': 'warning',
+                                'realizada': 'success',
+                                'cancelada': 'danger'
+                            }.get(status, 'secondary')
+                        })
+                    else:
+                        status = c[4] if len(c) > 4 else 'agendada'
+                        consultas.append({
+                            'id': c[0],
+                            'medico_nome': garantir_string(c[1]),
+                            'especialidade': garantir_string(c[2]),
+                            'data_hora': formatar_data(c[3]),
+                            'data_short': formatar_data(c[3], '%d/%m/%Y'),
+                            'hora': formatar_data(c[3], '%H:%M'),
+                            'status': status,
+                            'status_class': {
+                                'agendada': 'warning',
+                                'realizada': 'success',
+                                'cancelada': 'danger'
+                            }.get(status, 'secondary')
+                        })
             
             return render_template('paciente/consultas.html', consultas=consultas, user=session, user_type='paciente')
         except Exception as e:
