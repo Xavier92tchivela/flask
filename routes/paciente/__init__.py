@@ -26,20 +26,40 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        if session.get('paciente_id'):
-            return session['paciente_id']
+        """Obtém o ID do paciente - CORRIGIDO"""
         if 'user_id' not in session:
             return None
+        
+        # Primeiro tenta da sessão
+        if session.get('paciente_id') and session['paciente_id'] > 0:
+            return session['paciente_id']
+        
         try:
             cur = mysql.connection.cursor()
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
             resultado = cur.fetchone()
             cur.close()
+            
             if resultado:
                 if isinstance(resultado, dict):
                     paciente_id = resultado.get('id')
                 else:
                     paciente_id = resultado[0]
+                session['paciente_id'] = paciente_id
+                return paciente_id
+            
+            # Criar paciente automaticamente se não existir
+            logger.info(f"Criando paciente para usuario_id={session['user_id']}")
+            cur = mysql.connection.cursor()
+            cur.execute("INSERT INTO pacientes (usuario_id) VALUES (%s)", (session['user_id'],))
+            mysql.connection.commit()
+            
+            cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
+            novo_paciente = cur.fetchone()
+            cur.close()
+            
+            if novo_paciente:
+                paciente_id = novo_paciente[0] if isinstance(novo_paciente, (list, tuple)) else novo_paciente.get('id')
                 session['paciente_id'] = paciente_id
                 return paciente_id
             return None
@@ -59,6 +79,7 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
+    # ========== DASHBOARD ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -66,7 +87,7 @@ def init_paciente(mysql, app):
             paciente_id = obter_paciente_id()
             if not paciente_id:
                 flash('Perfil de paciente não encontrado.', 'danger')
-                return redirect(url_for('auth.logout'))
+                return redirect(url_for('paciente.minhas_consultas'))
             
             cur = mysql.connection.cursor()
             
@@ -151,24 +172,24 @@ def init_paciente(mysql, app):
                         })
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
-            total = cur.fetchone()
-            total_consultas = total[0] if total else 0
+            total_row = cur.fetchone()
+            total_consultas = total_row[0] if total_row else 0
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
-            hoje = cur.fetchone()
-            consultas_hoje = hoje[0] if hoje else 0
+            hoje_row = cur.fetchone()
+            consultas_hoje = hoje_row[0] if hoje_row else 0
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
-            agd = cur.fetchone()
-            consultas_agendadas = agd[0] if agd else 0
+            agd_row = cur.fetchone()
+            consultas_agendadas = agd_row[0] if agd_row else 0
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
-            real = cur.fetchone()
-            consultas_realizadas = real[0] if real else 0
+            real_row = cur.fetchone()
+            consultas_realizadas = real_row[0] if real_row else 0
             
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
-            canc = cur.fetchone()
-            consultas_canceladas = canc[0] if canc else 0
+            canc_row = cur.fetchone()
+            consultas_canceladas = canc_row[0] if canc_row else 0
             
             cur.close()
             
@@ -194,9 +215,12 @@ def init_paciente(mysql, app):
                                  user=session)
         except Exception as e:
             logger.error(f"Erro no dashboard: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             flash('Erro ao carregar dashboard.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
     
+    # ========== MINHAS CONSULTAS ==========
     @paciente_bp.route('/consultas')
     @paciente_required
     def minhas_consultas():
@@ -262,6 +286,7 @@ def init_paciente(mysql, app):
             flash('Erro ao carregar consultas.', 'danger')
             return redirect(url_for('paciente.dashboard'))
     
+    # ========== AGENDAR CONSULTA ==========
     @paciente_bp.route('/agendar', methods=['GET', 'POST'])
     @paciente_required
     def agendar_consulta():
@@ -330,7 +355,9 @@ def init_paciente(mysql, app):
             cur = mysql.connection.cursor()
             cur.execute("SELECT COUNT(*) FROM consultas WHERE medico_id = %s AND data_hora = %s AND status != 'cancelada'",
                        (medico_id, data_hora))
-            count = cur.fetchone()[0] if cur.fetchone() else 0
+            row_count = cur.fetchone()
+            count = row_count[0] if row_count else 0
+            
             if count > 0:
                 cur.close()
                 flash('Horário indisponível.', 'danger')
@@ -358,6 +385,7 @@ def init_paciente(mysql, app):
                                data_minima=data_minima, data_maxima=data_maxima,
                                user=session, user_type='paciente')
     
+    # ========== DETALHES DA CONSULTA ==========
     @paciente_bp.route('/consultas/<int:consulta_id>')
     @paciente_required
     def detalhes_consulta(consulta_id):
@@ -447,6 +475,7 @@ def init_paciente(mysql, app):
                              status_class=status_class, user=session,
                              formatar_data=formatar_data, datetime=datetime, user_type='paciente')
     
+    # ========== CANCELAR CONSULTA ==========
     @paciente_bp.route('/consultas/<int:consulta_id>/cancelar', methods=['POST'])
     @paciente_required
     def cancelar_consulta(consulta_id):
@@ -483,6 +512,7 @@ def init_paciente(mysql, app):
             logger.error(f"Erro ao cancelar: {e}")
             return jsonify({'success': False, 'message': str(e)}), 500
     
+    # ========== PERFIL ==========
     @paciente_bp.route('/perfil', methods=['GET', 'POST'])
     @paciente_required
     def perfil():
@@ -538,6 +568,7 @@ def init_paciente(mysql, app):
         
         return render_template('paciente/perfil.html', user=session)
     
+    # ========== VISUALIZAR RECEITA ==========
     @paciente_bp.route('/receita/<int:receita_id>')
     @paciente_required
     def visualizar_receita(receita_id):
