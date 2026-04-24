@@ -26,20 +26,15 @@ def init_paciente(mysql, app):
         return str(data)
     
     def obter_paciente_id():
-        """Obtém o ID do paciente - CORRIGIDO"""
+        if session.get('paciente_id'):
+            return session['paciente_id']
         if 'user_id' not in session:
             return None
-        
-        # Primeiro tenta da sessão
-        if session.get('paciente_id') and session['paciente_id'] > 0:
-            return session['paciente_id']
-        
         try:
             cur = mysql.connection.cursor()
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
             resultado = cur.fetchone()
             cur.close()
-            
             if resultado:
                 if isinstance(resultado, dict):
                     paciente_id = resultado.get('id')
@@ -48,18 +43,15 @@ def init_paciente(mysql, app):
                 session['paciente_id'] = paciente_id
                 return paciente_id
             
-            # Criar paciente automaticamente se não existir
-            logger.info(f"Criando paciente para usuario_id={session['user_id']}")
+            # Criar paciente automaticamente
             cur = mysql.connection.cursor()
             cur.execute("INSERT INTO pacientes (usuario_id) VALUES (%s)", (session['user_id'],))
             mysql.connection.commit()
-            
             cur.execute("SELECT id FROM pacientes WHERE usuario_id = %s", (session['user_id'],))
-            novo_paciente = cur.fetchone()
+            novo = cur.fetchone()
             cur.close()
-            
-            if novo_paciente:
-                paciente_id = novo_paciente[0] if isinstance(novo_paciente, (list, tuple)) else novo_paciente.get('id')
+            if novo:
+                paciente_id = novo[0] if isinstance(novo, (list, tuple)) else novo.get('id')
                 session['paciente_id'] = paciente_id
                 return paciente_id
             return None
@@ -79,7 +71,7 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== DASHBOARD ==========
+    # ========== DASHBOARD CORRIGIDO ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -91,6 +83,7 @@ def init_paciente(mysql, app):
             
             cur = mysql.connection.cursor()
             
+            # Buscar dados do paciente
             cur.execute("""
                 SELECT u.nome, COALESCE(p.telefone, '') as telefone, 
                        COALESCE(p.endereco, '') as endereco, COALESCE(u.email, '') as email,
@@ -126,6 +119,7 @@ def init_paciente(mysql, app):
             
             paciente_data_nasc = formatar_data(paciente_data_nasc, '%d/%m/%Y') if paciente_data_nasc else None
             
+            # Buscar consultas
             cur.execute("""
                 SELECT c.id, COALESCE(mu.nome, 'Médico') as medico_nome, 
                        COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
@@ -171,25 +165,26 @@ def init_paciente(mysql, app):
                             }.get(status, 'secondary')
                         })
             
-            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
+            # ========== ESTATÍSTICAS CORRIGIDAS (DictCursor) ==========
+            cur.execute("SELECT COUNT(*) as total FROM consultas WHERE paciente_id = %s", (paciente_id,))
             total_row = cur.fetchone()
-            total_consultas = total_row[0] if total_row else 0
+            total_consultas = total_row['total'] if total_row and isinstance(total_row, dict) else (total_row[0] if total_row else 0)
             
-            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
+            cur.execute("SELECT COUNT(*) as total FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
             hoje_row = cur.fetchone()
-            consultas_hoje = hoje_row[0] if hoje_row else 0
+            consultas_hoje = hoje_row['total'] if hoje_row and isinstance(hoje_row, dict) else (hoje_row[0] if hoje_row else 0)
             
-            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
+            cur.execute("SELECT COUNT(*) as total FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
             agd_row = cur.fetchone()
-            consultas_agendadas = agd_row[0] if agd_row else 0
+            consultas_agendadas = agd_row['total'] if agd_row and isinstance(agd_row, dict) else (agd_row[0] if agd_row else 0)
             
-            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
+            cur.execute("SELECT COUNT(*) as total FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
             real_row = cur.fetchone()
-            consultas_realizadas = real_row[0] if real_row else 0
+            consultas_realizadas = real_row['total'] if real_row and isinstance(real_row, dict) else (real_row[0] if real_row else 0)
             
-            cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
+            cur.execute("SELECT COUNT(*) as total FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
             canc_row = cur.fetchone()
-            consultas_canceladas = canc_row[0] if canc_row else 0
+            consultas_canceladas = canc_row['total'] if canc_row and isinstance(canc_row, dict) else (canc_row[0] if canc_row else 0)
             
             cur.close()
             
@@ -353,10 +348,10 @@ def init_paciente(mysql, app):
                 return redirect(request.url)
             
             cur = mysql.connection.cursor()
-            cur.execute("SELECT COUNT(*) FROM consultas WHERE medico_id = %s AND data_hora = %s AND status != 'cancelada'",
+            cur.execute("SELECT COUNT(*) as total FROM consultas WHERE medico_id = %s AND data_hora = %s AND status != 'cancelada'",
                        (medico_id, data_hora))
             row_count = cur.fetchone()
-            count = row_count[0] if row_count else 0
+            count = row_count['total'] if row_count and isinstance(row_count, dict) else (row_count[0] if row_count else 0)
             
             if count > 0:
                 cur.close()
