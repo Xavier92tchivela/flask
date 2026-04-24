@@ -59,7 +59,7 @@ def init_paciente(mysql, app):
             return f(*args, **kwargs)
         return decorated_function
     
-    # ========== DASHBOARD ==========
+    # ========== DASHBOARD (VERSÃO SIMPLIFICADA E CORRIGIDA) ==========
     @paciente_bp.route('/dashboard')
     @paciente_required
     def dashboard():
@@ -71,6 +71,7 @@ def init_paciente(mysql, app):
             
             cur = mysql.connection.cursor()
             
+            # Buscar dados do paciente
             cur.execute("""
                 SELECT u.nome, COALESCE(p.telefone, '') as telefone, 
                        COALESCE(p.endereco, '') as endereco, COALESCE(u.email, '') as email,
@@ -85,7 +86,7 @@ def init_paciente(mysql, app):
                 paciente_nome = session.get('user_name', 'Paciente')
                 paciente_telefone = ''
                 paciente_endereco = ''
-                paciente_email = session.get('user_email', '')
+                paciente_email = ''
                 paciente_data_nasc = None
                 paciente_genero = ''
             else:
@@ -106,6 +107,7 @@ def init_paciente(mysql, app):
             
             paciente_data_nasc = formatar_data(paciente_data_nasc, '%d/%m/%Y') if paciente_data_nasc else None
             
+            # Buscar consultas
             cur.execute("""
                 SELECT c.id, COALESCE(mu.nome, 'Médico') as medico_nome, 
                        COALESCE(m.especialidade, 'Clínico Geral') as especialidade, 
@@ -151,16 +153,27 @@ def init_paciente(mysql, app):
                             }.get(status, 'secondary')
                         })
             
+            # ESTATÍSTICAS – CORRIGIDAS (fetchone apenas uma vez)
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s", (paciente_id,))
-            total_consultas = cur.fetchone()[0] if cur.fetchone() else 0
+            total = cur.fetchone()
+            total_consultas = total[0] if total else 0
+            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND DATE(data_hora) = CURDATE()", (paciente_id,))
-            consultas_hoje = cur.fetchone()[0] if cur.fetchone() else 0
+            hoje = cur.fetchone()
+            consultas_hoje = hoje[0] if hoje else 0
+            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'agendada'", (paciente_id,))
-            consultas_agendadas = cur.fetchone()[0] if cur.fetchone() else 0
+            agd = cur.fetchone()
+            consultas_agendadas = agd[0] if agd else 0
+            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'realizada'", (paciente_id,))
-            consultas_realizadas = cur.fetchone()[0] if cur.fetchone() else 0
+            real = cur.fetchone()
+            consultas_realizadas = real[0] if real else 0
+            
             cur.execute("SELECT COUNT(*) FROM consultas WHERE paciente_id = %s AND status = 'cancelada'", (paciente_id,))
-            consultas_canceladas = cur.fetchone()[0] if cur.fetchone() else 0
+            canc = cur.fetchone()
+            consultas_canceladas = canc[0] if canc else 0
+            
             cur.close()
             
             stats = {
@@ -593,3 +606,6 @@ def init_paciente(mysql, app):
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
     return paciente_bp
+ENDPYTHON
+
+echo "✅ Arquivo routes/paciente/__init__.py atualizado com sucesso!"
