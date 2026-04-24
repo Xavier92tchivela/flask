@@ -13,7 +13,8 @@ from .medico_debug import init_medico_debug
 from .medico_receitas import init_medico_receitas
 from .consulta import create_consulta_blueprint
 from .medico_receita_digital import init_medico_receita_digital
-from datetime import datetime
+from datetime import datetime, date
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +29,82 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         medico_bp = Blueprint('medico', __name__, url_prefix='/medico')
         
+        # ===================== FUNÇÕES AUXILIARES (PADRÃO PACIENTE) =====================
+        def garantir_string(valor):
+            """Converte bytes para string - mesma função do paciente"""
+            if valor is None:
+                return ''
+            if isinstance(valor, bytes):
+                try:
+                    return valor.decode('utf-8')
+                except:
+                    return str(valor)
+            return str(valor)
+        
+        def formatar_data(data, formato='%d/%m/%Y %H:%M'):
+            """Formata data - mesma função do paciente"""
+            if not data:
+                return ''
+            if isinstance(data, (datetime, date)):
+                return data.strftime(formato)
+            return str(data)
+        
+        def obter_medico_id():
+            """Busca o ID do médico baseado no usuário logado (igual ao obter_paciente_id)"""
+            if session.get('medico_id'):
+                return session['medico_id']
+            
+            if 'user_id' not in session:
+                return None
+            
+            try:
+                cur = mysql.connection.cursor()
+                cur.execute("SELECT id FROM medicos WHERE usuario_id = %s", (session['user_id'],))
+                resultado = cur.fetchone()
+                cur.close()
+                
+                if resultado:
+                    if isinstance(resultado, dict):
+                        medico_id = resultado.get('id')
+                    else:
+                        medico_id = resultado[0]
+                    session['medico_id'] = medico_id
+                    return medico_id
+                
+                # Criar médico automaticamente se não existir (fallback)
+                cur = mysql.connection.cursor()
+                cur.execute("INSERT INTO medicos (usuario_id) VALUES (%s)", (session['user_id'],))
+                mysql.connection.commit()
+                cur.execute("SELECT id FROM medicos WHERE usuario_id = %s", (session['user_id'],))
+                novo = cur.fetchone()
+                cur.close()
+                
+                if novo:
+                    medico_id = novo[0] if isinstance(novo, (list, tuple)) else novo.get('id')
+                    session['medico_id'] = medico_id
+                    return medico_id
+                return None
+            except Exception as e:
+                logger.error(f"Erro ao obter medico_id: {e}")
+                return None
+        
+        # ===================== DECORADOR DE AUTENTICAÇÃO (PADRÃO PACIENTE) =====================
+        def medico_required(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                if 'user_id' not in session:
+                    flash('Faça login para acessar.', 'warning')
+                    return redirect(url_for('auth.login'))
+                if session.get('user_type') != 'medico':
+                    flash('Acesso restrito a médicos.', 'danger')
+                    return redirect(url_for('auth.login'))
+                return f(*args, **kwargs)
+            return decorated_function
+        
         # Inicializar funções base
         base = init_medico_base(mysql)
         
-        # ===================== FUNÇÃO AUXILIAR =====================
+        # ===================== FUNÇÃO AUXILIAR DECODE BYTES =====================
         def decode_bytes(value):
             if value is None:
                 return None
@@ -42,8 +115,87 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     return str(value)
             return value
         
+        # ===================== ROTA: DASHBOARD =====================
+        @medico_bp.route('/dashboard')
+        @medico_required
+        def dashboard():
+            """Dashboard do médico"""
+            try:
+                medico_id = obter_medico_id()
+                if not medico_id:
+                    flash('Perfil de médico não encontrado.', 'danger')
+                    return redirect(url_for('auth.login'))
+                
+                cur = mysql.connection.cursor()
+                cur.execute("""
+                    SELECT COUNT(DISTINCT p.id) as total_pacientes
+                    FROM consultas c
+                    JOIN pacientes p ON c.paciente_id = p.id
+                    WHERE c.medico_id = %s
+                """, (medico_id,))
+                total_row = cur.fetchone()
+                total_pacientes = total_row['total_pacientes'] if total_row and isinstance(total_row, dict) else (total_row[0] if total_row else 0)
+                
+                cur.execute("""
+                    SELECT COUNT(*) as hoje
+                    FROM consultas 
+                    WHERE medico_id = %s AND DATE(data_hora) = CURDATE()
+                """, (medico_id,))
+                hoje_row = cur.fetchone()
+                consultas_hoje = hoje_row['hoje'] if hoje_row and isinstance(hoje_row, dict) else (hoje_row[0] if hoje_row else 0)
+                
+                cur.execute("""
+                    SELECT COUNT(*) as agendadas
+                    FROM consultas 
+                    WHERE medico_id = %s AND status = 'agendada'
+                """, (medico_id,))
+                agd_row = cur.fetchone()
+                consultas_agendadas = agd_row['agendadas'] if agd_row and isinstance(agd_row, dict) else (agd_row[0] if agd_row else 0)
+                
+                cur.execute("""
+                    SELECT c.id, c.data_hora, c.status, u.nome as paciente_nome
+                    FROM consultas c
+                    JOIN pacientes p ON c.paciente_id = p.id
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE c.medico_id = %s
+                    ORDER BY c.data_hora DESC
+                    LIMIT 10
+                """, (medico_id,))
+                consultas_raw = cur.fetchall()
+                cur.close()
+                
+                consultas = []
+                for c in consultas_raw:
+                    if isinstance(c, dict):
+                        consultas.append({
+                            'id': c.get('id'),
+                            'data_hora': formatar_data(c.get('data_hora')),
+                            'status': garantir_string(c.get('status', 'agendada')),
+                            'paciente_nome': garantir_string(c.get('paciente_nome', 'Paciente'))
+                        })
+                    else:
+                        consultas.append({
+                            'id': c[0],
+                            'data_hora': formatar_data(c[1]),
+                            'status': garantir_string(c[2]),
+                            'paciente_nome': garantir_string(c[3]) if len(c) > 3 else 'Paciente'
+                        })
+                
+                return render_template('medico/dashboard.html',
+                                     total_pacientes=total_pacientes,
+                                     consultas_hoje=consultas_hoje,
+                                     consultas_agendadas=consultas_agendadas,
+                                     ultimas_consultas=consultas,
+                                     user=session)
+            except Exception as e:
+                logger.error(f"Erro no dashboard: {e}")
+                logger.error(traceback.format_exc())
+                flash('Erro ao carregar dashboard.', 'danger')
+                return redirect(url_for('medico.pacientes'))
+        
         # ===================== ROTA: LISTAR INTERNADOS =====================
         @medico_bp.route('/internados')
+        @medico_required
         def internados():
             """Lista pacientes internados do médico"""
             try:
@@ -131,6 +283,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: PRESCREVER MEDICAMENTO =====================
         @medico_bp.route('/prescrever-medicamento/<int:internacao_id>')
+        @medico_required
         def prescrever_medicamento(internacao_id):
             """Página para prescrever medicamento"""
             try:
@@ -141,7 +294,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 cursor = mysql.connection.cursor()
                 
-                # Buscar dados da internação
                 cursor.execute("""
                     SELECT i.id, i.numero_prontuario, u.nome as paciente_nome,
                            p.data_nascimento
@@ -176,6 +328,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: SALVAR PRESCRIÇÃO =====================
         @medico_bp.route('/api/prescrever-medicamento', methods=['POST'])
+        @medico_required
         def salvar_prescricao():
             """Salvar prescrição de medicamento"""
             try:
@@ -222,6 +375,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: LISTAR PRESCRIÇÕES =====================
         @medico_bp.route('/prescricoes/<int:internacao_id>')
+        @medico_required
         def listar_prescricoes(internacao_id):
             """Lista medicamentos prescritos para um paciente internado"""
             try:
@@ -232,7 +386,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 cursor = mysql.connection.cursor()
                 
-                # Buscar dados da internação
                 cursor.execute("""
                     SELECT i.id, i.numero_prontuario, u.nome as paciente_nome
                     FROM internacoes i
@@ -247,7 +400,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash("Internação não encontrada.", "danger")
                     return redirect(url_for("medico.internados"))
                 
-                # Buscar medicamentos prescritos
                 cursor.execute("""
                     SELECT 
                         mp.id,
@@ -303,6 +455,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: SUSPENDER PRESCRIÇÃO =====================
         @medico_bp.route('/api/suspender-prescricao/<int:prescricao_id>', methods=['POST'])
+        @medico_required
         def suspender_prescricao(prescricao_id):
             """Suspender uma prescrição de medicamento"""
             try:
@@ -384,7 +537,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "处 perfis<th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
+            output += "<tr><th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
