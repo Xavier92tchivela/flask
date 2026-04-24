@@ -151,7 +151,7 @@ def create_auth_blueprint():
                 if medico:
                     medico_id = medico[0] if isinstance(medico, (list, tuple)) else medico.get('id')
                     print(f"Médico ID encontrado: {medico_id}")
-            
+                    session['medico_id'] = medico_id
             elif tipo == 'paciente':
                 paciente = execute_query_auth(
                     "SELECT id FROM pacientes WHERE usuario_id = %s",
@@ -160,7 +160,7 @@ def create_auth_blueprint():
                 if paciente:
                     paciente_id = paciente[0] if isinstance(paciente, (list, tuple)) else paciente.get('id')
                     print(f"Paciente ID encontrado: {paciente_id}")
-            
+                    session['paciente_id'] = paciente_id
             elif tipo == 'analista':
                 analista = execute_query_auth(
                     "SELECT id FROM analistas WHERE usuario_id = %s",
@@ -169,7 +169,7 @@ def create_auth_blueprint():
                 if analista:
                     analista_id = analista[0] if isinstance(analista, (list, tuple)) else analista.get('id')
                     print(f"Analista ID encontrado: {analista_id}")
-            
+                    session['analista_id'] = analista_id
             elif tipo == 'enfermeiro':
                 enfermeiro = execute_query_auth(
                     "SELECT id FROM enfermeiros WHERE usuario_id = %s",
@@ -178,54 +178,44 @@ def create_auth_blueprint():
                 if enfermeiro:
                     enfermeiro_id = enfermeiro[0] if isinstance(enfermeiro, (list, tuple)) else enfermeiro.get('id')
                     print(f"Enfermeiro ID encontrado: {enfermeiro_id}")
-            
+                    session['enfermeiro_id'] = enfermeiro_id
             elif tipo == 'farmaceutico':
                 farmaceutico = execute_query_auth(
-                    "SELECT id FROM farmaceuticos WHERE usuario_id = %s",
+                    "SELECT id FROM farmaceuticos WHERE usuario_id = %s AND ativo = 1",
                     (user_id,), fetch=True, one=True
                 )
                 if farmaceutico:
                     farmaceutico_id = farmaceutico[0] if isinstance(farmaceutico, (list, tuple)) else farmaceutico.get('id')
                     print(f"Farmacêutico ID encontrado: {farmaceutico_id}")
+                    session['farmaceutico_id'] = farmaceutico_id
             
             # Configurar sessão
-            session.clear()
             session['user_id'] = user_id
             session['user_name'] = nome
             session['user_type'] = tipo
             session['logged_in'] = True
             session.permanent = True
             
-            if medico_id:
-                session['medico_id'] = medico_id
-            if paciente_id:
-                session['paciente_id'] = paciente_id
-            if analista_id:
-                session['analista_id'] = analista_id
-            if enfermeiro_id:
-                session['enfermeiro_id'] = enfermeiro_id
-            if farmaceutico_id:
-                session['farmaceutico_id'] = farmaceutico_id
-            
             print(f"Sessão configurada: {dict(session)}")
 
             flash('Login realizado com sucesso!', 'success')
 
-            # Redirecionamentos
+            # ========== REDIRECIONAMENTOS CORRIGIDOS ==========
             if tipo == 'medico':
-                return redirect(url_for('medico.dashboard'))
+                # Redirecionar diretamente para a URL
+                return redirect('/medico/dashboard')
             elif tipo == 'paciente':
-                return redirect(url_for('paciente.dashboard'))
+                return redirect('/paciente/dashboard')
             elif tipo == 'analista':
-                return redirect(url_for('analista.dashboard'))
+                return redirect('/analista/dashboard')
             elif tipo == 'enfermeiro':
-                return redirect(url_for('enfermeiro.dashboard.index'))
+                return redirect('/enfermeiro/dashboard/')
             elif tipo == 'farmaceutico':
-                return redirect(url_for('farmaceutico.dashboard'))
+                return redirect('/farmaceutico/dashboard')
             elif tipo == 'admin':
-                return redirect(url_for('admin.dashboard'))
+                return redirect('/admin/dashboard')
             else:
-                return redirect(url_for('dashboard'))
+                return redirect('/dashboard')
 
         return render_template('login.html')
 
