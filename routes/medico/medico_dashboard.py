@@ -1,5 +1,5 @@
 # routes/medico/__init__.py
-from flask import Blueprint, render_template, session, redirect, url_for, flash
+from flask import Blueprint, render_template, session, redirect, url_for, flash, jsonify
 from datetime import datetime
 import logging
 import traceback
