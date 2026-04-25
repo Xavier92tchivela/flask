@@ -54,7 +54,7 @@ def formatar_email(email):
 
 def verificar_senha(senha_banco, senha_digitada):
     """
-    Verifica senha de forma robusta - CORREÇÃO TOTAL
+    Verifica senha de forma robusta - CORREÇÃO PARA SCRYPT
     Suporta hash scrypt, pbkdf2 e texto plano
     """
     if not senha_banco or not senha_digitada:
@@ -81,12 +81,68 @@ def verificar_senha(senha_banco, senha_digitada):
     except Exception as e:
         print(f"  Erro no check_password_hash: {e}")
     
-    # Método 2: Comparação direta (texto plano - fallback)
+    # Método 2: Para hashes scrypt específicos, fazer parsing manual
+    if senha_banco.startswith('scrypt:'):
+        print("  Hash scrypt detectado - tentando verificação manual...")
+        try:
+            # Extrair os parâmetros do hash scrypt
+            # Formato: scrypt:32768:8:1$salt$hash
+            parts = senha_banco.split('$')
+            if len(parts) >= 4:
+                print(f"  Partes do hash: {len(parts)}")
+                
+                # Os parâmetros estão na parte 0 (scrypt:32768:8:1)
+                params_part = parts[0].split(':')
+                if len(params_part) >= 4:
+                    n = int(params_part[1])  # 32768
+                    r = int(params_part[2])  # 8
+                    p = int(params_part[3])  # 1
+                    
+                    salt = parts[1]  # Salt em base64
+                    hash_armazenado = parts[2]  # Hash em hex
+                    
+                    print(f"  Parâmetros: n={n}, r={r}, p={p}")
+                    print(f"  Salt: {salt[:20]}...")
+                    print(f"  Hash armazenado: {hash_armazenado[:30]}...")
+                    
+                    # Tentar usar hashlib.scrypt (Python 3.11+)
+                    try:
+                        import hashlib
+                        import base64
+                        
+                        # Decodificar salt de base64
+                        salt_bytes = base64.b64decode(salt)
+                        senha_bytes = senha_digitada.encode('utf-8')
+                        
+                        hash_calculado = hashlib.scrypt(
+                            password=senha_bytes,
+                            salt=salt_bytes,
+                            n=n,
+                            r=r,
+                            p=p,
+                            dklen=64
+                        )
+                        
+                        hash_hex = hash_calculado.hex()
+                        print(f"  Hash calculado (primeiros 30): {hash_hex[:30]}...")
+                        print(f"  Hash armazenado (primeiros 30): {hash_armazenado[:30]}...")
+                        
+                        if hash_hex == hash_armazenado:
+                            print("✅ Senha verificada via hashlib.scrypt manual!")
+                            return True
+                        else:
+                            print("  Hash manual não corresponde")
+                    except Exception as e:
+                        print(f"  Erro no hash manual: {e}")
+        except Exception as e:
+            print(f"  Erro ao processar hash scrypt: {e}")
+    
+    # Método 3: Comparação direta (texto plano - fallback)
     if senha_banco == senha_digitada:
         print("✅ Senha verificada como texto plano")
         return True
     
-    # Método 3: Gerar hash da senha digitada e comparar
+    # Método 4: Gerar hash da senha digitada e comparar
     try:
         # Tentar com scrypt
         hash_teste_scrypt = generate_password_hash(senha_digitada, method='scrypt')
@@ -312,7 +368,7 @@ def create_auth_blueprint():
                 flash('Este email já está cadastrado.', 'danger')
                 return redirect(url_for('auth.register'))
 
-            senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')  # Usar pbkdf2 para compatibilidade
+            senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
             execute_query_auth("""
                 INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo)
                 VALUES (%s, %s, %s, %s, %s, %s, 1)
