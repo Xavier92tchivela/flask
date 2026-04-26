@@ -53,9 +53,12 @@ def formatar_email(email):
 
 
 def verificar_senha(senha_banco, senha_digitada):
-    """Verifica senha de forma robusta - Suporta scrypt e pbkdf2"""
+    """
+    Verifica senha de forma robusta - CORREÇÃO ESPECIAL PARA SCRYPT
+    Suporta scrypt, pbkdf2 e texto plano
+    """
     if not senha_banco or not senha_digitada:
-        print(f"❌ Senha vazia")
+        print(f"❌ Senha vazia: banco={bool(senha_banco)}, digitada={bool(senha_digitada)}")
         return False
     
     print(f"\n🔍 VERIFICANDO SENHA")
@@ -65,16 +68,87 @@ def verificar_senha(senha_banco, senha_digitada):
     # Converter para string se for bytes
     if isinstance(senha_banco, bytes):
         senha_banco = senha_banco.decode('utf-8')
+        print("  Hash convertido de bytes para string")
     
-    # Tentar verificação direta
+    # MÉTODO 1: Verificação direta com werkzeug
     try:
         if check_password_hash(senha_banco, senha_digitada):
-            print("✅ Senha verificada com sucesso!")
+            print("✅ Senha verificada com hash (werkzeug)")
             return True
         else:
             print("  check_password_hash retornou False")
     except Exception as e:
-        print(f"  Erro: {e}")
+        print(f"  Erro no check_password_hash: {e}")
+    
+    # MÉTODO 2: Para hashes scrypt - fazer verificação manual
+    if senha_banco.startswith('scrypt:'):
+        print("  Hash scrypt detectado - verificando manualmente...")
+        try:
+            import hashlib
+            import base64
+            
+            # Extrair partes do hash scrypt
+            # Formato: scrypt:32768:8:1$salt$hash
+            parts = senha_banco.split('$')
+            if len(parts) >= 3:
+                # Parâmetros: scrypt:32768:8:1
+                params_part = parts[0].split(':')
+                if len(params_part) >= 4:
+                    n = int(params_part[1])  # 32768
+                    r = int(params_part[2])  # 8
+                    p = int(params_part[3])  # 1
+                    
+                    salt = parts[1]  # Salt em base64
+                    hash_armazenado = parts[2]  # Hash em hex
+                    
+                    print(f"  Parâmetros: n={n}, r={r}, p={p}")
+                    print(f"  Salt: {salt[:20]}...")
+                    print(f"  Hash armazenado: {hash_armazenado[:30]}...")
+                    
+                    # Calcular hash da senha digitada
+                    salt_bytes = base64.b64decode(salt)
+                    senha_bytes = senha_digitada.encode('utf-8')
+                    
+                    hash_calculado = hashlib.scrypt(
+                        password=senha_bytes,
+                        salt=salt_bytes,
+                        n=n,
+                        r=r,
+                        p=p,
+                        dklen=64
+                    )
+                    
+                    hash_hex = hash_calculado.hex()
+                    print(f"  Hash calculado: {hash_hex[:30]}...")
+                    
+                    if hash_hex == hash_armazenado:
+                        print("✅ Senha verificada MANUALMENTE com sucesso!")
+                        return True
+                    else:
+                        print("  Hash manual NÃO corresponde")
+        except Exception as e:
+            print(f"  Erro na verificação manual: {e}")
+    
+    # MÉTODO 3: Comparação direta (texto plano - fallback)
+    if senha_banco == senha_digitada:
+        print("✅ Senha verificada como texto plano")
+        return True
+    
+    # MÉTODO 4: Gerar hash da senha digitada e comparar
+    try:
+        # Tentar com scrypt
+        hash_teste_scrypt = generate_password_hash(senha_digitada, method='scrypt')
+        if hash_teste_scrypt == senha_banco:
+            print("✅ Senha verificada via geração de hash (scrypt)")
+            return True
+        
+        # Tentar com pbkdf2:sha256 (mais compatível)
+        hash_teste_pbkdf2 = generate_password_hash(senha_digitada, method='pbkdf2:sha256')
+        if hash_teste_pbkdf2 == senha_banco:
+            print("✅ Senha verificada via geração de hash (pbkdf2)")
+            return True
+    except Exception as e:
+        print(f"  Erro ao gerar hash para comparação: {e}")
     
     print("❌ Senha incorreta")
     return False
@@ -94,25 +168,30 @@ def create_auth_blueprint():
             password = request.form.get('password', '')
             
             print(f"\n===== LOGIN DEBUG =====")
-            print(f"Email: {email}")
+            print(f"Email digitado: {email}")
             
             if not validar_email(email):
                 flash('Email inválido.', 'danger')
                 return redirect(url_for('auth.login'))
             
             email_formatado = formatar_email(email)
+            print(f"Email formatado: {email_formatado}")
 
+            # Buscar usuário
             user = execute_query_auth("""
                 SELECT id, nome, email, senha, tipo 
                 FROM usuarios 
                 WHERE email = %s AND ativo = 1
             """, (email_formatado,), fetch=True, one=True)
 
+            print(f"Resultado query: {user}")
+
             if not user:
                 print("Usuário não encontrado!")
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
 
+            # Extrair dados
             if isinstance(user, dict):
                 user_id = user['id']
                 nome = user['nome']
@@ -121,26 +200,64 @@ def create_auth_blueprint():
             else:
                 user_id, nome, _, senha_banco, tipo = user
 
+            # Decodificar bytes se necessário
             if isinstance(nome, bytes):
                 nome = nome.decode('utf-8')
+            if isinstance(email, bytes):
+                email = email.decode('utf-8')
 
-            print(f"Usuário: {nome}, Tipo: {tipo}")
+            print(f"Usuário encontrado: ID={user_id}, Nome={nome}, Tipo={tipo}")
+            print(f"Hash da senha no banco: {senha_banco[:50]}...")
 
+            # Verificar senha
             if not verificar_senha(senha_banco, password):
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
             
             print("✅ Senha correta!")
             
-            # Buscar IDs específicos
+            # Buscar IDs específicos conforme tipo
+            medico_id = None
+            paciente_id = None
+            analista_id = None
+            enfermeiro_id = None
+            farmaceutico_id = None
+            
             if tipo == 'medico':
+                # Buscar na tabela medicos
                 medico = execute_query_auth("""
                     SELECT id FROM medicos WHERE usuario_id = %s AND status = 'ativo'
                 """, (user_id,), fetch=True, one=True)
                 if medico:
                     medico_id = medico[0] if isinstance(medico, (list, tuple)) else medico.get('id')
+                    print(f"Médico ID encontrado: {medico_id}")
                     session['medico_id'] = medico_id
                     
+                    # Buscar também especialidade e CRM
+                    medico_info = execute_query_auth("""
+                        SELECT especialidade, crm FROM medicos WHERE id = %s
+                    """, (medico_id,), fetch=True, one=True)
+                    if medico_info:
+                        if isinstance(medico_info, dict):
+                            session['medico_especialidade'] = medico_info.get('especialidade', '')
+                            session['medico_crm'] = medico_info.get('crm', '')
+                        else:
+                            session['medico_especialidade'] = medico_info[0] if medico_info[0] else ''
+                            session['medico_crm'] = medico_info[1] if len(medico_info) > 1 else ''
+                else:
+                    print(f"⚠️ Médico não encontrado na tabela medicos para usuario_id={user_id}")
+                    # Criar médico automaticamente se não existir
+                    execute_query_auth("""
+                        INSERT INTO medicos (usuario_id, status, especialidade) 
+                        VALUES (%s, 'ativo', 'Não informada')
+                    """, (user_id,))
+                    # Buscar novamente
+                    medico = execute_query_auth("SELECT id FROM medicos WHERE usuario_id = %s", (user_id,), fetch=True, one=True)
+                    if medico:
+                        medico_id = medico[0] if isinstance(medico, (list, tuple)) else medico.get('id')
+                        session['medico_id'] = medico_id
+                        print(f"Médico ID criado: {medico_id}")
+                        
             elif tipo == 'paciente':
                 paciente = execute_query_auth(
                     "SELECT id FROM pacientes WHERE usuario_id = %s",
@@ -148,6 +265,7 @@ def create_auth_blueprint():
                 )
                 if paciente:
                     paciente_id = paciente[0] if isinstance(paciente, (list, tuple)) else paciente.get('id')
+                    print(f"Paciente ID encontrado: {paciente_id}")
                     session['paciente_id'] = paciente_id
                     
             elif tipo == 'analista':
@@ -157,6 +275,7 @@ def create_auth_blueprint():
                 )
                 if analista:
                     analista_id = analista[0] if isinstance(analista, (list, tuple)) else analista.get('id')
+                    print(f"Analista ID encontrado: {analista_id}")
                     session['analista_id'] = analista_id
                     
             elif tipo == 'enfermeiro':
@@ -166,6 +285,7 @@ def create_auth_blueprint():
                 )
                 if enfermeiro:
                     enfermeiro_id = enfermeiro[0] if isinstance(enfermeiro, (list, tuple)) else enfermeiro.get('id')
+                    print(f"Enfermeiro ID encontrado: {enfermeiro_id}")
                     session['enfermeiro_id'] = enfermeiro_id
                     
             elif tipo == 'farmaceutico':
@@ -175,17 +295,25 @@ def create_auth_blueprint():
                 )
                 if farmaceutico:
                     farmaceutico_id = farmaceutico[0] if isinstance(farmaceutico, (list, tuple)) else farmaceutico.get('id')
+                    print(f"Farmacêutico ID encontrado: {farmaceutico_id}")
                     session['farmaceutico_id'] = farmaceutico_id
+                    
+            elif tipo == 'admin':
+                # Admin não precisa de tabela específica
+                pass
             
+            # Configurar sessão
             session['user_id'] = user_id
             session['user_name'] = nome
             session['user_type'] = tipo
             session['logged_in'] = True
             session.permanent = True
+            
+            print(f"Sessão configurada: {dict(session)}")
 
             flash('Login realizado com sucesso!', 'success')
 
-            # Redirecionamentos
+            # ========== REDIRECIONAMENTOS ==========
             if tipo == 'medico':
                 return redirect('/medico/dashboard')
             elif tipo == 'paciente':
@@ -338,6 +466,7 @@ def create_auth_blueprint():
                     WHERE id = %s
                 """, (reset_token, expiracao, user_id))
                 
+                # Em produção, enviar email com o link
                 link_reset = f"https://doctoria-final.onrender.com/reset-senha/{reset_token}"
                 print(f"Link de recuperação: {link_reset}")
                 
