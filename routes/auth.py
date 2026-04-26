@@ -52,103 +52,73 @@ def formatar_email(email):
     return email.lower().strip()
 
 
-def verificar_senha(senha_banco, senha_digitada):
+def verificar_e_migrar_senha(user_id, senha_banco, senha_digitada):
     """
-    Verifica senha de forma robusta - CORREÇÃO ESPECIAL PARA SCRYPT
-    Suporta scrypt, pbkdf2 e texto plano
+    Verifica senha e migra automaticamente para pbkdf2:sha256
+    Retorna:
+    - True: senha correta
+    - False: senha incorreta
+    - None: precisa resetar senha (scrypt com problema)
     """
     if not senha_banco or not senha_digitada:
         print(f"❌ Senha vazia: banco={bool(senha_banco)}, digitada={bool(senha_digitada)}")
         return False
     
     print(f"\n🔍 VERIFICANDO SENHA")
-    print(f"  Hash no banco (primeiros 50 chars): {str(senha_banco)[:50]}...")
-    print(f"  Senha digitada: '{senha_digitada}'")
     
     # Converter para string se for bytes
     if isinstance(senha_banco, bytes):
         senha_banco = senha_banco.decode('utf-8')
         print("  Hash convertido de bytes para string")
     
-    # MÉTODO 1: Verificação direta com werkzeug
-    try:
+    print(f"  Hash no banco: {senha_banco[:50]}...")
+    
+    # 🔹 CASO 1: HASH MODERNO (pbkdf2:sha256)
+    if senha_banco.startswith('pbkdf2:'):
+        print("  Hash tipo pbkdf2 detectado")
         if check_password_hash(senha_banco, senha_digitada):
-            print("✅ Senha verificada com hash (werkzeug)")
+            print("✅ Senha verificada com pbkdf2")
             return True
         else:
-            print("  check_password_hash retornou False")
-    except Exception as e:
-        print(f"  Erro no check_password_hash: {e}")
+            print("❌ Senha incorreta")
+            return False
     
-    # MÉTODO 2: Para hashes scrypt - fazer verificação manual
+    # 🔹 CASO 2: HASH ANTIGO (scrypt)
     if senha_banco.startswith('scrypt:'):
-        print("  Hash scrypt detectado - verificando manualmente...")
+        print("  Hash scrypt detectado - tentando validar...")
         try:
-            import hashlib
-            import base64
-            
-            # Extrair partes do hash scrypt
-            # Formato: scrypt:32768:8:1$salt$hash
-            parts = senha_banco.split('$')
-            if len(parts) >= 3:
-                # Parâmetros: scrypt:32768:8:1
-                params_part = parts[0].split(':')
-                if len(params_part) >= 4:
-                    n = int(params_part[1])  # 32768
-                    r = int(params_part[2])  # 8
-                    p = int(params_part[3])  # 1
-                    
-                    salt = parts[1]  # Salt em base64
-                    hash_armazenado = parts[2]  # Hash em hex
-                    
-                    print(f"  Parâmetros: n={n}, r={r}, p={p}")
-                    print(f"  Salt: {salt[:20]}...")
-                    print(f"  Hash armazenado: {hash_armazenado[:30]}...")
-                    
-                    # Calcular hash da senha digitada
-                    salt_bytes = base64.b64decode(salt)
-                    senha_bytes = senha_digitada.encode('utf-8')
-                    
-                    hash_calculado = hashlib.scrypt(
-                        password=senha_bytes,
-                        salt=salt_bytes,
-                        n=n,
-                        r=r,
-                        p=p,
-                        dklen=64
-                    )
-                    
-                    hash_hex = hash_calculado.hex()
-                    print(f"  Hash calculado: {hash_hex[:30]}...")
-                    
-                    if hash_hex == hash_armazenado:
-                        print("✅ Senha verificada MANUALMENTE com sucesso!")
-                        return True
-                    else:
-                        print("  Hash manual NÃO corresponde")
+            # Tenta validar com werkzeug
+            if check_password_hash(senha_banco, senha_digitada):
+                print("✅ Senha scrypt válida! Migrando para pbkdf2...")
+                # Migrar para pbkdf2:sha256
+                novo_hash = generate_password_hash(senha_digitada, method='pbkdf2:sha256')
+                
+                execute_query_auth("""
+                    UPDATE usuarios SET senha = %s WHERE id = %s
+                """, (novo_hash, user_id))
+                
+                print("✅ Senha migrada com sucesso: scrypt → pbkdf2")
+                return True
+            else:
+                print("❌ Senha scrypt incorreta")
+                return False
+                
         except Exception as e:
-            print(f"  Erro na verificação manual: {e}")
+            print(f"⚠️ Erro ao validar scrypt: {e}")
+            # Se der erro (limite de memória no Render), pede reset
+            return None  # Indica que precisa resetar senha
     
-    # MÉTODO 3: Comparação direta (texto plano - fallback)
+    # 🔹 CASO 3: TEXTO PLANO (fallback para sistemas antigos)
     if senha_banco == senha_digitada:
-        print("✅ Senha verificada como texto plano")
-        return True
-    
-    # MÉTODO 4: Gerar hash da senha digitada e comparar
-    try:
-        # Tentar com scrypt
-        hash_teste_scrypt = generate_password_hash(senha_digitada, method='scrypt')
-        if hash_teste_scrypt == senha_banco:
-            print("✅ Senha verificada via geração de hash (scrypt)")
-            return True
+        print("⚠️ Senha em texto plano detectada! Migrando para pbkdf2...")
+        novo_hash = generate_password_hash(senha_digitada, method='pbkdf2:sha256')
         
-        # Tentar com pbkdf2:sha256 (mais compatível)
-        hash_teste_pbkdf2 = generate_password_hash(senha_digitada, method='pbkdf2:sha256')
-        if hash_teste_pbkdf2 == senha_banco:
-            print("✅ Senha verificada via geração de hash (pbkdf2)")
-            return True
-    except Exception as e:
-        print(f"  Erro ao gerar hash para comparação: {e}")
+        execute_query_auth("""
+            UPDATE usuarios SET senha = %s WHERE id = %s
+        """, (novo_hash, user_id))
+        
+        print("✅ Senha migrada: texto plano → pbkdf2")
+        return True
     
     print("❌ Senha incorreta")
     return False
@@ -207,12 +177,17 @@ def create_auth_blueprint():
                 email = email.decode('utf-8')
 
             print(f"Usuário encontrado: ID={user_id}, Nome={nome}, Tipo={tipo}")
-            print(f"Hash da senha no banco: {senha_banco[:50]}...")
 
-            # Verificar senha
-            if not verificar_senha(senha_banco, password):
+            # Verificar senha com migração automática
+            resultado_verificacao = verificar_e_migrar_senha(user_id, senha_banco, password)
+
+            if resultado_verificacao is False:
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
+            
+            elif resultado_verificacao is None:
+                flash('Sistema de segurança atualizado. Por favor, redefina sua senha.', 'warning')
+                return redirect(url_for('auth.recuperar_senha'))
             
             print("✅ Senha correta!")
             
@@ -354,8 +329,8 @@ def create_auth_blueprint():
                 flash('Este email já está cadastrado.', 'danger')
                 return redirect(url_for('auth.register'))
 
-            # ✅ CORRIGIDO: Usar scrypt (MESMO do paciente)
-            senha_hash = generate_password_hash(senha, method='scrypt')
+            # ✅ CORRIGIDO: Usando pbkdf2:sha256 (estável e compatível)
+            senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
             
             execute_query_auth("""
                 INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo)
@@ -508,8 +483,8 @@ def create_auth_blueprint():
                 flash('As senhas não coincidem.', 'danger')
                 return render_template('reset_senha.html', token=token)
             
-            # ✅ CORRIGIDO: Usar scrypt
-            senha_hash = generate_password_hash(nova_senha, method='scrypt')
+            # ✅ CORRIGIDO: Usando pbkdf2:sha256 (estável e compatível)
+            senha_hash = generate_password_hash(nova_senha, method='pbkdf2:sha256')
             
             execute_query_auth("""
                 UPDATE usuarios SET senha = %s, reset_token = NULL, reset_token_expira = NULL WHERE id = %s
