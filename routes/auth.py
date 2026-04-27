@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
 import logging
 import re
@@ -53,10 +54,11 @@ def formatar_email(email):
 
 def verificar_e_migrar_senha(user_id, senha_banco, senha_digitada):
     """
-    Verifica senha em texto plano
+    Verifica senha e migra automaticamente para pbkdf2:sha256
     Retorna:
     - True: senha correta
     - False: senha incorreta
+    - None: precisa resetar senha (scrypt com problema)
     """
     if not senha_banco or not senha_digitada:
         print(f"❌ Senha vazia: banco={bool(senha_banco)}, digitada={bool(senha_digitada)}")
@@ -67,17 +69,59 @@ def verificar_e_migrar_senha(user_id, senha_banco, senha_digitada):
     # Converter para string se for bytes
     if isinstance(senha_banco, bytes):
         senha_banco = senha_banco.decode('utf-8')
-        print("  Senha convertida de bytes para string")
+        print("  Hash convertido de bytes para string")
     
-    print(f"  Senha no banco: {senha_banco[:50]}...")
+    print(f"  Hash no banco: {senha_banco[:50]}...")
     
-    # Comparação em texto plano
+    # 🔹 CASO 1: HASH MODERNO (pbkdf2:sha256)
+    if senha_banco.startswith('pbkdf2:'):
+        print("  Hash tipo pbkdf2 detectado")
+        if check_password_hash(senha_banco, senha_digitada):
+            print("✅ Senha verificada com pbkdf2")
+            return True
+        else:
+            print("❌ Senha incorreta")
+            return False
+    
+    # 🔹 CASO 2: HASH ANTIGO (scrypt)
+    if senha_banco.startswith('scrypt:'):
+        print("  Hash scrypt detectado - tentando validar...")
+        try:
+            # Tenta validar com werkzeug
+            if check_password_hash(senha_banco, senha_digitada):
+                print("✅ Senha scrypt válida! Migrando para pbkdf2...")
+                # Migrar para pbkdf2:sha256
+                novo_hash = generate_password_hash(senha_digitada, method='pbkdf2:sha256')
+                
+                execute_query_auth("""
+                    UPDATE usuarios SET senha = %s WHERE id = %s
+                """, (novo_hash, user_id))
+                
+                print("✅ Senha migrada com sucesso: scrypt → pbkdf2")
+                return True
+            else:
+                print("❌ Senha scrypt incorreta")
+                return False
+                
+        except Exception as e:
+            print(f"⚠️ Erro ao validar scrypt: {e}")
+            # Se der erro (limite de memória no Render), pede reset
+            return None  # Indica que precisa resetar senha
+    
+    # 🔹 CASO 3: TEXTO PLANO (fallback para sistemas antigos)
     if senha_banco == senha_digitada:
-        print("✅ Senha correta (texto plano)")
+        print("⚠️ Senha em texto plano detectada! Migrando para pbkdf2...")
+        novo_hash = generate_password_hash(senha_digitada, method='pbkdf2:sha256')
+        
+        execute_query_auth("""
+            UPDATE usuarios SET senha = %s WHERE id = %s
+        """, (novo_hash, user_id))
+        
+        print("✅ Senha migrada: texto plano → pbkdf2")
         return True
-    else:
-        print("❌ Senha incorreta")
-        return False
+    
+    print("❌ Senha incorreta")
+    return False
 
 
 def create_auth_blueprint():
@@ -134,12 +178,16 @@ def create_auth_blueprint():
 
             print(f"Usuário encontrado: ID={user_id}, Nome={nome}, Tipo={tipo}")
 
-            # Verificar senha em texto plano
+            # Verificar senha com migração automática
             resultado_verificacao = verificar_e_migrar_senha(user_id, senha_banco, password)
 
             if resultado_verificacao is False:
                 flash('Email ou senha incorretos.', 'danger')
                 return redirect(url_for('auth.login'))
+            
+            elif resultado_verificacao is None:
+                flash('Sistema de segurança atualizado. Por favor, redefina sua senha.', 'warning')
+                return redirect(url_for('auth.recuperar_senha'))
             
             print("✅ Senha correta!")
             
@@ -281,8 +329,8 @@ def create_auth_blueprint():
                 flash('Este email já está cadastrado.', 'danger')
                 return redirect(url_for('auth.register'))
 
-            # ✅ ARMazenando senha em texto plano
-            senha_hash = senha  # Sem criptografia
+            # ✅ CORRIGIDO: Usando pbkdf2:sha256 (estável e compatível)
+            senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
             
             execute_query_auth("""
                 INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo)
@@ -435,8 +483,8 @@ def create_auth_blueprint():
                 flash('As senhas não coincidem.', 'danger')
                 return render_template('reset_senha.html', token=token)
             
-            # ✅ Armazenando senha em texto plano
-            senha_hash = nova_senha  # Sem criptografia
+            # ✅ CORRIGIDO: Usando pbkdf2:sha256 (estável e compatível)
+            senha_hash = generate_password_hash(nova_senha, method='pbkdf2:sha256')
             
             execute_query_auth("""
                 UPDATE usuarios SET senha = %s, reset_token = NULL, reset_token_expira = NULL WHERE id = %s
