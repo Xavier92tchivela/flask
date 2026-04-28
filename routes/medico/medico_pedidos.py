@@ -391,20 +391,25 @@ def init_medico_pedidos(base, gemini_available=False):
             flash(f'Erro ao carregar pedidos: {str(e)}', 'danger')
             return redirect(url_for('medico.dashboard'))
     
-    # ========== ROTA: NOVA ANÁLISE (FORMULÁRIO) ==========
+    # ========== ROTA: NOVA ANÁLISE (FORMULÁRIO) - CORRIGIDA ==========
     @medico_required
     def nova_analise():
         """Exibe o formulário para criar um novo pedido de análise"""
         try:
+            print("\n" + "="*50)
+            print("CARREGANDO NOVA ANÁLISE")
+            print("="*50)
+            
             medico_info = obter_info_medico()
             if not medico_info:
                 flash('Médico não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
             medico_id = medico_info.get('id')
+            print(f"Médico ID: {medico_id}")
             
             # Buscar consultas do médico para selecionar
-            consultas = execute_query("""
+            consultas_raw = execute_query("""
                 SELECT c.id, u.nome, c.data_hora, c.paciente_id
                 FROM consultas c
                 JOIN pacientes p ON c.paciente_id = p.id
@@ -413,15 +418,34 @@ def init_medico_pedidos(base, gemini_available=False):
                 ORDER BY c.data_hora DESC
             """, (medico_id,), fetch=True) or []
             
+            print(f"Total de consultas encontradas: {len(consultas_raw)}")
+            if consultas_raw:
+                print(f"Tipo do primeiro resultado: {type(consultas_raw[0])}")
+            
+            # CORREÇÃO: Converter cada consulta para dicionário de forma segura
             consultas_lista = []
-            for c in consultas:
-                paciente_nome = converter_bytes_para_string(c[1])
-                consultas_lista.append({
-                    'id': c[0],
-                    'paciente_nome': paciente_nome,
-                    'data_hora': formatar_data(c[2]),
-                    'paciente_id': c[3]
-                })
+            for c_raw in consultas_raw:
+                if isinstance(c_raw, dict):
+                    # Já é dicionário
+                    paciente_nome = converter_bytes_para_string(c_raw.get('nome', ''))
+                    consultas_lista.append({
+                        'id': c_raw.get('id'),
+                        'paciente_nome': paciente_nome,
+                        'data_hora': formatar_data(c_raw.get('data_hora')),
+                        'paciente_id': c_raw.get('paciente_id')
+                    })
+                elif isinstance(c_raw, (tuple, list)):
+                    # É tupla/lista - acessar por índice com segurança
+                    num_fields = len(c_raw)
+                    paciente_nome = converter_bytes_para_string(c_raw[1]) if num_fields > 1 else ''
+                    consultas_lista.append({
+                        'id': c_raw[0] if num_fields > 0 else None,
+                        'paciente_nome': paciente_nome,
+                        'data_hora': formatar_data(c_raw[2]) if num_fields > 2 else '',
+                        'paciente_id': c_raw[3] if num_fields > 3 else None
+                    })
+            
+            print(f"Consultas processadas: {len(consultas_lista)}")
             
             # Tipos de exame comuns
             tipos_exame = [
@@ -732,7 +756,6 @@ def init_medico_pedidos(base, gemini_available=False):
                         # Classificar Pressão Arterial
                         if sv[1]:  # pressao_arterial
                             try:
-                                # Formato esperado: "120/80"
                                 pa_parts = sv[1].split('/')
                                 if len(pa_parts) == 2:
                                     sistolica = int(pa_parts[0].strip())
@@ -747,8 +770,8 @@ def init_medico_pedidos(base, gemini_available=False):
                             except:
                                 classificacoes['pa'] = {'classificacao': 'Indefinido', 'status': 'secondary'}
                         
-                        # Classificar Frequência Cardíaca (bpm)
-                        if sv[2]:  # frequencia_cardiaca
+                        # Classificar Frequência Cardíaca
+                        if sv[2]:
                             fc = sv[2]
                             if fc < 60:
                                 classificacoes['fc'] = {'classificacao': 'Bradicardia', 'status': 'warning'}
@@ -757,8 +780,8 @@ def init_medico_pedidos(base, gemini_available=False):
                             else:
                                 classificacoes['fc'] = {'classificacao': 'Normal', 'status': 'success'}
                         
-                        # Classificar Frequência Respiratória (rpm)
-                        if sv[3]:  # frequencia_respiratoria
+                        # Classificar Frequência Respiratória
+                        if sv[3]:
                             fr = sv[3]
                             if fr < 12:
                                 classificacoes['fr'] = {'classificacao': 'Baixa', 'status': 'warning'}
@@ -767,8 +790,8 @@ def init_medico_pedidos(base, gemini_available=False):
                             else:
                                 classificacoes['fr'] = {'classificacao': 'Normal', 'status': 'success'}
                         
-                        # Classificar Temperatura (°C)
-                        if sv[4]:  # temperatura
+                        # Classificar Temperatura
+                        if sv[4]:
                             temp = float(sv[4])
                             if temp < 35.5:
                                 classificacoes['temp'] = {'classificacao': 'Hipotermia', 'status': 'warning'}
@@ -777,8 +800,8 @@ def init_medico_pedidos(base, gemini_available=False):
                             else:
                                 classificacoes['temp'] = {'classificacao': 'Normal', 'status': 'success'}
                         
-                        # Classificar Saturação de Oxigênio (%)
-                        if sv[5]:  # saturacao_oxigenio
+                        # Classificar Saturação de Oxigênio
+                        if sv[5]:
                             spo2 = sv[5]
                             if spo2 < 90:
                                 classificacoes['spo2'] = {'classificacao': 'Crítico', 'status': 'danger'}
@@ -787,8 +810,8 @@ def init_medico_pedidos(base, gemini_available=False):
                             else:
                                 classificacoes['spo2'] = {'classificacao': 'Normal', 'status': 'success'}
                         
-                        # Classificar Glicemia (mg/dL)
-                        if sv[6]:  # glicemia
+                        # Classificar Glicemia
+                        if sv[6]:
                             glic = sv[6]
                             if glic < 70:
                                 classificacoes['glicemia'] = {'classificacao': 'Hipoglicemia', 'status': 'warning'}
