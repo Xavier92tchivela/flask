@@ -1,4 +1,4 @@
-<!-- templates/medico/novo_pedido_analise.html - CORRIGIDO -->
+<!-- templates/medico/novo_pedido_analise.html - VERSÃO COMPLETAMENTE CORRIGIDA -->
 {% extends "base.html" %}
 
 {% block title %}Novo Pedido de Análise{% endblock %}
@@ -169,7 +169,7 @@
                             </div>
                         </div>
                         
-                        <!-- Seção: Analista -->
+                        <!-- Seção: Analista - VERSÃO CORRIGIDA -->
                         <div class="mb-4">
                             <h6 class="border-bottom pb-2 mb-3">
                                 <i class="fas fa-user-md me-2"></i> Designação do Analista
@@ -181,35 +181,23 @@
                                         <i class="fas fa-user-md me-1"></i> Analista Designado (Opcional)
                                     </label>
                                     <select class="form-select" id="analista_id" name="analista_id">
-                                        <option value="">Atribuição automática</option>
+                                        <option value="auto">Automático (menos ocupado)</option>
                                         {% if analistas %}
                                             {% for analista in analistas %}
-                                                <!-- 
-                                                ESTRUTURA DO ANALISTA:
-                                                [0] = id
-                                                [1] = nome
-                                                [2] = especialidade
-                                                [3] = registro
-                                                [4] = status
-                                                [5] = telefone
-                                                [6] = is_supervisor
-                                                [7] = carga_horaria_semanal
-                                                [8] = data_contratacao
-                                                [9] = pedidos_ativos
-                                                -->
-                                                <option value="{{ analista[0] }}"
-                                                        data-especialidade="{{ analista[2] }}"
-                                                        data-registro="{{ analista[3] }}"
-                                                        data-telefone="{{ analista[5] }}"
-                                                        data-supervisor="{{ analista[6] }}"
-                                                        data-pedidos="{{ analista[9] if analista|length > 9 else 0 }}"
-                                                        title="Especialidade: {{ analista[2] }} | Registro: {{ analista[3] }}">
-                                                    {{ analista[1] }} - {{ analista[2] }}
-                                                    {% if analista[6] == 1 %}
+                                                <!-- Agora analista é um DICIONÁRIO, não uma lista/tupla -->
+                                                <option value="{{ analista.id }}"
+                                                        data-especialidade="{{ analista.especialidade }}"
+                                                        data-registro="{{ analista.registro }}"
+                                                        data-telefone="{{ analista.telefone }}"
+                                                        data-supervisor="{{ analista.is_supervisor }}"
+                                                        data-pedidos="{{ analista.pedidos_ativos }}"
+                                                        title="Especialidade: {{ analista.especialidade }} | Registro: {{ analista.registro }}">
+                                                    {{ analista.nome }} - {{ analista.especialidade }}
+                                                    {% if analista.is_supervisor == 1 %}
                                                         <span class="badge bg-info ms-1" title="Supervisor">S</span>
                                                     {% endif %}
-                                                    {% if analista|length > 9 and analista[9] > 0 %}
-                                                        <small class="text-muted">({{ analista[9] }} pedidos ativos)</small>
+                                                    {% if analista.pedidos_ativos > 0 %}
+                                                        <small class="text-muted">({{ analista.pedidos_ativos }} pedidos ativos)</small>
                                                     {% endif %}
                                                 </option>
                                             {% endfor %}
@@ -220,9 +208,7 @@
                                             {% set total_analistas = analistas|length %}
                                             {% set total_pedidos = namespace(value=0) %}
                                             {% for a in analistas %}
-                                                {% if a|length > 9 %}
-                                                    {% set total_pedidos.value = total_pedidos.value + (a[9] or 0) %}
-                                                {% endif %}
+                                                {% set total_pedidos.value = total_pedidos.value + (a.pedidos_ativos or 0) %}
                                             {% endfor %}
                                             <div>
                                                 <i class="fas fa-users text-primary me-1"></i>
@@ -292,7 +278,7 @@
             </div>
         </div>
         
-        <!-- Painel Lateral -->
+        <!-- Painel Lateral (mantém igual) -->
         <div class="col-lg-4">
             <!-- Painel de Informações -->
             <div class="card shadow mb-4">
@@ -432,7 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function atualizarInfoAnalista() {
         const selectedOption = analistaSelect.options[analistaSelect.selectedIndex];
         
-        if (selectedOption.value) {
+        if (selectedOption.value && selectedOption.value !== 'auto') {
             infoAnalista.style.display = 'block';
             
             document.getElementById('infoAnalistaNome').textContent = 
@@ -613,7 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
     atualizarPrazoEstimado();
     
     // Inicializar informações do analista
-    if (analistaSelect.value) {
+    if (analistaSelect.value && analistaSelect.value !== 'auto') {
         atualizarInfoAnalista();
     }
     
