@@ -314,6 +314,11 @@ def create_auth_blueprint():
             telefone = request.form.get('telefone', '')
             senha = request.form.get('password', '')
             tipo = request.form.get('tipo', 'paciente')
+            
+            # Campos específicos para paciente
+            data_nascimento = request.form.get('data_nascimento', '')
+            genero = request.form.get('genero', '')
+            endereco = request.form.get('endereco', '')
 
             if not validar_email(email):
                 flash('Digite um email válido.', 'danger')
@@ -332,11 +337,13 @@ def create_auth_blueprint():
             # ✅ CORRIGIDO: Usando pbkdf2:sha256 (estável e compatível)
             senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
             
+            # Inserir na tabela usuarios
             execute_query_auth("""
                 INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo)
                 VALUES (%s, %s, %s, %s, %s, %s, 1)
             """, (str(uuid.uuid4()), nome, email_formatado, senha_hash, telefone, tipo))
 
+            # Buscar o ID do usuário recém-criado
             user_result = execute_query_auth(
                 "SELECT id FROM usuarios WHERE email = %s",
                 (email_formatado,), fetch=True, one=True
@@ -350,17 +357,40 @@ def create_auth_blueprint():
                 else:
                     user_id = user_result
 
+                # Inserir na tabela específica com todos os campos
                 if tipo == 'paciente':
-                    execute_query_auth("INSERT INTO pacientes (usuario_id) VALUES (%s)", (user_id,))
+                    # ✅ INSERE TODOS OS CAMPOS DO PACIENTE
+                    execute_query_auth("""
+                        INSERT INTO pacientes (usuario_id, data_nascimento, genero, endereco, telefone) 
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (user_id, data_nascimento if data_nascimento else None, 
+                          genero if genero else None, endereco if endereco else None,
+                          telefone if telefone else None))
+                    
+                    flash('Conta de paciente criada com sucesso! Faça login.', 'success')
+                    
                 elif tipo == 'medico':
                     execute_query_auth("""
                         INSERT INTO medicos (usuario_id, status, especialidade) 
                         VALUES (%s, 'ativo', 'Aguardando cadastro')
                     """, (user_id,))
+                    flash('Conta de médico criada! Complete seu cadastro.', 'info')
+                    return redirect(url_for('auth.completar_cadastro_medico', user_id=user_id))
+                    
                 elif tipo == 'analista':
-                    execute_query_auth("INSERT INTO analistas (usuario_id, status) VALUES (%s, 'ativo')", (user_id,))
+                    execute_query_auth("""
+                        INSERT INTO analistas (usuario_id, status) 
+                        VALUES (%s, 'ativo')
+                    """, (user_id,))
+                    flash('Conta de analista criada com sucesso!', 'success')
+                    
                 elif tipo == 'enfermeiro':
-                    execute_query_auth("INSERT INTO enfermeiros (usuario_id) VALUES (%s)", (user_id,))
+                    execute_query_auth("""
+                        INSERT INTO enfermeiros (usuario_id) 
+                        VALUES (%s)
+                    """, (user_id,))
+                    flash('Conta de enfermeiro criada com sucesso!', 'success')
+                    
                 elif tipo == 'farmaceutico':
                     execute_query_auth("""
                         INSERT INTO farmaceuticos (usuario_id, crf, especialidade, ativo) 
@@ -373,6 +403,48 @@ def create_auth_blueprint():
             return redirect(url_for('auth.login'))
 
         return render_template('register.html')
+
+    @auth_bp.route('/completar-cadastro-medico/<int:user_id>', methods=['GET', 'POST'])
+    def completar_cadastro_medico(user_id):
+        """Completa o cadastro do médico com especialidade, CRM e telefone"""
+        if request.method == 'POST':
+            especialidade = request.form.get('especialidade', '').strip()
+            crm = request.form.get('crm', '').strip().upper()
+            telefone = request.form.get('telefone', '').strip()
+            
+            if not especialidade:
+                flash('Especialidade é obrigatória.', 'danger')
+                return redirect(url_for('auth.completar_cadastro_medico', user_id=user_id))
+            
+            if not crm or len(crm) < 3:
+                flash('CRM inválido.', 'danger')
+                return redirect(url_for('auth.completar_cadastro_medico', user_id=user_id))
+            
+            # Verificar se CRM já existe
+            existe = execute_query_auth(
+                "SELECT id FROM medicos WHERE crm = %s AND usuario_id != %s",
+                (crm, user_id), fetch=True, one=True
+            )
+            if existe:
+                flash('CRM já cadastrado para outro médico.', 'danger')
+                return redirect(url_for('auth.completar_cadastro_medico', user_id=user_id))
+            
+            # Atualizar dados do médico
+            execute_query_auth("""
+                UPDATE medicos 
+                SET especialidade = %s, crm = %s, telefone = %s, status = 'ativo'
+                WHERE usuario_id = %s
+            """, (especialidade, crm, telefone, user_id))
+            
+            # Atualizar telefone na tabela usuarios também
+            execute_query_auth("""
+                UPDATE usuarios SET telefone = %s WHERE id = %s
+            """, (telefone, user_id))
+            
+            flash('Cadastro de médico completo! Faça login.', 'success')
+            return redirect(url_for('auth.login'))
+        
+        return render_template('completar_cadastro_medico.html', user_id=user_id)
 
     @auth_bp.route('/completar-cadastro-farmaceutico', methods=['GET', 'POST'])
     def completar_cadastro_farmaceutico():
