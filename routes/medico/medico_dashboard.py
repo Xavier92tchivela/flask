@@ -1,4 +1,4 @@
-# routes/medico/medico_dashboard.py (VERSÃO COM VERIFICAÇÃO)
+# routes/medico/medico_dashboard.py (VERSÃO COMPLETAMENTE CORRIGIDA)
 from datetime import datetime, timedelta
 from flask import render_template, session, jsonify
 import logging
@@ -34,6 +34,104 @@ def init_medico_dashboard(base):
                 return str(valor)
         return str(valor) if valor else ''
     
+    def extrair_valor_consulta(consulta, indice, padrao=''):
+        """
+        Extrai valor de forma segura de um resultado de consulta
+        Suporta tanto dicionário quanto tupla/lista
+        """
+        if consulta is None:
+            return padrao
+        
+        # Se for dicionário
+        if isinstance(consulta, dict):
+            # Mapear índices para chaves
+            chaves_map = {
+                0: 'id',
+                1: 'paciente_nome',
+                2: 'data_hora',
+                3: 'status'
+            }
+            chave = chaves_map.get(indice)
+            if chave:
+                return consulta.get(chave, padrao)
+            return padrao
+        
+        # Se for tupla/lista
+        if isinstance(consulta, (tuple, list)):
+            if len(consulta) > indice:
+                return consulta[indice]
+            return padrao
+        
+        return padrao
+    
+    def converter_consulta_para_dict(consulta):
+        """
+        Converte resultado de consulta (dict ou tuple) para dicionário padronizado
+        """
+        if not consulta:
+            return None
+        
+        # Se já for dicionário
+        if isinstance(consulta, dict):
+            return {
+                'id': consulta.get('id'),
+                'paciente_nome': converter_bytes_para_string(consulta.get('paciente_nome', '')),
+                'data_hora': consulta.get('data_hora'),
+                'status': consulta.get('status', 'desconhecido')
+            }
+        
+        # Se for tupla/lista
+        if isinstance(consulta, (tuple, list)):
+            num_fields = len(consulta)
+            return {
+                'id': consulta[0] if num_fields > 0 else None,
+                'paciente_nome': converter_bytes_para_string(consulta[1]) if num_fields > 1 else '',
+                'data_hora': consulta[2] if num_fields > 2 else None,
+                'status': consulta[3] if num_fields > 3 else 'desconhecido'
+            }
+        
+        return None
+    
+    def extrair_contador(resultado):
+        """
+        Extrai valor de contador de forma segura
+        """
+        if resultado is None:
+            return 0
+        
+        # Se for dicionário
+        if isinstance(resultado, dict):
+            # Tenta várias chaves comuns
+            for chave in ['total', 'COUNT(*)', 'count', 'quantidade']:
+                if chave in resultado:
+                    valor = resultado[chave]
+                    if isinstance(valor, bytes):
+                        return int(valor.decode('utf-8', errors='ignore'))
+                    return int(valor) if valor else 0
+            # Se não encontrou chave, pega o primeiro valor
+            valores = list(resultado.values())
+            if valores:
+                valor = valores[0]
+                if isinstance(valor, bytes):
+                    return int(valor.decode('utf-8', errors='ignore'))
+                return int(valor) if valor else 0
+            return 0
+        
+        # Se for tupla/lista
+        if isinstance(resultado, (tuple, list)):
+            if len(resultado) > 0:
+                valor = resultado[0]
+                if isinstance(valor, bytes):
+                    return int(valor.decode('utf-8', errors='ignore'))
+                return int(valor) if valor else 0
+            return 0
+        
+        # Se for número
+        if isinstance(resultado, (int, float)):
+            return int(resultado)
+        
+        return 0
+    
     @medico_required
     def dashboard():
         """Dashboard principal do médico"""
@@ -54,6 +152,7 @@ def init_medico_dashboard(base):
                                      user=session)
             
             medico_id = medico_info.get('id')
+            print(f"Médico ID: {medico_id}")
             
             # Buscar consultas
             consultas_raw = execute_query("""
@@ -70,70 +169,104 @@ def init_medico_dashboard(base):
                 LIMIT 10
             """, (medico_id,), fetch=True) or []
             
+            print(f"Total de consultas encontradas: {len(consultas_raw)}")
+            if consultas_raw:
+                print(f"Tipo do primeiro resultado: {type(consultas_raw[0])}")
+            
             consultas = []
-            for c in consultas_raw:
-                paciente_nome = converter_bytes_para_string(c[1])
+            for c_raw in consultas_raw:
+                # Converter para dicionário padronizado
+                c_dict = converter_consulta_para_dict(c_raw)
+                if not c_dict:
+                    continue
                 
-                if c[2]:
-                    if isinstance(c[2], datetime):
-                        data_consulta = c[2].strftime('%d/%m/%Y')
-                        hora_consulta = c[2].strftime('%H:%M')
+                paciente_nome = c_dict.get('paciente_nome', '')
+                data_hora = c_dict.get('data_hora')
+                status = c_dict.get('status', 'desconhecido')
+                
+                # Processar data e hora
+                if data_hora:
+                    if isinstance(data_hora, datetime):
+                        data_consulta = data_hora.strftime('%d/%m/%Y')
+                        hora_consulta = data_hora.strftime('%H:%M')
                     else:
-                        data_consulta = str(c[2])[:10]
-                        hora_consulta = str(c[2])[11:16] if len(str(c[2])) > 16 else ''
+                        data_consulta = str(data_hora)[:10] if len(str(data_hora)) > 10 else str(data_hora)
+                        hora_consulta = str(data_hora)[11:16] if len(str(data_hora)) > 16 else ''
                 else:
                     data_consulta = ''
                     hora_consulta = ''
                 
                 status_class = {
-                    'agendada': 'primary', 'confirmada': 'info',
-                    'realizada': 'success', 'cancelada': 'danger',
+                    'agendada': 'primary', 
+                    'confirmada': 'info',
+                    'realizada': 'success', 
+                    'cancelada': 'danger',
                     'pendente': 'warning'
-                }.get(c[3], 'secondary')
+                }.get(status, 'secondary')
                 
                 consultas.append({
-                    'id': c[0], 'paciente_nome': paciente_nome,
-                    'data_consulta': data_consulta, 'hora_consulta': hora_consulta,
-                    'status': c[3] or 'desconhecido', 'status_class': status_class,
-                    'tem_analise_pendente': False, 'tem_resultado': False
+                    'id': c_dict.get('id'),
+                    'paciente_nome': paciente_nome,
+                    'data_consulta': data_consulta,
+                    'hora_consulta': hora_consulta,
+                    'status': status,
+                    'status_class': status_class,
+                    'tem_analise_pendente': False,
+                    'tem_resultado': False
                 })
+            
+            print(f"Consultas processadas: {len(consultas)}")
             
             # Buscar contagens
             hoje = datetime.now().strftime('%Y-%m-%d')
-            consultas_hoje = execute_query("""
+            consultas_hoje_result = execute_query("""
                 SELECT COUNT(*) FROM consultas 
                 WHERE medico_id = %s AND DATE(data_hora) = %s
             """, (medico_id, hoje), fetch=True, one=True)
             
-            resultados_pendentes = execute_query("""
+            consultas_hoje = extrair_contador(consultas_hoje_result)
+            
+            resultados_pendentes_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s AND status = 'concluido' AND status_aprovacao = 'pendente'
             """, (medico_id,), fetch=True, one=True)
             
-            analises_solicitadas = execute_query("""
+            resultados_pendentes = extrair_contador(resultados_pendentes_result)
+            
+            analises_solicitadas_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s AND status IN ('pendente', 'em_analise')
             """, (medico_id,), fetch=True, one=True)
             
-            total_pedidos = execute_query("""
+            analises_solicitadas = extrair_contador(analises_solicitadas_result)
+            
+            total_pedidos_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s
             """, (medico_id,), fetch=True, one=True)
             
+            total_pedidos = extrair_contador(total_pedidos_result)
+            
+            print(f"Contadores: ConsultasHoje={consultas_hoje}, Resultados={resultados_pendentes}, Análises={analises_solicitadas}, TotalPedidos={total_pedidos}")
+            
             return render_template('medico/dashboard.html',
                                  consultas=consultas,
-                                 consultasHoje=consultas_hoje[0] if consultas_hoje else 0,
-                                 contadorResultados=resultados_pendentes[0] if resultados_pendentes else 0,
-                                 contadorAnalises=analises_solicitadas[0] if analises_solicitadas else 0,
-                                 contadorPedidos=total_pedidos[0] if total_pedidos else 0,
+                                 consultasHoje=consultas_hoje,
+                                 contadorResultados=resultados_pendentes,
+                                 contadorAnalises=analises_solicitadas,
+                                 contadorPedidos=total_pedidos,
                                  user=session)
             
         except Exception as e:
             print(f"ERRO NO DASHBOARD: {e}")
             traceback.print_exc()
             return render_template('medico/dashboard.html',
-                                 error=str(e), consultas=[], consultasHoje=0,
-                                 contadorResultados=0, contadorAnalises=0, contadorPedidos=0,
+                                 error=str(e), 
+                                 consultas=[], 
+                                 consultasHoje=0,
+                                 contadorResultados=0, 
+                                 contadorAnalises=0, 
+                                 contadorPedidos=0,
                                  user=session)
     
     # EVITAR REGISTRO DUPLICADO
