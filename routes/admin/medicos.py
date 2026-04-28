@@ -60,10 +60,10 @@ def init_medicos_routes(admin_bp, mysql):
     def medicos():
         """Lista todos os médicos com todos os campos"""
         try:
-            # CORREÇÃO: Ajustar os índices para corresponder à consulta
+            # CORREÇÃO: Removido 'm.id' e ajustado para usar 'u.id' como identificador
             medicos = execute_query("""
                 SELECT 
-                    u.id,                          -- [0] ID do usuário
+                    u.id,                          -- [0] ID do usuário (usado como identificador)
                     u.uuid,                        -- [1] UUID
                     u.nome,                        -- [2] Nome
                     u.email,                       -- [3] Email
@@ -83,7 +83,7 @@ def init_medicos_routes(admin_bp, mysql):
             # Log para debug
             logger.info(f"Total de médicos encontrados: {len(medicos)}")
             for medico in medicos:
-                logger.debug(f"Médico ID: {medico[0]}, Nome: {medico[2]}, CRM: {medico[6]}, Status: {medico[8]}")
+                logger.debug(f"Médico - ID: {medico[0]}, Nome: {medico[2]}, CRM: {medico[6]}, Status: {medico[8]}")
             
             return render_template('admin/medicos.html', medicos=medicos, user=session)
         except Exception as e:
@@ -282,38 +282,55 @@ def init_medicos_routes(admin_bp, mysql):
     def visualizar_medico(medico_id):
         """Visualiza detalhes de um médico (API)"""
         try:
-            medico = execute_query("""
+            # PRIMEIRO: Buscar o ID do médico na tabela medicos
+            medico_data = execute_query("""
                 SELECT 
-                    u.id, u.uuid, u.nome, u.email, u.ativo, u.criado_em,
-                    m.especialidade, m.crm, m.telefone, m.status,
-                    (SELECT COUNT(*) FROM consultas WHERE medico_id = m.id) as total_consultas,
-                    (SELECT COUNT(*) FROM consultas WHERE medico_id = m.id AND status = 'realizada') as consultas_realizadas,
-                    (SELECT COUNT(*) FROM consultas WHERE medico_id = m.id AND status = 'cancelada') as consultas_canceladas
+                    u.id as usuario_id,
+                    m.id as medico_id,
+                    u.uuid, 
+                    u.nome, 
+                    u.email, 
+                    u.ativo, 
+                    u.criado_em,
+                    m.especialidade, 
+                    m.crm, 
+                    m.telefone, 
+                    m.status
                 FROM usuarios u
                 JOIN medicos m ON u.id = m.usuario_id
                 WHERE u.id = %s AND u.tipo = 'medico'
             """, (medico_id,), fetch=True, one=True)
             
-            if not medico:
+            if not medico_data:
                 return jsonify({'error': 'Médico não encontrado'}), 404
             
+            # SEGUNDO: Buscar estatísticas usando o medico_id correto
+            stats = execute_query("""
+                SELECT 
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'realizada' THEN 1 ELSE 0 END) as realizadas,
+                    SUM(CASE WHEN status = 'cancelada' THEN 1 ELSE 0 END) as canceladas
+                FROM consultas 
+                WHERE medico_id = %s
+            """, (medico_data['medico_id'],), fetch=True, one=True)
+            
             # Formatar data de criação
-            criado_em = medico[5].strftime('%d/%m/%Y %H:%M') if medico[5] else ''
+            criado_em = medico_data['criado_em'].strftime('%d/%m/%Y %H:%M') if medico_data['criado_em'] else ''
             
             return jsonify({
-                'id': medico[0],
-                'uuid': medico[1],
-                'nome': medico[2],
-                'email': medico[3],
-                'ativo': 'Sim' if medico[4] else 'Não',
+                'id': medico_data['usuario_id'],
+                'uuid': medico_data['uuid'],
+                'nome': medico_data['nome'],
+                'email': medico_data['email'],
+                'ativo': 'Sim' if medico_data['ativo'] else 'Não',
                 'criado_em': criado_em,
-                'especialidade': medico[6] or 'Não definida',
-                'crm': medico[7] or '---',
-                'telefone': medico[8] or 'Não informado',
-                'status': medico[9] or 'ativo',
-                'total_consultas': medico[10] or 0,
-                'consultas_realizadas': medico[11] or 0,
-                'consultas_canceladas': medico[12] or 0
+                'especialidade': medico_data['especialidade'] or 'Não definida',
+                'crm': medico_data['crm'] or '---',
+                'telefone': medico_data['telefone'] or 'Não informado',
+                'status': medico_data['status'] or 'ativo',
+                'total_consultas': stats['total'] if stats else 0,
+                'consultas_realizadas': stats['realizadas'] if stats else 0,
+                'consultas_canceladas': stats['canceladas'] if stats else 0
             })
             
         except Exception as e:
@@ -329,13 +346,24 @@ def init_medicos_routes(admin_bp, mysql):
     def excluir_medico(medico_id):
         """Exclui um médico (soft delete ou hard delete)"""
         try:
-            # Verificar se tem consultas vinculadas
-            consultas = execute_query(
-                "SELECT COUNT(*) FROM consultas WHERE medico_id = (SELECT id FROM medicos WHERE usuario_id = %s)",
+            # Buscar o id da tabela medicos
+            medico_data = execute_query(
+                "SELECT m.id FROM medicos m WHERE m.usuario_id = %s",
                 (medico_id,), fetch=True, one=True
             )
             
-            if consultas and consultas[0] > 0:
+            if not medico_data:
+                return jsonify({'success': False, 'error': 'Médico não encontrado'}), 404
+            
+            medico_table_id = medico_data['id']
+            
+            # Verificar se tem consultas vinculadas
+            consultas = execute_query(
+                "SELECT COUNT(*) as total FROM consultas WHERE medico_id = %s",
+                (medico_table_id,), fetch=True, one=True
+            )
+            
+            if consultas and consultas['total'] > 0:
                 # Soft delete - apenas desativa
                 execute_query(
                     "UPDATE usuarios SET ativo = FALSE WHERE id = %s",
