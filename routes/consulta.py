@@ -296,215 +296,6 @@ def create_consulta_blueprint(mysql):
         except:
             return None
     
-    # ========== FUNÇÃO PRINCIPAL PARA OBTER DETALHES DA CONSULTA (CORRIGIDA) ==========
-    def obter_detalhes_consulta(consulta_id):
-        """Obtém detalhes completos de uma consulta"""
-        try:
-            query = """
-                SELECT 
-                    c.id,
-                    m_u.nome as medico_nome,
-                    m.especialidade,
-                    m.crm,
-                    c.data_hora,
-                    c.status,
-                    c.observacoes,
-                    c.receita,
-                    p_u.nome as paciente_nome,
-                    p.data_nascimento,
-                    p.genero,
-                    p.telefone as paciente_telefone,
-                    p.endereco as paciente_endereco,
-                    m_u.email as medico_email,
-                    m.telefone as medico_telefone,
-                    p.id as paciente_id,
-                    m.id as medico_id,
-                    p_u.email as paciente_email,
-                    c.sintomas,
-                    DAYNAME(c.data_hora) as dia_semana,
-                    DATE(c.data_hora) as data_consulta,
-                    TIME(c.data_hora) as hora_consulta,
-                    MONTH(c.data_hora) as mes,
-                    YEAR(c.data_hora) as ano
-                FROM consultas c 
-                JOIN medicos m ON c.medico_id = m.id 
-                JOIN usuarios m_u ON m.usuario_id = m_u.id 
-                JOIN pacientes p ON c.paciente_id = p.id 
-                JOIN usuarios p_u ON p.usuario_id = p_u.id 
-                WHERE c.id = %s
-            """
-            
-            consulta = execute_query(query, (consulta_id,), fetch=True, one=True)
-            
-            if not consulta:
-                return None
-            
-            # CORREÇÃO: Verificar o tipo e tamanho do resultado
-            # Se for dicionário, usar diretamente
-            if isinstance(consulta, dict):
-                c = consulta
-                # Calcular idade com dados do dicionário
-                idade = None
-                data_nasc = c.get('data_nascimento')
-                if data_nasc:
-                    try:
-                        if isinstance(data_nasc, datetime):
-                            data_nasc = data_nasc.date()
-                        elif isinstance(data_nasc, str):
-                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
-                        
-                        hoje = date.today()
-                        idade_calc = hoje.year - data_nasc.year
-                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                            idade_calc -= 1
-                        idade = idade_calc
-                    except Exception as e:
-                        logger.error(f"Erro ao calcular idade: {e}")
-                
-                return {
-                    'id': c.get('id'),
-                    'medico_nome': str(c.get('medico_nome', '')),
-                    'especialidade': str(c.get('especialidade', '')),
-                    'crm': str(c.get('crm', '')),
-                    'data_hora': formatar_data(c.get('data_hora')),
-                    'data_hora_formatada': c.get('data_hora').strftime('%Y-%m-%dT%H:%M') if isinstance(c.get('data_hora'), datetime) else str(c.get('data_hora', '')),
-                    'status': str(c.get('status', '')),
-                    'observacoes': str(c.get('observacoes', '')),
-                    'receita': str(c.get('receita', '')),
-                    'paciente_nome': str(c.get('paciente_nome', '')),
-                    'paciente_idade': f"{idade} anos" if idade else None,
-                    'data_nascimento': formatar_data(c.get('data_nascimento'), '%d/%m/%Y') if c.get('data_nascimento') else None,
-                    'genero': str(c.get('genero', 'Não informado')),
-                    'paciente_telefone': str(c.get('paciente_telefone', 'Não informado')),
-                    'paciente_endereco': str(c.get('paciente_endereco', 'Não informado')),
-                    'medico_email': str(c.get('medico_email', '')),
-                    'medico_telefone': str(c.get('medico_telefone', '')),
-                    'paciente_id': c.get('paciente_id'),
-                    'medico_id': c.get('medico_id'),
-                    'paciente_email': str(c.get('paciente_email', '')),
-                    'sintomas_raw': str(c.get('sintomas', '')),
-                    'sintomas_lista': processar_sintomas(c.get('sintomas', '')),
-                    'dia_semana': mapear_dia_semana(c.get('dia_semana', '')),
-                    'data_consulta': c.get('data_consulta').strftime('%Y-%m-%d') if isinstance(c.get('data_consulta'), datetime) else str(c.get('data_consulta', '')),
-                    'hora_consulta': str(c.get('hora_consulta', '')),
-                    'mes': c.get('mes'),
-                    'mes_nome': mapear_mes(c.get('mes')) if c.get('mes') else '',
-                    'ano': c.get('ano'),
-                    'status_class': {
-                        'agendada': 'warning',
-                        'realizada': 'success',
-                        'cancelada': 'danger',
-                        'confirmada': 'info'
-                    }.get(c.get('status'), 'secondary')
-                }
-            
-            # Se for tupla/lista, processar com verificação de índices
-            c = consulta
-            num_fields = len(c) if c else 0
-            
-            # Calcular idade com verificação segura
-            idade = None
-            if num_fields > 9 and c[9]:
-                try:
-                    data_nasc = c[9]
-                    if isinstance(data_nasc, datetime):
-                        data_nasc = data_nasc.date()
-                    elif isinstance(data_nasc, str):
-                        data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
-                    
-                    hoje = date.today()
-                    idade_calc = hoje.year - data_nasc.year
-                    if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                        idade_calc -= 1
-                    idade = idade_calc
-                except Exception as e:
-                    logger.error(f"Erro ao calcular idade: {e}")
-                    idade = None
-            
-            # Processar sintomas com verificação segura
-            sintomas_raw = ''
-            if num_fields > 18 and c[18]:
-                sintomas_raw = str(c[18])
-            sintomas_lista = processar_sintomas(sintomas_raw)
-            
-            # Processar dia da semana com verificação segura
-            dia_semana_pt = ''
-            if num_fields > 19 and c[19]:
-                dia_semana_pt = mapear_dia_semana(c[19])
-            
-            # Processar mês
-            mes_num = None
-            if num_fields > 22 and c[22]:
-                mes_num = c[22]
-            mes_pt = mapear_mes(mes_num) if mes_num else ''
-            
-            # Converter data_hora para objeto datetime se for string
-            data_hora_obj = c[4] if num_fields > 4 else None
-            if isinstance(data_hora_obj, str):
-                try:
-                    data_hora_obj = datetime.strptime(data_hora_obj, '%Y-%m-%d %H:%M:%S')
-                except:
-                    pass
-            
-            # Processar data_consulta
-            data_consulta_str = ''
-            if num_fields > 20 and c[20]:
-                if isinstance(c[20], datetime):
-                    data_consulta_str = c[20].strftime('%Y-%m-%d')
-                else:
-                    data_consulta_str = str(c[20])
-            
-            # Processar hora_consulta
-            hora_consulta_str = ''
-            if num_fields > 21 and c[21]:
-                hora_consulta_str = str(c[21])
-            
-            # Processar ano
-            ano_val = None
-            if num_fields > 23 and c[23]:
-                ano_val = c[23]
-            
-            return {
-                'id': c[0] if num_fields > 0 else None,
-                'medico_nome': str(c[1]) if num_fields > 1 and c[1] else '',
-                'especialidade': str(c[2]) if num_fields > 2 and c[2] else '',
-                'crm': str(c[3]) if num_fields > 3 and c[3] else '',
-                'data_hora': formatar_data(data_hora_obj),
-                'data_hora_formatada': data_hora_obj.strftime('%Y-%m-%dT%H:%M') if isinstance(data_hora_obj, datetime) else str(data_hora_obj),
-                'status': str(c[5]) if num_fields > 5 and c[5] else '',
-                'observacoes': str(c[6]) if num_fields > 6 and c[6] else '',
-                'receita': str(c[7]) if num_fields > 7 and c[7] else '',
-                'paciente_nome': str(c[8]) if num_fields > 8 and c[8] else '',
-                'paciente_idade': f"{idade} anos" if idade else None,
-                'data_nascimento': formatar_data(c[9], '%d/%m/%Y') if num_fields > 9 and c[9] else None,
-                'genero': str(c[10]) if num_fields > 10 and c[10] else 'Não informado',
-                'paciente_telefone': str(c[11]) if num_fields > 11 and c[11] else 'Não informado',
-                'paciente_endereco': str(c[12]) if num_fields > 12 and c[12] else 'Não informado',
-                'medico_email': str(c[13]) if num_fields > 13 and c[13] else '',
-                'medico_telefone': str(c[14]) if num_fields > 14 and c[14] else '',
-                'paciente_id': c[15] if num_fields > 15 else None,
-                'medico_id': c[16] if num_fields > 16 else None,
-                'paciente_email': str(c[17]) if num_fields > 17 and c[17] else '',
-                'sintomas_raw': sintomas_raw,
-                'sintomas_lista': sintomas_lista,
-                'dia_semana': dia_semana_pt,
-                'data_consulta': data_consulta_str,
-                'hora_consulta': hora_consulta_str,
-                'mes': mes_num,
-                'mes_nome': mes_pt,
-                'ano': ano_val,
-                'status_class': {
-                    'agendada': 'warning',
-                    'realizada': 'success',
-                    'cancelada': 'danger',
-                    'confirmada': 'info'
-                }.get(c[5] if num_fields > 5 else '', 'secondary')
-            }
-        except Exception as e:
-            logger.error(f"Erro ao obter detalhes da consulta: {e}")
-            logger.error(traceback.format_exc())
-            return None
-    
     # ========== FUNÇÃO PARA OBTER SINAIS VITAIS ==========
     def obter_sinais_vitais(consulta_id):
         """Obtém sinais vitais da consulta com classificação"""
@@ -566,7 +357,7 @@ def create_consulta_blueprint(mysql):
             logger.error(f"Erro ao obter sinais vitais: {e}")
             return []
     
-    # ========== FUNÇÃO PARA OBTER DIAGNÓSTICO (TABELA DIAGNOSTICO) ==========
+    # ========== FUNÇÃO PARA OBTER DIAGNÓSTICO ==========
     def obter_diagnostico(consulta_id):
         """Obtém diagnóstico da consulta na tabela diagnostico"""
         try:
@@ -706,6 +497,206 @@ def create_consulta_blueprint(mysql):
             logger.error(f"Erro ao obter receitas: {e}")
             return []
     
+    # ========== FUNÇÃO PRINCIPAL PARA OBTER DETALHES DA CONSULTA ==========
+    def obter_detalhes_consulta(consulta_id):
+        """Obtém detalhes completos de uma consulta"""
+        try:
+            query = """
+                SELECT 
+                    c.id,
+                    m_u.nome as medico_nome,
+                    m.especialidade,
+                    m.crm,
+                    c.data_hora,
+                    c.status,
+                    c.observacoes,
+                    c.receita,
+                    p_u.nome as paciente_nome,
+                    p.data_nascimento,
+                    p.genero,
+                    p.telefone as paciente_telefone,
+                    p.endereco as paciente_endereco,
+                    m_u.email as medico_email,
+                    m.telefone as medico_telefone,
+                    p.id as paciente_id,
+                    m.id as medico_id,
+                    p_u.email as paciente_email,
+                    c.sintomas,
+                    DAYNAME(c.data_hora) as dia_semana,
+                    DATE(c.data_hora) as data_consulta,
+                    TIME(c.data_hora) as hora_consulta,
+                    MONTH(c.data_hora) as mes,
+                    YEAR(c.data_hora) as ano
+                FROM consultas c 
+                JOIN medicos m ON c.medico_id = m.id 
+                JOIN usuarios m_u ON m.usuario_id = m_u.id 
+                JOIN pacientes p ON c.paciente_id = p.id 
+                JOIN usuarios p_u ON p.usuario_id = p_u.id 
+                WHERE c.id = %s
+            """
+            
+            consulta = execute_query(query, (consulta_id,), fetch=True, one=True)
+            
+            if not consulta:
+                return None
+            
+            # CORREÇÃO: Verificar o tipo e tamanho do resultado
+            # Se for dicionário, usar diretamente
+            if isinstance(consulta, dict):
+                c = consulta
+                idade = None
+                data_nasc = c.get('data_nascimento')
+                if data_nasc:
+                    try:
+                        if isinstance(data_nasc, datetime):
+                            data_nasc = data_nasc.date()
+                        elif isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                        
+                        hoje = date.today()
+                        idade_calc = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade_calc -= 1
+                        idade = idade_calc
+                    except Exception as e:
+                        logger.error(f"Erro ao calcular idade: {e}")
+                
+                return {
+                    'id': c.get('id'),
+                    'medico_nome': str(c.get('medico_nome', '')),
+                    'especialidade': str(c.get('especialidade', '')),
+                    'crm': str(c.get('crm', '')),
+                    'data_hora': formatar_data(c.get('data_hora')),
+                    'data_hora_formatada': c.get('data_hora').strftime('%Y-%m-%dT%H:%M') if isinstance(c.get('data_hora'), datetime) else str(c.get('data_hora', '')),
+                    'status': str(c.get('status', '')),
+                    'observacoes': str(c.get('observacoes', '')),
+                    'receita': str(c.get('receita', '')),
+                    'paciente_nome': str(c.get('paciente_nome', '')),
+                    'paciente_idade': f"{idade} anos" if idade else None,
+                    'data_nascimento': formatar_data(c.get('data_nascimento'), '%d/%m/%Y') if c.get('data_nascimento') else None,
+                    'genero': str(c.get('genero', 'Não informado')),
+                    'paciente_telefone': str(c.get('paciente_telefone', 'Não informado')),
+                    'paciente_endereco': str(c.get('paciente_endereco', 'Não informado')),
+                    'medico_email': str(c.get('medico_email', '')),
+                    'medico_telefone': str(c.get('medico_telefone', '')),
+                    'paciente_id': c.get('paciente_id'),
+                    'medico_id': c.get('medico_id'),
+                    'paciente_email': str(c.get('paciente_email', '')),
+                    'sintomas_raw': str(c.get('sintomas', '')),
+                    'sintomas_lista': processar_sintomas(c.get('sintomas', '')),
+                    'dia_semana': mapear_dia_semana(c.get('dia_semana', '')),
+                    'data_consulta': c.get('data_consulta').strftime('%Y-%m-%d') if isinstance(c.get('data_consulta'), datetime) else str(c.get('data_consulta', '')),
+                    'hora_consulta': str(c.get('hora_consulta', '')),
+                    'mes': c.get('mes'),
+                    'mes_nome': mapear_mes(c.get('mes')) if c.get('mes') else '',
+                    'ano': c.get('ano'),
+                    'status_class': {
+                        'agendada': 'warning',
+                        'realizada': 'success',
+                        'cancelada': 'danger',
+                        'confirmada': 'info'
+                    }.get(c.get('status'), 'secondary')
+                }
+            
+            # Se for tupla/lista, processar com verificação de índices
+            c = consulta
+            num_fields = len(c) if c else 0
+            
+            idade = None
+            if num_fields > 9 and c[9]:
+                try:
+                    data_nasc = c[9]
+                    if isinstance(data_nasc, datetime):
+                        data_nasc = data_nasc.date()
+                    elif isinstance(data_nasc, str):
+                        data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                    
+                    hoje = date.today()
+                    idade_calc = hoje.year - data_nasc.year
+                    if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                        idade_calc -= 1
+                    idade = idade_calc
+                except Exception as e:
+                    logger.error(f"Erro ao calcular idade: {e}")
+                    idade = None
+            
+            sintomas_raw = ''
+            if num_fields > 18 and c[18]:
+                sintomas_raw = str(c[18])
+            sintomas_lista = processar_sintomas(sintomas_raw)
+            
+            dia_semana_pt = ''
+            if num_fields > 19 and c[19]:
+                dia_semana_pt = mapear_dia_semana(c[19])
+            
+            mes_num = None
+            if num_fields > 22 and c[22]:
+                mes_num = c[22]
+            mes_pt = mapear_mes(mes_num) if mes_num else ''
+            
+            data_hora_obj = c[4] if num_fields > 4 else None
+            if isinstance(data_hora_obj, str):
+                try:
+                    data_hora_obj = datetime.strptime(data_hora_obj, '%Y-%m-%d %H:%M:%S')
+                except:
+                    pass
+            
+            data_consulta_str = ''
+            if num_fields > 20 and c[20]:
+                if isinstance(c[20], datetime):
+                    data_consulta_str = c[20].strftime('%Y-%m-%d')
+                else:
+                    data_consulta_str = str(c[20])
+            
+            hora_consulta_str = ''
+            if num_fields > 21 and c[21]:
+                hora_consulta_str = str(c[21])
+            
+            ano_val = None
+            if num_fields > 23 and c[23]:
+                ano_val = c[23]
+            
+            return {
+                'id': c[0] if num_fields > 0 else None,
+                'medico_nome': str(c[1]) if num_fields > 1 and c[1] else '',
+                'especialidade': str(c[2]) if num_fields > 2 and c[2] else '',
+                'crm': str(c[3]) if num_fields > 3 and c[3] else '',
+                'data_hora': formatar_data(data_hora_obj),
+                'data_hora_formatada': data_hora_obj.strftime('%Y-%m-%dT%H:%M') if isinstance(data_hora_obj, datetime) else str(data_hora_obj),
+                'status': str(c[5]) if num_fields > 5 and c[5] else '',
+                'observacoes': str(c[6]) if num_fields > 6 and c[6] else '',
+                'receita': str(c[7]) if num_fields > 7 and c[7] else '',
+                'paciente_nome': str(c[8]) if num_fields > 8 and c[8] else '',
+                'paciente_idade': f"{idade} anos" if idade else None,
+                'data_nascimento': formatar_data(c[9], '%d/%m/%Y') if num_fields > 9 and c[9] else None,
+                'genero': str(c[10]) if num_fields > 10 and c[10] else 'Não informado',
+                'paciente_telefone': str(c[11]) if num_fields > 11 and c[11] else 'Não informado',
+                'paciente_endereco': str(c[12]) if num_fields > 12 and c[12] else 'Não informado',
+                'medico_email': str(c[13]) if num_fields > 13 and c[13] else '',
+                'medico_telefone': str(c[14]) if num_fields > 14 and c[14] else '',
+                'paciente_id': c[15] if num_fields > 15 else None,
+                'medico_id': c[16] if num_fields > 16 else None,
+                'paciente_email': str(c[17]) if num_fields > 17 and c[17] else '',
+                'sintomas_raw': sintomas_raw,
+                'sintomas_lista': sintomas_lista,
+                'dia_semana': dia_semana_pt,
+                'data_consulta': data_consulta_str,
+                'hora_consulta': hora_consulta_str,
+                'mes': mes_num,
+                'mes_nome': mes_pt,
+                'ano': ano_val,
+                'status_class': {
+                    'agendada': 'warning',
+                    'realizada': 'success',
+                    'cancelada': 'danger',
+                    'confirmada': 'info'
+                }.get(c[5] if num_fields > 5 else '', 'secondary')
+            }
+        except Exception as e:
+            logger.error(f"Erro ao obter detalhes da consulta: {e}")
+            logger.error(traceback.format_exc())
+            return None
+    
     # ========== ROTA DE TESTE ==========
     @consulta_bp.route('/')
     def index():
@@ -725,7 +716,7 @@ def create_consulta_blueprint(mysql):
             ]
         })
     
-    # ========== ROTA PRINCIPAL: DETALHES DA CONSULTA ==========
+    # ========== ROTA PRINCIPAL: DETALHES DA CONSULTA (COM LOGS) ==========
     @consulta_bp.route('/<int:consulta_id>')
     def detalhes_consulta(consulta_id):
         """
@@ -737,10 +728,20 @@ def create_consulta_blueprint(mysql):
             flash('Por favor, faça login para acessar esta página.', 'warning')
             return redirect(url_for('auth.login'))
         
+        usuario_tipo = session.get('user_type')
+        user_id = session.get('user_id')
+        
+        # LOG DE DEBUG
+        print("\n" + "="*60)
+        print(f"[DEBUG] Acessando consulta ID: {consulta_id}")
+        print(f"[DEBUG] Usuário tipo: {usuario_tipo}, ID: {user_id}")
+        print("="*60)
+        
         # Obter detalhes da consulta
         consulta = obter_detalhes_consulta(consulta_id)
         
         if not consulta:
+            print(f"[ERRO] Consulta {consulta_id} NÃO encontrada!")
             flash('Consulta não encontrada.', 'danger')
             if session.get('user_type') == 'medico':
                 return redirect(url_for('medico.consultas'))
@@ -749,23 +750,55 @@ def create_consulta_blueprint(mysql):
             else:
                 return redirect(url_for('auth.index'))
         
+        # LOG DOS DADOS DA CONSULTA
+        print(f"[DEBUG] Consulta encontrada:")
+        print(f"   - Médico ID: {consulta.get('medico_id')}")
+        print(f"   - Paciente ID: {consulta.get('paciente_id')}")
+        print(f"   - Status: {consulta.get('status')}")
+        print(f"   - Data: {consulta.get('data_hora')}")
+        
         # Verificar permissão de acesso
-        usuario_tipo = session.get('user_type')
         tem_acesso = False
+        motivo_negado = ""
         
         if usuario_tipo == 'admin':
             tem_acesso = True
+            print("[DEBUG] Acesso concedido: ADMIN")
+            
         elif usuario_tipo == 'medico':
             medico_id = obter_medico_id()
-            tem_acesso = consulta['medico_id'] == medico_id
+            consulta_medico_id = consulta.get('medico_id')
+            
+            print(f"[DEBUG] Comparando: Médico logado ID={medico_id} vs Médico consulta ID={consulta_medico_id}")
+            
+            if consulta_medico_id and medico_id and consulta_medico_id == medico_id:
+                tem_acesso = True
+                print("[DEBUG] Acesso concedido: MÉDICO responsável")
+            else:
+                motivo_negado = f"Médico {medico_id} não é responsável pela consulta (responsável: {consulta_medico_id})"
+                print(f"[ERRO] {motivo_negado}")
+                
         elif usuario_tipo == 'paciente':
             paciente_id = obter_paciente_id()
-            tem_acesso = consulta['paciente_id'] == paciente_id
+            consulta_paciente_id = consulta.get('paciente_id')
+            
+            print(f"[DEBUG] Comparando: Paciente logado ID={paciente_id} vs Paciente consulta ID={consulta_paciente_id}")
+            
+            if consulta_paciente_id and paciente_id and consulta_paciente_id == paciente_id:
+                tem_acesso = True
+                print("[DEBUG] Acesso concedido: PACIENTE")
+            else:
+                motivo_negado = f"Paciente {paciente_id} não é o paciente da consulta (paciente: {consulta_paciente_id})"
+                print(f"[ERRO] {motivo_negado}")
+                
         elif usuario_tipo == 'enfermeiro':
             tem_acesso = True
+            print("[DEBUG] Acesso concedido: ENFERMEIRO")
         
         if not tem_acesso:
+            print(f"[ERRO] ACESSO NEGADO: {motivo_negado}")
             flash('Você não tem permissão para acessar esta consulta.', 'danger')
+            
             if usuario_tipo == 'medico':
                 return redirect(url_for('medico.dashboard'))
             elif usuario_tipo == 'paciente':
@@ -780,10 +813,7 @@ def create_consulta_blueprint(mysql):
         receitas = obter_receitas(consulta_id)
         sintomas = consulta.get('sintomas_lista', [])
         
-        # Log para debug
-        logger.info(f"Consulta {consulta_id}: {len(sinais_vitais)} sinais vitais, diagnostico={diagnostico is not None}")
-        if diagnostico:
-            logger.info(f"Diagnóstico: status={diagnostico.get('status')}, tipo_exame={diagnostico.get('tipo_exame')}")
+        print(f"[DEBUG] Dados complementares: {len(sinais_vitais)} sinais, diagnostico={diagnostico is not None}, {len(pedidos)} pedidos, {len(receitas)} receitas")
         
         return render_template('consulta/detalhes_consulta.html',
                              consulta=consulta,
