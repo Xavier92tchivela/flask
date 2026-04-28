@@ -1,4 +1,4 @@
-# routes/medico/medico_receita_digital.py
+# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA CORRIGIDA
 from flask import render_template, request, redirect, url_for, flash, jsonify, Blueprint
 from datetime import datetime
 import logging
@@ -20,7 +20,7 @@ def init_medico_receita_digital(mysql, base):
     obter_detalhes_consulta = base.get('obter_detalhes_consulta')
     formatar_data = base.get('formatar_data')
     
-    # Se obter_medico_id não estiver disponível, criar uma versão simples
+    # CORREÇÃO: Criar uma versão segura de obter_medico_id se não existir
     if obter_medico_id is None:
         logger.warning("obter_medico_id não encontrado no base. Usando função alternativa.")
         
@@ -35,7 +35,14 @@ def init_medico_receita_digital(mysql, base):
                 cur.execute("SELECT id FROM medicos WHERE usuario_id = %s", (session['user_id'],))
                 result = cur.fetchone()
                 cur.close()
-                return result[0] if result else None
+                
+                # CORREÇÃO: Verificar se result é tupla ou dict
+                if result:
+                    if isinstance(result, dict):
+                        return result.get('id')
+                    elif isinstance(result, (tuple, list)):
+                        return result[0] if len(result) > 0 else None
+                return None
             except Exception as e:
                 logger.error(f"Erro ao obter médico ID: {e}")
                 return None
@@ -229,15 +236,35 @@ def init_medico_receita_digital(mysql, base):
         
         return html
     
+    # ========== FUNÇÃO AUXILIAR PARA EXTRAIR VALOR ==========
+    def extrair_valor_resultado(resultado, indice=0, chave=None, padrao=None):
+        """Extrai valor de forma segura de dict ou tuple/list"""
+        if resultado is None:
+            return padrao
+        
+        if isinstance(resultado, dict):
+            if chave:
+                return resultado.get(chave, padrao)
+            valores = list(resultado.values())
+            return valores[0] if valores else padrao
+        
+        if isinstance(resultado, (tuple, list)):
+            if len(resultado) > indice:
+                return resultado[indice]
+            return padrao
+        
+        return resultado if resultado is not None else padrao
+    
     # ========== ROTA DE TESTE ==========
     def teste_receita(consulta_id):
         """Rota de teste para verificar se o módulo está funcionando"""
-        return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}</p><p><a href='/medico/consulta/{consulta_id}'>Voltar</a></p>"
+        return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}</p><p><a href='/medico/consultas'>Voltar</a></p>"
     
     # ========== ROTA PRINCIPAL ==========
     def receita_digital(consulta_id):
         """Página para criar receita digital"""
         medico_id = obter_medico_id()
+        
         if not medico_id:
             flash('Acesso não autorizado.', 'danger')
             return redirect(url_for('auth.login'))
@@ -255,9 +282,11 @@ def init_medico_receita_digital(mysql, base):
                               formatar_data=formatar_data,
                               datetime=datetime)
     
+    # ========== ROTA PARA SALVAR RECEITA DIGITAL ==========
     def salvar_receita_digital(consulta_id):
         """Salva a receita digital na tabela receita"""
         medico_id = obter_medico_id()
+        
         if not medico_id:
             flash('Acesso não autorizado.', 'danger')
             return redirect(url_for('auth.login'))
@@ -291,7 +320,7 @@ def init_medico_receita_digital(mysql, base):
             
             if not medicamentos:
                 flash('Adicione pelo menos um medicamento à receita.', 'warning')
-                return redirect(url_for('medico.receita_digital', consulta_id=consulta_id))
+                return redirect(url_for('medico_receita_digital.receita_digital', consulta_id=consulta_id))
             
             # Buscar dados da consulta
             consulta = obter_detalhes_consulta(consulta_id)
@@ -330,14 +359,14 @@ def init_medico_receita_digital(mysql, base):
             
             flash('✅ Receita digital gerada com sucesso!', 'success')
             
-            # 👈 CORREÇÃO AQUI: usar o endpoint correto
-            return redirect(url_for('medico.consulta.detalhes_consulta', consulta_id=consulta_id))
+            # CORREÇÃO: Redirecionar para a rota correta de detalhes da consulta
+            return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
             
         except Exception as e:
             logger.error(f"Erro ao salvar receita digital: {e}")
             logger.error(traceback.format_exc())
             flash('Erro ao gerar receita. Tente novamente.', 'danger')
-            return redirect(url_for('medico.receita_digital', consulta_id=consulta_id))
+            return redirect(url_for('medico_receita_digital.receita_digital', consulta_id=consulta_id))
     
     # Lista de rotas do módulo
     routes = [
