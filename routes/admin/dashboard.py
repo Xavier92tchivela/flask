@@ -1,4 +1,4 @@
-# routes/admin/dashboard.py
+# routes/admin/dashboard.py - VERSÃO CORRIGIDA
 from flask import render_template, session, jsonify, flash, redirect, url_for
 from datetime import datetime
 import logging
@@ -8,6 +8,39 @@ logger = logging.getLogger(__name__)
 
 def init_dashboard_routes(admin_bp, mysql):
     """Rotas do dashboard principal"""
+    
+    # ===== FUNÇÃO AUXILIAR PARA EXTRAIR VALOR =====
+    def extrair_valor(resultado, indice=0, chave=None, padrao=None):
+        """Extrai valor de forma segura de dict ou tuple/list"""
+        if resultado is None:
+            return padrao
+        
+        if isinstance(resultado, dict):
+            if chave:
+                return resultado.get(chave, padrao)
+            # Se não tem chave, pega o primeiro valor
+            valores = list(resultado.values())
+            return valores[0] if valores else padrao
+        
+        if isinstance(resultado, (tuple, list)):
+            if len(resultado) > indice:
+                return resultado[indice]
+            return padrao
+        
+        return resultado if resultado is not None else padrao
+    
+    # ===== FUNÇÃO PARA EXTRAIR LISTA DE VALORES =====
+    def extrair_lista_valores(resultados, indice=0, chave=None):
+        """Extrai uma lista de valores de uma lista de resultados"""
+        if not resultados:
+            return []
+        
+        lista = []
+        for item in resultados:
+            valor = extrair_valor(item, indice, chave)
+            if valor is not None:
+                lista.append(valor)
+        return lista
     
     # ---------- FUNÇÃO AUXILIAR DE QUERY ----------
     def execute_query(query, params=None, fetch=False, one=False):
@@ -92,7 +125,18 @@ def init_dashboard_routes(admin_bp, mysql):
                 WHERE table_schema = DATABASE()
             """, fetch=True) or []
             
-            tabelas_existentes = [t[0] for t in tabelas if t[0]]
+            # CORREÇÃO: Extrair nomes das tabelas de forma segura
+            if tabelas:
+                # Verificar se o primeiro resultado é dicionário ou tupla
+                first_item = tabelas[0]
+                if isinstance(first_item, dict):
+                    tabelas_existentes = [t.get('table_name') for t in tabelas if t.get('table_name')]
+                else:
+                    # É tupla/lista
+                    tabelas_existentes = [t[0] for t in tabelas if t and len(t) > 0]
+            else:
+                tabelas_existentes = []
+            
             logger.info(f"Tabelas existentes: {tabelas_existentes}")
             
             # ========== ESTATÍSTICAS GERAIS ==========
@@ -101,7 +145,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'medicos' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM medicos", fetch=True, one=True)
-                    total_medicos = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        total_medicos = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        total_medicos = result[0] if result else 0
                     logger.info(f"Médicos: {total_medicos}")
                 except Exception as e:
                     logger.error(f"Erro ao contar médicos: {e}")
@@ -110,7 +157,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'analistas' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM analistas", fetch=True, one=True)
-                    total_analistas = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        total_analistas = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        total_analistas = result[0] if result else 0
                     logger.info(f"Analistas: {total_analistas}")
                 except Exception as e:
                     logger.error(f"Erro ao contar analistas: {e}")
@@ -119,7 +169,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'pacientes' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM pacientes", fetch=True, one=True)
-                    total_pacientes = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        total_pacientes = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        total_pacientes = result[0] if result else 0
                     logger.info(f"Pacientes: {total_pacientes}")
                 except Exception as e:
                     logger.error(f"Erro ao contar pacientes: {e}")
@@ -128,7 +181,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'consultas' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM consultas", fetch=True, one=True)
-                    total_consultas = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        total_consultas = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        total_consultas = result[0] if result else 0
                     logger.info(f"Consultas: {total_consultas}")
                 except Exception as e:
                     logger.error(f"Erro ao contar consultas: {e}")
@@ -138,15 +194,24 @@ def init_dashboard_routes(admin_bp, mysql):
                 try:
                     # Pendentes
                     result = execute_query("SELECT COUNT(*) FROM consultas WHERE status = 'pendente'", fetch=True, one=True)
-                    estatisticas['pendentes'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        estatisticas['pendentes'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        estatisticas['pendentes'] = result[0] if result else 0
                     
                     # Em análise
                     result = execute_query("SELECT COUNT(*) FROM consultas WHERE status = 'em_analise'", fetch=True, one=True)
-                    estatisticas['em_analise'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        estatisticas['em_analise'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        estatisticas['em_analise'] = result[0] if result else 0
                     
                     # Concluídos
                     result = execute_query("SELECT COUNT(*) FROM consultas WHERE status = 'concluido'", fetch=True, one=True)
-                    estatisticas['concluidos'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        estatisticas['concluidos'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        estatisticas['concluidos'] = result[0] if result else 0
                     
                     logger.info(f"Estatísticas por status: {estatisticas}")
                 except Exception as e:
@@ -163,9 +228,12 @@ def init_dashboard_routes(admin_bp, mysql):
                         AND COLUMN_NAME = 'urgencia'
                     """, fetch=True)
                     
-                    if colunas and len(colunas) > 0:
+                    if colunas:
                         result = execute_query("SELECT COUNT(*) FROM consultas WHERE urgencia = 'urgente'", fetch=True, one=True)
-                        estatisticas['urgentes'] = result[0] if result and result[0] else 0
+                        if isinstance(result, dict):
+                            estatisticas['urgentes'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                        elif isinstance(result, (tuple, list)):
+                            estatisticas['urgentes'] = result[0] if result else 0
                     else:
                         estatisticas['urgentes'] = 0
                         logger.info("Coluna 'urgencia' não existe na tabela consultas")
@@ -175,11 +243,25 @@ def init_dashboard_routes(admin_bp, mysql):
             # ========== CONSULTAS POR STATUS (AGRUPADO) ==========
             if 'consultas' in tabelas_existentes:
                 try:
-                    consultas_status = execute_query("""
+                    consultas_status_raw = execute_query("""
                         SELECT COALESCE(status, 'desconhecido') as status, COUNT(*) as total 
                         FROM consultas 
                         GROUP BY status
                     """, fetch=True) or []
+                    
+                    # Processar consultas_status
+                    for item in consultas_status_raw:
+                        if isinstance(item, dict):
+                            consultas_status.append({
+                                'status': item.get('status', 'desconhecido'),
+                                'total': item.get('total', 0)
+                            })
+                        elif isinstance(item, (tuple, list)):
+                            consultas_status.append({
+                                'status': item[0] if len(item) > 0 else 'desconhecido',
+                                'total': item[1] if len(item) > 1 else 0
+                            })
+                    
                     logger.info(f"Consultas por status: {len(consultas_status)} registros")
                 except Exception as e:
                     logger.error(f"Erro ao buscar consultas por status: {e}")
@@ -187,7 +269,7 @@ def init_dashboard_routes(admin_bp, mysql):
             # ========== ÚLTIMOS USUÁRIOS ==========
             if 'usuarios' in tabelas_existentes:
                 try:
-                    ultimos_usuarios = execute_query("""
+                    ultimos_usuarios_raw = execute_query("""
                         SELECT 
                             COALESCE(u.id, 0) as id, 
                             COALESCE(u.nome, 'N/A') as nome, 
@@ -200,25 +282,36 @@ def init_dashboard_routes(admin_bp, mysql):
                         ORDER BY u.criado_em DESC
                         LIMIT 10
                     """, fetch=True) or []
+                    
+                    # Processar últimos usuários
+                    for item in ultimos_usuarios_raw:
+                        if isinstance(item, dict):
+                            ultimos_usuarios.append({
+                                'id': item.get('id', 0),
+                                'nome': item.get('nome', 'N/A'),
+                                'email': item.get('email', 'N/A'),
+                                'tipo': item.get('tipo', 'N/A'),
+                                'ativo': item.get('ativo', 0),
+                                'criado_em': item.get('criado_em')
+                            })
+                        elif isinstance(item, (tuple, list)):
+                            ultimos_usuarios.append({
+                                'id': item[0] if len(item) > 0 else 0,
+                                'nome': item[1] if len(item) > 1 else 'N/A',
+                                'email': item[2] if len(item) > 2 else 'N/A',
+                                'tipo': item[3] if len(item) > 3 else 'N/A',
+                                'ativo': item[4] if len(item) > 4 else 0,
+                                'criado_em': item[5] if len(item) > 5 else None
+                            })
+                    
                     logger.info(f"Últimos usuários: {len(ultimos_usuarios)} registros")
                 except Exception as e:
                     logger.error(f"Erro ao buscar últimos usuários: {e}")
-                    # Fallback - query mais simples
-                    try:
-                        ultimos_usuarios = execute_query("""
-                            SELECT id, nome, email, tipo, ativo, criado_em
-                            FROM usuarios
-                            ORDER BY criado_em DESC
-                            LIMIT 5
-                        """, fetch=True) or []
-                    except:
-                        ultimos_usuarios = []
             
             # ========== ATIVIDADES RECENTES ==========
             if all(tabela in tabelas_existentes for tabela in ['consultas', 'pacientes', 'medicos', 'usuarios']):
                 try:
-                    # Versão corrigida da query
-                    atividades_recentes = execute_query("""
+                    atividades_recentes_raw = execute_query("""
                         SELECT 
                             c.id,
                             CONCAT(
@@ -237,14 +330,31 @@ def init_dashboard_routes(admin_bp, mysql):
                         ORDER BY c.data_hora DESC
                         LIMIT 5
                     """, fetch=True) or []
+                    
+                    # Processar atividades recentes
+                    for item in atividades_recentes_raw:
+                        if isinstance(item, dict):
+                            atividades_recentes.append({
+                                'id': item.get('id', 0),
+                                'descricao': item.get('descricao', ''),
+                                'status': item.get('status', 'desconhecido'),
+                                'data_hora': item.get('data_hora')
+                            })
+                        elif isinstance(item, (tuple, list)):
+                            atividades_recentes.append({
+                                'id': item[0] if len(item) > 0 else 0,
+                                'descricao': item[1] if len(item) > 1 else '',
+                                'status': item[2] if len(item) > 2 else 'desconhecido',
+                                'data_hora': item[3] if len(item) > 3 else None
+                            })
+                    
                     logger.info(f"Atividades recentes: {len(atividades_recentes)} registros")
                 except Exception as e:
                     logger.error(f"Erro ao buscar atividades recentes: {e}")
-                    logger.error(traceback.format_exc())
                     
                     # Query mais simples como fallback
                     try:
-                        atividades_recentes = execute_query("""
+                        atividades_recentes_raw = execute_query("""
                             SELECT 
                                 c.id,
                                 'Consulta' as descricao,
@@ -255,6 +365,22 @@ def init_dashboard_routes(admin_bp, mysql):
                             ORDER BY c.data_hora DESC
                             LIMIT 5
                         """, fetch=True) or []
+                        
+                        for item in atividades_recentes_raw:
+                            if isinstance(item, dict):
+                                atividades_recentes.append({
+                                    'id': item.get('id', 0),
+                                    'descricao': item.get('descricao', 'Consulta'),
+                                    'status': item.get('status', 'desconhecido'),
+                                    'data_hora': item.get('data_hora')
+                                })
+                            elif isinstance(item, (tuple, list)):
+                                atividades_recentes.append({
+                                    'id': item[0] if len(item) > 0 else 0,
+                                    'descricao': item[1] if len(item) > 1 else 'Consulta',
+                                    'status': item[2] if len(item) > 2 else 'desconhecido',
+                                    'data_hora': item[3] if len(item) > 3 else None
+                                })
                     except:
                         atividades_recentes = []
             
@@ -319,13 +445,24 @@ def init_dashboard_routes(admin_bp, mysql):
                 WHERE table_schema = DATABASE()
             """, fetch=True) or []
             
-            tabelas_existentes = [t[0] for t in tabelas if t[0]]
+            # CORREÇÃO: Extrair nomes das tabelas de forma segura
+            tabelas_existentes = []
+            for t in tabelas:
+                if isinstance(t, dict):
+                    nome = t.get('table_name')
+                    if nome:
+                        tabelas_existentes.append(nome)
+                elif isinstance(t, (tuple, list)) and len(t) > 0 and t[0]:
+                    tabelas_existentes.append(t[0])
             
             # Médicos
             if 'medicos' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM medicos", fetch=True, one=True)
-                    stats['medicos'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        stats['medicos'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        stats['medicos'] = result[0] if result else 0
                 except:
                     pass
             
@@ -333,7 +470,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'analistas' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM analistas", fetch=True, one=True)
-                    stats['analistas'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        stats['analistas'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        stats['analistas'] = result[0] if result else 0
                 except:
                     pass
             
@@ -341,7 +481,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'pacientes' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM pacientes", fetch=True, one=True)
-                    stats['pacientes'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        stats['pacientes'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        stats['pacientes'] = result[0] if result else 0
                 except:
                     pass
             
@@ -349,7 +492,10 @@ def init_dashboard_routes(admin_bp, mysql):
             if 'consultas' in tabelas_existentes:
                 try:
                     result = execute_query("SELECT COUNT(*) FROM consultas", fetch=True, one=True)
-                    stats['consultas'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        stats['consultas'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        stats['consultas'] = result[0] if result else 0
                 except:
                     pass
                 
@@ -360,7 +506,10 @@ def init_dashboard_routes(admin_bp, mysql):
                         FROM consultas 
                         WHERE DATE(data_hora) = CURDATE()
                     """, fetch=True, one=True)
-                    stats['consultas_hoje'] = result[0] if result and result[0] else 0
+                    if isinstance(result, dict):
+                        stats['consultas_hoje'] = extrair_valor(result, 0, 'COUNT(*)', 0)
+                    elif isinstance(result, (tuple, list)):
+                        stats['consultas_hoje'] = result[0] if result else 0
                 except:
                     pass
             
