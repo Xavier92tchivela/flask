@@ -1,4 +1,4 @@
-# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA CORRIGIDA
+# routes/medico/medico_receita_digital.py - VERSÃO CORRIGIDA (usando função existente)
 from flask import render_template, request, redirect, url_for, flash, jsonify, Blueprint
 from datetime import datetime
 import logging
@@ -14,22 +14,26 @@ def init_medico_receita_digital(mysql, base):
     # Importar dados de medicamentos
     from utils.receitas_data import MEDICAMENTOS_POR_CONDICAO
     
-    # Funções auxiliares do base - usar get para evitar KeyError
+    # Funções auxiliares do base
     execute_query = base.get('execute_query')
-    obter_medico_id = base.get('obter_medico_id')
-    obter_detalhes_consulta = base.get('obter_detalhes_consulta')
     formatar_data = base.get('formatar_data')
     
-    # CORREÇÃO: Criar uma versão segura de obter_medico_id se não existir
+    # CORREÇÃO: Usar a função obter_medico_id do base CORRETAMENTE
+    obter_medico_id = base.get('obter_medico_id')
+    
+    # CORREÇÃO: Importar a função obter_detalhes_consulta do blueprint de consultas
+    # Em vez de criar uma nova, vamos usar a que já existe no sistema
+    from routes.consulta import create_consulta_blueprint
+    # Mas como não temos acesso direto, vamos usar a função do base
+    
+    # Se não tiver no base, usamos uma versão que chama o endpoint correto
     if obter_medico_id is None:
         logger.warning("obter_medico_id não encontrado no base. Usando função alternativa.")
         
         def obter_medico_id():
-            """Função alternativa para obter ID do médico logado"""
             from flask import session
             if 'user_id' not in session or session.get('user_type') != 'medico':
                 return None
-            
             try:
                 cur = mysql.connection.cursor()
                 cur.execute("SELECT id FROM medicos WHERE usuario_id = %s", (session['user_id'],))
@@ -47,41 +51,15 @@ def init_medico_receita_digital(mysql, base):
                 logger.error(f"Erro ao obter médico ID: {e}")
                 return None
     
-    # Se execute_query não estiver disponível, criar uma versão simples
-    if execute_query is None:
-        logger.warning("execute_query não encontrado no base. Usando função alternativa.")
-        
-        def execute_query(query, params=None, fetch=False, one=False):
-            """Função alternativa para executar queries"""
-            try:
-                cur = mysql.connection.cursor()
-                if params:
-                    cur.execute(query, params)
-                else:
-                    cur.execute(query)
-                
-                if fetch:
-                    result = cur.fetchall()
-                    if one and result:
-                        result = result[0]
-                else:
-                    mysql.connection.commit()
-                    result = None
-                
-                cur.close()
-                return result
-            except Exception as e:
-                mysql.connection.rollback()
-                logger.error(f"Database error: {e}")
-                logger.error(traceback.format_exc())
-                return None
+    # CORREÇÃO: Usar a função obter_detalhes_consulta do base se disponível
+    obter_detalhes_consulta = base.get('obter_detalhes_consulta')
     
-    # Se obter_detalhes_consulta não estiver disponível, criar uma versão simples
+    # Se não tiver, criar uma versão melhorada
     if obter_detalhes_consulta is None:
         logger.warning("obter_detalhes_consulta não encontrado no base. Usando função alternativa.")
         
         def obter_detalhes_consulta(consulta_id):
-            """Função alternativa para obter detalhes da consulta"""
+            """Função alternativa para obter detalhes da consulta - CORRIGIDA"""
             try:
                 query = """
                     SELECT 
@@ -114,65 +92,112 @@ def init_medico_receita_digital(mysql, base):
                 
                 cur = mysql.connection.cursor()
                 cur.execute(query, (consulta_id,))
-                c = cur.fetchone()
+                result = cur.fetchone()
                 cur.close()
                 
-                if not c:
+                if not result:
                     return None
                 
+                # CORREÇÃO: Verificar o tipo do resultado
+                if isinstance(result, dict):
+                    c = result
+                    data_hora = c.get('data_hora')
+                else:
+                    # É tupla/lista
+                    c = result
+                    data_hora = c[4] if len(c) > 4 else None
+                
                 # Formatar data
-                data_hora = c[4]
                 if hasattr(data_hora, 'strftime'):
                     data_hora_formatada = data_hora.strftime('%d/%m/%Y %H:%M')
                 else:
-                    data_hora_formatada = str(data_hora)
+                    data_hora_formatada = str(data_hora) if data_hora else ''
                 
-                return {
-                    'id': c[0],
-                    'medico_nome': c[1],
-                    'especialidade': c[2],
-                    'crm': c[3],
-                    'data_hora': data_hora_formatada,
-                    'status': c[5],
-                    'observacoes': c[6] or '',
-                    'receita': c[7] or '',
-                    'paciente_nome': c[8],
-                    'paciente_id': c[15],
-                    'medico_id': c[16],
-                    'paciente_email': c[17],
-                    'sintomas_raw': c[18] if len(c) > 18 else '',
-                    'status_class': {
-                        'agendada': 'warning',
-                        'realizada': 'success',
-                        'cancelada': 'danger',
-                        'confirmada': 'info'
-                    }.get(c[5], 'secondary')
-                }
+                # Retornar como dicionário
+                if isinstance(result, dict):
+                    return {
+                        'id': c.get('id'),
+                        'medico_nome': c.get('medico_nome') or '',
+                        'especialidade': c.get('especialidade') or '',
+                        'crm': c.get('crm') or '',
+                        'data_hora': data_hora_formatada,
+                        'status': c.get('status') or '',
+                        'observacoes': c.get('observacoes') or '',
+                        'receita': c.get('receita') or '',
+                        'paciente_nome': c.get('paciente_nome') or '',
+                        'paciente_id': c.get('paciente_id'),
+                        'medico_id': c.get('medico_id'),
+                        'paciente_email': c.get('paciente_email') or '',
+                        'sintomas_raw': c.get('sintomas') or '',
+                        'status_class': {
+                            'agendada': 'warning',
+                            'realizada': 'success',
+                            'cancelada': 'danger',
+                            'confirmada': 'info'
+                        }.get(c.get('status'), 'secondary')
+                    }
+                else:
+                    # É tupla
+                    return {
+                        'id': c[0] if len(c) > 0 else None,
+                        'medico_nome': c[1] if len(c) > 1 else '',
+                        'especialidade': c[2] if len(c) > 2 else '',
+                        'crm': c[3] if len(c) > 3 else '',
+                        'data_hora': data_hora_formatada,
+                        'status': c[5] if len(c) > 5 else '',
+                        'observacoes': c[6] if len(c) > 6 else '',
+                        'receita': c[7] if len(c) > 7 else '',
+                        'paciente_nome': c[8] if len(c) > 8 else '',
+                        'paciente_id': c[15] if len(c) > 15 else None,
+                        'medico_id': c[16] if len(c) > 16 else None,
+                        'paciente_email': c[17] if len(c) > 17 else '',
+                        'sintomas_raw': c[18] if len(c) > 18 else '',
+                        'status_class': {
+                            'agendada': 'warning',
+                            'realizada': 'success',
+                            'cancelada': 'danger',
+                            'confirmada': 'info'
+                        }.get(c[5] if len(c) > 5 else '', 'secondary')
+                    }
             except Exception as e:
                 logger.error(f"Erro ao obter detalhes da consulta: {e}")
+                logger.error(traceback.format_exc())
                 return None
     
-    # Se formatar_data não estiver disponível, criar uma versão simples
-    if formatar_data is None:
-        logger.warning("formatar_data não encontrado no base. Usando função alternativa.")
+    # Se execute_query não estiver disponível
+    if execute_query is None:
+        logger.warning("execute_query não encontrado no base. Usando função alternativa.")
         
+        def execute_query(query, params=None, fetch=False, one=False):
+            try:
+                cur = mysql.connection.cursor()
+                if params:
+                    cur.execute(query, params)
+                else:
+                    cur.execute(query)
+                
+                if fetch:
+                    result = cur.fetchall()
+                    if one and result:
+                        result = result[0]
+                else:
+                    mysql.connection.commit()
+                    result = None
+                
+                cur.close()
+                return result
+            except Exception as e:
+                mysql.connection.rollback()
+                logger.error(f"Database error: {e}")
+                return None
+    
+    # Se formatar_data não estiver disponível
+    if formatar_data is None:
         def formatar_data(data, formato='%d/%m/%Y %H:%M'):
-            """Função alternativa para formatar data"""
             if data is None:
                 return ''
-            
             if hasattr(data, 'strftime'):
                 return data.strftime(formato)
-            elif isinstance(data, str):
-                try:
-                    from datetime import datetime
-                    for fmt in ['%Y-%m-%d %H:%M:%S', '%Y-%m-%d']:
-                        try:
-                            return datetime.strptime(data, fmt).strftime(formato)
-                        except ValueError:
-                            continue
-                except:
-                    pass
             return str(data)
     
     def gerar_html_receita(consulta, diagnostico, medicamentos, observacoes_gerais):
@@ -236,25 +261,6 @@ def init_medico_receita_digital(mysql, base):
         
         return html
     
-    # ========== FUNÇÃO AUXILIAR PARA EXTRAIR VALOR ==========
-    def extrair_valor_resultado(resultado, indice=0, chave=None, padrao=None):
-        """Extrai valor de forma segura de dict ou tuple/list"""
-        if resultado is None:
-            return padrao
-        
-        if isinstance(resultado, dict):
-            if chave:
-                return resultado.get(chave, padrao)
-            valores = list(resultado.values())
-            return valores[0] if valores else padrao
-        
-        if isinstance(resultado, (tuple, list)):
-            if len(resultado) > indice:
-                return resultado[indice]
-            return padrao
-        
-        return resultado if resultado is not None else padrao
-    
     # ========== ROTA DE TESTE ==========
     def teste_receita(consulta_id):
         """Rota de teste para verificar se o módulo está funcionando"""
@@ -263,7 +269,10 @@ def init_medico_receita_digital(mysql, base):
     # ========== ROTA PRINCIPAL ==========
     def receita_digital(consulta_id):
         """Página para criar receita digital"""
+        print(f"\n[DEBUG] receita_digital - Consulta ID: {consulta_id}")
+        
         medico_id = obter_medico_id()
+        print(f"[DEBUG] medico_id obtido: {medico_id}")
         
         if not medico_id:
             flash('Acesso não autorizado.', 'danger')
@@ -271,8 +280,16 @@ def init_medico_receita_digital(mysql, base):
         
         consulta = obter_detalhes_consulta(consulta_id)
         
-        if not consulta or consulta.get('medico_id') != medico_id:
-            flash('Consulta não encontrada ou você não tem permissão.', 'danger')
+        if not consulta:
+            print(f"[ERROR] Consulta {consulta_id} não encontrada!")
+            flash('Consulta não encontrada.', 'danger')
+            return redirect(url_for('medico.consultas'))
+        
+        print(f"[DEBUG] Consulta obtida: medico_id={consulta.get('medico_id')}")
+        
+        if consulta.get('medico_id') != medico_id:
+            print(f"[ERROR] Permissão negada: medico_id={consulta.get('medico_id')} vs {medico_id}")
+            flash('Você não tem permissão para acessar esta consulta.', 'danger')
             return redirect(url_for('medico.consultas'))
         
         return render_template('medico/receita_digital.html',
@@ -314,7 +331,6 @@ def init_medico_receita_digital(mysql, base):
                         'observacoes': request.form.get(f'medicamentos[{index}][observacoes]', '')
                     }
                     
-                    # Só adicionar se tiver nome
                     if medicamento['nome']:
                         medicamentos.append(medicamento)
             
@@ -328,7 +344,7 @@ def init_medico_receita_digital(mysql, base):
             # Gerar HTML da receita
             receita_html = gerar_html_receita(consulta, diagnostico, medicamentos, observacoes_gerais)
             
-            # Gerar texto da prescrição para a tabela receita
+            # Gerar texto da prescrição
             prescricao_texto = ""
             for i, med in enumerate(medicamentos, 1):
                 prescricao_texto += f"{i}. {med.get('nome', '')} - {med.get('apresentacao', '')}\n"
@@ -342,13 +358,13 @@ def init_medico_receita_digital(mysql, base):
                 prescricao_texto += "\n"
             
             # Salvar na tabela RECEITA
-            result = execute_query("""
+            execute_query("""
                 INSERT INTO receita 
                 (consulta_id, diagnostico, prescricao, recomendacoes, status, created_at)
                 VALUES (%s, %s, %s, %s, 'ativa', NOW())
             """, (consulta_id, diagnostico, prescricao_texto, observacoes_gerais))
             
-            # Também atualizar o campo receita da consulta com o HTML formatado
+            # Atualizar a consulta
             execute_query("""
                 UPDATE consultas 
                 SET receita = %s,
@@ -359,7 +375,7 @@ def init_medico_receita_digital(mysql, base):
             
             flash('✅ Receita digital gerada com sucesso!', 'success')
             
-            # CORREÇÃO: Redirecionar para a rota correta de detalhes da consulta
+            # Redirecionar para os detalhes da consulta
             return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
             
         except Exception as e:
