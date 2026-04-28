@@ -200,7 +200,7 @@ def init_pedido_analise(mysql, app):
         try:
             user_id = session['user_id']
             
-            # Obter ID do médico
+            # Obter ID do médico - CORRIGIDO para aceitar dicionário ou tupla
             medico_result = execute_query(
                 "SELECT id FROM medicos WHERE usuario_id = %s",
                 (user_id,), fetch=True, one=True
@@ -210,7 +210,17 @@ def init_pedido_analise(mysql, app):
                 flash('Médico não encontrado.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            medico_id = medico_result[0]
+            # CORREÇÃO: Extrair medico_id de forma segura
+            if isinstance(medico_result, dict):
+                medico_id = medico_result.get('id')
+            elif isinstance(medico_result, (tuple, list)):
+                medico_id = medico_result[0] if len(medico_result) > 0 else None
+            else:
+                medico_id = None
+            
+            if not medico_id:
+                flash('Médico não encontrado.', 'danger')
+                return redirect(url_for('medico.dashboard'))
             
             # Buscar consultas recentes COM SINAIS VITAIS
             consultas = execute_query("""
@@ -366,7 +376,7 @@ def init_pedido_analise(mysql, app):
                 flash('Preencha todos os campos obrigatórios.', 'danger')
                 return redirect(url_for('pedido_analise.novo_pedido'))
             
-            # Obter ID do médico
+            # Obter ID do médico - CORRIGIDO
             medico_result = execute_query(
                 "SELECT id FROM medicos WHERE usuario_id = %s",
                 (user_id,), fetch=True, one=True
@@ -376,7 +386,17 @@ def init_pedido_analise(mysql, app):
                 flash('Médico não encontrado.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            medico_id = medico_result[0]
+            # CORREÇÃO: Extrair medico_id de forma segura
+            if isinstance(medico_result, dict):
+                medico_id = medico_result.get('id')
+            elif isinstance(medico_result, (tuple, list)):
+                medico_id = medico_result[0] if len(medico_result) > 0 else None
+            else:
+                medico_id = None
+            
+            if not medico_id:
+                flash('Médico não encontrado.', 'danger')
+                return redirect(url_for('medico.dashboard'))
             
             # Buscar sinais vitais se solicitado
             observacoes_adicionais = observacoes
@@ -410,7 +430,10 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                     (analista_id,), fetch=True, one=True
                 )
                 if analista_check:
-                    analista_atribuido = analista_check[0]
+                    if isinstance(analista_check, dict):
+                        analista_atribuido = analista_check.get('id')
+                    elif isinstance(analista_check, (tuple, list)):
+                        analista_atribuido = analista_check[0] if len(analista_check) > 0 else None
             
             if not analista_atribuido:
                 # Atribuição automática - escolher o analista com menos pedidos ativos
@@ -428,7 +451,10 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 """, fetch=True, one=True)
                 
                 if analista_auto:
-                    analista_atribuido = analista_auto[0]
+                    if isinstance(analista_auto, dict):
+                        analista_atribuido = analista_auto.get('id')
+                    elif isinstance(analista_auto, (tuple, list)):
+                        analista_atribuido = analista_auto[0] if len(analista_auto) > 0 else None
                     print(f"[DEBUG] Analista atribuído automaticamente: ID {analista_atribuido}")
                 else:
                     flash('Nenhum analista disponível no momento.', 'warning')
@@ -526,7 +552,7 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
         try:
             user_id = session['user_id']
             
-            # Obter ID do médico
+            # Obter ID do médico - CORRIGIDO
             medico_result = execute_query(
                 "SELECT id FROM medicos WHERE usuario_id = %s",
                 (user_id,), fetch=True, one=True
@@ -536,7 +562,17 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 flash('Médico não encontrado.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            medico_id = medico_result[0]
+            # CORREÇÃO: Extrair medico_id de forma segura
+            if isinstance(medico_result, dict):
+                medico_id = medico_result.get('id')
+            elif isinstance(medico_result, (tuple, list)):
+                medico_id = medico_result[0] if len(medico_result) > 0 else None
+            else:
+                medico_id = None
+            
+            if not medico_id:
+                flash('Médico não encontrado.', 'danger')
+                return redirect(url_for('medico.dashboard'))
             
             # Filtros
             status_filter = request.args.get('status', '')
@@ -612,31 +648,62 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
             total_pedidos_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise WHERE medico_id = %s
             """, (medico_id,), fetch=True, one=True)
-            total_pedidos = total_pedidos_result[0] if total_pedidos_result else 0
+            
+            # CORREÇÃO: Extrair valores de forma segura
+            if isinstance(total_pedidos_result, dict):
+                total_pedidos = total_pedidos_result.get('COUNT(*)', 0)
+            elif isinstance(total_pedidos_result, (tuple, list)):
+                total_pedidos = total_pedidos_result[0] if len(total_pedidos_result) > 0 else 0
+            else:
+                total_pedidos = total_pedidos_result or 0
             
             pedidos_pendentes_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s AND status = 'pendente'
             """, (medico_id,), fetch=True, one=True)
-            pedidos_pendentes = pedidos_pendentes_result[0] if pedidos_pendentes_result else 0
+            
+            if isinstance(pedidos_pendentes_result, dict):
+                pedidos_pendentes = pedidos_pendentes_result.get('COUNT(*)', 0)
+            elif isinstance(pedidos_pendentes_result, (tuple, list)):
+                pedidos_pendentes = pedidos_pendentes_result[0] if len(pedidos_pendentes_result) > 0 else 0
+            else:
+                pedidos_pendentes = pedidos_pendentes_result or 0
             
             pedidos_em_analise_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s AND status = 'em_analise'
             """, (medico_id,), fetch=True, one=True)
-            pedidos_em_analise = pedidos_em_analise_result[0] if pedidos_em_analise_result else 0
+            
+            if isinstance(pedidos_em_analise_result, dict):
+                pedidos_em_analise = pedidos_em_analise_result.get('COUNT(*)', 0)
+            elif isinstance(pedidos_em_analise_result, (tuple, list)):
+                pedidos_em_analise = pedidos_em_analise_result[0] if len(pedidos_em_analise_result) > 0 else 0
+            else:
+                pedidos_em_analise = pedidos_em_analise_result or 0
             
             pedidos_concluidos_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s AND status = 'concluido'
             """, (medico_id,), fetch=True, one=True)
-            pedidos_concluidos = pedidos_concluidos_result[0] if pedidos_concluidos_result else 0
+            
+            if isinstance(pedidos_concluidos_result, dict):
+                pedidos_concluidos = pedidos_concluidos_result.get('COUNT(*)', 0)
+            elif isinstance(pedidos_concluidos_result, (tuple, list)):
+                pedidos_concluidos = pedidos_concluidos_result[0] if len(pedidos_concluidos_result) > 0 else 0
+            else:
+                pedidos_concluidos = pedidos_concluidos_result or 0
             
             pedidos_cancelados_result = execute_query("""
                 SELECT COUNT(*) FROM pedidos_analise 
                 WHERE medico_id = %s AND status = 'cancelado'
             """, (medico_id,), fetch=True, one=True)
-            pedidos_cancelados = pedidos_cancelados_result[0] if pedidos_cancelados_result else 0
+            
+            if isinstance(pedidos_cancelados_result, dict):
+                pedidos_cancelados = pedidos_cancelados_result.get('COUNT(*)', 0)
+            elif isinstance(pedidos_cancelados_result, (tuple, list)):
+                pedidos_cancelados = pedidos_cancelados_result[0] if len(pedidos_cancelados_result) > 0 else 0
+            else:
+                pedidos_cancelados = pedidos_cancelados_result or 0
             
             print(f"[DEBUG MEUS PEDIDOS] Total: {total_pedidos}")
             print(f"[DEBUG MEUS PEDIDOS] Pendentes: {pedidos_pendentes}")
@@ -679,7 +746,19 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 WHERE pa.id = %s
             """, (pedido_id,), fetch=True, one=True)
             
-            if not pedido_result or pedido_result[-1] != user_id:
+            if not pedido_result:
+                flash('Pedido não encontrado.', 'danger')
+                return redirect(url_for('pedido_analise.meus_pedidos'))
+            
+            # Verificar o usuario_id do médico
+            if isinstance(pedido_result, dict):
+                medico_usuario_id = pedido_result.get('medico_usuario_id')
+            elif isinstance(pedido_result, (tuple, list)):
+                medico_usuario_id = pedido_result[-1] if len(pedido_result) > 0 else None
+            else:
+                medico_usuario_id = None
+            
+            if medico_usuario_id != user_id:
                 flash('Pedido não encontrado ou acesso negado.', 'danger')
                 return redirect(url_for('pedido_analise.meus_pedidos'))
             
@@ -735,7 +814,7 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 flash('Pedido não encontrado.', 'danger')
                 return redirect(url_for('pedido_analise.meus_pedidos'))
             
-            # Converter para dicionário
+            # Converter para dicionário (já está convertido pela execute_query)
             pedido_dict = {
                 'id': pedido_info[0],
                 'medico_id': pedido_info[1],
@@ -822,12 +901,27 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 WHERE pa.id = %s
             """, (pedido_id,), fetch=True, one=True)
             
-            if not pedido_check or pedido_check[2] != user_id:
+            if not pedido_check:
+                flash('Pedido não encontrado.', 'danger')
+                return redirect(url_for('pedido_analise.meus_pedidos'))
+            
+            # Extrair dados de forma segura
+            if isinstance(pedido_check, dict):
+                pedido_status = pedido_check.get('status')
+                medico_usuario_id = pedido_check.get('usuario_id')
+            elif isinstance(pedido_check, (tuple, list)):
+                pedido_status = pedido_check[1] if len(pedido_check) > 1 else None
+                medico_usuario_id = pedido_check[2] if len(pedido_check) > 2 else None
+            else:
+                pedido_status = None
+                medico_usuario_id = None
+            
+            if medico_usuario_id != user_id:
                 flash('Pedido não encontrado ou acesso negado.', 'danger')
                 return redirect(url_for('pedido_analise.meus_pedidos'))
             
             # Verificar se pode ser cancelado
-            if pedido_check[1] not in ['pendente', 'em_analise']:
+            if pedido_status not in ['pendente', 'em_analise']:
                 flash('Este pedido não pode ser cancelado no seu estado atual.', 'warning')
                 return redirect(url_for('pedido_analise.ver_pedido', pedido_id=pedido_id))
             
@@ -847,7 +941,7 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 """, (
                     user_id,
                     pedido_id,
-                    json.dumps({'status_anterior': pedido_check[1]})
+                    json.dumps({'status_anterior': pedido_status})
                 ), commit=True)
                 
                 flash('Pedido cancelado com sucesso!', 'success')
@@ -935,7 +1029,16 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
             if not medico_result:
                 return jsonify({'error': 'Médico não encontrado'}), 404
             
-            medico_id = medico_result[0]
+            # Extrair medico_id de forma segura
+            if isinstance(medico_result, dict):
+                medico_id = medico_result.get('id')
+            elif isinstance(medico_result, (tuple, list)):
+                medico_id = medico_result[0] if len(medico_result) > 0 else None
+            else:
+                medico_id = None
+            
+            if not medico_id:
+                return jsonify({'error': 'Médico não encontrado'}), 404
             
             # Estatísticas gerais
             estatisticas = execute_query("""
@@ -961,8 +1064,11 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
             
             urgencia_dict = {}
             if por_urgencia:
-                for urgencia, quantidade in por_urgencia:
-                    urgencia_dict[urgencia] = quantidade
+                for item in por_urgencia:
+                    if isinstance(item, dict):
+                        urgencia_dict[item.get('urgencia')] = item.get('quantidade')
+                    elif isinstance(item, (tuple, list)):
+                        urgencia_dict[item[0]] = item[1] if len(item) > 1 else 0
             
             return jsonify({
                 'total': estatisticas[0] if estatisticas and estatisticas[0] else 0,
@@ -997,7 +1103,17 @@ Data da aferição: {sinais.get('data_afericao', 'N/I')}
                 flash('Médico não encontrado.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            medico_id = medico_result[0]
+            # Extrair medico_id de forma segura
+            if isinstance(medico_result, dict):
+                medico_id = medico_result.get('id')
+            elif isinstance(medico_result, (tuple, list)):
+                medico_id = medico_result[0] if len(medico_result) > 0 else None
+            else:
+                medico_id = None
+            
+            if not medico_id:
+                flash('Médico não encontrado.', 'danger')
+                return redirect(url_for('medico.dashboard'))
             
             # Buscar dados da consulta
             consulta = execute_query("""
