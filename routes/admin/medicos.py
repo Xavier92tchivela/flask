@@ -53,13 +53,14 @@ def init_medicos_routes(admin_bp, mysql):
         return decorated_function
     
     # ======================================================================
-    # LISTAR MÉDICOS
+    # LISTAR MÉDICOS (CORRIGIDO - APENAS CAMPOS EXISTENTES)
     # ======================================================================
     @admin_bp.route('/medicos')
     @admin_required
     def medicos():
         """Lista todos os médicos com todos os campos"""
         try:
+            # Query SEM os campos que não existem na tabela medicos
             medicos = execute_query("""
                 SELECT 
                     u.id,
@@ -83,18 +84,19 @@ def init_medicos_routes(admin_bp, mysql):
             return render_template('admin/medicos.html', medicos=medicos, user=session)
         except Exception as e:
             logger.error(f"Erro ao listar médicos: {e}")
-            flash('Erro ao carregar lista de médicos.', 'danger')
+            logger.error(traceback.format_exc())
+            flash(f'Erro ao carregar lista de médicos: {str(e)}', 'danger')
             return render_template('admin/medicos.html', medicos=[], user=session)
     
     # ======================================================================
-    # CADASTRAR MÉDICO (USANDO pbkdf2:sha256)
+    # CADASTRAR MÉDICO (APENAS CAMPOS EXISTENTES)
     # ======================================================================
     @admin_bp.route('/medicos/cadastrar', methods=['GET', 'POST'])
     @admin_required
     def cadastrar_medico():
-        """Cadastra um novo médico com formulário completo"""
+        """Cadastra um novo médico"""
         if request.method == 'POST':
-            # Receber todos os dados do formulário
+            # Receber dados do formulário
             nome = request.form.get('nome', '').strip()
             email = request.form.get('email', '').strip().lower()
             senha = request.form.get('senha', '').strip()
@@ -103,14 +105,10 @@ def init_medicos_routes(admin_bp, mysql):
             crm = request.form.get('crm', '').strip().upper()
             telefone = request.form.get('telefone', '').strip()
             status = request.form.get('status', 'ativo')
-            data_nascimento = request.form.get('data_nascimento', '').strip()
-            genero = request.form.get('genero', '').strip()
-            endereco = request.form.get('endereco', '').strip()
             
             # Gerar UUID único
             user_uuid = str(uuid.uuid4())
             
-            # Log para debug
             logger.info(f"Tentando cadastrar médico: {nome}, {email}")
             
             # Validações
@@ -149,27 +147,24 @@ def init_medicos_routes(admin_bp, mysql):
             try:
                 cur = mysql.connection.cursor()
                 
-                # Usando pbkdf2:sha256 (mesmo método do paciente)
+                # Usando pbkdf2:sha256
                 senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
                 logger.info(f"Senha criptografada com pbkdf2:sha256 para {email}")
                 
                 # Inserir na tabela usuarios
                 cur.execute("""
-                    INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo, criado_em)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
-                """, (user_uuid, nome, email, senha_hash, telefone, 'medico', True))
+                    INSERT INTO usuarios (uuid, nome, email, senha, tipo, ativo, criado_em)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                """, (user_uuid, nome, email, senha_hash, 'medico', True))
                 
                 mysql.connection.commit()
                 usuario_id = cur.lastrowid
                 
-                # Inserir na tabela medicos com todos os campos
+                # Inserir na tabela medicos (apenas campos que existem)
                 cur.execute("""
-                    INSERT INTO medicos (usuario_id, especialidade, crm, telefone, status, data_nascimento, genero, endereco)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                """, (usuario_id, especialidade, crm, telefone, status, 
-                      data_nascimento if data_nascimento else None,
-                      genero if genero else None,
-                      endereco if endereco else None))
+                    INSERT INTO medicos (usuario_id, especialidade, crm, telefone, status)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (usuario_id, especialidade, crm, telefone, status))
                 
                 mysql.connection.commit()
                 cur.close()
@@ -203,9 +198,6 @@ def init_medicos_routes(admin_bp, mysql):
             status = request.form.get('status', 'ativo')
             ativo = 1 if request.form.get('ativo') else 0
             nova_senha = request.form.get('nova_senha', '').strip()
-            data_nascimento = request.form.get('data_nascimento', '').strip()
-            genero = request.form.get('genero', '').strip()
-            endereco = request.form.get('endereco', '').strip()
             
             logger.info(f"Editando médico ID {medico_id}: {nome}")
             
@@ -224,28 +216,24 @@ def init_medicos_routes(admin_bp, mysql):
                     
                     execute_query("""
                         UPDATE usuarios 
-                        SET nome = %s, email = %s, senha = %s, ativo = %s, telefone = %s
+                        SET nome = %s, email = %s, senha = %s, ativo = %s
                         WHERE id = %s AND tipo = 'medico'
-                    """, (nome, email, senha_hash, ativo, telefone, medico_id))
+                    """, (nome, email, senha_hash, ativo, medico_id))
                     
                     logger.info(f"Senha atualizada para médico ID {medico_id}")
                 else:
                     execute_query("""
                         UPDATE usuarios 
-                        SET nome = %s, email = %s, ativo = %s, telefone = %s
+                        SET nome = %s, email = %s, ativo = %s
                         WHERE id = %s AND tipo = 'medico'
-                    """, (nome, email, ativo, telefone, medico_id))
+                    """, (nome, email, ativo, medico_id))
                 
                 # Atualizar médico
                 execute_query("""
                     UPDATE medicos 
-                    SET especialidade = %s, crm = %s, status = %s,
-                        data_nascimento = %s, genero = %s, endereco = %s
+                    SET especialidade = %s, crm = %s, telefone = %s, status = %s
                     WHERE usuario_id = %s
-                """, (especialidade, crm, status, 
-                      data_nascimento if data_nascimento else None,
-                      genero if genero else None,
-                      endereco if endereco else None, medico_id))
+                """, (especialidade, crm, telefone, status, medico_id))
                 
                 flash('Médico atualizado com sucesso!', 'success')
                 return redirect(url_for('admin.medicos'))
@@ -259,8 +247,8 @@ def init_medicos_routes(admin_bp, mysql):
         # Buscar dados do médico
         medico = execute_query("""
             SELECT 
-                u.id, u.uuid, u.nome, u.email, u.ativo, u.telefone,
-                m.especialidade, m.crm, m.status, m.data_nascimento, m.genero, m.endereco
+                u.id, u.uuid, u.nome, u.email, u.ativo,
+                m.especialidade, m.crm, m.telefone, m.status
             FROM usuarios u
             JOIN medicos m ON u.id = m.usuario_id
             WHERE u.id = %s AND u.tipo = 'medico'
@@ -280,7 +268,7 @@ def init_medicos_routes(admin_bp, mysql):
     def visualizar_medico(medico_id):
         """Visualiza detalhes de um médico (API)"""
         try:
-            # Buscar o ID do médico na tabela medicos
+            # Buscar dados do médico
             medico_data = execute_query("""
                 SELECT 
                     u.id as usuario_id,
@@ -290,13 +278,10 @@ def init_medicos_routes(admin_bp, mysql):
                     u.email, 
                     u.ativo, 
                     u.criado_em,
-                    u.telefone,
                     m.especialidade, 
                     m.crm, 
-                    m.status,
-                    m.data_nascimento,
-                    m.genero,
-                    m.endereco
+                    m.telefone, 
+                    m.status
                 FROM usuarios u
                 JOIN medicos m ON u.id = m.usuario_id
                 WHERE u.id = %s AND u.tipo = 'medico'
@@ -305,7 +290,7 @@ def init_medicos_routes(admin_bp, mysql):
             if not medico_data:
                 return jsonify({'error': 'Médico não encontrado'}), 404
             
-            # Buscar estatísticas usando o medico_id correto
+            # Buscar estatísticas
             stats = execute_query("""
                 SELECT 
                     COUNT(*) as total,
@@ -315,9 +300,8 @@ def init_medicos_routes(admin_bp, mysql):
                 WHERE medico_id = %s
             """, (medico_data['medico_id'],), fetch=True, one=True)
             
-            # Formatar data de criação
+            # Formatar data
             criado_em = medico_data['criado_em'].strftime('%d/%m/%Y %H:%M') if medico_data['criado_em'] else ''
-            data_nascimento = medico_data['data_nascimento'].strftime('%d/%m/%Y') if medico_data['data_nascimento'] else ''
             
             return jsonify({
                 'id': medico_data['usuario_id'],
@@ -330,9 +314,6 @@ def init_medicos_routes(admin_bp, mysql):
                 'especialidade': medico_data['especialidade'] or 'Não definida',
                 'crm': medico_data['crm'] or '---',
                 'status': medico_data['status'] or 'ativo',
-                'data_nascimento': data_nascimento or 'Não informada',
-                'genero': medico_data['genero'] or 'Não informado',
-                'endereco': medico_data['endereco'] or 'Não informado',
                 'total_consultas': stats['total'] if stats else 0,
                 'consultas_realizadas': stats['realizadas'] if stats else 0,
                 'consultas_canceladas': stats['canceladas'] if stats else 0
@@ -408,3 +389,21 @@ def init_medicos_routes(admin_bp, mysql):
                 'success': False, 
                 'error': f'Erro ao excluir médico: {str(e)}'
             }), 500
+
+    # ======================================================================
+    # VERIFICAR EMAIL (AJAX)
+    # ======================================================================
+    @admin_bp.route('/verificar-email', methods=['GET'])
+    @admin_required
+    def verificar_email():
+        """Verifica se email já existe (para validação AJAX)"""
+        email = request.args.get('email', '').strip().lower()
+        
+        if email:
+            existing = execute_query(
+                "SELECT id FROM usuarios WHERE email = %s",
+                (email,), fetch=True, one=True
+            )
+            return jsonify({'existe': existing is not None})
+        
+        return jsonify({'existe': False})
