@@ -4,7 +4,7 @@ import logging
 import traceback
 import uuid
 from datetime import datetime
-from werkzeug.security import generate_password_hash  # 👈 IMPORTANTE: Adicionar esta linha
+from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger(__name__)
 
@@ -53,71 +53,73 @@ def init_medicos_routes(admin_bp, mysql):
         return decorated_function
     
     # ======================================================================
-    # LISTAR MÉDICOS (CORRIGIDO)
+    # LISTAR MÉDICOS
     # ======================================================================
     @admin_bp.route('/medicos')
     @admin_required
     def medicos():
         """Lista todos os médicos com todos os campos"""
         try:
-            # CORREÇÃO: Removido 'm.id' e ajustado para usar 'u.id' como identificador
             medicos = execute_query("""
                 SELECT 
-                    u.id,                          -- [0] ID do usuário (usado como identificador)
-                    u.uuid,                        -- [1] UUID
-                    u.nome,                        -- [2] Nome
-                    u.email,                       -- [3] Email
-                    u.ativo,                       -- [4] Ativo (booleano)
-                    m.especialidade,                -- [5] Especialidade
-                    m.crm,                          -- [6] CRM
-                    m.telefone,                     -- [7] Telefone
-                    m.status,                       -- [8] Status (ativo/inativo/ferias/licenca)
-                    u.criado_em,                    -- [9] Data de criação
-                    (SELECT COUNT(*) FROM consultas WHERE medico_id = m.id) as total_consultas  -- [10]
+                    u.id,
+                    u.uuid,
+                    u.nome,
+                    u.email,
+                    u.ativo,
+                    m.especialidade,
+                    m.crm,
+                    m.telefone,
+                    m.status,
+                    u.criado_em,
+                    (SELECT COUNT(*) FROM consultas WHERE medico_id = m.id) as total_consultas
                 FROM usuarios u
                 JOIN medicos m ON u.id = m.usuario_id
                 WHERE u.tipo = 'medico'
                 ORDER BY u.criado_em DESC
             """, fetch=True) or []
             
-            # Log para debug
             logger.info(f"Total de médicos encontrados: {len(medicos)}")
-            for medico in medicos:
-                logger.debug(f"Médico - ID: {medico[0]}, Nome: {medico[2]}, CRM: {medico[6]}, Status: {medico[8]}")
-            
             return render_template('admin/medicos.html', medicos=medicos, user=session)
         except Exception as e:
             logger.error(f"Erro ao listar médicos: {e}")
-            logger.error(traceback.format_exc())
             flash('Erro ao carregar lista de médicos.', 'danger')
             return render_template('admin/medicos.html', medicos=[], user=session)
     
     # ======================================================================
-    # CADASTRAR MÉDICO (COM SENHA CRIPTOGRAFADA)
+    # CADASTRAR MÉDICO (USANDO pbkdf2:sha256)
     # ======================================================================
     @admin_bp.route('/medicos/cadastrar', methods=['GET', 'POST'])
     @admin_required
     def cadastrar_medico():
-        """Cadastra um novo médico com todos os campos da tabela"""
+        """Cadastra um novo médico com formulário completo"""
         if request.method == 'POST':
             # Receber todos os dados do formulário
             nome = request.form.get('nome', '').strip()
             email = request.form.get('email', '').strip().lower()
             senha = request.form.get('senha', '').strip()
+            confirmar_senha = request.form.get('confirmar_senha', '').strip()
             especialidade = request.form.get('especialidade', '').strip()
             crm = request.form.get('crm', '').strip().upper()
             telefone = request.form.get('telefone', '').strip()
             status = request.form.get('status', 'ativo')
+            data_nascimento = request.form.get('data_nascimento', '').strip()
+            genero = request.form.get('genero', '').strip()
+            endereco = request.form.get('endereco', '').strip()
             
             # Gerar UUID único
             user_uuid = str(uuid.uuid4())
             
             # Log para debug
-            logger.info(f"Tentando cadastrar médico: {nome}, {email}, UUID: {user_uuid}")
+            logger.info(f"Tentando cadastrar médico: {nome}, {email}")
             
             # Validações
-            if not all([nome, email, senha, especialidade, crm]):
-                flash('Nome, email, senha, especialidade e CRM são obrigatórios.', 'danger')
+            if not all([nome, email, senha, confirmar_senha, especialidade, crm]):
+                flash('Todos os campos marcados com * são obrigatórios.', 'danger')
+                return redirect(url_for('admin.cadastrar_medico'))
+            
+            if senha != confirmar_senha:
+                flash('As senhas não coincidem.', 'danger')
                 return redirect(url_for('admin.cadastrar_medico'))
             
             if len(senha) < 6:
@@ -147,29 +149,32 @@ def init_medicos_routes(admin_bp, mysql):
             try:
                 cur = mysql.connection.cursor()
                 
-                # 👇 GERAR HASH DA SENHA
-                senha_hash = generate_password_hash(senha)
-                logger.info(f"Senha criptografada gerada para {email}")
+                # Usando pbkdf2:sha256 (mesmo método do paciente)
+                senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
+                logger.info(f"Senha criptografada com pbkdf2:sha256 para {email}")
                 
-                # Inserir na tabela usuarios com UUID e senha HASH
+                # Inserir na tabela usuarios
                 cur.execute("""
-                    INSERT INTO usuarios (uuid, nome, email, senha, tipo, ativo, criado_em)
-                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
-                """, (user_uuid, nome, email, senha_hash, 'medico', True))
+                    INSERT INTO usuarios (uuid, nome, email, senha, telefone, tipo, ativo, criado_em)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                """, (user_uuid, nome, email, senha_hash, telefone, 'medico', True))
                 
                 mysql.connection.commit()
                 usuario_id = cur.lastrowid
                 
-                # Inserir na tabela medicos
+                # Inserir na tabela medicos com todos os campos
                 cur.execute("""
-                    INSERT INTO medicos (usuario_id, especialidade, crm, telefone, status)
-                    VALUES (%s, %s, %s, %s, %s)
-                """, (usuario_id, especialidade, crm, telefone, status))
+                    INSERT INTO medicos (usuario_id, especialidade, crm, telefone, status, data_nascimento, genero, endereco)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (usuario_id, especialidade, crm, telefone, status, 
+                      data_nascimento if data_nascimento else None,
+                      genero if genero else None,
+                      endereco if endereco else None))
                 
                 mysql.connection.commit()
                 cur.close()
                 
-                logger.info(f"Médico cadastrado com sucesso: ID {usuario_id}, UUID {user_uuid} - {nome}")
+                logger.info(f"Médico cadastrado com sucesso: ID {usuario_id}")
                 flash('Médico cadastrado com sucesso!', 'success')
                 return redirect(url_for('admin.medicos'))
                 
@@ -183,14 +188,13 @@ def init_medicos_routes(admin_bp, mysql):
         return render_template('admin/cadastrar_medico.html', user=session)
     
     # ======================================================================
-    # EDITAR MÉDICO (COM OPÇÃO DE ALTERAR SENHA)
+    # EDITAR MÉDICO
     # ======================================================================
     @admin_bp.route('/medicos/<int:medico_id>/editar', methods=['GET', 'POST'])
     @admin_required
     def editar_medico(medico_id):
-        """Edita um médico existente com todos os campos"""
+        """Edita um médico existente"""
         if request.method == 'POST':
-            # Receber todos os dados do formulário
             nome = request.form.get('nome', '').strip()
             email = request.form.get('email', '').strip().lower()
             especialidade = request.form.get('especialidade', '').strip()
@@ -199,49 +203,50 @@ def init_medicos_routes(admin_bp, mysql):
             status = request.form.get('status', 'ativo')
             ativo = 1 if request.form.get('ativo') else 0
             nova_senha = request.form.get('nova_senha', '').strip()
+            data_nascimento = request.form.get('data_nascimento', '').strip()
+            genero = request.form.get('genero', '').strip()
+            endereco = request.form.get('endereco', '').strip()
             
-            # Log para debug
-            logger.info(f"Editando médico ID {medico_id}: {nome}, {email}")
+            logger.info(f"Editando médico ID {medico_id}: {nome}")
             
-            # Validações
             if not all([nome, email, especialidade, crm]):
                 flash('Nome, email, especialidade e CRM são obrigatórios.', 'danger')
                 return redirect(url_for('admin.editar_medico', medico_id=medico_id))
             
             try:
-                # Se foi fornecida uma nova senha, atualizar com hash
+                # Atualizar senha se fornecida
                 if nova_senha:
                     if len(nova_senha) < 6:
                         flash('A nova senha deve ter pelo menos 6 caracteres.', 'danger')
                         return redirect(url_for('admin.editar_medico', medico_id=medico_id))
                     
-                    # 👇 GERAR HASH DA NOVA SENHA
-                    senha_hash = generate_password_hash(nova_senha)
+                    senha_hash = generate_password_hash(nova_senha, method='pbkdf2:sha256')
                     
-                    # Atualizar usuário com nova senha
                     execute_query("""
                         UPDATE usuarios 
-                        SET nome = %s, email = %s, senha = %s, ativo = %s
+                        SET nome = %s, email = %s, senha = %s, ativo = %s, telefone = %s
                         WHERE id = %s AND tipo = 'medico'
-                    """, (nome, email, senha_hash, ativo, medico_id))
+                    """, (nome, email, senha_hash, ativo, telefone, medico_id))
                     
                     logger.info(f"Senha atualizada para médico ID {medico_id}")
                 else:
-                    # Atualizar usuário sem alterar senha
                     execute_query("""
                         UPDATE usuarios 
-                        SET nome = %s, email = %s, ativo = %s
+                        SET nome = %s, email = %s, ativo = %s, telefone = %s
                         WHERE id = %s AND tipo = 'medico'
-                    """, (nome, email, ativo, medico_id))
+                    """, (nome, email, ativo, telefone, medico_id))
                 
-                # Atualizar médico com telefone e status
+                # Atualizar médico
                 execute_query("""
                     UPDATE medicos 
-                    SET especialidade = %s, crm = %s, telefone = %s, status = %s
+                    SET especialidade = %s, crm = %s, status = %s,
+                        data_nascimento = %s, genero = %s, endereco = %s
                     WHERE usuario_id = %s
-                """, (especialidade, crm, telefone, status, medico_id))
+                """, (especialidade, crm, status, 
+                      data_nascimento if data_nascimento else None,
+                      genero if genero else None,
+                      endereco if endereco else None, medico_id))
                 
-                logger.info(f"Médico atualizado com sucesso: ID {medico_id}")
                 flash('Médico atualizado com sucesso!', 'success')
                 return redirect(url_for('admin.medicos'))
                 
@@ -254,15 +259,8 @@ def init_medicos_routes(admin_bp, mysql):
         # Buscar dados do médico
         medico = execute_query("""
             SELECT 
-                u.id,        -- [0]
-                u.uuid,      -- [1]
-                u.nome,      -- [2]
-                u.email,     -- [3]
-                u.ativo,     -- [4]
-                m.especialidade,  -- [5]
-                m.crm,       -- [6]
-                m.telefone,  -- [7]
-                m.status     -- [8]
+                u.id, u.uuid, u.nome, u.email, u.ativo, u.telefone,
+                m.especialidade, m.crm, m.status, m.data_nascimento, m.genero, m.endereco
             FROM usuarios u
             JOIN medicos m ON u.id = m.usuario_id
             WHERE u.id = %s AND u.tipo = 'medico'
@@ -282,7 +280,7 @@ def init_medicos_routes(admin_bp, mysql):
     def visualizar_medico(medico_id):
         """Visualiza detalhes de um médico (API)"""
         try:
-            # PRIMEIRO: Buscar o ID do médico na tabela medicos
+            # Buscar o ID do médico na tabela medicos
             medico_data = execute_query("""
                 SELECT 
                     u.id as usuario_id,
@@ -292,10 +290,13 @@ def init_medicos_routes(admin_bp, mysql):
                     u.email, 
                     u.ativo, 
                     u.criado_em,
+                    u.telefone,
                     m.especialidade, 
                     m.crm, 
-                    m.telefone, 
-                    m.status
+                    m.status,
+                    m.data_nascimento,
+                    m.genero,
+                    m.endereco
                 FROM usuarios u
                 JOIN medicos m ON u.id = m.usuario_id
                 WHERE u.id = %s AND u.tipo = 'medico'
@@ -304,7 +305,7 @@ def init_medicos_routes(admin_bp, mysql):
             if not medico_data:
                 return jsonify({'error': 'Médico não encontrado'}), 404
             
-            # SEGUNDO: Buscar estatísticas usando o medico_id correto
+            # Buscar estatísticas usando o medico_id correto
             stats = execute_query("""
                 SELECT 
                     COUNT(*) as total,
@@ -316,18 +317,22 @@ def init_medicos_routes(admin_bp, mysql):
             
             # Formatar data de criação
             criado_em = medico_data['criado_em'].strftime('%d/%m/%Y %H:%M') if medico_data['criado_em'] else ''
+            data_nascimento = medico_data['data_nascimento'].strftime('%d/%m/%Y') if medico_data['data_nascimento'] else ''
             
             return jsonify({
                 'id': medico_data['usuario_id'],
                 'uuid': medico_data['uuid'],
                 'nome': medico_data['nome'],
                 'email': medico_data['email'],
+                'telefone': medico_data['telefone'] or 'Não informado',
                 'ativo': 'Sim' if medico_data['ativo'] else 'Não',
                 'criado_em': criado_em,
                 'especialidade': medico_data['especialidade'] or 'Não definida',
                 'crm': medico_data['crm'] or '---',
-                'telefone': medico_data['telefone'] or 'Não informado',
                 'status': medico_data['status'] or 'ativo',
+                'data_nascimento': data_nascimento or 'Não informada',
+                'genero': medico_data['genero'] or 'Não informado',
+                'endereco': medico_data['endereco'] or 'Não informado',
                 'total_consultas': stats['total'] if stats else 0,
                 'consultas_realizadas': stats['realizadas'] if stats else 0,
                 'consultas_canceladas': stats['canceladas'] if stats else 0
@@ -339,7 +344,7 @@ def init_medicos_routes(admin_bp, mysql):
             return jsonify({'error': 'Erro ao carregar dados'}), 500
     
     # ======================================================================
-    # EXCLUIR MÉDICO (CORRIGIDO)
+    # EXCLUIR MÉDICO
     # ======================================================================
     @admin_bp.route('/medicos/<int:medico_id>/excluir', methods=['POST'])
     @admin_required
