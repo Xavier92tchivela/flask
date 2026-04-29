@@ -53,14 +53,13 @@ def init_medicos_routes(admin_bp, mysql):
         return decorated_function
     
     # ======================================================================
-    # LISTAR MÉDICOS (CORRIGIDO - APENAS CAMPOS EXISTENTES)
+    # LISTAR MÉDICOS
     # ======================================================================
     @admin_bp.route('/medicos')
     @admin_required
     def medicos():
-        """Lista todos os médicos com todos os campos"""
+        """Lista todos os médicos"""
         try:
-            # Query SEM os campos que não existem na tabela medicos
             medicos = execute_query("""
                 SELECT 
                     u.id,
@@ -68,14 +67,14 @@ def init_medicos_routes(admin_bp, mysql):
                     u.nome,
                     u.email,
                     u.ativo,
-                    m.especialidade,
-                    m.crm,
-                    m.telefone,
-                    m.status,
+                    COALESCE(m.especialidade, 'Não informada') as especialidade,
+                    COALESCE(m.crm, '---') as crm,
+                    COALESCE(m.telefone, 'Não informado') as telefone,
+                    COALESCE(m.status, 'ativo') as status,
                     u.criado_em,
                     (SELECT COUNT(*) FROM consultas WHERE medico_id = m.id) as total_consultas
                 FROM usuarios u
-                JOIN medicos m ON u.id = m.usuario_id
+                INNER JOIN medicos m ON u.id = m.usuario_id
                 WHERE u.tipo = 'medico'
                 ORDER BY u.criado_em DESC
             """, fetch=True) or []
@@ -89,7 +88,7 @@ def init_medicos_routes(admin_bp, mysql):
             return render_template('admin/medicos.html', medicos=[], user=session)
     
     # ======================================================================
-    # CADASTRAR MÉDICO (APENAS CAMPOS EXISTENTES)
+    # CADASTRAR MÉDICO
     # ======================================================================
     @admin_bp.route('/medicos/cadastrar', methods=['GET', 'POST'])
     @admin_required
@@ -151,7 +150,7 @@ def init_medicos_routes(admin_bp, mysql):
                 senha_hash = generate_password_hash(senha, method='pbkdf2:sha256')
                 logger.info(f"Senha criptografada com pbkdf2:sha256 para {email}")
                 
-                # Inserir na tabela usuarios
+                # Inserir na tabela usuarios (sem telefone aqui)
                 cur.execute("""
                     INSERT INTO usuarios (uuid, nome, email, senha, tipo, ativo, criado_em)
                     VALUES (%s, %s, %s, %s, %s, %s, NOW())
@@ -160,7 +159,7 @@ def init_medicos_routes(admin_bp, mysql):
                 mysql.connection.commit()
                 usuario_id = cur.lastrowid
                 
-                # Inserir na tabela medicos (apenas campos que existem)
+                # Inserir na tabela medicos (telefone vai aqui)
                 cur.execute("""
                     INSERT INTO medicos (usuario_id, especialidade, crm, telefone, status)
                     VALUES (%s, %s, %s, %s, %s)
@@ -268,7 +267,6 @@ def init_medicos_routes(admin_bp, mysql):
     def visualizar_medico(medico_id):
         """Visualiza detalhes de um médico (API)"""
         try:
-            # Buscar dados do médico
             medico_data = execute_query("""
                 SELECT 
                     u.id as usuario_id,
@@ -300,7 +298,6 @@ def init_medicos_routes(admin_bp, mysql):
                 WHERE medico_id = %s
             """, (medico_data['medico_id'],), fetch=True, one=True)
             
-            # Formatar data
             criado_em = medico_data['criado_em'].strftime('%d/%m/%Y %H:%M') if medico_data['criado_em'] else ''
             
             return jsonify({
@@ -389,7 +386,7 @@ def init_medicos_routes(admin_bp, mysql):
                 'success': False, 
                 'error': f'Erro ao excluir médico: {str(e)}'
             }), 500
-
+    
     # ======================================================================
     # VERIFICAR EMAIL (AJAX)
     # ======================================================================
