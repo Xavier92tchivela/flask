@@ -563,7 +563,7 @@ def init_paciente(mysql, app):
         
         return render_template('paciente/perfil.html', user=session)
     
-    # ========== VISUALIZAR RECEITA ==========
+    # ========== VISUALIZAR RECEITA (CORRIGIDA) ==========
     @paciente_bp.route('/receita/<int:receita_id>')
     @paciente_required
     def visualizar_receita(receita_id):
@@ -575,7 +575,7 @@ def init_paciente(mysql, app):
         cur = mysql.connection.cursor()
         cur.execute("""
             SELECT r.id, COALESCE(r.diagnostico, '') as diagnostico, COALESCE(r.prescricao, '') as prescricao,
-                   r.created_at, c.id, c.data_hora, COALESCE(mu.nome, 'Médico') as medico_nome,
+                   r.created_at, r.consulta_id, c.data_hora, COALESCE(mu.nome, 'Médico') as medico_nome,
                    COALESCE(m.especialidade, 'Clínico Geral') as especialidade,
                    COALESCE(p_u.nome, 'Paciente') as paciente_nome
             FROM receita r
@@ -618,6 +618,11 @@ def init_paciente(mysql, app):
                 'especialidade': garantir_string(row[7]) if len(row) > 7 else 'Clínico Geral',
                 'paciente_nome': garantir_string(row[8]) if len(row) > 8 else 'Paciente'
             }
+        
+        # Verificação adicional para garantir que consulta_id existe
+        if not receita.get('consulta_id'):
+            logger.warning(f"Receita {receita_id} não tem consulta_id associado")
+            flash('Esta receita não está vinculada a uma consulta específica.', 'warning')
         
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
     
