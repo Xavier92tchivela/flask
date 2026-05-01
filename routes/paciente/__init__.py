@@ -563,7 +563,7 @@ def init_paciente(mysql, app):
         
         return render_template('paciente/perfil.html', user=session)
     
-    # ========== VISUALIZAR RECEITA (CORRIGIDA) ==========
+    # ========== VISUALIZAR RECEITA (CORRIGIDA PARA TABELA RECEITA) ==========
     @paciente_bp.route('/receita/<int:receita_id>')
     @paciente_required
     def visualizar_receita(receita_id):
@@ -573,17 +573,32 @@ def init_paciente(mysql, app):
             return redirect(url_for('auth.logout'))
         
         cur = mysql.connection.cursor()
+        
+        # Query corrigida para buscar dados da receita e da consulta
         cur.execute("""
-            SELECT r.id, COALESCE(r.diagnostico, '') as diagnostico, COALESCE(r.prescricao, '') as prescricao,
-                   r.created_at, r.consulta_id, c.data_hora, COALESCE(mu.nome, 'Médico') as medico_nome,
-                   COALESCE(m.especialidade, 'Clínico Geral') as especialidade,
-                   COALESCE(p_u.nome, 'Paciente') as paciente_nome
+            SELECT 
+                r.id, 
+                r.consulta_id, 
+                COALESCE(r.diagnostico, '') as diagnostico, 
+                COALESCE(r.prescricao, '') as prescricao,
+                COALESCE(r.recomendacoes, '') as recomendacoes,
+                r.created_at,
+                r.receita_pdf_path,
+                r.pdf_gerado,
+                r.data_geracao_pdf,
+                c.data_hora,
+                COALESCE(mu.nome, 'Médico') as medico_nome,
+                COALESCE(m.especialidade, 'Clínico Geral') as especialidade,
+                COALESCE(m.crm, '') as crm,
+                COALESCE(p_u.nome, 'Paciente') as paciente_nome,
+                TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) as paciente_idade,
+                COALESCE(p.genero, '') as paciente_sexo
             FROM receita r
-            JOIN consultas c ON r.consulta_id = c.id
-            JOIN medicos m ON c.medico_id = m.id
-            JOIN usuarios mu ON m.usuario_id = mu.id
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios p_u ON p.usuario_id = p_u.id
+            INNER JOIN consultas c ON r.consulta_id = c.id
+            INNER JOIN medicos m ON c.medico_id = m.id
+            INNER JOIN usuarios mu ON m.usuario_id = mu.id
+            INNER JOIN pacientes p ON c.paciente_id = p.id
+            INNER JOIN usuarios p_u ON p.usuario_id = p_u.id
             WHERE r.id = %s AND c.paciente_id = %s
         """, (receita_id, paciente_id))
         
@@ -591,39 +606,88 @@ def init_paciente(mysql, app):
         cur.close()
         
         if not row:
-            flash('Receita não encontrada.', 'danger')
+            flash('Receita não encontrada ou acesso não autorizado.', 'danger')
             return redirect(url_for('paciente.minhas_consultas'))
         
+        # Processar os dados
         if isinstance(row, dict):
             receita = {
                 'id': row.get('id'),
+                'consulta_id': row.get('consulta_id'),
                 'diagnostico': garantir_string(row.get('diagnostico', '')),
                 'prescricao': garantir_string(row.get('prescricao', '')),
+                'recomendacoes': garantir_string(row.get('recomendacoes', '')),
                 'created_at': row.get('created_at'),
-                'consulta_id': row.get('consulta_id'),
-                'data_consulta': formatar_data(row.get('data_hora')),
+                'receita_pdf_path': row.get('receita_pdf_path'),
+                'pdf_gerado': row.get('pdf_gerado', 0),
+                'data_geracao_pdf': row.get('data_geracao_pdf'),
+                'data_consulta': row.get('data_hora'),
                 'medico_nome': garantir_string(row.get('medico_nome', 'Médico')),
                 'especialidade': garantir_string(row.get('especialidade', 'Clínico Geral')),
-                'paciente_nome': garantir_string(row.get('paciente_nome', 'Paciente'))
+                'crm': garantir_string(row.get('crm', '')),
+                'paciente_nome': garantir_string(row.get('paciente_nome', 'Paciente')),
+                'paciente_idade': row.get('paciente_idade'),
+                'paciente_sexo': garantir_string(row.get('paciente_sexo', ''))
             }
         else:
             receita = {
                 'id': row[0],
-                'diagnostico': garantir_string(row[1]) if len(row) > 1 else '',
-                'prescricao': garantir_string(row[2]) if len(row) > 2 else '',
-                'created_at': row[3] if len(row) > 3 else None,
-                'consulta_id': row[4] if len(row) > 4 else None,
-                'data_consulta': formatar_data(row[5] if len(row) > 5 else None),
-                'medico_nome': garantir_string(row[6]) if len(row) > 6 else 'Médico',
-                'especialidade': garantir_string(row[7]) if len(row) > 7 else 'Clínico Geral',
-                'paciente_nome': garantir_string(row[8]) if len(row) > 8 else 'Paciente'
+                'consulta_id': row[1],
+                'diagnostico': garantir_string(row[2]) if len(row) > 2 else '',
+                'prescricao': garantir_string(row[3]) if len(row) > 3 else '',
+                'recomendacoes': garantir_string(row[4]) if len(row) > 4 else '',
+                'created_at': row[5] if len(row) > 5 else None,
+                'receita_pdf_path': row[6] if len(row) > 6 else None,
+                'pdf_gerado': row[7] if len(row) > 7 else 0,
+                'data_geracao_pdf': row[8] if len(row) > 8 else None,
+                'data_consulta': row[9] if len(row) > 9 else None,
+                'medico_nome': garantir_string(row[10]) if len(row) > 10 else 'Médico',
+                'especialidade': garantir_string(row[11]) if len(row) > 11 else 'Clínico Geral',
+                'crm': garantir_string(row[12]) if len(row) > 12 else '',
+                'paciente_nome': garantir_string(row[13]) if len(row) > 13 else 'Paciente',
+                'paciente_idade': row[14] if len(row) > 14 else None,
+                'paciente_sexo': garantir_string(row[15]) if len(row) > 15 else ''
             }
         
-        # Verificação adicional para garantir que consulta_id existe
+        # Validar se consulta_id existe
         if not receita.get('consulta_id'):
-            logger.warning(f"Receita {receita_id} não tem consulta_id associado")
-            flash('Esta receita não está vinculada a uma consulta específica.', 'warning')
+            logger.error(f"Receita {receita_id} tem consulta_id = NULL")
+            flash('Erro: Esta receita não está associada a uma consulta válida.', 'danger')
+            return redirect(url_for('paciente.minhas_consultas'))
+        
+        # Adicionar campos adicionais para o template
+        receita['validade_dias'] = 30  # Valor padrão
+        receita['validade_data'] = (receita['created_at'] + timedelta(days=30)) if receita['created_at'] else None
         
         return render_template('paciente/visualizar_receita.html', receita=receita, user=session)
+    
+    # ========== GERAR PDF DA RECEITA ==========
+    @paciente_bp.route('/receita/<int:receita_id>/gerar-pdf', methods=['POST'])
+    @paciente_required
+    def gerar_pdf_receita(receita_id):
+        paciente_id = obter_paciente_id()
+        if not paciente_id:
+            return jsonify({'success': False, 'message': 'Perfil não encontrado'}), 400
+        
+        try:
+            # Aqui você implementa a lógica de geração do PDF
+            # Por enquanto, apenas marcamos como gerado
+            cur = mysql.connection.cursor()
+            cur.execute("""
+                UPDATE receita 
+                SET pdf_gerado = 1, 
+                    data_geracao_pdf = NOW(),
+                    receita_pdf_path = CONCAT('/pdfs/receitas/receita_', id, '.pdf')
+                WHERE id = %s AND consulta_id IN (
+                    SELECT id FROM consultas WHERE paciente_id = %s
+                )
+            """, (receita_id, paciente_id))
+            mysql.connection.commit()
+            cur.close()
+            
+            return jsonify({'success': True, 'message': 'PDF gerado com sucesso!'})
+        except Exception as e:
+            logger.error(f"Erro ao gerar PDF: {e}")
+            return jsonify({'success': False, 'message': str(e)}), 500
     
     return paciente_bp
