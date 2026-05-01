@@ -45,8 +45,9 @@ def register_acoes_routes(bp, mysql):
                 return str(value)
         return value
 
-    # ===================== MÉDICO =====================
+    # ===================== MÉDICO ID CORRIGIDO =====================
     def get_medico_id():
+        """Obtém o ID do médico a partir do user_id na sessão"""
         try:
             # PEGAR O USER_ID DA SESSÃO
             user_id_raw = session.get("user_id")
@@ -60,10 +61,12 @@ def register_acoes_routes(bp, mysql):
                 print("ERRO: user_id não encontrado na sessão!")
                 return None
             
+            # Decodificar se for bytes
             if isinstance(user_id_raw, (bytes, bytearray)):
                 user_id_raw = user_id_raw.decode("utf-8", errors="ignore")
                 print(f"Após decode: {repr(user_id_raw)}")
             
+            # Converter para inteiro
             try:
                 user_id_int = int(user_id_raw)
                 print(f"user_id_int: {user_id_int}")
@@ -73,7 +76,7 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # VERIFICAR SE O USUÁRIO É MÉDICO
+            # VERIFICAR SE O USUÁRIO É MÉDICO (usando tupla)
             query_usuario = "SELECT id, tipo FROM usuarios WHERE id = %s"
             cursor.execute(query_usuario, (user_id_int,))
             usuario = cursor.fetchone()
@@ -83,9 +86,12 @@ def register_acoes_routes(bp, mysql):
                 cursor.close()
                 return None
             
-            tipo_usuario = usuario[1] if len(usuario) > 1 else None
+            # usuario[0] = id, usuario[1] = tipo
+            tipo_usuario = usuario[1]
             if isinstance(tipo_usuario, bytes):
                 tipo_usuario = tipo_usuario.decode('utf-8', errors='ignore')
+            
+            print(f"tipo_usuario: {tipo_usuario}")
             
             if tipo_usuario != 'medico':
                 print(f"ERRO: Usuário é do tipo '{tipo_usuario}', não é médico!")
