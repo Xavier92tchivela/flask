@@ -51,10 +51,8 @@ def register_acoes_routes(bp, mysql):
         if row is None:
             return None
         if isinstance(row, dict):
-            # É dicionário - usar a chave se fornecida, senão tentar índice convertido
             if key:
                 return row.get(key)
-            # Tenta converter índice para nome de campo comum
             field_names = ['id', 'tipo', 'nome', 'email', 'crm', 'especialidade', 'status', 
                           'paciente_nome', 'medico_nome', 'observacoes', 'diagnostico', 
                           'sintomas', 'data_hora', 'telefone', 'endereco']
@@ -62,16 +60,14 @@ def register_acoes_routes(bp, mysql):
                 return row.get(field_names[index])
             return None
         else:
-            # É tupla/lista - usar índice
             if index < len(row):
                 return row[index]
             return None
 
-    # ===================== MÉDICO ID CORRIGIDO (FUNCIONA COM DICT OU TUPLE) =====================
+    # ===================== MÉDICO ID =====================
     def get_medico_id():
         """Obtém o ID do médico a partir do user_id na sessão"""
         try:
-            # PEGAR O USER_ID DA SESSÃO
             user_id_raw = session.get("user_id")
             
             print("=" * 60)
@@ -83,12 +79,10 @@ def register_acoes_routes(bp, mysql):
                 print("ERRO: user_id não encontrado na sessão!")
                 return None
             
-            # Decodificar se for bytes
             if isinstance(user_id_raw, (bytes, bytearray)):
                 user_id_raw = user_id_raw.decode("utf-8", errors="ignore")
                 print(f"Após decode: {repr(user_id_raw)}")
             
-            # Converter para inteiro
             try:
                 user_id_int = int(user_id_raw)
                 print(f"user_id_int: {user_id_int}")
@@ -98,7 +92,6 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # VERIFICAR SE O USUÁRIO É MÉDICO
             query_usuario = "SELECT id, tipo FROM usuarios WHERE id = %s"
             cursor.execute(query_usuario, (user_id_int,))
             usuario = cursor.fetchone()
@@ -108,14 +101,11 @@ def register_acoes_routes(bp, mysql):
                 cursor.close()
                 return None
             
-            # 🔧 CORREÇÃO: Funciona com dicionário OU tupla
             tipo_usuario = None
             if isinstance(usuario, dict):
-                # É dicionário
                 tipo_usuario = usuario.get('tipo')
                 print(f"usuario é dict, tipo: {tipo_usuario}")
             else:
-                # É tupla
                 tipo_usuario = usuario[1] if len(usuario) > 1 else None
                 print(f"usuario é tuple, tipo: {tipo_usuario}")
             
@@ -129,7 +119,6 @@ def register_acoes_routes(bp, mysql):
                 cursor.close()
                 return None
             
-            # BUSCAR MÉDICO
             query_medico = "SELECT id FROM medicos WHERE usuario_id = %s"
             cursor.execute(query_medico, (user_id_int,))
             medico = cursor.fetchone()
@@ -139,7 +128,6 @@ def register_acoes_routes(bp, mysql):
                 print(f"ERRO: Médico não encontrado para usuario_id {user_id_int}!")
                 return None
             
-            # 🔧 CORREÇÃO: Funciona com dicionário OU tupla
             medico_id = None
             if isinstance(medico, dict):
                 medico_id = medico.get('id')
@@ -161,7 +149,6 @@ def register_acoes_routes(bp, mysql):
     def visualizar_consulta(consulta_id):
         """Rota para visualizar detalhes da consulta"""
         try:
-            # VERIFICAR LOGIN
             if 'user_id' not in session:
                 flash("Você precisa estar logado.", "danger")
                 return redirect(url_for("auth.login"))
@@ -173,7 +160,6 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # BUSCAR CONSULTA
             query = """
                 SELECT 
                     c.id, 
@@ -208,7 +194,6 @@ def register_acoes_routes(bp, mysql):
                 flash("Consulta não encontrada.", "danger")
                 return redirect(url_for("medico.consultas"))
             
-            # DECODIFICAR CAMPOS (funciona com dict ou tuple)
             if isinstance(consulta_raw, dict):
                 consulta = {
                     "id": consulta_raw.get('id'),
@@ -248,7 +233,6 @@ def register_acoes_routes(bp, mysql):
                     "paciente_email": decode_bytes(consulta_raw[15]) if isinstance(consulta_raw[15], bytes) else consulta_raw[15]
                 }
             
-            # CALCULAR IDADE
             if consulta.get("data_nascimento"):
                 today = datetime.now().date()
                 birth_date = consulta["data_nascimento"]
@@ -259,7 +243,6 @@ def register_acoes_routes(bp, mysql):
             else:
                 consulta["paciente_idade"] = None
             
-            # STATUS CLASS
             status_classes = {
                 'agendada': 'secondary',
                 'confirmada': 'primary',
@@ -269,9 +252,9 @@ def register_acoes_routes(bp, mysql):
             }
             consulta["status_class"] = status_classes.get(consulta["status"], 'secondary')
             
-            # VERIFICAR SE JÁ EXISTE INTERNAÇÃO
+            # VERIFICAR SE JÁ EXISTE INTERNAÇÃO (usando internacoes_pacientes)
             cursor.execute("""
-                SELECT id FROM internacoes 
+                SELECT id FROM internacoes_pacientes 
                 WHERE consulta_id = %s AND status = 'ativa'
             """, (consulta_id,))
             internacao = cursor.fetchone()
@@ -313,7 +296,6 @@ def register_acoes_routes(bp, mysql):
                         "data_afericao": s[2]
                     })
             
-            # BUSCAR SINTOMAS
             sintomas = []
             if consulta.get("sintomas"):
                 try:
@@ -344,12 +326,10 @@ def register_acoes_routes(bp, mysql):
     def internar_paciente(consulta_id):
 
         try:
-            # VERIFICAR SE USUÁRIO ESTÁ LOGADO
             if 'user_id' not in session:
                 flash("Você precisa estar logado para acessar esta página.", "danger")
                 return redirect(url_for("auth.login"))
             
-            # OBTER ID DO MÉDICO
             medico_id = get_medico_id()
 
             if not medico_id:
@@ -358,7 +338,6 @@ def register_acoes_routes(bp, mysql):
 
             cursor = mysql.connection.cursor()
 
-            # ===================== CONSULTA =====================
             query_consulta = """
                 SELECT 
                     c.id, 
@@ -392,7 +371,6 @@ def register_acoes_routes(bp, mysql):
                 flash("Consulta não encontrada ou não pertence a este médico.", "danger")
                 return redirect(url_for("medico.consultas"))
             
-            # DECODIFICAR CAMPOS (funciona com dict ou tuple)
             if isinstance(consulta_raw, dict):
                 consulta = {
                     "id": consulta_raw.get('id'),
@@ -425,36 +403,33 @@ def register_acoes_routes(bp, mysql):
             print(f"Consulta encontrada - Paciente: {consulta['paciente_nome']}")
             print(f"Status da consulta: {consulta['status']}")
 
-            # ===================== POST =====================
             if request.method == "POST":
 
-                # PEGAR DADOS DO FORMULÁRIO
                 leito_id_raw = request.form.get("leito_id", "")
                 tipo_raw = request.form.get("tipo_internacao", "")
                 diagnostico_raw = request.form.get("diagnostico", "")
                 observacoes_raw = request.form.get("observacoes", "")
+                enfermeiro_id_raw = request.form.get("enfermeiro_id", "")
 
-                # CONVERTER PARA STRING PURA
                 tipo_str = safe_str(tipo_raw)
                 diagnostico_str = safe_str(diagnostico_raw)
                 observacoes_str = safe_str(observacoes_raw)
+                enfermeiro_id_int = safe_int(enfermeiro_id_raw)
                 
-                # CONVERTER LEITO_ID PARA INTEIRO
                 leito_id_str = safe_str(leito_id_raw)
                 try:
                     leito_id_int = int(leito_id_str) if leito_id_str.isdigit() else None
                 except:
                     leito_id_int = None
 
-                # DEBUG
                 print("=" * 60)
                 print("=== DADOS DO POST ===")
                 print(f"leito_id_int: {leito_id_int}")
+                print(f"enfermeiro_id_int: {enfermeiro_id_int}")
                 print(f"tipo_str: {repr(tipo_str)}")
                 print(f"diagnostico_str: {repr(diagnostico_str)}")
                 print("=" * 60)
 
-                # VALIDAÇÕES
                 if leito_id_int is None:
                     flash("Selecione um leito válido.", "danger")
                     return redirect(request.url)
@@ -463,7 +438,6 @@ def register_acoes_routes(bp, mysql):
                     flash("Preencha todos os campos obrigatórios.", "danger")
                     return redirect(request.url)
 
-                # VERIFICAR LEITO DISPONÍVEL
                 cursor.execute("""
                     SELECT id, alas, numero FROM leitos
                     WHERE id = %s AND status = 'disponivel'
@@ -480,17 +454,19 @@ def register_acoes_routes(bp, mysql):
                     
                     cursor_insert = mysql.connection.cursor()
                     
+                    # ALTERADO: usando internacoes_pacientes
                     query_insert = """
-                        INSERT INTO internacoes 
-                        (paciente_id, medico_responsavel_id, leito_id, consulta_id,
+                        INSERT INTO internacoes_pacientes 
+                        (paciente_id, medico_responsavel_id, enfermeiro_responsavel_id, leito_id, consulta_id,
                          data_internacao, tipo_internacao, diagnostico_inicial,
                          observacoes, status, numero_prontuario)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
                     
                     valores = (
                         int(consulta["paciente_id"]),
                         int(medico_id),
+                        enfermeiro_id_int if enfermeiro_id_int else None,
                         leito_id_int,
                         int(consulta_id),
                         datetime.now(),
@@ -509,14 +485,12 @@ def register_acoes_routes(bp, mysql):
                     
                     print(f"Internação criada com ID: {internacao_id}")
                     
-                    # ATUALIZAR STATUS DO LEITO
                     cursor_insert.execute("""
                         UPDATE leitos 
                         SET status = 'ocupado' 
                         WHERE id = %s
                     """, (leito_id_int,))
                     
-                    # ATUALIZAR STATUS DA CONSULTA
                     cursor_insert.execute("""
                         UPDATE consultas 
                         SET status = 'internado' 
@@ -529,7 +503,6 @@ def register_acoes_routes(bp, mysql):
                     
                     flash(f"Internação realizada com sucesso! Prontuário: {numero_prontuario}", "success")
                     
-                    # REDIRECIONAR PARA VISUALIZAR A CONSULTA
                     return redirect(f"/medico/consulta/{consulta_id}/visualizar")
                     
                 except pymysql.Error as e:
@@ -559,7 +532,6 @@ def register_acoes_routes(bp, mysql):
                     flash(f"Erro ao realizar internação: {str(e)}", "danger")
                     return redirect(request.url)
 
-            # ===================== GET =====================
             # Buscar leitos disponíveis
             cursor.execute("""
                 SELECT id, alas, numero, tipo
@@ -586,12 +558,38 @@ def register_acoes_routes(bp, mysql):
                         "tipo": decode_bytes(leito[3]) if isinstance(leito[3], bytes) else leito[3]
                     })
             
+            # Buscar enfermeiros disponíveis
+            cursor.execute("""
+                SELECT e.id, u.nome, e.especialidade 
+                FROM enfermeiros e
+                JOIN usuarios u ON e.usuario_id = u.id
+                WHERE e.ativo = 1
+                ORDER BY u.nome
+            """)
+            
+            enfermeiros = cursor.fetchall()
+            enfermeiros_list = []
+            for enf in enfermeiros:
+                if isinstance(enf, dict):
+                    enfermeiros_list.append({
+                        "id": enf.get('id'),
+                        "nome": decode_bytes(enf.get('nome')),
+                        "especialidade": decode_bytes(enf.get('especialidade'))
+                    })
+                else:
+                    enfermeiros_list.append({
+                        "id": enf[0],
+                        "nome": decode_bytes(enf[1]) if isinstance(enf[1], bytes) else enf[1],
+                        "especialidade": decode_bytes(enf[2]) if isinstance(enf[2], bytes) else enf[2]
+                    })
+            
             cursor.close()
 
             return render_template(
                 "medico/internacao/internar_paciente.html",
                 consulta=consulta,
-                leitos_disponiveis=leitos_list
+                leitos_disponiveis=leitos_list,
+                enfermeiros_disponiveis=enfermeiros_list
             )
 
         except Exception as e:
@@ -609,7 +607,6 @@ def register_acoes_routes(bp, mysql):
     def pacientes_internados():
         """Lista todos os pacientes internados"""
         try:
-            # VERIFICAR SE USUÁRIO ESTÁ LOGADO
             if 'user_id' not in session:
                 flash("Você precisa estar logado.", "danger")
                 return redirect(url_for("auth.login"))
@@ -621,7 +618,7 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # Buscar todos os pacientes internados
+            # ALTERADO: usando internacoes_pacientes
             query = """
                 SELECT 
                     i.id,
@@ -638,13 +635,16 @@ def register_acoes_routes(bp, mysql):
                     mu.nome as medico_nome,
                     l.alas,
                     l.numero as leito_numero,
-                    l.tipo as leito_tipo
-                FROM internacoes i
+                    l.tipo as leito_tipo,
+                    eu.nome as enfermeiro_nome
+                FROM internacoes_pacientes i
                 JOIN pacientes p ON i.paciente_id = p.id
                 JOIN usuarios u ON p.usuario_id = u.id
                 JOIN medicos m ON i.medico_responsavel_id = m.id
                 JOIN usuarios mu ON m.usuario_id = mu.id
                 JOIN leitos l ON i.leito_id = l.id
+                LEFT JOIN enfermeiros e ON i.enfermeiro_responsavel_id = e.id
+                LEFT JOIN usuarios eu ON e.usuario_id = eu.id
                 WHERE i.status = 'ativa'
                 ORDER BY i.data_internacao DESC
             """
@@ -698,7 +698,8 @@ def register_acoes_routes(bp, mysql):
                         "medico_nome": decode_bytes(internacao.get('medico_nome')),
                         "leito_alas": decode_bytes(internacao.get('leito_alas')),
                         "leito_numero": internacao.get('leito_numero'),
-                        "leito_tipo": decode_bytes(internacao.get('leito_tipo'))
+                        "leito_tipo": decode_bytes(internacao.get('leito_tipo')),
+                        "enfermeiro_nome": decode_bytes(internacao.get('enfermeiro_nome'))
                     })
                 else:
                     pacientes_internados_lista.append({
@@ -716,7 +717,8 @@ def register_acoes_routes(bp, mysql):
                         "medico_nome": decode_bytes(internacao[11]) if isinstance(internacao[11], bytes) else internacao[11],
                         "leito_alas": decode_bytes(internacao[12]) if isinstance(internacao[12], bytes) else internacao[12],
                         "leito_numero": internacao[13],
-                        "leito_tipo": decode_bytes(internacao[14]) if isinstance(internacao[14], bytes) else internacao[14]
+                        "leito_tipo": decode_bytes(internacao[14]) if isinstance(internacao[14], bytes) else internacao[14],
+                        "enfermeiro_nome": decode_bytes(internacao[15]) if len(internacao) > 15 and internacao[15] else None
                     })
             
             cursor.close()
@@ -742,7 +744,6 @@ def register_acoes_routes(bp, mysql):
     def dar_alta(internacao_id):
         """Dar alta a um paciente internado"""
         try:
-            # VERIFICAR SE USUÁRIO ESTÁ LOGADO
             if 'user_id' not in session:
                 return jsonify({"success": False, "error": "Não autorizado"}), 401
             
@@ -756,15 +757,14 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # Verificar se a internação existe
-            cursor.execute("SELECT id, leito_id, consulta_id FROM internacoes WHERE id = %s AND status = 'ativa'", (internacao_id,))
+            # ALTERADO: usando internacoes_pacientes
+            cursor.execute("SELECT id, leito_id, consulta_id FROM internacoes_pacientes WHERE id = %s AND status = 'ativa'", (internacao_id,))
             internacao = cursor.fetchone()
             
             if not internacao:
                 cursor.close()
                 return jsonify({"success": False, "error": "Internação não encontrada ou já encerrada"}), 404
             
-            # Funciona com dict ou tuple
             if isinstance(internacao, dict):
                 leito_id = internacao.get('leito_id')
                 consulta_id = internacao.get('consulta_id')
@@ -772,9 +772,9 @@ def register_acoes_routes(bp, mysql):
                 leito_id = internacao[1] if len(internacao) > 1 else None
                 consulta_id = internacao[2] if len(internacao) > 2 else None
             
-            # Atualizar internação
+            # ALTERADO: usando internacoes_pacientes
             cursor.execute("""
-                UPDATE internacoes 
+                UPDATE internacoes_pacientes 
                 SET status = 'alta', 
                     data_alta = %s,
                     diagnostico_final = %s,
@@ -782,11 +782,9 @@ def register_acoes_routes(bp, mysql):
                 WHERE id = %s
             """, (datetime.now(), diagnostico_final, observacoes_alta, internacao_id))
             
-            # Liberar leito
             if leito_id:
                 cursor.execute("UPDATE leitos SET status = 'disponivel' WHERE id = %s", (leito_id,))
             
-            # Atualizar status da consulta (se houver)
             if consulta_id:
                 cursor.execute("UPDATE consultas SET status = 'realizada' WHERE id = %s", (consulta_id,))
             
@@ -805,13 +803,13 @@ def register_acoes_routes(bp, mysql):
     def detalhes_internacao(internacao_id):
         """Rota para visualizar detalhes da internação"""
         try:
-            # VERIFICAR SE USUÁRIO ESTÁ LOGADO
             if 'user_id' not in session:
                 flash("Você precisa estar logado para acessar esta página.", "danger")
                 return redirect(url_for("auth.login"))
             
             cursor = mysql.connection.cursor()
             
+            # ALTERADO: usando internacoes_pacientes
             query = """
                 SELECT 
                     i.id,
@@ -828,13 +826,16 @@ def register_acoes_routes(bp, mysql):
                     mu.nome as medico_nome,
                     l.alas,
                     l.numero as leito_numero,
-                    l.tipo as leito_tipo
-                FROM internacoes i
+                    l.tipo as leito_tipo,
+                    eu.nome as enfermeiro_nome
+                FROM internacoes_pacientes i
                 JOIN pacientes p ON i.paciente_id = p.id
                 JOIN usuarios u ON p.usuario_id = u.id
                 JOIN medicos m ON i.medico_responsavel_id = m.id
                 JOIN usuarios mu ON m.usuario_id = mu.id
                 JOIN leitos l ON i.leito_id = l.id
+                LEFT JOIN enfermeiros e ON i.enfermeiro_responsavel_id = e.id
+                LEFT JOIN usuarios eu ON e.usuario_id = eu.id
                 WHERE i.id = %s
             """
             
@@ -846,7 +847,6 @@ def register_acoes_routes(bp, mysql):
                 flash("Internação não encontrada.", "danger")
                 return redirect(url_for("medico.consultas"))
             
-            # Decodificar campos (funciona com dict ou tuple)
             if isinstance(internacao_raw, dict):
                 internacao = {
                     "id": internacao_raw.get('id'),
@@ -863,7 +863,8 @@ def register_acoes_routes(bp, mysql):
                     "medico_nome": decode_bytes(internacao_raw.get('medico_nome')),
                     "leito_alas": decode_bytes(internacao_raw.get('leito_alas')),
                     "leito_numero": internacao_raw.get('leito_numero'),
-                    "leito_tipo": decode_bytes(internacao_raw.get('leito_tipo'))
+                    "leito_tipo": decode_bytes(internacao_raw.get('leito_tipo')),
+                    "enfermeiro_nome": decode_bytes(internacao_raw.get('enfermeiro_nome'))
                 }
             else:
                 internacao = {
@@ -881,7 +882,8 @@ def register_acoes_routes(bp, mysql):
                     "medico_nome": decode_bytes(internacao_raw[11]) if isinstance(internacao_raw[11], bytes) else internacao_raw[11],
                     "leito_alas": decode_bytes(internacao_raw[12]) if isinstance(internacao_raw[12], bytes) else internacao_raw[12],
                     "leito_numero": internacao_raw[13],
-                    "leito_tipo": decode_bytes(internacao_raw[14]) if isinstance(internacao_raw[14], bytes) else internacao_raw[14]
+                    "leito_tipo": decode_bytes(internacao_raw[14]) if isinstance(internacao_raw[14], bytes) else internacao_raw[14],
+                    "enfermeiro_nome": decode_bytes(internacao_raw[15]) if len(internacao_raw) > 15 and internacao_raw[15] else None
                 }
             
             return render_template(
