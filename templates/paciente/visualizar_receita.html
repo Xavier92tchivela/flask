@@ -12,31 +12,24 @@
         </h4>
 
         <div class="btn-group btn-group-sm" role="group">
-            <!-- Botão Voltar para Consulta - CORRIGIDO -->
-            <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=receita.consulta_id) }}" 
-               class="btn btn-outline-secondary" 
-               title="Voltar para Consulta">
-                <i class="fas fa-arrow-left"></i>
-            </a>
-
-            {% if receita.pdf_gerado %}
-                {% if receita.receita_pdf_path %}
-                <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita.id) }}" 
-                   class="btn btn-primary" 
-                   title="Download PDF"
-                   download>
-                    <i class="fas fa-download"></i>
+            <!-- Botão Voltar para Consulta - CORRIGIDO COM VERIFICAÇÃO -->
+            {% if receita.consulta_id %}
+                <a href="{{ url_for('paciente.detalhes_consulta', consulta_id=receita.consulta_id) }}" 
+                   class="btn btn-outline-secondary" 
+                   title="Voltar para Consulta">
+                    <i class="fas fa-arrow-left"></i>
                 </a>
-                {% else %}
-                <button onclick="gerarPDF()" class="btn btn-warning" title="Gerar PDF agora">
-                    <i class="fas fa-file-pdf"></i>
-                </button>
-                {% endif %}
             {% else %}
+                <a href="{{ url_for('paciente.minhas_consultas') }}" 
+                   class="btn btn-outline-secondary" 
+                   title="Voltar para Consultas">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+            {% endif %}
+
             <button onclick="gerarPDF()" class="btn btn-secondary" title="Gerar PDF">
                 <i class="fas fa-file-pdf"></i>
             </button>
-            {% endif %}
 
             <button onclick="window.print()" class="btn btn-info" title="Imprimir">
                 <i class="fas fa-print"></i>
