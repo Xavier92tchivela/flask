@@ -83,8 +83,64 @@
                         </div>
                     </div>
 
-                    <!-- Conteúdo da Receita -->
-                    <div class="receita-content p-2 p-md-4 mb-3 mb-md-4">
+                    <!-- DIAGNÓSTICO -->
+                    <div class="mb-3 mb-md-4">
+                        <label class="fw-bold small text-muted mb-2"><i class="fas fa-stethoscope me-1"></i>DIAGNÓSTICO</label>
+                        <div class="p-2 p-md-3 bg-light rounded-3">
+                            {{ pedido.diagnostico_final or pedido.diagnostico_analista or pedido.diagnostico_ia or 'Não informado' }}
+                        </div>
+                    </div>
+
+                    <!-- MEDICAMENTOS - SEÇÃO EDITÁVEL -->
+                    <div class="mb-3 mb-md-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <label class="fw-bold small text-muted"><i class="fas fa-pills me-1"></i>MEDICAMENTOS PRESCRITOS</label>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="btnAdicionarMedicamento" data-bs-toggle="modal" data-bs-target="#modalAdicionarMedicamento">
+                                <i class="fas fa-plus me-1"></i>Adicionar Medicamento
+                            </button>
+                        </div>
+                        
+                        <div id="listaMedicamentos" class="mb-3">
+                            {% if medicamentos and medicamentos|length > 0 %}
+                                {% for item in medicamentos %}
+                                <div class="medicamento-item card mb-2 border-start border-4 border-primary">
+                                    <div class="card-body p-2 p-md-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div>
+                                                <h6 class="mb-1 fw-bold">{{ item.nome }}</h6>
+                                                <p class="mb-1 small text-muted">
+                                                    <strong>Dosagem:</strong> {{ item.dosagem }} |
+                                                    <strong>Duração:</strong> {{ item.duracao }} |
+                                                    <strong>Frequência:</strong> {{ item.frequencia }}
+                                                </p>
+                                                {% if item.instrucoes %}
+                                                <p class="mb-0 small"><strong>Instruções:</strong> {{ item.instrucoes }}</p>
+                                                {% endif %}
+                                            </div>
+                                            <button class="btn btn-sm btn-outline-danger btn-remover-medicamento" data-id="{{ loop.index0 }}" title="Remover">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-secondary text-center py-3" id="semMedicamentosMsg">
+                                    <i class="fas fa-prescription-bottle fa-2x mb-2 d-block"></i>
+                                    <p class="mb-0">Nenhum medicamento adicionado. Clique em "Adicionar Medicamento" para prescrever.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Observações da Receita -->
+                        <div class="mt-3">
+                            <label class="fw-bold small text-muted mb-2"><i class="fas fa-notes-medical me-1"></i>OBSERVAÇÕES / RECOMENDAÇÕES</label>
+                            <textarea id="observacoesReceita" class="form-control" rows="3" placeholder="Instruções adicionais, orientações, contraindicações...">{{ observacoes_receita or '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <!-- Conteúdo da Receita (texto completo - automático) -->
+                    <div class="receita-content p-2 p-md-4 mb-3 mb-md-4" id="conteudoReceita">
                         {{ receita|replace('\n', '<br>')|safe }}
                     </div>
 
@@ -102,6 +158,18 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Botão Salvar Alterações -->
+            <div class="card shadow mb-3 mb-md-4">
+                <div class="card-body p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <span class="small text-muted">
+                        <i class="fas fa-save me-1"></i> As alterações são salvas automaticamente
+                    </span>
+                    <button type="button" class="btn btn-success" id="btnSalvarReceita">
+                        <i class="fas fa-save me-2"></i>Salvar Alterações
+                    </button>
+                </div>
+            </div>
         </div>
 
         <div class="col-12 col-lg-4">
@@ -112,33 +180,9 @@
                 </div>
                 <div class="card-body p-2 p-md-4">
                     <div class="d-grid gap-2">
-                        <!-- BOTÃO EDITAR -->
-                        <a href="{{ url_for('medico.editar_receita', receita_id=receita_id) }}" 
-                           class="btn btn-warning btn-sm btn-md py-2">
-                            <i class="fas fa-edit me-2"></i>Editar Receita
-                        </a>
-
-                        {% if pdf_path %}
-                        <div class="btn-group d-flex flex-column flex-sm-row">
-                            <a href="{{ url_for('static', filename='receitas/' + pdf_path) }}" 
-                               class="btn btn-primary btn-sm flex-fill" target="_blank">
-                                <i class="fas fa-file-pdf me-2"></i>Visualizar
-                            </a>
-                            <a href="{{ url_for('static', filename='receitas/' + pdf_path) }}" 
-                               class="btn btn-success btn-sm flex-fill" download>
-                                <i class="fas fa-download me-2"></i>Baixar
-                            </a>
-                        </div>
-                        {% endif %}
-                        
                         <button onclick="window.print()" class="btn btn-info btn-sm btn-md py-2">
                             <i class="fas fa-print me-2"></i>Imprimir
                         </button>
-                        
-                        <a href="{{ url_for('medico.ver_receita', receita_id=receita_id) }}" 
-                           class="btn btn-outline-primary btn-sm btn-md py-2">
-                            <i class="fas fa-eye me-2"></i>Ver Detalhes
-                        </a>
                         
                         <a href="{{ url_for('medico.ver_detalhes_pedido', pedido_id=pedido.id) }}" 
                            class="btn btn-outline-secondary btn-sm btn-md py-2">
@@ -171,25 +215,79 @@
                         <strong class="small">{{ pedido.tipo_exame }}</strong>
                     </div>
                     <div class="info-item d-flex justify-content-between mb-2 pb-1 border-bottom">
-                        <small class="text-muted">Fonte:</small>
-                        <strong class="small">{{ pedido.fonte_diagnostico }}</strong>
-                    </div>
-                    <div class="info-item d-flex justify-content-between mb-2 pb-1 border-bottom">
                         <small class="text-muted">Gemini AI:</small>
                         <span class="badge bg-{{ 'success' if gemini_available else 'secondary' }}">{{ 'Utilizado' if gemini_available else 'Indisponível' }}</span>
                     </div>
                     
-                    <!-- Resumo de Sintomas -->
-                    {% if pedido.sintomas_lista %}
                     <div class="mt-2 pt-2 border-top">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Sintomas:</small>
-                            <span class="badge bg-info">{{ pedido.sintomas_lista|length }}</span>
-                        </div>
+                        <small class="text-muted">Medicamentos:</small>
+                        <strong class="badge bg-primary ms-2" id="contadorMedicamentos">{{ medicamentos|length if medicamentos else 0 }}</strong>
                     </div>
-                    {% endif %}
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA ADICIONAR MEDICAMENTO -->
+<div class="modal fade" id="modalAdicionarMedicamento" tabindex="-1" aria-labelledby="modalAdicionarMedicamentoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalAdicionarMedicamentoLabel">
+                    <i class="fas fa-prescription me-2"></i>Adicionar Medicamento
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formAdicionarMedicamento">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome do Medicamento *</label>
+                        <input type="text" class="form-control" id="medicamentoNome" required placeholder="Ex: Paracetamol 500mg, Amoxicilina, Ibuprofeno...">
+                        <small class="text-muted">Digite o nome comercial ou princípio ativo</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Dosagem</label>
+                            <input type="text" class="form-control" id="medicamentoDosagem" placeholder="Ex: 1 comprimido, 500mg, 10ml...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Frequência</label>
+                            <select class="form-select" id="medicamentoFrequencia">
+                                <option value="">Selecione...</option>
+                                <option value="12/12h">12/12h</option>
+                                <option value="8/8h">8/8h</option>
+                                <option value="6/6h">6/6h</option>
+                                <option value="1x ao dia">1x ao dia</option>
+                                <option value="2x ao dia">2x ao dia</option>
+                                <option value="3x ao dia">3x ao dia</option>
+                                <option value="1x por semana">1x por semana</option>
+                                <option value="Conforme necessidade">Conforme necessidade</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Duração do Tratamento</label>
+                            <input type="text" class="form-control" id="medicamentoDuracao" placeholder="Ex: 7 dias, 30 dias, uso contínuo...">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Quantidade</label>
+                            <input type="text" class="form-control" id="medicamentoQuantidade" placeholder="Ex: 14 comprimidos, 1 frasco...">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Instruções Especiais</label>
+                        <textarea class="form-control" id="medicamentoInstrucoes" rows="2" placeholder="Ex: Tomar após as refeições, evitar bebida alcoólica..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="btnConfirmarMedicamento">
+                        <i class="fas fa-plus me-1"></i>Adicionar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -211,7 +309,7 @@
         margin: 0;
         padding: 15px;
     }
-    .btn, nav, footer, .col-lg-4, .alert {
+    .btn, nav, footer, .col-lg-4, .alert, .modal, .modal-backdrop {
         display: none !important;
     }
 }
@@ -233,116 +331,61 @@
     }
 }
 
+.medicamento-item {
+    transition: all 0.2s ease;
+}
+
+.medicamento-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-remover-medicamento {
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.btn-remover-medicamento:hover {
+    opacity: 1;
+}
+
+/* Ajustes para mobile */
 @media (max-width: 768px) {
     .receita-content {
         font-size: 0.85rem;
         padding: 0.75rem !important;
         border-left-width: 3px;
     }
-}
-
-.badge.bg-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-    box-shadow: 0 2px 8px rgba(23,162,184,0.2);
-    transition: all 0.2s ease;
-    font-size: 0.8rem;
-}
-
-@media (min-width: 768px) {
-    .badge.bg-info {
-        font-size: 0.9rem;
-        box-shadow: 0 3px 10px rgba(23,162,184,0.3);
-    }
-    
-    .badge.bg-info:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(23,162,184,0.4);
-    }
-}
-
-.alert-info {
-    background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
-    border: none;
-    border-left: 4px solid #17a2b8;
-}
-
-@media (max-width: 768px) {
-    .alert-info {
-        border-left-width: 3px;
-    }
-    
-    .alert-success {
-        border-left-width: 3px;
-    }
-}
-
-/* Ajustes para breadcrumb */
-.breadcrumb {
-    font-size: 0.8rem;
-    padding: 0.5rem 0.75rem;
-    flex-wrap: wrap;
-}
-
-@media (min-width: 768px) {
-    .breadcrumb {
-        font-size: 0.9rem;
-        padding: 0.75rem 1rem;
-    }
-}
-
-/* Ajustes para botões em mobile */
-@media (max-width: 768px) {
-    .btn-group {
-        display: flex;
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .btn-group .btn {
-        border-radius: 0.25rem !important;
-        margin: 0 !important;
-    }
-    
-    .btn-group .btn:first-child {
-        border-bottom-left-radius: 0 !important;
-        border-bottom-right-radius: 0 !important;
-    }
-    
-    .btn-group .btn:last-child {
-        border-top-left-radius: 0 !important;
-        border-top-right-radius: 0 !important;
-    }
     
     .btn {
         padding: 0.6rem 0.75rem;
         font-size: 0.85rem;
         min-height: 44px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
     }
     
-    .btn i {
-        font-size: 1rem;
+    .modal .modal-dialog {
+        margin: 1rem;
     }
     
-    .d-grid.gap-2 {
-        gap: 0.5rem !important;
+    .modal-body {
+        padding: 1rem;
     }
     
-    /* Ajustes para informações */
+    .medicamento-item .card-body {
+        padding: 0.75rem;
+    }
+    
+    .medicamento-item h6 {
+        font-size: 0.9rem;
+    }
+    
+    .medicamento-item p {
+        font-size: 0.75rem;
+    }
+    
     .info-item {
         flex-direction: column;
         align-items: flex-start !important;
-    }
-    
-    .info-item small,
-    .info-item strong {
-        width: 100%;
-    }
-    
-    .info-item strong {
-        margin-top: 0.25rem;
     }
 }
 
@@ -351,132 +394,188 @@
     .h4-md {
         font-size: 1.25rem !important;
     }
-    
     .h5-md {
         font-size: 1.1rem !important;
     }
-    
     .h6-md {
         font-size: 0.95rem !important;
     }
-    
-    .btn-md {
-        font-size: 0.9rem;
-        padding: 0.5rem 1rem;
-    }
-    
-    .small {
-        font-size: 0.85rem;
-    }
-}
-
-/* Touch optimizations */
-@media (max-width: 768px) {
-    .btn, 
-    .badge,
-    .breadcrumb-item a {
-        -webkit-tap-highlight-color: transparent;
-    }
-    
-    .btn:active {
-        transform: scale(0.98);
-    }
-    
-    .alert {
-        padding: 0.75rem;
-    }
-    
-    /* Área de clique maior para badges */
-    .badge {
-        padding: 0.4rem 0.8rem;
-        min-height: 36px;
-        display: inline-flex;
-        align-items: center;
-    }
-    
-    /* Prevenir zoom em inputs */
-    select, input, textarea {
-        font-size: 16px !important;
-    }
-}
-
-/* Ajustes para telas muito pequenas */
-@media (max-width: 375px) {
-    .container-fluid {
-        padding-left: 0.5rem;
-        padding-right: 0.5rem;
-    }
-    
-    .breadcrumb {
-        font-size: 0.7rem;
-        padding: 0.4rem 0.5rem;
-    }
-    
-    .btn {
-        font-size: 0.8rem;
-        padding: 0.5rem;
-    }
-    
-    .badge {
-        font-size: 0.7rem;
-    }
-    
-    .small {
-        font-size: 0.7rem;
-    }
-    
-    .receita-content {
-        font-size: 0.8rem;
-    }
-}
-
-/* Safe area support */
-@supports (padding: max(0px)) {
-    .container-fluid {
-        padding-left: max(10px, env(safe-area-inset-left));
-        padding-right: max(10px, env(safe-area-inset-right));
-    }
-}
-
-/* Melhorias de acessibilidade */
-.btn:focus-visible,
-a:focus-visible {
-    outline: 2px solid #0d6efd;
-    outline-offset: 2px;
-}
-
-/* Animações */
-.info-item {
-    transition: background-color 0.2s ease;
-}
-
-.info-item:hover {
-    background-color: #f8f9fa;
-}
-
-/* Loading state */
-.btn.loading {
-    opacity: 0.7;
-    pointer-events: none;
-}
-
-/* Ajustes para card de receita */
-.card-header.bg-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-}
-
-.card-header.bg-success {
-    background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;
-}
-
-.card-header.bg-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Página de receita gerada carregada');
+    let medicamentos = [];
+    
+    // Carregar medicamentos existentes
+    {% if medicamentos %}
+    medicamentos = {{ medicamentos|tojson|safe }};
+    atualizarListaMedicamentos();
+    {% endif %}
+    
+    // Função para atualizar a lista de medicamentos na tela
+    function atualizarListaMedicamentos() {
+        const container = document.getElementById('listaMedicamentos');
+        const contador = document.getElementById('contadorMedicamentos');
+        
+        if (medicamentos.length === 0) {
+            container.innerHTML = `
+                <div class="alert alert-secondary text-center py-3" id="semMedicamentosMsg">
+                    <i class="fas fa-prescription-bottle fa-2x mb-2 d-block"></i>
+                    <p class="mb-0">Nenhum medicamento adicionado. Clique em "Adicionar Medicamento" para prescrever.</p>
+                </div>
+            `;
+            if (contador) contador.textContent = '0';
+            return;
+        }
+        
+        let html = '';
+        medicamentos.forEach((med, index) => {
+            html += `
+                <div class="medicamento-item card mb-2 border-start border-4 border-primary">
+                    <div class="card-body p-2 p-md-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div style="flex:1">
+                                <h6 class="mb-1 fw-bold">${escapeHtml(med.nome)}</h6>
+                                <p class="mb-1 small text-muted">
+                                    <strong>Dosagem:</strong> ${escapeHtml(med.dosagem || '---')} |
+                                    <strong>Frequência:</strong> ${escapeHtml(med.frequencia || '---')} |
+                                    <strong>Duração:</strong> ${escapeHtml(med.duracao || '---')}
+                                    ${med.quantidade ? `| <strong>Quantidade:</strong> ${escapeHtml(med.quantidade)}` : ''}
+                                </p>
+                                ${med.instrucoes ? `<p class="mb-0 small"><strong>Instruções:</strong> ${escapeHtml(med.instrucoes)}</p>` : ''}
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger btn-remover-medicamento ms-2" data-index="${index}" title="Remover">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+        if (contador) contador.textContent = medicamentos.length;
+        
+        // Adicionar eventos de remoção
+        document.querySelectorAll('.btn-remover-medicamento').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const index = parseInt(this.dataset.index);
+                medicamentos.splice(index, 1);
+                atualizarListaMedicamentos();
+            });
+        });
+    }
+    
+    // Função para escapar HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Modal - Adicionar Medicamento
+    const modal = new bootstrap.Modal(document.getElementById('modalAdicionarMedicamento'));
+    
+    document.getElementById('btnAdicionarMedicamento').addEventListener('click', function() {
+        // Limpar formulário
+        document.getElementById('medicamentoNome').value = '';
+        document.getElementById('medicamentoDosagem').value = '';
+        document.getElementById('medicamentoFrequencia').value = '';
+        document.getElementById('medicamentoDuracao').value = '';
+        document.getElementById('medicamentoQuantidade').value = '';
+        document.getElementById('medicamentoInstrucoes').value = '';
+    });
+    
+    document.getElementById('btnConfirmarMedicamento').addEventListener('click', function() {
+        const nome = document.getElementById('medicamentoNome').value.trim();
+        
+        if (!nome) {
+            showToast('Por favor, informe o nome do medicamento', 'warning');
+            return;
+        }
+        
+        const novoMedicamento = {
+            nome: nome,
+            dosagem: document.getElementById('medicamentoDosagem').value.trim(),
+            frequencia: document.getElementById('medicamentoFrequencia').value,
+            duracao: document.getElementById('medicamentoDuracao').value.trim(),
+            quantidade: document.getElementById('medicamentoQuantidade').value.trim(),
+            instrucoes: document.getElementById('medicamentoInstrucoes').value.trim()
+        };
+        
+        medicamentos.push(novoMedicamento);
+        atualizarListaMedicamentos();
+        modal.hide();
+        showToast('Medicamento adicionado com sucesso!', 'success');
+    });
+    
+    // Salvar receita completa
+    document.getElementById('btnSalvarReceita').addEventListener('click', function() {
+        const observacoes = document.getElementById('observacoesReceita').value;
+        
+        fetch('/medico/salvar-receita', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                receita_id: {{ receita_id }},
+                medicamentos: medicamentos,
+                observacoes: observacoes
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showToast('Receita salva com sucesso!', 'success');
+                // Atualizar conteúdo da receita
+                if (data.receita_html) {
+                    document.getElementById('conteudoReceita').innerHTML = data.receita_html.replace(/\n/g, '<br>');
+                }
+            } else {
+                showToast('Erro ao salvar: ' + data.error, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            showToast('Erro ao salvar receita', 'danger');
+        });
+    });
+    
+    // Função para mostrar toast
+    function showToast(message, type = 'success') {
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        const toastId = 'toast-' + Date.now();
+        const bgColor = type === 'success' ? 'bg-success' : (type === 'danger' ? 'bg-danger' : 'bg-warning');
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body small">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        
+        const toastElement = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
+        toast.show();
+        
+        toastElement.addEventListener('hidden.bs.toast', function() {
+            this.remove();
+        });
+    }
     
     // Ajustar botões em grupo para mobile
     function adjustButtonGroups() {
@@ -496,56 +595,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     adjustButtonGroups();
     window.addEventListener('resize', adjustButtonGroups);
-    
-    // Feedback visual para impressão
-    const printBtn = document.querySelector('button[onclick="window.print()"]');
-    if (printBtn) {
-        printBtn.addEventListener('click', function() {
-            this.classList.add('loading');
-            setTimeout(() => {
-                this.classList.remove('loading');
-            }, 1000);
-        });
-    }
 });
-
-// Função para mostrar toast (feedback visual)
-function showToast(message, type = 'success') {
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
-    }
-    
-    const toastId = 'toast-' + Date.now();
-    const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body small">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `;
-    
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-    
-    const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
-    toast.show();
-    
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        this.remove();
-    });
-}
-
-// Prevenir zoom em inputs no iOS
-document.addEventListener('touchstart', function(event) {
-    if (event.target.nodeName === 'SELECT' || event.target.nodeName === 'INPUT' || event.target.nodeName === 'TEXTAREA') {
-        event.target.style.fontSize = '16px';
-    }
-}, { passive: true });
 </script>
 {% endblock %}
