@@ -110,7 +110,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                   medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
                                   datetime=datetime)
         
-        # ===================== ROTA: SALVAR RECEITA AJAX - CORRIGIDA =====================
+        # ===================== ROTA: SALVAR RECEITA AJAX - SEM CAMPOS EXTRAS =====================
         @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
         def salvar_receita_ajax():
             """Salva a receita via AJAX com medicamentos personalizados"""
@@ -120,7 +120,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 if 'user_id' not in session:
                     return jsonify({"success": False, "error": "Não autorizado"}), 401
                 
-                # CORREÇÃO: Aceitar tanto JSON quanto form-data
                 if request.is_json:
                     data = request.get_json()
                 else:
@@ -136,21 +135,18 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 receita_texto = data.get('receita_texto', '')
                 diagnostico = data.get('diagnostico', '')
                 
-                # Se veio como JSON string, converter
                 if isinstance(medicamentos, str):
                     try:
                         medicamentos = json.loads(medicamentos)
                     except:
                         medicamentos = []
                 
-                # Buscar médico_id
                 medico_info = base['obter_info_medico']()
                 if not medico_info:
                     return jsonify({"success": False, "error": "Médico não encontrado"}), 404
                 
                 cursor = mysql.connection.cursor()
                 
-                # Verificar se já existe receita
                 cursor.execute("SELECT id FROM receita WHERE consulta_id = %s", (consulta_id,))
                 existing = cursor.fetchone()
                 
@@ -176,28 +172,27 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 if existing:
                     existing_id = existing[0] if isinstance(existing, (list, tuple)) else existing.get('id')
+                    # REMOVIDO: medicamentos e atualizado_em (não existem na tabela)
                     cursor.execute("""
                         UPDATE receita 
                         SET diagnostico = %s,
                             prescricao = %s,
-                            recomendacoes = %s,
-                            medicamentos = %s,
-                            atualizado_em = NOW()
+                            recomendacoes = %s
                         WHERE consulta_id = %s
-                    """, (diagnostico, prescricao_texto, observacoes, json.dumps(medicamentos), consulta_id))
+                    """, (diagnostico, prescricao_texto, observacoes, consulta_id))
                     receita_id = existing_id
                 else:
+                    # REMOVIDO: medicamentos (não existe na tabela)
                     cursor.execute("""
                         INSERT INTO receita 
-                        (consulta_id, diagnostico, prescricao, recomendacoes, medicamentos, status, created_at)
-                        VALUES (%s, %s, %s, %s, %s, 'ativa', NOW())
-                    """, (consulta_id, diagnostico, prescricao_texto, observacoes, json.dumps(medicamentos)))
+                        (consulta_id, diagnostico, prescricao, recomendacoes, status, created_at)
+                        VALUES (%s, %s, %s, %s, 'ativa', NOW())
+                    """, (consulta_id, diagnostico, prescricao_texto, observacoes))
                     receita_id = cursor.lastrowid
                 
                 mysql.connection.commit()
                 cursor.close()
                 
-                # Gerar HTML da receita
                 receita_html = f"""
                 <div class="receita-container">
                     <h4>Receita Médica</h4>
@@ -249,7 +244,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     consulta_id = row.get('consulta_id')
                     paciente_id = row.get('paciente_id')
                     medico_id = row.get('medico_id')
-                    medicamentos_json = row.get('medicamentos')
                     diagnostico = row.get('diagnostico')
                     prescricao = row.get('prescricao')
                     recomendacoes = row.get('recomendacoes')
@@ -257,7 +251,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     consulta_id = result[1] if len(result) > 1 else None
                     paciente_id = None
                     medico_id = None
-                    medicamentos_json = result[7] if len(result) > 7 else None
                     diagnostico = result[2] if len(result) > 2 else None
                     prescricao = result[3] if len(result) > 3 else None
                     recomendacoes = result[4] if len(result) > 4 else None
@@ -325,18 +318,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         medico_crm = medico_raw[1]
                         medico_especialidade = medico_raw[2]
                 
-                medicamentos = []
-                if medicamentos_json:
-                    try:
-                        medicamentos = json.loads(medicamentos_json)
-                    except:
-                        medicamentos = []
-                
                 return render_template('medico/receita_gerada.html',
                                       receita_id=receita_id,
                                       receita=prescricao or '',
                                       observacoes_receita=recomendacoes or '',
-                                      medicamentos=medicamentos,
+                                      medicamentos=[],
                                       pedido={
                                           'id': consulta_id,
                                           'paciente_nome': paciente_nome or 'N/A',
@@ -690,7 +676,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "处 perfil<th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
+            output += "处 perfil<th>Endpoint</th><th>URL</th><th>Métodos</th></table>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
