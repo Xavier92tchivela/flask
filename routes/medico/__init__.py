@@ -42,6 +42,115 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     return str(value)
             return value
         
+        # ===================== ROTA: SALVAR RECEITA AJAX =====================
+        @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
+        def salvar_receita_ajax():
+            """Salva a receita via AJAX com medicamentos personalizados"""
+            try:
+                from flask import session
+                import json
+                
+                if 'user_id' not in session:
+                    return jsonify({"success": False, "error": "Não autorizado"}), 401
+                
+                data = request.get_json()
+                if not data:
+                    data = request.form.to_dict()
+                
+                receita_id = data.get('receita_id')
+                consulta_id = data.get('consulta_id')
+                medicamentos = data.get('medicamentos', [])
+                observacoes = data.get('observacoes', '')
+                receita_texto = data.get('receita_texto', '')
+                diagnostico = data.get('diagnostico', '')
+                
+                # Se veio como JSON string, converter
+                if isinstance(medicamentos, str):
+                    try:
+                        medicamentos = json.loads(medicamentos)
+                    except:
+                        medicamentos = []
+                
+                # Buscar médico_id
+                medico_info = base['obter_info_medico']()
+                if not medico_info:
+                    return jsonify({"success": False, "error": "Médico não encontrado"}), 404
+                
+                medico_id = medico_info.get('id')
+                
+                cursor = mysql.connection.cursor()
+                
+                # Verificar se já existe receita
+                cursor.execute("SELECT id FROM receita WHERE consulta_id = %s", (consulta_id,))
+                existing = cursor.fetchone()
+                
+                prescricao_texto = receita_texto
+                if medicamentos and len(medicamentos) > 0 and not prescricao_texto:
+                    # Gerar texto a partir dos medicamentos estruturados
+                    prescricao_texto = ""
+                    for i, med in enumerate(medicamentos, 1):
+                        prescricao_texto += f"{i}. {med.get('nome', 'Medicamento')}"
+                        if med.get('apresentacao'):
+                            prescricao_texto += f" - {med.get('apresentacao')}"
+                        prescricao_texto += "\n"
+                        if med.get('posologia'):
+                            prescricao_texto += f"   Posologia: {med.get('posologia')}\n"
+                        if med.get('frequencia'):
+                            prescricao_texto += f"   Frequência: {med.get('frequencia')}\n"
+                        if med.get('duracao'):
+                            prescricao_texto += f"   Duração: {med.get('duracao')}\n"
+                        if med.get('quantidade'):
+                            prescricao_texto += f"   Quantidade: {med.get('quantidade')}\n"
+                        if med.get('instrucoes') or med.get('observacoes'):
+                            prescricao_texto += f"   Obs: {med.get('instrucoes') or med.get('observacoes')}\n"
+                        prescricao_texto += "\n"
+                
+                if existing:
+                    # Atualizar receita existente
+                    cursor.execute("""
+                        UPDATE receita 
+                        SET diagnostico = %s,
+                            prescricao = %s,
+                            recomendacoes = %s,
+                            medicamentos = %s,
+                            atualizado_em = NOW()
+                        WHERE consulta_id = %s
+                    """, (diagnostico, prescricao_texto, observacoes, json.dumps(medicamentos), consulta_id))
+                    receita_id = existing[0]
+                else:
+                    # Criar nova receita
+                    cursor.execute("""
+                        INSERT INTO receita 
+                        (consulta_id, diagnostico, prescricao, recomendacoes, medicamentos, status, created_at)
+                        VALUES (%s, %s, %s, %s, %s, 'ativa', NOW())
+                    """, (consulta_id, diagnostico, prescricao_texto, observacoes, json.dumps(medicamentos)))
+                    receita_id = cursor.lastrowid
+                
+                mysql.connection.commit()
+                cursor.close()
+                
+                # Gerar HTML da receita
+                receita_html = f"""
+                <div class="receita-container">
+                    <h4>Receita Médica</h4>
+                    <p><strong>Diagnóstico:</strong> {diagnostico}</p>
+                    <p><strong>Prescrição:</strong><br>{prescricao_texto.replace(chr(10), '<br>')}</p>
+                    <p><strong>Orientações:</strong><br>{observacoes.replace(chr(10), '<br>')}</p>
+                </div>
+                """
+                
+                return jsonify({
+                    "success": True, 
+                    "message": "Receita salva com sucesso",
+                    "receita_html": receita_html,
+                    "receita_id": receita_id
+                })
+                
+            except Exception as e:
+                logger.error(f"Erro ao salvar receita: {e}")
+                logger.error(traceback.format_exc())
+                return jsonify({"success": False, "error": str(e)}), 500
+        
         # ===================== ROTA: LISTAR INTERNADOS =====================
         @medico_bp.route('/internados')
         def internados():
@@ -91,7 +200,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 internados_lista = []
                 for internado in internados:
                     idade = None
-                    if internado[9]:
+                    if len(internado) > 9 and internado[9]:
                         data_nasc = internado[9]
                         if isinstance(data_nasc, datetime):
                             birth_date = data_nasc.date()
@@ -107,12 +216,12 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         'tipo_internacao': decode_bytes(internado[3]) if internado[3] else 'Não informado',
                         'diagnostico_inicial': decode_bytes(internado[4]) if internado[4] else 'Não informado',
                         'status': internado[5],
-                        'paciente_id': internado[6],
-                        'paciente_nome': decode_bytes(internado[7]) if internado[7] else 'Paciente',
+                        'paciente_id': internado[6] if len(internado) > 6 else None,
+                        'paciente_nome': decode_bytes(internado[7]) if len(internado) > 7 and internado[7] else 'Paciente',
                         'idade': idade,
-                        'leito_alas': decode_bytes(internado[10]) if internado[10] else 'Não definido',
-                        'leito_numero': internado[11] if internado[11] else '?',
-                        'leito_tipo': decode_bytes(internado[12]) if internado[12] else 'Não definido'
+                        'leito_alas': decode_bytes(internado[10]) if len(internado) > 10 and internado[10] else 'Não definido',
+                        'leito_numero': internado[11] if len(internado) > 11 and internado[11] else '?',
+                        'leito_tipo': decode_bytes(internado[12]) if len(internado) > 12 and internado[12] else 'Não definido'
                     })
                 
                 return render_template(
@@ -141,7 +250,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 cursor = mysql.connection.cursor()
                 
-                # Buscar dados da internação
                 cursor.execute("""
                     SELECT i.id, i.numero_prontuario, u.nome as paciente_nome,
                            p.data_nascimento
@@ -232,7 +340,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 cursor = mysql.connection.cursor()
                 
-                # Buscar dados da internação
                 cursor.execute("""
                     SELECT i.id, i.numero_prontuario, u.nome as paciente_nome
                     FROM internacoes i
@@ -247,7 +354,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash("Internação não encontrada.", "danger")
                     return redirect(url_for("medico.internados"))
                 
-                # Buscar medicamentos prescritos
                 cursor.execute("""
                     SELECT 
                         mp.id,
@@ -347,14 +453,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
             except Exception as e:
                 logger.error(f"Erro ao inicializar módulo de receitas: {e}")
         
-        # Inicializar módulo de receita digital
-        try:
-            receita_digital_module = init_medico_receita_digital(mysql, base)
-            modules.append(receita_digital_module)
-            logger.info(f"Módulo de receita digital inicializado com sucesso!")
-        except Exception as e:
-            logger.error(f"Erro ao inicializar módulo de receita digital: {e}")
-        
         # Registrar rotas dos módulos
         total_rotas = 0
         for idx, module in enumerate(modules):
@@ -384,7 +482,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "处 perfis<th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
+            output += "处 perfil<th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
