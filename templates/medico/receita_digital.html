@@ -31,7 +31,8 @@
                     <h5 class="mb-0">Nova Receita - {{ consulta.paciente_nome }}</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="/medico/consulta/{{ consulta.id }}/receita-digital/salvar" id="formReceita">
+                    <form method="POST" action="{{ url_for('medico_receita_digital.salvar_receita_ajax') }}?consulta_id={{ consulta.id }}" id="formReceita">
+                        <input type="hidden" name="consulta_id" value="{{ consulta.id }}">
                         <input type="hidden" name="paciente_id" value="{{ consulta.paciente_id }}">
                         
                         <!-- Peso do Paciente (para cálculo de dosagem) -->
@@ -74,8 +75,30 @@
                             <label class="form-label fw-bold">
                                 <i class="fas fa-stethoscope text-success me-2"></i>Diagnóstico
                             </label>
-                            <textarea class="form-control" name="diagnostico" rows="2" 
-                                      placeholder="Descreva o diagnóstico..." required>{{ consulta.diagnostico_texto or '' }}</textarea>
+                            <textarea class="form-control" name="diagnostico" id="diagnostico" rows="2" 
+                                      placeholder="Descreva o diagnóstico...">{{ consulta.diagnostico_texto or '' }}</textarea>
+                        </div>
+
+                        <!-- ===== CAMPO PARA ESCREVER A RECEITA MANUALMENTE ===== -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-pen-alt text-primary me-2"></i>Receita (Texto Livre)
+                                <small class="text-muted">Escreva a receita manualmente</small>
+                            </label>
+                            <textarea class="form-control" name="receita_texto" id="receitaTexto" rows="6" 
+                                      placeholder="Exemplo:&#10;1. Paracetamol 500mg - 1 comprimido de 8/8h por 5 dias&#10;2. Amoxicilina 500mg - 1 comprimido de 12/12h por 7 dias&#10;3. Repouso e hidratação adequada&#10;&#10;Orientações: Evitar esforço físico por 7 dias."></textarea>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Você pode escrever a receita livremente ou usar os medicamentos abaixo
+                            </small>
+                        </div>
+
+                        <!-- Divisória -->
+                        <hr class="my-4">
+                        <div class="text-center mb-3">
+                            <span class="badge bg-secondary p-2">OU</span>
+                        </div>
+                        <div class="text-center mb-3">
+                            <small class="text-muted">Use os botões abaixo para adicionar medicamentos estruturados</small>
                         </div>
 
                         <!-- Botões de Condições -->
@@ -112,13 +135,16 @@
                                 <button type="button" class="btn btn-outline-success btn-sm" onclick="adicionarCondicao('gravidez')">
                                     <i class="fas fa-plus-circle me-1"></i>Gravidez
                                 </button>
+                                <button type="button" class="btn btn-outline-success btn-sm" onclick="limparMedicamentos()">
+                                    <i class="fas fa-trash-alt me-1"></i>Limpar Todos
+                                </button>
                             </div>
                         </div>
 
                         <!-- Botão Adicionar Medicamento -->
                         <div class="mb-4">
                             <button type="button" class="btn btn-primary w-100 py-3" onclick="abrirModalSelecionarMedicamento()">
-                                <i class="fas fa-plus-circle me-2"></i>ADICIONAR MEDICAMENTO
+                                <i class="fas fa-plus-circle me-2"></i>ADICIONAR MEDICAMENTO ESTRUTURADO
                             </button>
                         </div>
 
@@ -128,62 +154,7 @@
                                 <i class="fas fa-pills text-success me-2"></i>Medicamentos Prescritos
                             </label>
                             <div id="medicamentos-container">
-                                <!-- O medicamento atual aparece aqui -->
-                                <div class="card mb-3 medicamento-card border-success">
-                                    <div class="card-header bg-success bg-opacity-10 d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-capsules me-2 text-success"></i>
-                                            Metformina - Comprimidos 500 mg
-                                        </h6>
-                                        <div>
-                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" onclick="editarMedicamento(0)">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removerMedicamento(0)">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="card-body">
-                                        <input type="hidden" name="medicamentos[0][nome]" value="Metformina">
-                                        <input type="hidden" name="medicamentos[0][apresentacao]" value="Comprimidos 500 mg">
-                                        <input type="hidden" name="medicamentos[0][posologia]" value="1 comprimido">
-                                        <input type="hidden" name="medicamentos[0][frequencia]" value="3 vezes ao dia">
-                                        <input type="hidden" name="medicamentos[0][duracao]" value="30 dias">
-                                        <input type="hidden" name="medicamentos[0][via]" value="Oral">
-                                        <input type="hidden" name="medicamentos[0][quantidade]" value="90 comprimidos">
-                                        <input type="hidden" name="medicamentos[0][observacoes]" value="PRIMEIRA LINHA ABSOLUTA para Diabetes Mellitus tipo 2. Tomar com as refeições.">
-                                        
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <small class="text-muted">Posologia:</small>
-                                                <p class="mb-1">1 comprimido</p>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <small class="text-muted">Frequência:</small>
-                                                <p class="mb-1">3 vezes ao dia</p>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-md-4">
-                                                <small class="text-muted">Duração:</small>
-                                                <p class="mb-1">30 dias</p>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <small class="text-muted">Via:</small>
-                                                <p class="mb-1">Oral</p>
-                                            </div>
-                                            <div class="col-md-4">
-                                                <small class="text-muted">Quantidade:</small>
-                                                <p class="mb-1">90 comprimidos</p>
-                                            </div>
-                                        </div>
-                                        <div class="mt-2 p-2 bg-light rounded">
-                                            <small class="text-muted d-block"><i class="fas fa-info-circle me-1"></i>Obs:</small>
-                                            <small>PRIMEIRA LINHA ABSOLUTA para Diabetes Mellitus tipo 2. Tomar com as refeições.</small>
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- Medicamentos serão listados aqui -->
                             </div>
                         </div>
 
@@ -192,7 +163,7 @@
                             <label class="form-label fw-bold">
                                 <i class="fas fa-edit text-success me-2"></i>Observações Gerais
                             </label>
-                            <textarea class="form-control" name="observacoes_gerais" rows="2"></textarea>
+                            <textarea class="form-control" name="observacoes_gerais" id="observacoesGerais" rows="2" placeholder="Instruções adicionais, orientações, contraindicações..."></textarea>
                         </div>
 
                         <hr>
@@ -223,32 +194,20 @@
                     <h6>Como usar:</h6>
                     <ol class="small">
                         <li>Descreva o diagnóstico</li>
-                        <li><strong class="text-primary">Clique em "ADICIONAR MEDICAMENTO"</strong> para escolher</li>
-                        <li>Selecione o medicamento na lista</li>
+                        <li><strong>Escreva a receita manualmente</strong> no campo de texto</li>
+                        <li><strong class="text-primary">OU</strong> clique em "ADICIONAR MEDICAMENTO"</li>
+                        <li>Selecione o medicamento na lista ou pesquise</li>
                         <li>Ajuste as informações se necessário</li>
                         <li>Clique em "Gerar Receita"</li>
                     </ol>
                     
-                    <!-- ===== BOTÃO PARA VER RECEITAS ANTERIORES ===== -->
-                    {% if receitas_anteriores and receitas_anteriores|length > 0 %}
+                    <!-- Pré-visualização da Receita -->
                     <div class="mt-4">
-                        <h6 class="fw-bold">Receitas Anteriores:</h6>
-                        <div class="list-group">
-                            {% for rec in receitas_anteriores %}
-                            <a href="{{ url_for('medico.visualizar_receita_gerada', consulta_id=consulta.id, receita_id=rec.id) }}" 
-                               class="list-group-item list-group-item-action">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <small class="text-muted">{{ rec.data }}</small>
-                                        <p class="mb-0 small">{{ rec.diagnostico|truncate(50) }}</p>
-                                    </div>
-                                    <i class="fas fa-eye text-success"></i>
-                                </div>
-                            </a>
-                            {% endfor %}
+                        <h6 class="fw-bold">Pré-visualização:</h6>
+                        <div class="border rounded p-2 bg-light" style="font-size: 12px;" id="previewReceita">
+                            Aguardando entrada...
                         </div>
                     </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -352,24 +311,9 @@ for (const condicao in medicamentosPorCondicao) {
     });
 }
 
-// Array para armazenar os medicamentos adicionados (começa com o Metformina)
-let medicamentosAdicionados = [
-    {
-        nome: 'Metformina',
-        apresentacao: 'Comprimidos 500 mg',
-        posologia: '1 comprimido',
-        frequencia: '3 vezes ao dia',
-        duracao: '30 dias',
-        via: 'Oral',
-        quantidade: '90 comprimidos',
-        observacoes: 'PRIMEIRA LINHA ABSOLUTA para Diabetes Mellitus tipo 2. Tomar com as refeições.'
-    }
-];
-
+// Array para armazenar os medicamentos adicionados
+let medicamentosAdicionados = [];
 let editandoIndex = -1;
-
-console.log('Medicamentos carregados:', todosMedicamentos.length);
-console.log('Medicamentos adicionados:', medicamentosAdicionados.length);
 
 function adicionarCondicao(condicao) {
     const medicamentos = medicamentosPorCondicao[condicao];
@@ -381,7 +325,6 @@ function adicionarCondicao(condicao) {
     let novosMedicamentos = 0;
     
     medicamentos.forEach(med => {
-        // Verificar se já existe (evitar duplicatas)
         const existe = medicamentosAdicionados.some(m => 
             m.nome === med.nome && m.posologia === med.posologia
         );
@@ -397,6 +340,13 @@ function adicionarCondicao(condicao) {
         alert(`${novosMedicamentos} medicamento(s) adicionado(s) para ${condicao}!`);
     } else {
         alert('Todos os medicamentos desta condição já foram adicionados.');
+    }
+}
+
+function limparMedicamentos() {
+    if (confirm('Remover todos os medicamentos da lista?')) {
+        medicamentosAdicionados = [];
+        renderizarMedicamentos();
     }
 }
 
@@ -454,7 +404,6 @@ function calcularDosagem() {
     }
 }
 
-// Filtrar medicamentos enquanto digita
 document.getElementById('buscaMedicamento').addEventListener('input', renderizarListaMedicamentos);
 
 function renderizarMedicamentos() {
@@ -464,7 +413,8 @@ function renderizarMedicamentos() {
         container.innerHTML = `
             <div class="text-center text-muted py-4" id="sem-medicamentos">
                 <i class="fas fa-arrow-up fa-2x mb-2"></i>
-                <p>Clique em "ADICIONAR MEDICAMENTO" para começar</p>
+                <p>Clique em "ADICIONAR MEDICAMENTO" para adicionar medicamentos estruturados</p>
+                <small>Ou escreva a receita manualmente no campo acima</small>
             </div>
         `;
         return;
@@ -489,15 +439,6 @@ function renderizarMedicamentos() {
                     </div>
                 </div>
                 <div class="card-body">
-                    <input type="hidden" name="medicamentos[${index}][nome]" value="${med.nome}">
-                    <input type="hidden" name="medicamentos[${index}][apresentacao]" value="${med.apresentacao || ''}">
-                    <input type="hidden" name="medicamentos[${index}][posologia]" value="${med.posologia || ''}">
-                    <input type="hidden" name="medicamentos[${index}][frequencia]" value="${med.frequencia || ''}">
-                    <input type="hidden" name="medicamentos[${index}][duracao]" value="${med.duracao || ''}">
-                    <input type="hidden" name="medicamentos[${index}][via]" value="${med.via || 'Oral'}">
-                    <input type="hidden" name="medicamentos[${index}][quantidade]" value="${med.quantidade || ''}">
-                    <input type="hidden" name="medicamentos[${index}][observacoes]" value="${med.observacoes || ''}">
-                    
                     <div class="row">
                         <div class="col-md-6">
                             <small class="text-muted">Posologia:</small>
@@ -533,7 +474,6 @@ function renderizarMedicamentos() {
         `;
     });
     
-    // Botão para adicionar mais medicamentos
     html += `
         <div class="text-center mt-3">
             <button type="button" class="btn btn-outline-primary" onclick="abrirModalSelecionarMedicamento()">
@@ -588,18 +528,72 @@ function removerMedicamento(index) {
     }
 }
 
+// Pré-visualização da receita em tempo real
+function atualizarPreview() {
+    const receitaTexto = document.getElementById('receitaTexto').value;
+    const observacoes = document.getElementById('observacoesGerais').value;
+    const diagnostico = document.getElementById('diagnostico').value;
+    
+    let preview = '';
+    
+    if (diagnostico) {
+        preview += `<strong>Diagnóstico:</strong> ${diagnostico}<br><br>`;
+    }
+    
+    if (receitaTexto) {
+        preview += `<strong>Receita:</strong><br>${receitaTexto.replace(/\n/g, '<br>')}<br><br>`;
+    }
+    
+    if (medicamentosAdicionados.length > 0) {
+        preview += `<strong>Medicamentos:</strong><br>`;
+        medicamentosAdicionados.forEach((med, i) => {
+            preview += `${i+1}. ${med.nome}`;
+            if (med.posologia) preview += ` - ${med.posologia}`;
+            if (med.frequencia) preview += ` (${med.frequencia})`;
+            if (med.duracao) preview += ` por ${med.duracao}`;
+            preview += `<br>`;
+        });
+        preview += `<br>`;
+    }
+    
+    if (observacoes) {
+        preview += `<strong>Orientações:</strong><br>${observacoes.replace(/\n/g, '<br>')}`;
+    }
+    
+    if (!diagnostico && !receitaTexto && medicamentosAdicionados.length === 0 && !observacoes) {
+        preview = 'Aguardando entrada...';
+    }
+    
+    document.getElementById('previewReceita').innerHTML = preview;
+}
+
+// Adicionar listeners para atualizar preview
+document.getElementById('receitaTexto').addEventListener('input', atualizarPreview);
+document.getElementById('observacoesGerais').addEventListener('input', atualizarPreview);
+document.getElementById('diagnostico').addEventListener('input', atualizarPreview);
+
 // Validar antes de enviar
 document.getElementById('formReceita').addEventListener('submit', function(e) {
-    if (medicamentosAdicionados.length === 0) {
+    const receitaTexto = document.getElementById('receitaTexto').value.trim();
+    
+    if (medicamentosAdicionados.length === 0 && !receitaTexto) {
         e.preventDefault();
-        alert('Adicione pelo menos um medicamento à receita.');
+        alert('Adicione pelo menos um medicamento ou escreva a receita manualmente.');
         return;
     }
+    
+    // Adicionar medicamentos como JSON para enviar
+    const inputMedicamentos = document.createElement('input');
+    inputMedicamentos.type = 'hidden';
+    inputMedicamentos.name = 'medicamentos_json';
+    inputMedicamentos.value = JSON.stringify(medicamentosAdicionados);
+    this.appendChild(inputMedicamentos);
 });
 
 // Inicializar
 document.addEventListener('DOMContentLoaded', function() {
     renderizarMedicamentos();
+    atualizarPreview();
 });
 </script>
 
@@ -650,6 +644,14 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-primary:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+#previewReceita {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 </style>
 {% endblock %}
