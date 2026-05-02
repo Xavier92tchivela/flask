@@ -111,10 +111,10 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                   medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
                                   datetime=datetime)
         
-        # ===================== ROTA: SALVAR RECEITA AJAX - CORRIGIDA =====================
+        # ===================== ROTA: SALVAR RECEITA AJAX COM REDIRECIONAMENTO =====================
         @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
         def salvar_receita_ajax():
-            """Salva a receita via AJAX com medicamentos personalizados"""
+            """Salva a receita via AJAX e retorna URL de redirecionamento"""
             try:
                 if 'user_id' not in session:
                     return jsonify({"success": False, "error": "Não autorizado"}), 401
@@ -161,12 +161,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     except:
                         pass
                 
-                # Usar conexão direta sem transaction context manager
+                # Usar conexão direta
                 conn = mysql.connection
                 cursor = conn.cursor()
                 
                 try:
-                    # Verificar se já existe receita
                     cursor.execute("SELECT id FROM receita WHERE consulta_id = %s", (consulta_id,))
                     existing = cursor.fetchone()
                     
@@ -196,10 +195,14 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 finally:
                     cursor.close()
                 
+                # Retornar URL de redirecionamento para a receita criada
+                redirect_url = url_for('medico.visualizar_receita_gerada', receita_id=receita_id, _external=False)
+                
                 return jsonify({
                     "success": True, 
                     "message": "Receita salva com sucesso",
-                    "receita_id": receita_id
+                    "receita_id": receita_id,
+                    "redirect_url": redirect_url
                 })
                 
             except Exception as e:
@@ -331,6 +334,62 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 logger.error(f"Erro ao visualizar receita: {e}")
                 logger.error(traceback.format_exc())
                 flash('Erro ao carregar receita.', 'danger')
+                return redirect(url_for('medico.dashboard'))
+        
+        # ===================== ROTA: LISTAR TODAS AS RECEITAS =====================
+        @medico_bp.route('/receitas')
+        def listar_receitas():
+            """Lista todas as receitas do médico"""
+            try:
+                if 'user_id' not in session:
+                    flash('Faça login para acessar.', 'danger')
+                    return redirect(url_for('auth.login'))
+                
+                medico_info = base['obter_info_medico']()
+                if not medico_info:
+                    flash('Médico não encontrado.', 'danger')
+                    return redirect(url_for('auth.login'))
+                
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    SELECT 
+                        r.id,
+                        r.consulta_id,
+                        r.diagnostico,
+                        r.prescricao,
+                        r.created_at,
+                        c.data_hora as consulta_data,
+                        u.nome as paciente_nome
+                    FROM receita r
+                    JOIN consultas c ON r.consulta_id = c.id
+                    JOIN pacientes p ON c.paciente_id = p.id
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE c.medico_id = %s
+                    ORDER BY r.created_at DESC
+                """, (medico_info['id'],))
+                
+                receitas = cursor.fetchall()
+                cursor.close()
+                
+                receitas_lista = []
+                for rec in receitas:
+                    receitas_lista.append({
+                        'id': rec[0],
+                        'consulta_id': rec[1],
+                        'diagnostico': rec[2][:100] + '...' if rec[2] and len(rec[2]) > 100 else rec[2],
+                        'created_at': rec[4].strftime('%d/%m/%Y %H:%M') if rec[4] else '',
+                        'consulta_data': rec[5].strftime('%d/%m/%Y %H:%M') if rec[5] else '',
+                        'paciente_nome': rec[6] if len(rec) > 6 else 'N/A'
+                    })
+                
+                return render_template('medico/listar_receitas.html',
+                                      receitas=receitas_lista,
+                                      user=session)
+                
+            except Exception as e:
+                logger.error(f"Erro ao listar receitas: {e}")
+                logger.error(traceback.format_exc())
+                flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
         
         # ===================== ROTA: LISTAR INTERNADOS =====================
