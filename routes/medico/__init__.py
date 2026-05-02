@@ -12,7 +12,6 @@ from .medico_api import init_medico_api
 from .medico_debug import init_medico_debug
 from .medico_receitas import init_medico_receitas
 from .consulta import create_consulta_blueprint
-from .medico_receita_digital import init_medico_receita_digital
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -42,12 +41,65 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     return str(value)
             return value
         
+        # ===================== ROTA: RECEITA DIGITAL (CRIAR) =====================
+        @medico_bp.route('/consulta/<int:consulta_id>/receita-digital')
+        def criar_receita_digital(consulta_id):
+            """Página para criar receita digital"""
+            from utils.receitas_data import MEDICAMENTOS_POR_CONDICAO
+            
+            medico_info = base['obter_info_medico']()
+            if not medico_info:
+                flash('Acesso não autorizado.', 'danger')
+                return redirect(url_for('auth.login'))
+            
+            # Buscar dados da consulta
+            cursor = mysql.connection.cursor()
+            cursor.execute("""
+                SELECT 
+                    c.id, c.paciente_id, c.medico_id, c.status, c.data_hora,
+                    c.observacoes, c.diagnostico_texto,
+                    p_u.nome as paciente_nome, p.data_nascimento,
+                    m_u.nome as medico_nome, m.especialidade, m.crm
+                FROM consultas c
+                JOIN pacientes p ON c.paciente_id = p.id
+                JOIN usuarios p_u ON p.usuario_id = p_u.id
+                JOIN medicos m ON c.medico_id = m.id
+                JOIN usuarios m_u ON m.usuario_id = m_u.id
+                WHERE c.id = %s AND c.medico_id = %s
+            """, (consulta_id, medico_info['id']))
+            
+            consulta_raw = cursor.fetchone()
+            cursor.close()
+            
+            if not consulta_raw:
+                flash('Consulta não encontrada.', 'danger')
+                return redirect(url_for('medico.dashboard'))
+            
+            consulta = {
+                'id': consulta_raw[0],
+                'paciente_id': consulta_raw[1],
+                'medico_id': consulta_raw[2],
+                'status': consulta_raw[3],
+                'data_hora': consulta_raw[4].strftime('%d/%m/%Y %H:%M') if consulta_raw[4] else '',
+                'observacoes': consulta_raw[5],
+                'diagnostico_texto': consulta_raw[6],
+                'paciente_nome': consulta_raw[7],
+                'paciente_data_nascimento': consulta_raw[8],
+                'medico_nome': consulta_raw[9],
+                'medico_especialidade': consulta_raw[10],
+                'medico_crm': consulta_raw[11]
+            }
+            
+            return render_template('medico/receita_digital.html',
+                                  consulta=consulta,
+                                  medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
+                                  datetime=datetime)
+        
         # ===================== ROTA: SALVAR RECEITA AJAX =====================
         @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
         def salvar_receita_ajax():
             """Salva a receita via AJAX com medicamentos personalizados"""
             try:
-                from flask import session
                 import json
                 
                 if 'user_id' not in session:
@@ -76,8 +128,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 if not medico_info:
                     return jsonify({"success": False, "error": "Médico não encontrado"}), 404
                 
-                medico_id = medico_info.get('id')
-                
                 cursor = mysql.connection.cursor()
                 
                 # Verificar se já existe receita
@@ -86,7 +136,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 prescricao_texto = receita_texto
                 if medicamentos and len(medicamentos) > 0 and not prescricao_texto:
-                    # Gerar texto a partir dos medicamentos estruturados
                     prescricao_texto = ""
                     for i, med in enumerate(medicamentos, 1):
                         prescricao_texto += f"{i}. {med.get('nome', 'Medicamento')}"
@@ -116,7 +165,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             atualizado_em = NOW()
                         WHERE consulta_id = %s
                     """, (diagnostico, prescricao_texto, observacoes, json.dumps(medicamentos), consulta_id))
-                    receita_id = existing[0]
+                    receita_id = existing[0] if isinstance(existing, (list, tuple)) else existing.get('id')
                 else:
                     # Criar nova receita
                     cursor.execute("""
@@ -151,6 +200,139 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 logger.error(traceback.format_exc())
                 return jsonify({"success": False, "error": str(e)}), 500
         
+        # ===================== ROTA: VISUALIZAR RECEITA GERADA =====================
+        @medico_bp.route('/receita/<int:receita_id>/visualizar')
+        def visualizar_receita_gerada(receita_id):
+            """Visualiza uma receita já gerada"""
+            try:
+                if 'user_id' not in session:
+                    flash('Faça login para acessar.', 'danger')
+                    return redirect(url_for('auth.login'))
+                
+                cursor = mysql.connection.cursor()
+                
+                cursor.execute("""
+                    SELECT r.*, c.paciente_id, c.medico_id
+                    FROM receita r
+                    JOIN consultas c ON r.consulta_id = c.id
+                    WHERE r.id = %s
+                """, (receita_id,))
+                
+                result = cursor.fetchone()
+                cursor.close()
+                
+                if not result:
+                    flash('Receita não encontrada.', 'danger')
+                    return redirect(url_for('medico.dashboard'))
+                
+                # Converter para dicionário
+                if isinstance(result, dict):
+                    row = result
+                else:
+                    # Para tupla - ajuste os índices conforme sua tabela
+                    row = {
+                        'id': result[0],
+                        'consulta_id': result[1],
+                        'diagnostico': result[2],
+                        'prescricao': result[3],
+                        'recomendacoes': result[4],
+                        'status': result[5],
+                        'created_at': result[6],
+                        'medicamentos': result[7] if len(result) > 7 else None
+                    }
+                
+                consulta_id = row.get('consulta_id')
+                paciente_id = row.get('paciente_id')
+                medico_id = row.get('medico_id')
+                
+                # Buscar dados do paciente
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    SELECT u.nome, p.data_nascimento
+                    FROM pacientes p
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE p.id = %s
+                """, (paciente_id,))
+                paciente_raw = cursor.fetchone()
+                
+                paciente_nome = None
+                paciente_idade = None
+                if paciente_raw:
+                    if isinstance(paciente_raw, dict):
+                        paciente_nome = paciente_raw.get('nome')
+                        data_nasc = paciente_raw.get('data_nascimento')
+                    else:
+                        paciente_nome = paciente_raw[0]
+                        data_nasc = paciente_raw[1]
+                    
+                    if data_nasc:
+                        hoje = datetime.now().date()
+                        if isinstance(data_nasc, datetime):
+                            birth_date = data_nasc.date()
+                        else:
+                            birth_date = data_nasc
+                        idade = hoje.year - birth_date.year - ((hoje.month, hoje.day) < (birth_date.month, birth_date.day))
+                        paciente_idade = f"{idade} anos"
+                
+                # Buscar dados do médico
+                cursor.execute("""
+                    SELECT u.nome, m.crm, m.especialidade
+                    FROM medicos m
+                    JOIN usuarios u ON m.usuario_id = u.id
+                    WHERE m.id = %s
+                """, (medico_id,))
+                medico_raw = cursor.fetchone()
+                cursor.close()
+                
+                medico_nome = None
+                medico_crm = None
+                medico_especialidade = None
+                if medico_raw:
+                    if isinstance(medico_raw, dict):
+                        medico_nome = medico_raw.get('nome')
+                        medico_crm = medico_raw.get('crm')
+                        medico_especialidade = medico_raw.get('especialidade')
+                    else:
+                        medico_nome = medico_raw[0]
+                        medico_crm = medico_raw[1]
+                        medico_especialidade = medico_raw[2]
+                
+                # Processar medicamentos
+                medicamentos = []
+                if row.get('medicamentos'):
+                    try:
+                        import json
+                        medicamentos = json.loads(row['medicamentos'])
+                    except:
+                        medicamentos = []
+                
+                return render_template('medico/receita_gerada.html',
+                                      receita_id=receita_id,
+                                      receita=row.get('prescricao', ''),
+                                      observacoes_receita=row.get('recomendacoes', ''),
+                                      medicamentos=medicamentos,
+                                      pedido={
+                                          'id': consulta_id,
+                                          'paciente_nome': paciente_nome,
+                                          'paciente_idade': paciente_idade,
+                                          'diagnostico_ia': row.get('diagnostico', ''),
+                                          'sintomas_lista': []
+                                      },
+                                      medico={
+                                          'nome': medico_nome or 'Dr. Desconhecido',
+                                          'crm': medico_crm or 'N/A',
+                                          'especialidade': medico_especialidade or 'N/A'
+                                      },
+                                      gemini_available=True,
+                                      datetime=datetime,
+                                      pdf_path=None)
+                
+            except Exception as e:
+                logger.error(f"Erro ao visualizar receita: {e}")
+                logger.error(traceback.format_exc())
+                flash('Erro ao carregar receita.', 'danger')
+                return redirect(url_for('medico.dashboard'))
+        
         # ===================== ROTA: LISTAR INTERNADOS =====================
         @medico_bp.route('/internados')
         def internados():
@@ -180,7 +362,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         l.alas,
                         l.numero as leito_numero,
                         l.tipo as leito_tipo
-                    FROM internacoes i
+                    FROM internacoes_pacientes i
                     JOIN pacientes p ON i.paciente_id = p.id
                     JOIN usuarios u ON p.usuario_id = u.id
                     LEFT JOIN leitos l ON i.leito_id = l.id
@@ -233,7 +415,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 )
                 
             except Exception as e:
-                logger.error(f"Erro: {e}")
+                logger.error(f"Erro em internados: {e}")
                 logger.error(traceback.format_exc())
                 flash(str(e), "danger")
                 return redirect(url_for("medico.dashboard"))
@@ -253,7 +435,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 cursor.execute("""
                     SELECT i.id, i.numero_prontuario, u.nome as paciente_nome,
                            p.data_nascimento
-                    FROM internacoes i
+                    FROM internacoes_pacientes i
                     JOIN pacientes p ON i.paciente_id = p.id
                     JOIN usuarios u ON p.usuario_id = u.id
                     WHERE i.id = %s AND i.medico_responsavel_id = %s
@@ -277,7 +459,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 )
                 
             except Exception as e:
-                logger.error(f"Erro: {e}")
+                logger.error(f"Erro em prescrever_medicamento: {e}")
                 logger.error(traceback.format_exc())
                 flash(str(e), "danger")
                 return redirect(url_for("medico.dashboard"))
@@ -324,7 +506,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 return jsonify({"success": True, "message": "Medicamento prescrito com sucesso!"})
                 
             except Exception as e:
-                logger.error(f"Erro: {e}")
+                logger.error(f"Erro em salvar_prescricao: {e}")
                 logger.error(traceback.format_exc())
                 return jsonify({"success": False, "error": str(e)}), 500
         
@@ -342,7 +524,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 cursor.execute("""
                     SELECT i.id, i.numero_prontuario, u.nome as paciente_nome
-                    FROM internacoes i
+                    FROM internacoes_pacientes i
                     JOIN pacientes p ON i.paciente_id = p.id
                     JOIN usuarios u ON p.usuario_id = u.id
                     WHERE i.id = %s AND i.medico_responsavel_id = %s
@@ -402,7 +584,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 )
                 
             except Exception as e:
-                logger.error(f"Erro: {e}")
+                logger.error(f"Erro em listar_prescricoes: {e}")
                 logger.error(traceback.format_exc())
                 flash(str(e), "danger")
                 return redirect(url_for("medico.dashboard"))
@@ -429,7 +611,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 return jsonify({"success": True, "message": "Prescrição suspensa com sucesso!"})
                 
             except Exception as e:
-                logger.error(f"Erro: {e}")
+                logger.error(f"Erro em suspender_prescricao: {e}")
                 logger.error(traceback.format_exc())
                 return jsonify({"success": False, "error": str(e)}), 500
         
