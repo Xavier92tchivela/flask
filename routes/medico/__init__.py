@@ -41,7 +41,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     return str(value)
             return value
         
-        # ===================== ROTA: RECEITA DIGITAL (CRIAR) =====================
+        # ===================== ROTA: RECEITA DIGITAL (CRIAR) - CORRIGIDA =====================
         @medico_bp.route('/consulta/<int:consulta_id>/receita-digital')
         def criar_receita_digital(consulta_id):
             """Página para criar receita digital"""
@@ -75,20 +75,39 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Consulta não encontrada.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            consulta = {
-                'id': consulta_raw[0],
-                'paciente_id': consulta_raw[1],
-                'medico_id': consulta_raw[2],
-                'status': consulta_raw[3],
-                'data_hora': consulta_raw[4].strftime('%d/%m/%Y %H:%M') if consulta_raw[4] else '',
-                'observacoes': consulta_raw[5],
-                'diagnostico_texto': consulta_raw[6],
-                'paciente_nome': consulta_raw[7],
-                'paciente_data_nascimento': consulta_raw[8],
-                'medico_nome': consulta_raw[9],
-                'medico_especialidade': consulta_raw[10],
-                'medico_crm': consulta_raw[11]
-            }
+            # CORREÇÃO: Funciona com dicionário OU tupla
+            if isinstance(consulta_raw, dict):
+                # É dicionário
+                consulta = {
+                    'id': consulta_raw.get('id'),
+                    'paciente_id': consulta_raw.get('paciente_id'),
+                    'medico_id': consulta_raw.get('medico_id'),
+                    'status': consulta_raw.get('status'),
+                    'data_hora': consulta_raw.get('data_hora').strftime('%d/%m/%Y %H:%M') if consulta_raw.get('data_hora') else '',
+                    'observacoes': consulta_raw.get('observacoes'),
+                    'diagnostico_texto': consulta_raw.get('diagnostico_texto'),
+                    'paciente_nome': consulta_raw.get('paciente_nome'),
+                    'paciente_data_nascimento': consulta_raw.get('data_nascimento'),
+                    'medico_nome': consulta_raw.get('medico_nome'),
+                    'medico_especialidade': consulta_raw.get('especialidade'),
+                    'medico_crm': consulta_raw.get('crm')
+                }
+            else:
+                # É tupla/lista
+                consulta = {
+                    'id': consulta_raw[0],
+                    'paciente_id': consulta_raw[1],
+                    'medico_id': consulta_raw[2],
+                    'status': consulta_raw[3],
+                    'data_hora': consulta_raw[4].strftime('%d/%m/%Y %H:%M') if consulta_raw[4] else '',
+                    'observacoes': consulta_raw[5],
+                    'diagnostico_texto': consulta_raw[6],
+                    'paciente_nome': consulta_raw[7],
+                    'paciente_data_nascimento': consulta_raw[8],
+                    'medico_nome': consulta_raw[9],
+                    'medico_especialidade': consulta_raw[10],
+                    'medico_crm': consulta_raw[11]
+                }
             
             return render_template('medico/receita_digital.html',
                                   consulta=consulta,
@@ -116,21 +135,18 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 receita_texto = data.get('receita_texto', '')
                 diagnostico = data.get('diagnostico', '')
                 
-                # Se veio como JSON string, converter
                 if isinstance(medicamentos, str):
                     try:
                         medicamentos = json.loads(medicamentos)
                     except:
                         medicamentos = []
                 
-                # Buscar médico_id
                 medico_info = base['obter_info_medico']()
                 if not medico_info:
                     return jsonify({"success": False, "error": "Médico não encontrado"}), 404
                 
                 cursor = mysql.connection.cursor()
                 
-                # Verificar se já existe receita
                 cursor.execute("SELECT id FROM receita WHERE consulta_id = %s", (consulta_id,))
                 existing = cursor.fetchone()
                 
@@ -155,7 +171,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         prescricao_texto += "\n"
                 
                 if existing:
-                    # Atualizar receita existente
+                    existing_id = existing[0] if isinstance(existing, (list, tuple)) else existing.get('id')
                     cursor.execute("""
                         UPDATE receita 
                         SET diagnostico = %s,
@@ -165,9 +181,8 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             atualizado_em = NOW()
                         WHERE consulta_id = %s
                     """, (diagnostico, prescricao_texto, observacoes, json.dumps(medicamentos), consulta_id))
-                    receita_id = existing[0] if isinstance(existing, (list, tuple)) else existing.get('id')
+                    receita_id = existing_id
                 else:
-                    # Criar nova receita
                     cursor.execute("""
                         INSERT INTO receita 
                         (consulta_id, diagnostico, prescricao, recomendacoes, medicamentos, status, created_at)
@@ -178,7 +193,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 mysql.connection.commit()
                 cursor.close()
                 
-                # Gerar HTML da receita
                 receita_html = f"""
                 <div class="receita-container">
                     <h4>Receita Médica</h4>
@@ -225,25 +239,39 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash('Receita não encontrada.', 'danger')
                     return redirect(url_for('medico.dashboard'))
                 
-                # Converter para dicionário
+                # CORREÇÃO: Funciona com dicionário OU tupla
                 if isinstance(result, dict):
                     row = result
+                    consulta_id = row.get('consulta_id')
+                    paciente_id = row.get('paciente_id')
+                    medico_id = row.get('medico_id')
+                    medicamentos_json = row.get('medicamentos')
+                    diagnostico = row.get('diagnostico')
+                    prescricao = row.get('prescricao')
+                    recomendacoes = row.get('recomendacoes')
                 else:
-                    # Para tupla - ajuste os índices conforme sua tabela
-                    row = {
-                        'id': result[0],
-                        'consulta_id': result[1],
-                        'diagnostico': result[2],
-                        'prescricao': result[3],
-                        'recomendacoes': result[4],
-                        'status': result[5],
-                        'created_at': result[6],
-                        'medicamentos': result[7] if len(result) > 7 else None
-                    }
+                    # É tupla - ajuste os índices conforme sua tabela receita
+                    consulta_id = result[1] if len(result) > 1 else None
+                    paciente_id = None  # virá da consulta
+                    medico_id = None
+                    medicamentos_json = result[7] if len(result) > 7 else None
+                    diagnostico = result[2] if len(result) > 2 else None
+                    prescricao = result[3] if len(result) > 3 else None
+                    recomendacoes = result[4] if len(result) > 4 else None
                 
-                consulta_id = row.get('consulta_id')
-                paciente_id = row.get('paciente_id')
-                medico_id = row.get('medico_id')
+                # Se não temos paciente_id e medico_id, buscar da consulta
+                if not paciente_id or not medico_id:
+                    cursor = mysql.connection.cursor()
+                    cursor.execute("SELECT paciente_id, medico_id FROM consultas WHERE id = %s", (consulta_id,))
+                    consulta_info = cursor.fetchone()
+                    cursor.close()
+                    if consulta_info:
+                        if isinstance(consulta_info, dict):
+                            paciente_id = consulta_info.get('paciente_id')
+                            medico_id = consulta_info.get('medico_id')
+                        else:
+                            paciente_id = consulta_info[0]
+                            medico_id = consulta_info[1]
                 
                 # Buscar dados do paciente
                 cursor = mysql.connection.cursor()
@@ -299,23 +327,23 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 # Processar medicamentos
                 medicamentos = []
-                if row.get('medicamentos'):
+                if medicamentos_json:
                     try:
                         import json
-                        medicamentos = json.loads(row['medicamentos'])
+                        medicamentos = json.loads(medicamentos_json)
                     except:
                         medicamentos = []
                 
                 return render_template('medico/receita_gerada.html',
                                       receita_id=receita_id,
-                                      receita=row.get('prescricao', ''),
-                                      observacoes_receita=row.get('recomendacoes', ''),
+                                      receita=prescricao or '',
+                                      observacoes_receita=recomendacoes or '',
                                       medicamentos=medicamentos,
                                       pedido={
                                           'id': consulta_id,
-                                          'paciente_nome': paciente_nome,
-                                          'paciente_idade': paciente_idade,
-                                          'diagnostico_ia': row.get('diagnostico', ''),
+                                          'paciente_nome': paciente_nome or 'N/A',
+                                          'paciente_idade': paciente_idade or 'N/A',
+                                          'diagnostico_ia': diagnostico or '',
                                           'sintomas_lista': []
                                       },
                                       medico={
