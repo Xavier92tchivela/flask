@@ -1,4 +1,5 @@
-# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA CORRIGIDA SEM DUPLICAÇÃO
+# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA CORRIGIDA
+# TODOS OS ENDPOINTS RENOMEADOS PARA EVITAR CONFLITOS
 from flask import render_template, request, redirect, url_for, flash, jsonify, Blueprint, session
 from datetime import datetime
 import logging
@@ -219,7 +220,7 @@ def init_medico_receita_digital(mysql, base):
         return html
     
     # ========== ROTA PARA SALVAR RECEITA (AJAX) ==========
-    def salvar_receita():
+    def salvar_receita_ajax():
         """Salva a receita via AJAX com medicamentos personalizados"""
         try:
             if 'user_id' not in session:
@@ -254,7 +255,7 @@ def init_medico_receita_digital(mysql, base):
             return jsonify({"success": False, "error": str(e)}), 500
     
     # ========== ROTA PARA OBTER DADOS DA RECEITA ==========
-    def obter_receita(receita_id):
+    def obter_receita_json(receita_id):
         """Obtém os dados da receita para edição"""
         try:
             if 'user_id' not in session:
@@ -288,11 +289,11 @@ def init_medico_receita_digital(mysql, base):
             return jsonify({"success": False, "error": str(e)}), 500
     
     # ========== ROTA DE TESTE ==========
-    def teste_receita(consulta_id):
+    def teste_receita_digital(consulta_id):
         return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}</p>"
     
     # ========== ROTA PRINCIPAL ==========
-    def receita_digital(consulta_id):
+    def criar_receita_digital(consulta_id):
         """Página para criar receita digital"""
         medico_id = obter_medico_id()
         
@@ -318,7 +319,7 @@ def init_medico_receita_digital(mysql, base):
                               datetime=datetime)
     
     # ========== ROTA PARA VER RECEITA GERADA ==========
-    def visualizar_receita(receita_id):
+    def visualizar_receita_gerada(receita_id):
         """Visualiza uma receita já gerada"""
         try:
             if 'user_id' not in session:
@@ -392,7 +393,7 @@ def init_medico_receita_digital(mysql, base):
             return redirect(url_for('medico.dashboard'))
     
     # ========== ROTA PARA EDITAR RECEITA ==========
-    def editar_receita(receita_id):
+    def editar_receita_digital(receita_id):
         """Edita uma receita existente"""
         try:
             if 'user_id' not in session:
@@ -463,7 +464,7 @@ def init_medico_receita_digital(mysql, base):
             return redirect(url_for('medico.dashboard'))
     
     # ========== ROTA PARA SALVAR EDIÇÃO ==========
-    def salvar_edicao_receita(receita_id):
+    def salvar_edicao_receita_digital(receita_id):
         """Salva as alterações feitas na receita"""
         try:
             if 'user_id' not in session:
@@ -500,55 +501,55 @@ def init_medico_receita_digital(mysql, base):
             """, (diagnostico, prescricao, observacoes, json.dumps(medicamentos), receita_id))
             
             flash('✅ Receita atualizada com sucesso!', 'success')
-            return redirect(url_for('medico_receita_digital.visualizar_receita', receita_id=receita_id))
+            return redirect(url_for('medico_receita_digital.visualizar_receita_gerada', receita_id=receita_id))
             
         except Exception as e:
             logger.error(f"Erro ao salvar edição da receita: {e}")
             flash('Erro ao salvar alterações.', 'danger')
-            return redirect(url_for('medico_receita_digital.editar_receita', receita_id=receita_id))
+            return redirect(url_for('medico_receita_digital.editar_receita_digital', receita_id=receita_id))
     
-    # ========== LISTA DE ROTAS - SEM DUPLICAÇÃO ==========
+    # ========== LISTA DE ROTAS - COM ENDPOINTS RENOMEADOS ==========
     routes = [
         {
-            'rule': '/teste-receita/<int:consulta_id>',
-            'endpoint': 'teste_receita',
-            'view_func': teste_receita,
+            'rule': '/teste-receita-digital/<int:consulta_id>',
+            'endpoint': 'teste_receita_digital',
+            'view_func': teste_receita_digital,
             'methods': ['GET']
         },
         {
             'rule': '/consulta/<int:consulta_id>/receita-digital',
-            'endpoint': 'receita_digital',
-            'view_func': receita_digital,
+            'endpoint': 'criar_receita_digital',
+            'view_func': criar_receita_digital,
             'methods': ['GET']
         },
         {
-            'rule': '/receita/salvar',
-            'endpoint': 'salvar_receita',
-            'view_func': salvar_receita,
+            'rule': '/receita/salvar-ajax',
+            'endpoint': 'salvar_receita_ajax',
+            'view_func': salvar_receita_ajax,
             'methods': ['POST']
         },
         {
-            'rule': '/receita/<int:receita_id>/obter',
-            'endpoint': 'obter_receita',
-            'view_func': obter_receita,
+            'rule': '/receita/<int:receita_id>/dados-json',
+            'endpoint': 'obter_receita_json',
+            'view_func': obter_receita_json,
             'methods': ['GET']
         },
         {
             'rule': '/receita/<int:receita_id>/visualizar',
-            'endpoint': 'visualizar_receita',
-            'view_func': visualizar_receita,
+            'endpoint': 'visualizar_receita_gerada',
+            'view_func': visualizar_receita_gerada,
             'methods': ['GET']
         },
         {
             'rule': '/receita/<int:receita_id>/editar',
-            'endpoint': 'editar_receita',
-            'view_func': editar_receita,
+            'endpoint': 'editar_receita_digital',
+            'view_func': editar_receita_digital,
             'methods': ['GET']
         },
         {
             'rule': '/receita/<int:receita_id>/salvar-edicao',
-            'endpoint': 'salvar_edicao_receita',
-            'view_func': salvar_edicao_receita,
+            'endpoint': 'salvar_edicao_receita_digital',
+            'view_func': salvar_edicao_receita_digital,
             'methods': ['POST']
         }
     ]
