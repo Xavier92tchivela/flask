@@ -241,7 +241,7 @@ try:
                 rotas_ass.append(str(rule))
         if rotas_ass:
             print("   Rotas registradas:")
-            for rota in rotas_ass[:5]:  # Mostra apenas as primeiras 5
+            for rota in rotas_ass[:5]:
                 print(f"      • {rota}")
             if len(rotas_ass) > 5:
                 print(f"      ... e mais {len(rotas_ass) - 5} rotas")
@@ -289,7 +289,7 @@ except Exception as e:
     logger.error(traceback.format_exc())
     raise
 
-# ========== VERIFICACAO FINAL DE ROTAS (CORRIGIDA) ==========
+# ========== VERIFICACAO FINAL DE ROTAS ==========
 print("\n" + "=" * 70)
 print("VERIFICACAO FINAL DE ROTAS")
 print("=" * 70)
@@ -307,11 +307,9 @@ with app.app_context():
     
     for endpoint in endpoints_procurados:
         try:
-            # Usar _external=False para evitar URLs absolutas
             url = url_for(endpoint, _external=False)
             print(f"    ✓ {endpoint}: {url}")
         except Exception as e:
-            # Isso NÃO é um erro crítico - apenas informativo
             print(f"    ⚠ {endpoint}: geração de URL não disponível (normal em inicialização)")
     
     # Verificar rotas do farmacêutico
@@ -781,4 +779,7 @@ if __name__ == '__main__':
     print("   Acesse: http://localhost:5000")
     print("=" * 70 + "\n")
     
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # 🔧 CORREÇÃO: Usar a porta do Render ou fallback para 5000
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)
