@@ -31,7 +31,7 @@
                     <h5 class="mb-0">Nova Receita - {{ consulta.paciente_nome }}</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('medico.salvar_receita_ajax') }}?consulta_id={{ consulta.id }}" id="formReceita">
+                    <form id="formReceita">
                         <input type="hidden" name="consulta_id" value="{{ consulta.id }}">
                         <input type="hidden" name="paciente_id" value="{{ consulta.paciente_id }}">
                         
@@ -172,7 +172,7 @@
                             <button type="button" class="btn btn-secondary" onclick="history.back()">
                                 Cancelar
                             </button>
-                            <button type="submit" class="btn btn-success">
+                            <button type="submit" class="btn btn-success" id="btnSubmit">
                                 <i class="fas fa-save me-2"></i> Gerar Receita
                             </button>
                         </div>
@@ -572,22 +572,58 @@ document.getElementById('receitaTexto').addEventListener('input', atualizarPrevi
 document.getElementById('observacoesGerais').addEventListener('input', atualizarPreview);
 document.getElementById('diagnostico').addEventListener('input', atualizarPreview);
 
-// Validar antes de enviar
+// Validar e enviar via AJAX com redirecionamento automático
 document.getElementById('formReceita').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
     const receitaTexto = document.getElementById('receitaTexto').value.trim();
     
     if (medicamentosAdicionados.length === 0 && !receitaTexto) {
-        e.preventDefault();
         alert('Adicione pelo menos um medicamento ou escreva a receita manualmente.');
         return;
     }
     
-    // Adicionar medicamentos como JSON para enviar
-    const inputMedicamentos = document.createElement('input');
-    inputMedicamentos.type = 'hidden';
-    inputMedicamentos.name = 'medicamentos_json';
-    inputMedicamentos.value = JSON.stringify(medicamentosAdicionados);
-    this.appendChild(inputMedicamentos);
+    // Obter os dados do formulário
+    const formData = new FormData(this);
+    const dados = {
+        consulta_id: formData.get('consulta_id'),
+        diagnostico: formData.get('diagnostico'),
+        observacoes_gerais: formData.get('observacoes_gerais'),
+        receita_texto: formData.get('receita_texto'),
+        medicamentos_json: JSON.stringify(medicamentosAdicionados)
+    };
+    
+    // Mostrar loading no botão
+    const submitBtn = document.getElementById('btnSubmit');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
+    submitBtn.disabled = true;
+    
+    // Enviar via AJAX
+    fetch('/medico/receita/salvar-ajax', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(dados)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirecionar para a visualização da receita
+            window.location.href = data.redirect_url;
+        } else {
+            alert('Erro ao salvar receita: ' + (data.error || 'Erro desconhecido'));
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro de conexão ao salvar a receita.');
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 });
 
 // Inicializar
@@ -652,6 +688,11 @@ document.addEventListener('DOMContentLoaded', function() {
     font-size: 12px;
     white-space: pre-wrap;
     word-wrap: break-word;
+}
+
+.btn-success:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 </style>
 {% endblock %}
