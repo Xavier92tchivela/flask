@@ -31,7 +31,7 @@
                     <h5 class="mb-0">Nova Receita - {{ consulta.paciente_nome }}</h5>
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('medico_receita_digital.salvar_receita_ajax') }}?consulta_id={{ consulta.id }}" id="formReceita">
+                    <form method="POST" action="{{ url_for('medico.salvar_receita_ajax') }}?consulta_id={{ consulta.id }}" id="formReceita">
                         <input type="hidden" name="consulta_id" value="{{ consulta.id }}">
                         <input type="hidden" name="paciente_id" value="{{ consulta.paciente_id }}">
                         
