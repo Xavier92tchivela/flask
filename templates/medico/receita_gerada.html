@@ -68,7 +68,7 @@
                 <div class="card-body p-2 p-md-4">
                     <!-- Cabeçalho da Receita -->
                     <div class="text-center mb-3 mb-md-4 border-bottom pb-2 pb-md-3">
-                        <h4 class="mb-1 h5 h4-md">{{ medico.nome }}</h4>
+                        <h4 class="mb-1 h5 h4-md">{{ medico.nome|safe }}</h4>
                         <p class="mb-1 small">{{ medico.especialidade }} - CRM {{ medico.crm }}</p>
                         <p class="mb-0 text-muted small">{{ datetime.now().strftime('%d/%m/%Y %H:%M') }}</p>
                     </div>
@@ -76,7 +76,7 @@
                     <!-- Informações do Paciente -->
                     <div class="row mb-3 mb-md-4 g-2">
                         <div class="col-12 col-sm-6">
-                            <p class="mb-1 small"><strong>Paciente:</strong> {{ pedido.paciente_nome }}</p>
+                            <p class="mb-1 small"><strong>Paciente:</strong> {{ pedido.paciente_nome|safe }}</p>
                         </div>
                         <div class="col-12 col-sm-6">
                             <p class="mb-1 small"><strong>Idade:</strong> {{ pedido.paciente_idade }}</p>
@@ -208,7 +208,7 @@
                     </div>
                     <div class="info-item d-flex justify-content-between mb-2 pb-1 border-bottom">
                         <small class="text-muted">Paciente:</small>
-                        <strong class="small">{{ pedido.paciente_nome }}</strong>
+                        <strong class="small">{{ pedido.paciente_nome|safe }}</strong>
                     </div>
                     <div class="info-item d-flex justify-content-between mb-2 pb-1 border-bottom">
                         <small class="text-muted">Tipo Exame:</small>
@@ -511,9 +511,13 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Medicamento adicionado com sucesso!', 'success');
     });
     
-    // 🔥 CORREÇÃO: URL CORRETA para salvar receita
+    // 🔥 CORREÇÃO: Salvar receita com consulta_id
     document.getElementById('btnSalvarReceita').addEventListener('click', function() {
         const observacoes = document.getElementById('observacoesReceita').value;
+        const consultaId = {{ pedido.id }};
+        const receitaId = {{ receita_id }};
+        
+        console.log('Salvando receita - ID:', receitaId, 'Consulta ID:', consultaId);
         
         fetch('/medico/receita/salvar-ajax', {
             method: 'POST',
@@ -521,9 +525,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                receita_id: {{ receita_id }},
+                receita_id: receitaId,
+                consulta_id: consultaId,
                 medicamentos: medicamentos,
-                observacoes: observacoes
+                observacoes: observacoes,
+                diagnostico: document.querySelector('.bg-light.rounded-3')?.innerText || ''
             })
         })
         .then(response => response.json())
@@ -533,8 +539,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.receita_html) {
                     document.getElementById('conteudoReceita').innerHTML = data.receita_html.replace(/\n/g, '<br>');
                 }
+                // Atualizar contador de medicamentos
+                document.getElementById('contadorMedicamentos').textContent = medicamentos.length;
             } else {
-                showToast('Erro ao salvar: ' + data.error, 'danger');
+                showToast('Erro ao salvar: ' + (data.error || 'Erro desconhecido'), 'danger');
             }
         })
         .catch(error => {
