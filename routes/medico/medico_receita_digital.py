@@ -1,5 +1,5 @@
-# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA
-from flask import render_template, request, redirect, url_for, flash, jsonify, Blueprint
+# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA CORRIGIDA SEM DUPLICAÇÃO
+from flask import render_template, request, redirect, url_for, flash, jsonify, Blueprint, session
 from datetime import datetime
 import logging
 import traceback
@@ -18,15 +18,12 @@ def init_medico_receita_digital(mysql, base):
     # Funções auxiliares do base
     execute_query = base.get('execute_query')
     formatar_data = base.get('formatar_data')
-    
-    # CORREÇÃO: Usar a função obter_medico_id do base CORRETAMENTE
     obter_medico_id = base.get('obter_medico_id')
     
     if obter_medico_id is None:
         logger.warning("obter_medico_id não encontrado no base. Usando função alternativa.")
         
         def obter_medico_id():
-            from flask import session
             if 'user_id' not in session or session.get('user_type') != 'medico':
                 return None
             try:
@@ -52,7 +49,6 @@ def init_medico_receita_digital(mysql, base):
         logger.warning("obter_detalhes_consulta não encontrado no base. Usando função alternativa.")
         
         def obter_detalhes_consulta(consulta_id):
-            """Função alternativa para obter detalhes da consulta - CORRIGIDA"""
             try:
                 query = """
                     SELECT 
@@ -188,7 +184,6 @@ def init_medico_receita_digital(mysql, base):
     
     def gerar_html_receita_com_medicamentos(medicamentos, observacoes):
         """Gera HTML formatado para a receita com medicamentos personalizados"""
-        
         if not medicamentos:
             return "<p>Nenhum medicamento prescrito.</p>"
         
@@ -223,70 +218,6 @@ def init_medico_receita_digital(mysql, base):
         html += '</div>'
         return html
     
-    def gerar_html_receita_completa(consulta, diagnostico, medicamentos, observacoes_gerais):
-        """Gera HTML formatado para a receita completa (para impressão)"""
-        
-        data_atual = datetime.now().strftime('%d/%m/%Y %H:%M')
-        
-        html = f'''
-        <div class="receita-container" style="font-family: 'Courier New', monospace; max-width: 800px; margin: 0 auto; padding: 20px; background: white; border: 1px solid #28a745; border-radius: 10px;">
-            <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #28a745; padding-bottom: 10px;">
-                <h2 style="color: #28a745; margin: 0;">RECEITA MÉDICA</h2>
-                <p style="color: #666; font-size: 12px;">Documento Digital</p>
-            </div>
-            
-            <div style="margin-bottom: 20px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-                <p><strong>Paciente:</strong> {consulta.get('paciente_nome', '')}</p>
-                <p><strong>Data:</strong> {data_atual}</p>
-                <p><strong>Médico:</strong> Dr. {consulta.get('medico_nome', '')} - CRM: {consulta.get('crm', '')}</p>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #28a745; border-left: 4px solid #28a745; padding-left: 10px;">DIAGNÓSTICO</h4>
-                <p style="padding: 10px; background: #f8f9fa; border-radius: 5px;">{diagnostico}</p>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <h4 style="color: #28a745; border-left: 4px solid #28a745; padding-left: 10px;">MEDICAMENTOS PRESCRITOS</h4>
-        '''
-        
-        for i, med in enumerate(medicamentos, 1):
-            html += f'''
-                <div style="margin-bottom: 15px; padding: 10px; border-left: 3px solid #28a745; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                    <p><strong>{i}. {med.get('nome', '')}</strong></p>
-            '''
-            if med.get('dosagem'):
-                html += f'<p style="margin-left: 20px;"><strong>Dosagem:</strong> {med.get("dosagem")}</p>'
-            if med.get('frequencia'):
-                html += f'<p style="margin-left: 20px;"><strong>Frequência:</strong> {med.get("frequencia")}</p>'
-            if med.get('duracao'):
-                html += f'<p style="margin-left: 20px;"><strong>Duração:</strong> {med.get("duracao")}</p>'
-            if med.get('quantidade'):
-                html += f'<p style="margin-left: 20px;"><strong>Quantidade:</strong> {med.get("quantidade")}</p>'
-            if med.get('instrucoes'):
-                html += f'<p style="margin-left: 20px; color: #666;"><em>Obs: {med["instrucoes"]}</em></p>'
-            html += '</div>'
-        
-        if observacoes_gerais:
-            html += f'''
-            <div style="margin-top: 20px;">
-                <h4 style="color: #28a745; border-left: 4px solid #28a745; padding-left: 10px;">OBSERVAÇÕES</h4>
-                <p style="padding: 10px; background: #f8f9fa; border-radius: 5px;">{observacoes_gerais}</p>
-            </div>
-            '''
-        
-        html += f'''
-            <div style="margin-top: 40px; text-align: center;">
-                <p style="border-top: 1px dashed #28a745; padding-top: 20px;">__________________________________</p>
-                <p><strong>Dr. {consulta.get('medico_nome', '')}</strong></p>
-                <p>CRM: {consulta.get('crm', '')}</p>
-                <p style="color: #666; font-size: 11px;">Documento digital válido em todo território nacional</p>
-            </div>
-        </div>
-        '''
-        
-        return html
-    
     # ========== ROTA PARA SALVAR RECEITA (AJAX) ==========
     def salvar_receita():
         """Salva a receita via AJAX com medicamentos personalizados"""
@@ -302,7 +233,6 @@ def init_medico_receita_digital(mysql, base):
             if not receita_id:
                 return jsonify({"success": False, "error": "ID da receita não informado"}), 400
             
-            # Salvar no banco de dados
             execute_query("""
                 UPDATE receita 
                 SET medicamentos = %s, 
@@ -311,7 +241,6 @@ def init_medico_receita_digital(mysql, base):
                 WHERE id = %s
             """, (json.dumps(medicamentos), observacoes, receita_id))
             
-            # Gerar HTML da receita atualizada
             receita_html = gerar_html_receita_com_medicamentos(medicamentos, observacoes)
             
             return jsonify({
@@ -322,7 +251,6 @@ def init_medico_receita_digital(mysql, base):
             
         except Exception as e:
             logger.error(f"Erro ao salvar receita: {e}")
-            logger.error(traceback.format_exc())
             return jsonify({"success": False, "error": str(e)}), 500
     
     # ========== ROTA PARA OBTER DADOS DA RECEITA ==========
@@ -361,16 +289,12 @@ def init_medico_receita_digital(mysql, base):
     
     # ========== ROTA DE TESTE ==========
     def teste_receita(consulta_id):
-        """Rota de teste para verificar se o módulo está funcionando"""
-        return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}</p><p><a href='/medico/consultas'>Voltar</a></p>"
+        return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}</p>"
     
     # ========== ROTA PRINCIPAL ==========
     def receita_digital(consulta_id):
         """Página para criar receita digital"""
-        print(f"\n[DEBUG] receita_digital - Consulta ID: {consulta_id}")
-        
         medico_id = obter_medico_id()
-        print(f"[DEBUG] medico_id obtido: {medico_id}")
         
         if not medico_id:
             flash('Acesso não autorizado.', 'danger')
@@ -379,14 +303,10 @@ def init_medico_receita_digital(mysql, base):
         consulta = obter_detalhes_consulta(consulta_id)
         
         if not consulta:
-            print(f"[ERROR] Consulta {consulta_id} não encontrada!")
             flash('Consulta não encontrada.', 'danger')
             return redirect(url_for('medico.consultas'))
         
-        print(f"[DEBUG] Consulta obtida: medico_id={consulta.get('medico_id')}")
-        
         if consulta.get('medico_id') != medico_id:
-            print(f"[ERROR] Permissão negada: medico_id={consulta.get('medico_id')} vs {medico_id}")
             flash('Você não tem permissão para acessar esta consulta.', 'danger')
             return redirect(url_for('medico.consultas'))
         
@@ -398,14 +318,13 @@ def init_medico_receita_digital(mysql, base):
                               datetime=datetime)
     
     # ========== ROTA PARA VER RECEITA GERADA ==========
-    def ver_receita(receita_id):
+    def visualizar_receita(receita_id):
         """Visualiza uma receita já gerada"""
         try:
             if 'user_id' not in session:
                 flash('Faça login para acessar.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # Buscar a receita
             result = execute_query("""
                 SELECT r.*, c.paciente_id, c.medico_id
                 FROM receita r
@@ -417,7 +336,6 @@ def init_medico_receita_digital(mysql, base):
                 flash('Receita não encontrada.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            # Buscar médico
             medico = execute_query("""
                 SELECT u.nome, m.crm, m.especialidade
                 FROM medicos m
@@ -425,7 +343,6 @@ def init_medico_receita_digital(mysql, base):
                 WHERE m.id = %s
             """, (result.get('medico_id'),), fetch=True, one=True)
             
-            # Buscar paciente
             paciente = execute_query("""
                 SELECT u.nome, p.data_nascimento
                 FROM pacientes p
@@ -433,7 +350,6 @@ def init_medico_receita_digital(mysql, base):
                 WHERE p.id = %s
             """, (result.get('paciente_id'),), fetch=True, one=True)
             
-            # Processar medicamentos
             medicamentos = []
             if result.get('medicamentos'):
                 try:
@@ -441,7 +357,6 @@ def init_medico_receita_digital(mysql, base):
                 except:
                     medicamentos = []
             
-            # Calcular idade
             idade = None
             if paciente and paciente.get('data_nascimento'):
                 hoje = datetime.now().date()
@@ -484,7 +399,6 @@ def init_medico_receita_digital(mysql, base):
                 flash('Faça login para acessar.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # Buscar a receita
             result = execute_query("""
                 SELECT r.*, c.paciente_id, c.medico_id
                 FROM receita r
@@ -496,7 +410,6 @@ def init_medico_receita_digital(mysql, base):
                 flash('Receita não encontrada.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            # Buscar médico
             medico = execute_query("""
                 SELECT u.nome, m.crm, m.especialidade
                 FROM medicos m
@@ -504,15 +417,13 @@ def init_medico_receita_digital(mysql, base):
                 WHERE m.id = %s
             """, (result.get('medico_id'),), fetch=True, one=True)
             
-            # Buscar paciente
             paciente = execute_query("""
                 SELECT u.nome, p.data_nascimento
-                FROM patients p
+                FROM pacientes p
                 JOIN usuarios u ON p.usuario_id = u.id
                 WHERE p.id = %s
             """, (result.get('paciente_id'),), fetch=True, one=True)
             
-            # Processar medicamentos
             medicamentos = []
             if result.get('medicamentos'):
                 try:
@@ -520,7 +431,6 @@ def init_medico_receita_digital(mysql, base):
                 except:
                     medicamentos = []
             
-            # Calcular idade
             idade = None
             if paciente and paciente.get('data_nascimento'):
                 hoje = datetime.now().date()
@@ -552,7 +462,7 @@ def init_medico_receita_digital(mysql, base):
             flash('Erro ao carregar receita para edição.', 'danger')
             return redirect(url_for('medico.dashboard'))
     
-    # ========== ROTA PARA SALVAR EDIÇÃO DA RECEITA ==========
+    # ========== ROTA PARA SALVAR EDIÇÃO ==========
     def salvar_edicao_receita(receita_id):
         """Salva as alterações feitas na receita"""
         try:
@@ -564,7 +474,6 @@ def init_medico_receita_digital(mysql, base):
             prescricao = request.form.get('prescricao', '')
             observacoes = request.form.get('observacoes', '')
             
-            # Processar medicamentos do formulário
             medicamentos = []
             i = 0
             while f'medicamento_nome_{i}' in request.form:
@@ -580,7 +489,6 @@ def init_medico_receita_digital(mysql, base):
                     })
                 i += 1
             
-            # Atualizar a receita
             execute_query("""
                 UPDATE receita 
                 SET diagnostico = %s,
@@ -592,14 +500,14 @@ def init_medico_receita_digital(mysql, base):
             """, (diagnostico, prescricao, observacoes, json.dumps(medicamentos), receita_id))
             
             flash('✅ Receita atualizada com sucesso!', 'success')
-            return redirect(url_for('medico_receita_digital.ver_receita', receita_id=receita_id))
+            return redirect(url_for('medico_receita_digital.visualizar_receita', receita_id=receita_id))
             
         except Exception as e:
             logger.error(f"Erro ao salvar edição da receita: {e}")
             flash('Erro ao salvar alterações.', 'danger')
             return redirect(url_for('medico_receita_digital.editar_receita', receita_id=receita_id))
     
-    # Lista de rotas do módulo
+    # ========== LISTA DE ROTAS - SEM DUPLICAÇÃO ==========
     routes = [
         {
             'rule': '/teste-receita/<int:consulta_id>',
@@ -627,8 +535,8 @@ def init_medico_receita_digital(mysql, base):
         },
         {
             'rule': '/receita/<int:receita_id>/visualizar',
-            'endpoint': 'ver_receita',
-            'view_func': ver_receita,
+            'endpoint': 'visualizar_receita',
+            'view_func': visualizar_receita,
             'methods': ['GET']
         },
         {
