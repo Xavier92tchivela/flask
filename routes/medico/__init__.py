@@ -53,22 +53,23 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Acesso não autorizado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            with mysql.connection.cursor() as cursor:
-                cursor.execute("""
-                    SELECT 
-                        c.id, c.paciente_id, c.medico_id, c.status, c.data_hora,
-                        c.observacoes, c.diagnostico_texto,
-                        p_u.nome as paciente_nome, p.data_nascimento,
-                        m_u.nome as medico_nome, m.especialidade, m.crm
-                    FROM consultas c
-                    JOIN pacientes p ON c.paciente_id = p.id
-                    JOIN usuarios p_u ON p.usuario_id = p_u.id
-                    JOIN medicos m ON c.medico_id = m.id
-                    JOIN usuarios m_u ON m.usuario_id = m_u.id
-                    WHERE c.id = %s AND c.medico_id = %s
-                """, (consulta_id, medico_info['id']))
-                
-                consulta_raw = cursor.fetchone()
+            cursor = mysql.connection.cursor()
+            cursor.execute("""
+                SELECT 
+                    c.id, c.paciente_id, c.medico_id, c.status, c.data_hora,
+                    c.observacoes, c.diagnostico_texto,
+                    p_u.nome as paciente_nome, p.data_nascimento,
+                    m_u.nome as medico_nome, m.especialidade, m.crm
+                FROM consultas c
+                JOIN pacientes p ON c.paciente_id = p.id
+                JOIN usuarios p_u ON p.usuario_id = p_u.id
+                JOIN medicos m ON c.medico_id = m.id
+                JOIN usuarios m_u ON m.usuario_id = m_u.id
+                WHERE c.id = %s AND c.medico_id = %s
+            """, (consulta_id, medico_info['id']))
+            
+            consulta_raw = cursor.fetchone()
+            cursor.close()
             
             if not consulta_raw:
                 flash('Consulta não encontrada.', 'danger')
@@ -110,7 +111,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                   medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
                                   datetime=datetime)
         
-        # ===================== ROTA: SALVAR RECEITA AJAX - OTIMIZADA =====================
+        # ===================== ROTA: SALVAR RECEITA AJAX - CORRIGIDA =====================
         @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
         def salvar_receita_ajax():
             """Salva a receita via AJAX com medicamentos personalizados"""
@@ -160,7 +161,12 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     except:
                         pass
                 
-                with mysql.connection.cursor() as cursor:
+                # Usar conexão direta sem transaction context manager
+                conn = mysql.connection
+                cursor = conn.cursor()
+                
+                try:
+                    # Verificar se já existe receita
                     cursor.execute("SELECT id FROM receita WHERE consulta_id = %s", (consulta_id,))
                     existing = cursor.fetchone()
                     
@@ -182,7 +188,13 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         """, (consulta_id, diagnostico, prescricao_texto, observacoes))
                         receita_id = cursor.lastrowid
                     
-                    mysql.connection.commit()
+                    conn.commit()
+                    
+                except Exception as db_error:
+                    conn.rollback()
+                    raise db_error
+                finally:
+                    cursor.close()
                 
                 return jsonify({
                     "success": True, 
@@ -204,14 +216,16 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash('Faça login para acessar.', 'danger')
                     return redirect(url_for('auth.login'))
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT r.*, c.paciente_id, c.medico_id
-                        FROM receita r
-                        JOIN consultas c ON r.consulta_id = c.id
-                        WHERE r.id = %s
-                    """, (receita_id,))
-                    result = cursor.fetchone()
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    SELECT r.*, c.paciente_id, c.medico_id
+                    FROM receita r
+                    JOIN consultas c ON r.consulta_id = c.id
+                    WHERE r.id = %s
+                """, (receita_id,))
+                
+                result = cursor.fetchone()
+                cursor.close()
                 
                 if not result:
                     flash('Receita não encontrada.', 'danger')
@@ -229,35 +243,36 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     prescricao = result[3] if len(result) > 3 else None
                     recomendacoes = result[4] if len(result) > 4 else None
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("SELECT paciente_id, medico_id FROM consultas WHERE id = %s", (consulta_id,))
-                    consulta_info = cursor.fetchone()
-                    
-                    paciente_id = None
-                    medico_id = None
-                    if consulta_info:
-                        if isinstance(consulta_info, dict):
-                            paciente_id = consulta_info.get('paciente_id')
-                            medico_id = consulta_info.get('medico_id')
-                        else:
-                            paciente_id = consulta_info[0]
-                            medico_id = consulta_info[1]
-                    
-                    cursor.execute("""
-                        SELECT u.nome, p.data_nascimento
-                        FROM pacientes p
-                        JOIN usuarios u ON p.usuario_id = u.id
-                        WHERE p.id = %s
-                    """, (paciente_id,))
-                    paciente_raw = cursor.fetchone()
-                    
-                    cursor.execute("""
-                        SELECT u.nome, m.crm, m.especialidade
-                        FROM medicos m
-                        JOIN usuarios u ON m.usuario_id = u.id
-                        WHERE m.id = %s
-                    """, (medico_id,))
-                    medico_raw = cursor.fetchone()
+                cursor = mysql.connection.cursor()
+                cursor.execute("SELECT paciente_id, medico_id FROM consultas WHERE id = %s", (consulta_id,))
+                consulta_info = cursor.fetchone()
+                
+                paciente_id = None
+                medico_id = None
+                if consulta_info:
+                    if isinstance(consulta_info, dict):
+                        paciente_id = consulta_info.get('paciente_id')
+                        medico_id = consulta_info.get('medico_id')
+                    else:
+                        paciente_id = consulta_info[0]
+                        medico_id = consulta_info[1]
+                
+                cursor.execute("""
+                    SELECT u.nome, p.data_nascimento
+                    FROM pacientes p
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE p.id = %s
+                """, (paciente_id,))
+                paciente_raw = cursor.fetchone()
+                
+                cursor.execute("""
+                    SELECT u.nome, m.crm, m.especialidade
+                    FROM medicos m
+                    JOIN usuarios u ON m.usuario_id = u.id
+                    WHERE m.id = %s
+                """, (medico_id,))
+                medico_raw = cursor.fetchone()
+                cursor.close()
                 
                 paciente_nome = None
                 paciente_idade = None
@@ -330,30 +345,32 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 medico_id = medico_info.get('id')
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT 
-                            i.id,
-                            i.numero_prontuario,
-                            i.data_internacao,
-                            i.tipo_internacao,
-                            i.diagnostico_inicial,
-                            i.status,
-                            i.leito_id,
-                            p.id as paciente_id,
-                            u.nome as paciente_nome,
-                            p.data_nascimento,
-                            l.alas,
-                            l.numero as leito_numero,
-                            l.tipo as leito_tipo
-                        FROM internacoes_pacientes i
-                        JOIN pacientes p ON i.paciente_id = p.id
-                        JOIN usuarios u ON p.usuario_id = u.id
-                        LEFT JOIN leitos l ON i.leito_id = l.id
-                        WHERE i.medico_responsavel_id = %s AND i.status = 'ativa'
-                        ORDER BY i.data_internacao DESC
-                    """, (medico_id,))
-                    internados = cursor.fetchall()
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    SELECT 
+                        i.id,
+                        i.numero_prontuario,
+                        i.data_internacao,
+                        i.tipo_internacao,
+                        i.diagnostico_inicial,
+                        i.status,
+                        i.leito_id,
+                        p.id as paciente_id,
+                        u.nome as paciente_nome,
+                        p.data_nascimento,
+                        l.alas,
+                        l.numero as leito_numero,
+                        l.tipo as leito_tipo
+                    FROM internacoes_pacientes i
+                    JOIN pacientes p ON i.paciente_id = p.id
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    LEFT JOIN leitos l ON i.leito_id = l.id
+                    WHERE i.medico_responsavel_id = %s AND i.status = 'ativa'
+                    ORDER BY i.data_internacao DESC
+                """, (medico_id,))
+                
+                internados = cursor.fetchall()
+                cursor.close()
                 
                 internados_lista = []
                 for internado in internados:
@@ -404,16 +421,18 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash("Médico não encontrado.", "danger")
                     return redirect(url_for("auth.login"))
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT i.id, i.numero_prontuario, u.nome as paciente_nome,
-                               p.data_nascimento
-                        FROM internacoes_pacientes i
-                        JOIN pacientes p ON i.paciente_id = p.id
-                        JOIN usuarios u ON p.usuario_id = u.id
-                        WHERE i.id = %s AND i.medico_responsavel_id = %s
-                    """, (internacao_id, medico_info['id']))
-                    internacao = cursor.fetchone()
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    SELECT i.id, i.numero_prontuario, u.nome as paciente_nome,
+                           p.data_nascimento
+                    FROM internacoes_pacientes i
+                    JOIN pacientes p ON i.paciente_id = p.id
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE i.id = %s AND i.medico_responsavel_id = %s
+                """, (internacao_id, medico_info['id']))
+                
+                internacao = cursor.fetchone()
+                cursor.close()
                 
                 if not internacao:
                     flash("Internação não encontrada.", "danger")
@@ -459,17 +478,19 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 if not all([internacao_id, medicamento, dosagem, via, frequencia, data_inicio]):
                     return jsonify({"success": False, "error": "Preencha todos os campos obrigatórios"}), 400
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("""
-                        INSERT INTO medicamentos_prescritos 
-                        (internacao_id, medicamento, dosagem, via, frequencia, 
-                         horario_inicio, horario_fim, data_inicio, data_fim, 
-                         observacoes, status, medico_id)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ativa', %s)
-                    """, (internacao_id, medicamento, dosagem, via, frequencia,
-                          horario_inicio, horario_fim, data_inicio, data_fim,
-                          observacoes, medico_info['id']))
-                    mysql.connection.commit()
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    INSERT INTO medicamentos_prescritos 
+                    (internacao_id, medicamento, dosagem, via, frequencia, 
+                     horario_inicio, horario_fim, data_inicio, data_fim, 
+                     observacoes, status, medico_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ativa', %s)
+                """, (internacao_id, medicamento, dosagem, via, frequencia,
+                      horario_inicio, horario_fim, data_inicio, data_fim,
+                      observacoes, medico_info['id']))
+                
+                mysql.connection.commit()
+                cursor.close()
                 
                 return jsonify({"success": True, "message": "Medicamento prescrito com sucesso!"})
                 
@@ -488,39 +509,43 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash("Médico não encontrado.", "danger")
                     return redirect(url_for("auth.login"))
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("""
-                        SELECT i.id, i.numero_prontuario, u.nome as paciente_nome
-                        FROM internacoes_pacientes i
-                        JOIN pacientes p ON i.paciente_id = p.id
-                        JOIN usuarios u ON p.usuario_id = u.id
-                        WHERE i.id = %s AND i.medico_responsavel_id = %s
-                    """, (internacao_id, medico_info['id']))
-                    internacao = cursor.fetchone()
-                    
-                    if not internacao:
-                        flash("Internação não encontrada.", "danger")
-                        return redirect(url_for("medico.internados"))
-                    
-                    cursor.execute("""
-                        SELECT 
-                            mp.id,
-                            mp.medicamento,
-                            mp.dosagem,
-                            mp.via,
-                            mp.frequencia,
-                            mp.horario_inicio,
-                            mp.horario_fim,
-                            mp.data_inicio,
-                            mp.data_fim,
-                            mp.observacoes,
-                            mp.status,
-                            mp.created_at
-                        FROM medicamentos_prescritos mp
-                        WHERE mp.internacao_id = %s
-                        ORDER BY mp.created_at DESC
-                    """, (internacao_id,))
-                    prescricoes_raw = cursor.fetchall()
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    SELECT i.id, i.numero_prontuario, u.nome as paciente_nome
+                    FROM internacoes_pacientes i
+                    JOIN pacientes p ON i.paciente_id = p.id
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE i.id = %s AND i.medico_responsavel_id = %s
+                """, (internacao_id, medico_info['id']))
+                
+                internacao = cursor.fetchone()
+                
+                if not internacao:
+                    cursor.close()
+                    flash("Internação não encontrada.", "danger")
+                    return redirect(url_for("medico.internados"))
+                
+                cursor.execute("""
+                    SELECT 
+                        mp.id,
+                        mp.medicamento,
+                        mp.dosagem,
+                        mp.via,
+                        mp.frequencia,
+                        mp.horario_inicio,
+                        mp.horario_fim,
+                        mp.data_inicio,
+                        mp.data_fim,
+                        mp.observacoes,
+                        mp.status,
+                        mp.created_at
+                    FROM medicamentos_prescritos mp
+                    WHERE mp.internacao_id = %s
+                    ORDER BY mp.created_at DESC
+                """, (internacao_id,))
+                
+                prescricoes_raw = cursor.fetchall()
+                cursor.close()
                 
                 prescricoes = []
                 for p in prescricoes_raw:
@@ -562,13 +587,15 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 if not medico_info:
                     return jsonify({"success": False, "error": "Não autorizado"}), 401
                 
-                with mysql.connection.cursor() as cursor:
-                    cursor.execute("""
-                        UPDATE medicamentos_prescritos 
-                        SET status = 'suspensa' 
-                        WHERE id = %s
-                    """, (prescricao_id,))
-                    mysql.connection.commit()
+                cursor = mysql.connection.cursor()
+                cursor.execute("""
+                    UPDATE medicamentos_prescritos 
+                    SET status = 'suspensa' 
+                    WHERE id = %s
+                """, (prescricao_id,))
+                
+                mysql.connection.commit()
+                cursor.close()
                 
                 return jsonify({"success": True, "message": "Prescrição suspensa com sucesso!"})
                 
@@ -626,7 +653,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "处 perfil<th>Endpoint</th><th>URL</th><th>Métodos</th><table>"
+            output += "处 perfil<th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
