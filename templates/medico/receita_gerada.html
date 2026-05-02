@@ -511,11 +511,11 @@ document.addEventListener('DOMContentLoaded', function() {
         showToast('Medicamento adicionado com sucesso!', 'success');
     });
     
-    // Salvar receita completa
+    // 🔥 CORREÇÃO: URL CORRETA para salvar receita
     document.getElementById('btnSalvarReceita').addEventListener('click', function() {
         const observacoes = document.getElementById('observacoesReceita').value;
         
-        fetch('/medico/salvar-receita', {
+        fetch('/medico/receita/salvar-ajax', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -530,7 +530,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 showToast('Receita salva com sucesso!', 'success');
-                // Atualizar conteúdo da receita
                 if (data.receita_html) {
                     document.getElementById('conteudoReceita').innerHTML = data.receita_html.replace(/\n/g, '<br>');
                 }
