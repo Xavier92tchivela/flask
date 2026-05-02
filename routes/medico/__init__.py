@@ -41,7 +41,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     return str(value)
             return value
         
-        # ===================== ROTA: RECEITA DIGITAL (CRIAR) - CORRIGIDA =====================
+        # ===================== ROTA: RECEITA DIGITAL (CRIAR) =====================
         @medico_bp.route('/consulta/<int:consulta_id>/receita-digital')
         def criar_receita_digital(consulta_id):
             """Página para criar receita digital"""
@@ -52,7 +52,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Acesso não autorizado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # Buscar dados da consulta
             cursor = mysql.connection.cursor()
             cursor.execute("""
                 SELECT 
@@ -75,9 +74,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Consulta não encontrada.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            # CORREÇÃO: Funciona com dicionário OU tupla
             if isinstance(consulta_raw, dict):
-                # É dicionário
                 consulta = {
                     'id': consulta_raw.get('id'),
                     'paciente_id': consulta_raw.get('paciente_id'),
@@ -93,7 +90,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     'medico_crm': consulta_raw.get('crm')
                 }
             else:
-                # É tupla/lista
                 consulta = {
                     'id': consulta_raw[0],
                     'paciente_id': consulta_raw[1],
@@ -114,7 +110,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                   medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
                                   datetime=datetime)
         
-        # ===================== ROTA: SALVAR RECEITA AJAX =====================
+        # ===================== ROTA: SALVAR RECEITA AJAX - CORRIGIDA =====================
         @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
         def salvar_receita_ajax():
             """Salva a receita via AJAX com medicamentos personalizados"""
@@ -124,9 +120,14 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 if 'user_id' not in session:
                     return jsonify({"success": False, "error": "Não autorizado"}), 401
                 
-                data = request.get_json()
-                if not data:
+                # CORREÇÃO: Aceitar tanto JSON quanto form-data
+                if request.is_json:
+                    data = request.get_json()
+                else:
                     data = request.form.to_dict()
+                
+                if not data:
+                    return jsonify({"success": False, "error": "Nenhum dado recebido"}), 400
                 
                 receita_id = data.get('receita_id')
                 consulta_id = data.get('consulta_id')
@@ -135,18 +136,21 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 receita_texto = data.get('receita_texto', '')
                 diagnostico = data.get('diagnostico', '')
                 
+                # Se veio como JSON string, converter
                 if isinstance(medicamentos, str):
                     try:
                         medicamentos = json.loads(medicamentos)
                     except:
                         medicamentos = []
                 
+                # Buscar médico_id
                 medico_info = base['obter_info_medico']()
                 if not medico_info:
                     return jsonify({"success": False, "error": "Médico não encontrado"}), 404
                 
                 cursor = mysql.connection.cursor()
                 
+                # Verificar se já existe receita
                 cursor.execute("SELECT id FROM receita WHERE consulta_id = %s", (consulta_id,))
                 existing = cursor.fetchone()
                 
@@ -193,6 +197,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 mysql.connection.commit()
                 cursor.close()
                 
+                # Gerar HTML da receita
                 receita_html = f"""
                 <div class="receita-container">
                     <h4>Receita Médica</h4>
@@ -239,7 +244,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash('Receita não encontrada.', 'danger')
                     return redirect(url_for('medico.dashboard'))
                 
-                # CORREÇÃO: Funciona com dicionário OU tupla
                 if isinstance(result, dict):
                     row = result
                     consulta_id = row.get('consulta_id')
@@ -250,16 +254,14 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     prescricao = row.get('prescricao')
                     recomendacoes = row.get('recomendacoes')
                 else:
-                    # É tupla - ajuste os índices conforme sua tabela receita
                     consulta_id = result[1] if len(result) > 1 else None
-                    paciente_id = None  # virá da consulta
+                    paciente_id = None
                     medico_id = None
                     medicamentos_json = result[7] if len(result) > 7 else None
                     diagnostico = result[2] if len(result) > 2 else None
                     prescricao = result[3] if len(result) > 3 else None
                     recomendacoes = result[4] if len(result) > 4 else None
                 
-                # Se não temos paciente_id e medico_id, buscar da consulta
                 if not paciente_id or not medico_id:
                     cursor = mysql.connection.cursor()
                     cursor.execute("SELECT paciente_id, medico_id FROM consultas WHERE id = %s", (consulta_id,))
@@ -273,7 +275,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             paciente_id = consulta_info[0]
                             medico_id = consulta_info[1]
                 
-                # Buscar dados do paciente
                 cursor = mysql.connection.cursor()
                 cursor.execute("""
                     SELECT u.nome, p.data_nascimento
@@ -302,7 +303,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         idade = hoje.year - birth_date.year - ((hoje.month, hoje.day) < (birth_date.month, birth_date.day))
                         paciente_idade = f"{idade} anos"
                 
-                # Buscar dados do médico
                 cursor.execute("""
                     SELECT u.nome, m.crm, m.especialidade
                     FROM medicos m
@@ -325,11 +325,9 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         medico_crm = medico_raw[1]
                         medico_especialidade = medico_raw[2]
                 
-                # Processar medicamentos
                 medicamentos = []
                 if medicamentos_json:
                     try:
-                        import json
                         medicamentos = json.loads(medicamentos_json)
                     except:
                         medicamentos = []
