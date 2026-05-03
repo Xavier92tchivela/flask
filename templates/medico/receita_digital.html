@@ -79,26 +79,20 @@
                                       placeholder="Descreva o diagnóstico...">{{ consulta.diagnostico_texto or '' }}</textarea>
                         </div>
 
-                        <!-- ===== CAMPO PARA ESCREVER A RECEITA MANUALMENTE ===== -->
+                        <!-- ===== CAMPO PRINCIPAL: RECEITA (PRESCRIÇÃO) ===== -->
                         <div class="mb-4">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-pen-alt text-primary me-2"></i>Receita (Texto Livre)
-                                <small class="text-muted">Escreva a receita manualmente</small>
+                            <label class="form-label fw-bold text-danger">
+                                <i class="fas fa-prescription me-2"></i>📝 RECEITA (Prescrição Médica)
+                                <small class="text-muted d-block">Escreva aqui os medicamentos, dosagens e instruções</small>
                             </label>
-                            <textarea class="form-control" name="receita_texto" id="receitaTexto" rows="6" 
-                                      placeholder="Exemplo:&#10;1. Paracetamol 500mg - 1 comprimido de 8/8h por 5 dias&#10;2. Amoxicilina 500mg - 1 comprimido de 12/12h por 7 dias&#10;3. Repouso e hidratação adequada&#10;&#10;Orientações: Evitar esforço físico por 7 dias."></textarea>
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> Você pode escrever a receita livremente ou usar os medicamentos abaixo
-                            </small>
+                            <textarea class="form-control" name="receita_texto" id="receitaTexto" rows="8" 
+                                      placeholder="Exemplo:&#10;1. Paracetamol 500mg - 1 comprimido de 8/8h por 5 dias&#10;2. Amoxicilina 500mg - 1 comprimido de 12/12h por 7 dias&#10;3. Repouso e hidratação adequada"></textarea>
                         </div>
 
                         <!-- Divisória -->
                         <hr class="my-4">
                         <div class="text-center mb-3">
-                            <span class="badge bg-secondary p-2">OU</span>
-                        </div>
-                        <div class="text-center mb-3">
-                            <small class="text-muted">Use os botões abaixo para adicionar medicamentos estruturados</small>
+                            <span class="badge bg-secondary p-2">OU USE MEDICAMENTOS ESTRUTURADOS</span>
                         </div>
 
                         <!-- Botões de Condições -->
@@ -151,19 +145,21 @@
                         <!-- Medicamentos Adicionados -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">
-                                <i class="fas fa-pills text-success me-2"></i>Medicamentos Prescritos
+                                <i class="fas fa-pills text-success me-2"></i>Medicamentos Prescritos (Estruturados)
                             </label>
                             <div id="medicamentos-container">
                                 <!-- Medicamentos serão listados aqui -->
                             </div>
                         </div>
 
-                        <!-- Observações Gerais -->
+                        <!-- Observações Adicionais (opcional) -->
                         <div class="mb-3">
-                            <label class="form-label fw-bold">
-                                <i class="fas fa-edit text-success me-2"></i>Observações Gerais
+                            <label class="form-label fw-bold text-muted">
+                                <i class="fas fa-edit me-2"></i>Observações Adicionais (Opcional)
+                                <small class="text-muted d-block">Instruções extras, contraindicações, orientações gerais</small>
                             </label>
-                            <textarea class="form-control" name="observacoes_gerais" id="observacoesGerais" rows="2" placeholder="Instruções adicionais, orientações, contraindicações..."></textarea>
+                            <textarea class="form-control" name="observacoes_gerais" id="observacoesGerais" rows="3" 
+                                      placeholder="Ex: Tomar após as refeições, evitar bebida alcoólica, repouso recomendado..."></textarea>
                         </div>
 
                         <hr>
@@ -194,17 +190,16 @@
                     <h6>Como usar:</h6>
                     <ol class="small">
                         <li>Descreva o diagnóstico</li>
-                        <li><strong>Escreva a receita manualmente</strong> no campo de texto</li>
-                        <li><strong class="text-primary">OU</strong> clique em "ADICIONAR MEDICAMENTO"</li>
-                        <li>Selecione o medicamento na lista ou pesquise</li>
-                        <li>Ajuste as informações se necessário</li>
+                        <li><strong class="text-danger">Escreva a receita no campo "RECEITA"</strong></li>
+                        <li>OU use os medicamentos estruturados</li>
+                        <li>Adicione observações complementares se necessário</li>
                         <li>Clique em "Gerar Receita"</li>
                     </ol>
                     
                     <!-- Pré-visualização da Receita -->
                     <div class="mt-4">
-                        <h6 class="fw-bold">Pré-visualização:</h6>
-                        <div class="border rounded p-2 bg-light" style="font-size: 12px;" id="previewReceita">
+                        <h6 class="fw-bold">Pré-visualização da Receita:</h6>
+                        <div class="border rounded p-2 bg-light" style="font-size: 12px; max-height: 200px; overflow-y: auto;" id="previewReceita">
                             Aguardando entrada...
                         </div>
                     </div>
@@ -541,11 +536,11 @@ function atualizarPreview() {
     }
     
     if (receitaTexto) {
-        preview += `<strong>Receita:</strong><br>${receitaTexto.replace(/\n/g, '<br>')}<br><br>`;
+        preview += `<strong>Prescrição:</strong><br>${receitaTexto.replace(/\n/g, '<br>')}<br><br>`;
     }
     
     if (medicamentosAdicionados.length > 0) {
-        preview += `<strong>Medicamentos:</strong><br>`;
+        preview += `<strong>Medicamentos Estruturados:</strong><br>`;
         medicamentosAdicionados.forEach((med, i) => {
             preview += `${i+1}. ${med.nome}`;
             if (med.posologia) preview += ` - ${med.posologia}`;
@@ -557,7 +552,7 @@ function atualizarPreview() {
     }
     
     if (observacoes) {
-        preview += `<strong>Orientações:</strong><br>${observacoes.replace(/\n/g, '<br>')}`;
+        preview += `<strong>Orientações Adicionais:</strong><br>${observacoes.replace(/\n/g, '<br>')}`;
     }
     
     if (!diagnostico && !receitaTexto && medicamentosAdicionados.length === 0 && !observacoes) {
@@ -572,7 +567,7 @@ document.getElementById('receitaTexto').addEventListener('input', atualizarPrevi
 document.getElementById('observacoesGerais').addEventListener('input', atualizarPreview);
 document.getElementById('diagnostico').addEventListener('input', atualizarPreview);
 
-// Validar e enviar via AJAX com redirecionamento automático
+// Validar e enviar via AJAX
 document.getElementById('formReceita').addEventListener('submit', function(e) {
     e.preventDefault();
     
@@ -583,7 +578,6 @@ document.getElementById('formReceita').addEventListener('submit', function(e) {
         return;
     }
     
-    // Obter os dados do formulário
     const formData = new FormData(this);
     const dados = {
         consulta_id: formData.get('consulta_id'),
@@ -593,13 +587,11 @@ document.getElementById('formReceita').addEventListener('submit', function(e) {
         medicamentos_json: JSON.stringify(medicamentosAdicionados)
     };
     
-    // Mostrar loading no botão
     const submitBtn = document.getElementById('btnSubmit');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
     submitBtn.disabled = true;
     
-    // Enviar via AJAX
     fetch('/medico/receita/salvar-ajax', {
         method: 'POST',
         headers: {
@@ -610,7 +602,6 @@ document.getElementById('formReceita').addEventListener('submit', function(e) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Redirecionar para a visualização da receita
             window.location.href = data.redirect_url;
         } else {
             alert('Erro ao salvar receita: ' + (data.error || 'Erro desconhecido'));
@@ -693,6 +684,10 @@ document.addEventListener('DOMContentLoaded', function() {
 .btn-success:disabled {
     opacity: 0.7;
     cursor: not-allowed;
+}
+
+textarea {
+    resize: vertical;
 }
 </style>
 {% endblock %}
