@@ -31,7 +31,8 @@ def init_medico_base(mysql):
             
             if session.get('user_type') != 'medico':
                 flash('Acesso restrito a médicos.', 'warning')
-                return redirect(url_for('auth.dashboard'))
+                # 🔧 CORREÇÃO: 'auth.dashboard' → 'dashboard'
+                return redirect(url_for('dashboard'))
             
             # Verificar se tem médico_id na sessão
             if not session.get('medico_id'):
@@ -170,7 +171,7 @@ def init_medico_base(mysql):
             
             # Pacientes internados
             pacientes_internados = execute_query("""
-                SELECT COUNT(*) FROM internacoes 
+                SELECT COUNT(*) FROM internacoes_pacientes 
                 WHERE medico_responsavel_id = %s AND status = 'ativa'
             """, (medico_id,), fetch=True, one=True)
             
@@ -189,7 +190,11 @@ def init_medico_base(mysql):
                 if not result:
                     return 0
                 if isinstance(result, dict):
-                    return result.get('COUNT(*)', 0)
+                    # Tenta encontrar o valor na primeira chave
+                    if result:
+                        first_key = list(result.keys())[0]
+                        return result.get(first_key, 0)
+                    return 0
                 return result[0] if result else 0
             
             return {
