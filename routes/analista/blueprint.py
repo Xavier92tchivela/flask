@@ -2,23 +2,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 import logging
 from datetime import datetime
-import mysql.connector
-import os
 import traceback
 
 logger = logging.getLogger(__name__)
 
-# Função auxiliar para conexão com banco
-def get_db_connection():
-    """Conexão com o banco de dados"""
-    return mysql.connector.connect(
-        host=os.getenv('DB_HOST', 'localhost'),
-        user=os.getenv('DB_USER', 'root'),
-        password=os.getenv('DB_PASSWORD', 'root'),
-        database=os.getenv('DB_NAME', 'sistema_medico'),
-        charset='utf8mb4',
-        use_unicode=True
-    )
+# FUNÇÃO AUXILIAR REMOVIDA - NÃO CRIAR NOVAS CONEXÕES!
 
 def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
     """Inicializa e configura o blueprint do analista"""
@@ -80,17 +68,12 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
     @analista_bp.route('/analise_manual/<int:pedido_id>')
     @analista_required
     def analise_manual(pedido_id):
-        """Página de análise manual"""
-        conn = None
-        cursor = None
+        """Página de análise manual - USANDO CONEXÃO EXISTENTE"""
         try:
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
+            print(f"[INFO] Buscando pedido ID: {pedido_id} para análise manual")
             
-            print(f"[INFO] Buscando pedido ID: {pedido_id}")
-            
-            # CORRIGIDO: Buscar dados do pedido com JOIN correto
-            cursor.execute("""
+            # USAR execute_query EM VEZ DE CRIAR NOVA CONEXÃO
+            pedido = execute_query("""
                 SELECT 
                     p.*,
                     u_paciente.nome as paciente_nome,
@@ -104,54 +87,73 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
                 LEFT JOIN medicos m ON p.medico_id = m.id
                 LEFT JOIN usuarios u_medico ON m.usuario_id = u_medico.id
                 WHERE p.id = %s
-            """, (pedido_id,))
-            
-            pedido = cursor.fetchone()
+            """, (pedido_id,), fetch=True, one=True)
             
             if not pedido:
                 flash(f'Pedido #{pedido_id} não encontrado!', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            print(f"[OK] Pedido encontrado: #{pedido.get('id')} - Paciente: {pedido.get('paciente_nome')}")
+            print(f"[OK] Pedido encontrado: #{pedido.get('id') if isinstance(pedido, dict) else pedido[0]} - Paciente: {pedido.get('paciente_nome') if isinstance(pedido, dict) else pedido[8] if len(pedido) > 8 else 'N/A'}")
             
             # Buscar anexos
             anexos_pedido = []
             try:
-                cursor.execute("""
-                    SELECT filename, original_name, type, size, upload_date
-                    FROM anexos_pedido
+                anexos = execute_query("""
+                    SELECT filename, original_name, tipo, size, upload_date
+                    FROM anexos_pedidos
                     WHERE pedido_id = %s
-                """, (pedido_id,))
-                anexos_pedido = cursor.fetchall()
-                print(f"[INFO] Anexos encontrados: {len(anexos_pedido)}")
+                """, (pedido_id,), fetch=True)
+                
+                if anexos:
+                    for a in anexos:
+                        anexos_pedido.append({
+                            'filename': a[0] if isinstance(a, (list, tuple)) else a.get('filename'),
+                            'original_name': a[1] if isinstance(a, (list, tuple)) else a.get('original_name'),
+                            'type': a[2] if isinstance(a, (list, tuple)) else a.get('tipo'),
+                            'size': a[3] if isinstance(a, (list, tuple)) else a.get('size'),
+                            'upload_date': a[4] if isinstance(a, (list, tuple)) else a.get('upload_date')
+                        })
+                    print(f"[INFO] Anexos encontrados: {len(anexos_pedido)}")
             except Exception as e:
                 print(f"[WARN] Erro ao buscar anexos: {e}")
             
             # Buscar diagnóstico existente
             dados = {}
-            try:
-                if pedido.get('consulta_id'):
-                    cursor.execute("""
+            consulta_id = pedido.get('consulta_id') if isinstance(pedido, dict) else pedido[12] if len(pedido) > 12 else None
+            
+            if consulta_id:
+                try:
+                    diagnostico = execute_query("""
                         SELECT tipo_exame, descricao, resultado, diagnostico_preliminar, 
                                diagnostico_final, observacoes, status
                         FROM diagnostico
                         WHERE consulta_id = %s
-                    """, (pedido['consulta_id'],))
+                    """, (consulta_id,), fetch=True, one=True)
                     
-                    dados_salvos = cursor.fetchone()
-                    if dados_salvos:
-                        dados = {
-                            'tipo_exame': dados_salvos.get('tipo_exame'),
-                            'descricao': dados_salvos.get('descricao'),
-                            'resultado': dados_salvos.get('resultado'),
-                            'diagnostico_preliminar': dados_salvos.get('diagnostico_preliminar'),
-                            'diagnostico_final': dados_salvos.get('diagnostico_final'),
-                            'observacoes': dados_salvos.get('observacoes'),
-                            'status': dados_salvos.get('status')
-                        }
+                    if diagnostico:
+                        if isinstance(diagnostico, dict):
+                            dados = {
+                                'tipo_exame': diagnostico.get('tipo_exame'),
+                                'descricao': diagnostico.get('descricao'),
+                                'resultado': diagnostico.get('resultado'),
+                                'diagnostico_preliminar': diagnostico.get('diagnostico_preliminar'),
+                                'diagnostico_final': diagnostico.get('diagnostico_final'),
+                                'observacoes': diagnostico.get('observacoes'),
+                                'status': diagnostico.get('status')
+                            }
+                        else:
+                            dados = {
+                                'tipo_exame': diagnostico[0] if len(diagnostico) > 0 else None,
+                                'descricao': diagnostico[1] if len(diagnostico) > 1 else None,
+                                'resultado': diagnostico[2] if len(diagnostico) > 2 else None,
+                                'diagnostico_preliminar': diagnostico[3] if len(diagnostico) > 3 else None,
+                                'diagnostico_final': diagnostico[4] if len(diagnostico) > 4 else None,
+                                'observacoes': diagnostico[5] if len(diagnostico) > 5 else None,
+                                'status': diagnostico[6] if len(diagnostico) > 6 else None
+                            }
                         print(f"[INFO] Diagnóstico encontrado para pedido #{pedido_id}")
-            except Exception as e:
-                print(f"[WARN] Erro ao buscar diagnóstico: {e}")
+                except Exception as e:
+                    print(f"[WARN] Erro ao buscar diagnóstico: {e}")
             
             return render_template('analista/analise_manual.html',
                                  pedido=pedido,
@@ -161,23 +163,16 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
         except Exception as e:
             logger.error(f"[ERROR] Erro ao carregar análise manual: {str(e)}")
             print(f"[ERROR] ERRO DETALHADO: {str(e)}")
+            traceback.print_exc()
             flash(f'Erro ao carregar análise manual: {str(e)}', 'danger')
             return redirect(url_for('analista.pedidos'))
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
 
     @analista_bp.route('/salvar_analise_manual/<int:pedido_id>', methods=['POST'])
     @analista_required
     def salvar_analise_manual(pedido_id):
-        """Salvar análise manual e criar notificação para o médico"""
-        conn = None
-        cursor = None
+        """Salvar análise manual e criar notificação para o médico - USANDO CONEXÃO EXISTENTE"""
         try:
             # Pegar dados do formulário
-            consulta_id = request.form.get('consulta_id')
             tipo_exame = request.form.get('tipo_exame', '').strip()
             descricao = request.form.get('descricao', '').strip()
             resultado = request.form.get('resultado', '').strip()
@@ -195,15 +190,11 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
                 flash('Resultado e diagnóstico final são obrigatórios!', 'warning')
                 return redirect(url_for('analista.analise_manual', pedido_id=pedido_id))
             
-            conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True)
-            
-            # CORRIGIDO: Buscar o pedido para obter informações com JOIN correto
-            cursor.execute("""
+            # Buscar o pedido
+            pedido = execute_query("""
                 SELECT 
-                    p.*,
+                    p.id, p.consulta_id, p.paciente_id, p.medico_id,
                     u_paciente.nome as paciente_nome,
-                    u_paciente.email as paciente_email,
                     u_medico.id as medico_usuario_id,
                     u_medico.nome as medico_nome
                 FROM pedidos_analise p
@@ -211,18 +202,23 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
                 LEFT JOIN medicos m ON p.medico_id = m.id
                 LEFT JOIN usuarios u_medico ON m.usuario_id = u_medico.id
                 WHERE p.id = %s
-            """, (pedido_id,))
-            
-            pedido = cursor.fetchone()
+            """, (pedido_id,), fetch=True, one=True)
             
             if not pedido:
                 flash('Pedido não encontrado!', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            consulta_id = pedido.get('consulta_id')
-            medico_usuario_id = pedido.get('medico_usuario_id')
-            medico_nome = pedido.get('medico_nome', 'Médico')
-            paciente_nome = pedido.get('paciente_nome', 'Paciente')
+            # Extrair dados
+            if isinstance(pedido, dict):
+                consulta_id = pedido.get('consulta_id')
+                medico_usuario_id = pedido.get('medico_usuario_id')
+                medico_nome = pedido.get('medico_nome', 'Médico')
+                paciente_nome = pedido.get('paciente_nome', 'Paciente')
+            else:
+                consulta_id = pedido[1] if len(pedido) > 1 else None
+                medico_usuario_id = pedido[5] if len(pedido) > 5 else None
+                medico_nome = pedido[6] if len(pedido) > 6 else 'Médico'
+                paciente_nome = pedido[4] if len(pedido) > 4 else 'Paciente'
             
             print(f"[INFO] Pedido #{pedido_id}:")
             print(f"   - Consulta ID: {consulta_id}")
@@ -234,13 +230,13 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
                 flash('Este pedido não está associado a uma consulta. Não é possível salvar o diagnóstico.', 'danger')
                 return redirect(url_for('analista.analise_manual', pedido_id=pedido_id))
             
-            # Verificar se já existe diagnóstico para esta consulta
-            cursor.execute("SELECT id FROM diagnostico WHERE consulta_id = %s", (consulta_id,))
-            diagnostico_existente = cursor.fetchone()
+            # Verificar se já existe diagnóstico
+            diagnostico_existente = execute_query("""
+                SELECT id FROM diagnostico WHERE consulta_id = %s
+            """, (consulta_id,), fetch=True, one=True)
             
             if diagnostico_existente:
-                # Atualizar diagnóstico existente
-                cursor.execute("""
+                execute_query("""
                     UPDATE diagnostico 
                     SET tipo_exame = %s,
                         descricao = %s,
@@ -252,17 +248,16 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
                         atualizado_em = NOW()
                     WHERE consulta_id = %s
                 """, (tipo_exame, descricao, resultado, diagnostico_preliminar, 
-                      diagnostico_final, observacoes, consulta_id))
+                      diagnostico_final, observacoes, consulta_id), commit=True)
                 print(f"[OK] Diagnóstico ATUALIZADO para consulta #{consulta_id}")
             else:
-                # Inserir novo diagnóstico
-                cursor.execute("""
+                execute_query("""
                     INSERT INTO diagnostico 
                     (consulta_id, tipo_exame, descricao, resultado, diagnostico_preliminar, 
                      diagnostico_final, observacoes, status, criado_em, atualizado_em)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, 'concluido', NOW(), NOW())
                 """, (consulta_id, tipo_exame, descricao, resultado, diagnostico_preliminar,
-                      diagnostico_final, observacoes))
+                      diagnostico_final, observacoes), commit=True)
                 print(f"[OK] Novo diagnóstico CRIADO para consulta #{consulta_id}")
             
             # Montar resultado completo
@@ -296,8 +291,8 @@ Assinado por: {session.get('user_name', 'Analista')}
 Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 """
             
-            # Atualizar o pedido_analise com status CONCLUÍDO
-            cursor.execute("""
+            # Atualizar pedido
+            execute_query("""
                 UPDATE pedidos_analise 
                 SET status = 'concluido',
                     analista_id = %s,
@@ -307,47 +302,44 @@ Data: {datetime.now().strftime('%d/%m/%Y %H:%M')}
                     data_conclusao = NOW(),
                     atualizado_em = NOW()
                 WHERE id = %s
-            """, (session.get('user_id'), resultado_completo, diagnostico_final, observacoes, pedido_id))
+            """, (session.get('user_id'), resultado_completo, diagnostico_final, observacoes, pedido_id), commit=True)
             
-            conn.commit()
             print(f"[OK] Pedido #{pedido_id} atualizado para status 'concluido'")
             
-            # ========== CRIAR NOTIFICAÇÃO PARA O MÉDICO ==========
+            # Criar notificação para o médico
             if medico_usuario_id:
-                notificacao_criada = criar_notificacao_analise_manual(
-                    medico_id=medico_usuario_id,
-                    pedido_id=pedido_id,
-                    consulta_id=consulta_id,
-                    tipo_exame=tipo_exame,
-                    diagnostico_final=diagnostico_final,
-                    paciente_nome=paciente_nome
-                )
-                
-                if notificacao_criada:
-                    print(f"[OK]  Notificação criada para médico #{medico_usuario_id} ({medico_nome})")
-                    flash(f' Análise salva e médico {medico_nome} foi notificado!', 'success')
-                else:
-                    print(f"[WARN]  Falha ao criar notificação para médico #{medico_usuario_id}")
-                    flash(' Análise salva, mas houve falha ao notificar o médico.', 'warning')
+                try:
+                    from .notifications import criar_notificacao_analise_manual
+                    notificacao_criada = criar_notificacao_analise_manual(
+                        medico_id=medico_usuario_id,
+                        pedido_id=pedido_id,
+                        consulta_id=consulta_id,
+                        tipo_exame=tipo_exame,
+                        diagnostico_final=diagnostico_final,
+                        paciente_nome=paciente_nome
+                    )
+                    
+                    if notificacao_criada:
+                        print(f"[OK] Notificação criada para médico #{medico_usuario_id} ({medico_nome})")
+                        flash(f'Análise salva e médico {medico_nome} foi notificado!', 'success')
+                    else:
+                        print(f"[WARN] Falha ao criar notificação para médico #{medico_usuario_id}")
+                        flash('Análise salva, mas houve falha ao notificar o médico.', 'warning')
+                except Exception as e:
+                    print(f"[WARN] Erro ao criar notificação: {e}")
+                    flash('Análise salva, mas houve falha ao notificar o médico.', 'warning')
             else:
-                print(f"[WARN]  Médico não encontrado para o pedido #{pedido_id}")
-                flash(' Análise salva, mas não foi possível notificar o médico.', 'warning')
+                print(f"[WARN] Médico não encontrado para o pedido #{pedido_id}")
+                flash('Análise salva, mas não foi possível notificar o médico.', 'warning')
             
             return redirect(url_for('analista.analisar_pedido', pedido_id=pedido_id))
             
         except Exception as e:
             logger.error(f"[ERROR] Erro ao salvar análise manual: {str(e)}")
             print(f"[ERROR] ERRO DETALHADO: {str(e)}")
-            print(traceback.format_exc())
+            traceback.print_exc()
             flash(f'Erro ao salvar análise manual: {str(e)}', 'danger')
-            if conn:
-                conn.rollback()
             return redirect(url_for('analista.analise_manual', pedido_id=pedido_id))
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
     
     print("  - Analise manual routes registradas com NOTIFICAÇÕES")
     print("  - Rotas adicionais registradas com sucesso!")
