@@ -1,4 +1,4 @@
-# routes/analista/__init__.py - VERSÃO CORRIGIDA
+# routes/analista/__init__.py
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, session, send_file
 from functools import wraps
 from datetime import datetime
@@ -19,8 +19,9 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
     
     analista_bp = Blueprint('analista', __name__, url_prefix='/analista')
     
+    # ========== FUNÇÃO EXECUTE QUERY CORRIGIDA ==========
     def execute_query(query, params=None, fetch=False, commit=True, one=False):
-        """Executa consulta SQL - USANDO A CONEXÃO DO MYSQL PASSADA"""
+        """Executa consulta SQL usando a conexão existente"""
         try:
             cur = mysql.connection.cursor()
             if params:
@@ -43,14 +44,14 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
             return result
         except Exception as e:
             logger.error(f"Database error: {e}")
-            logger.error(f"Query: {query}")
-            logger.error(f"Params: {params}")
-            try:
-                mysql.connection.rollback()
-            except:
-                pass
+            if not fetch and commit:
+                try:
+                    mysql.connection.rollback()
+                except:
+                    pass
             return None
     
+    # ========== DECORATOR ==========
     def analista_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -65,6 +66,7 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
             return f(*args, **kwargs)
         return decorated_function
     
+    # ========== FUNÇÕES AUXILIARES ==========
     def formatar_data(data, formato='%d/%m/%Y %H:%M'):
         """Formata data para exibição"""
         if not data:
@@ -103,18 +105,149 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
             return f"{idade} anos"
         except:
             return ''
+    
+    def garantir_string(valor):
+        """Converte qualquer valor para string, especialmente bytes"""
+        if valor is None:
+            return ''
+        if isinstance(valor, bytes):
+            try:
+                return valor.decode('utf-8')
+            except:
+                return str(valor)
+        if isinstance(valor, (int, float)):
+            return str(valor)
+        return str(valor) if valor is not None else ''
+    
+    # ========== FUNÇÕES PARA ANÁLISE COM IA ==========
+    
+    def analisar_imagem_com_gemini(imagem_path, contexto_clinico):
+        """Analisa imagem usando Gemini AI"""
+        try:
+            if not gemini_available or not client:
+                return None, "API Gemini não configurada"
+            
+            if not os.path.exists(imagem_path):
+                return None, "Arquivo de imagem não encontrado"
+            
+            try:
+                img = Image.open(imagem_path)
+            except Exception as e:
+                return None, f"Erro ao abrir imagem: {str(e)}"
+            
+            prompt = f"""
+            Você é um analista médico especialista. Analise esta imagem médica e forneça um diagnóstico detalhado.
 
-    # ========== FUNÇÕES AUXILIARES ==========
+            CONTEXTO CLÍNICO:
+            {contexto_clinico}
+
+            Por favor, forneça um relatório estruturado com:
+            1. Descrição da imagem e qualidade técnica
+            2. Achados principais
+            3. Diagnóstico sugerido
+            4. Recomendações
+            5. Nível de urgência (baixa, média, alta, emergência)
+
+            Use linguagem médica apropriada mas clara. Seja objetivo e baseie-se apenas na imagem fornecida.
+            """
+            
+            try:
+                model_name = MODEL_NAME if MODEL_NAME else "gemini-1.5-pro"
+                model = genai.GenerativeModel(model_name)
+                response = model.generate_content([prompt, img])
+                
+                if response and hasattr(response, 'text'):
+                    resultado = response.text
+                else:
+                    resultado = "Não foi possível gerar um diagnóstico."
+                
+                return resultado, None
+                
+            except Exception as e:
+                logger.error(f"Erro ao chamar Gemini: {e}")
+                return None, f"Erro na API Gemini: {str(e)}"
+                
+        except Exception as e:
+            logger.error(f"Erro geral na análise: {e}")
+            return None, f"Erro interno: {str(e)}"
+    
+    def salvar_imagem_temporaria(file):
+        """Salva imagem temporariamente para análise"""
+        try:
+            upload_folder = app.config.get('UPLOAD_FOLDER', 'static/uploads')
+            temp_dir = os.path.join(upload_folder, 'temp')
+            os.makedirs(temp_dir, exist_ok=True)
+            
+            filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
+            filepath = os.path.join(temp_dir, filename)
+            
+            file.save(filepath)
+            
+            return filepath
+        except Exception as e:
+            logger.error(f"Erro ao salvar imagem: {e}")
+            return None
+    
+    def preparar_contexto_clinico(pedido_info, observacoes_analista=''):
+        """Prepara contexto clínico para análise"""
+        try:
+            if not pedido_info:
+                return "Informações do pedido não disponíveis."
+            
+            tipo_exame = pedido_info[1] if len(pedido_info) > 1 else 'Não especificado'
+            descricao = pedido_info[2] if len(pedido_info) > 2 else 'Não informada'
+            observacoes = pedido_info[3] if len(pedido_info) > 3 else 'Nenhuma'
+            urgencia = pedido_info[4] if len(pedido_info) > 4 else 'normal'
+            paciente_nome = pedido_info[12] if len(pedido_info) > 12 else 'Não informado'
+            data_nascimento = pedido_info[13] if len(pedido_info) > 13 else None
+            genero = pedido_info[14] if len(pedido_info) > 14 else ''
+            
+            idade = calcular_idade(data_nascimento)
+            
+            contexto = f"""
+            INFORMAÇÕES DO PACIENTE:
+            - Nome: {paciente_nome}
+            - Idade: {idade}
+            - Gênero: {genero}
+            - Tipo de exame: {tipo_exame}
+            - Urgência: {urgencia.upper()}
+            
+            DESCRIÇÃO DO EXAME:
+            {descricao}
+            
+            OBSERVAÇÕES MÉDICAS:
+            {observacoes}
+            
+            OBSERVAÇÕES DO ANALISTA:
+            {observacoes_analista or 'Nenhuma'}
+            """
+            
+            return contexto
+            
+        except Exception as e:
+            logger.error(f"Erro ao preparar contexto: {e}")
+            return "Erro ao preparar contexto clínico."
     
     def criar_notificacao_medico(medico_id, pedido_id, titulo, mensagem, tipo='diagnostico'):
         """Cria notificação para o médico sobre novo diagnóstico"""
         try:
+            # Buscar o usuario_id do médico
+            usuario_info = execute_query("""
+                SELECT usuario_id FROM medicos WHERE id = %s
+            """, (medico_id,), fetch=True, one=True)
+            
+            if not usuario_info:
+                logger.warning(f"Médico ID {medico_id} não encontrado")
+                return False
+            
+            usuario_id = usuario_info[0] if isinstance(usuario_info, (list, tuple)) else usuario_info.get('usuario_id')
+            
             result = execute_query("""
                 INSERT INTO notificacoes 
                 (usuario_id, tipo, titulo, mensagem, referencia_id, lida, criado_em)
                 VALUES (%s, %s, %s, %s, %s, FALSE, NOW())
             """, (
-                medico_id,
+                usuario_id,
                 tipo,
                 titulo,
                 mensagem,
@@ -208,135 +341,31 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
             logger.error(traceback.format_exc())
             return False
 
-    # ========== FUNÇÕES PARA ANÁLISE COM IA ==========
-    
-    def analisar_imagem_com_gemini(imagem_path, contexto_clinico):
-        """Analisa imagem usando Gemini AI"""
-        try:
-            if not gemini_available or not client:
-                return None, "API Gemini não configurada"
-            
-            if not os.path.exists(imagem_path):
-                return None, "Arquivo de imagem não encontrado"
-            
-            try:
-                img = Image.open(imagem_path)
-            except Exception as e:
-                return None, f"Erro ao abrir imagem: {str(e)}"
-            
-            prompt = f"""
-            Você é um analista médico especialista. Analise esta imagem médica e forneça um diagnóstico detalhado.
-
-            CONTEXTO CLÍNICO:
-            {contexto_clinico}
-
-            Por favor, forneça um relatório estruturado com:
-            1. Descrição da imagem e qualidade técnica
-            2. Achados principais
-            3. Diagnóstico sugerido
-            4. Recomendações
-            5. Nível de urgência (baixa, média, alta, emergência)
-
-            Use linguagem médica apropriada mas clara. Seja objetivo e baseie-se apenas na imagem fornecida.
-            """
-            
-            try:
-                # Usar o modelo correto
-                model_name = MODEL_NAME if MODEL_NAME else "gemini-1.5-pro"
-                
-                # Inicializar o modelo
-                model = genai.GenerativeModel(model_name)
-                
-                # Gerar conteúdo
-                response = model.generate_content([prompt, img])
-                
-                if response and hasattr(response, 'text'):
-                    resultado = response.text
-                else:
-                    resultado = "Não foi possível gerar um diagnóstico."
-                
-                return resultado, None
-                
-            except Exception as e:
-                logger.error(f"Erro ao chamar Gemini: {e}")
-                return None, f"Erro na API Gemini: {str(e)}"
-                
-        except Exception as e:
-            logger.error(f"Erro geral na análise: {e}")
-            return None, f"Erro interno: {str(e)}"
-    
-    def salvar_imagem_temporaria(file):
-        """Salva imagem temporariamente para análise"""
-        try:
-            upload_folder = app.config.get('UPLOAD_FOLDER', 'static/uploads')
-            temp_dir = os.path.join(upload_folder, 'temp')
-            os.makedirs(temp_dir, exist_ok=True)
-            
-            filename = f"temp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-            filepath = os.path.join(temp_dir, filename)
-            
-            file.save(filepath)
-            
-            return filepath
-        except Exception as e:
-            logger.error(f"Erro ao salvar imagem: {e}")
-            return None
-    
-    def preparar_contexto_clinico(pedido_info, observacoes_analista=''):
-        """Prepara contexto clínico para análise"""
-        try:
-            if not pedido_info:
-                return "Informações do pedido não disponíveis."
-            
-            tipo_exame = pedido_info[1] if len(pedido_info) > 1 else 'Não especificado'
-            descricao = pedido_info[2] if len(pedido_info) > 2 else 'Não informada'
-            observacoes = pedido_info[3] if len(pedido_info) > 3 else 'Nenhuma'
-            urgencia = pedido_info[4] if len(pedido_info) > 4 else 'normal'
-            paciente_nome = pedido_info[12] if len(pedido_info) > 12 else 'Não informado'
-            data_nascimento = pedido_info[13] if len(pedido_info) > 13 else None
-            genero = pedido_info[14] if len(pedido_info) > 14 else ''
-            
-            idade = calcular_idade(data_nascimento)
-            
-            contexto = f"""
-            INFORMAÇÕES DO PACIENTE:
-            - Nome: {paciente_nome}
-            - Idade: {idade}
-            - Gênero: {genero}
-            - Tipo de exame: {tipo_exame}
-            - Urgência: {urgencia.upper()}
-            
-            DESCRIÇÃO DO EXAME:
-            {descricao}
-            
-            OBSERVAÇÕES MÉDICAS:
-            {observacoes}
-            
-            OBSERVAÇÕES DO ANALISTA:
-            {observacoes_analista or 'Nenhuma'}
-            """
-            
-            return contexto
-            
-        except Exception as e:
-            logger.error(f"Erro ao preparar contexto: {e}")
-            return "Erro ao preparar contexto clínico."
-
     # ========== ROTA: ANÁLISE MANUAL ==========
     @analista_bp.route('/analise_manual/<int:pedido_id>')
     @analista_required
     def analise_manual(pedido_id):
-        """Página de análise manual do pedido"""
+        """Página de análise manual do pedido - CORRIGIDA"""
         try:
             if pedido_id == 0:
                 flash('Por favor, selecione um pedido primeiro.', 'warning')
                 return redirect(url_for('analista.pedidos'))
             
+            # Verificar se o pedido existe usando execute_query
+            pedido = execute_query("""
+                SELECT id FROM pedidos_analise WHERE id = %s
+            """, (pedido_id,), fetch=True, one=True)
+            
+            if not pedido:
+                flash(f'Pedido #{pedido_id} não encontrado.', 'danger')
+                return redirect(url_for('analista.pedidos'))
+            
+            # Redirecionar para a página de análise
             return redirect(url_for('analista.analisar_pedido', pedido_id=pedido_id))
             
         except Exception as e:
-            logger.error(f"Erro no redirecionamento: {e}")
-            flash('Erro ao redirecionar para análise manual.', 'danger')
+            logger.error(f"Erro ao redirecionar para análise manual: {e}")
+            flash('Erro ao acessar análise manual.', 'danger')
             return redirect(url_for('analista.pedidos'))
 
     # ========== ROTA: DASHBOARD ==========
@@ -415,11 +444,11 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
                 for p in pedidos_recentes:
                     pedidos_list.append({
                         'id': p[0],
-                        'tipo_exame': p[1] or 'N/A',
-                        'urgencia': p[2] or 'normal',
-                        'status': p[3] or 'pendente',
-                        'data_solicitacao': formatar_data(p[4]),
-                        'paciente_nome': p[5] or 'Confidencial'
+                        'tipo_exame': garantir_string(p[1]) if len(p) > 1 else 'N/A',
+                        'urgencia': garantir_string(p[2]) if len(p) > 2 else 'normal',
+                        'status': garantir_string(p[3]) if len(p) > 3 else 'pendente',
+                        'data_solicitacao': formatar_data(p[4]) if len(p) > 4 else '',
+                        'paciente_nome': garantir_string(p[5]) if len(p) > 5 else 'Confidencial'
                     })
             
             return render_template('analista/dashboard.html',
@@ -490,4 +519,52 @@ def init_analista(mysql, client, gemini_available, MODEL_NAME, app):
             logger.error(f"Erro na API de estatísticas: {e}")
             return jsonify({'success': False, 'error': str(e)}), 500
 
+    # ========== ROTA: TESTE DE CONEXÃO ==========
+    @analista_bp.route('/test-db')
+    @analista_required
+    def test_db():
+        """Rota de teste para verificar conexão com banco"""
+        try:
+            result = execute_query("SELECT 1 as test, NOW() as now", fetch=True, one=True)
+            
+            if result:
+                return jsonify({
+                    'status': 'ok',
+                    'message': 'Conexão com banco funcionando',
+                    'result': str(result)
+                })
+            else:
+                return jsonify({
+                    'status': 'error',
+                    'message': 'Conexão falhou - resultado vazio'
+                }), 500
+        except Exception as e:
+            return jsonify({
+                'status': 'error',
+                'message': str(e),
+                'type': type(e).__name__
+            }), 500
+
+    # ========== IMPORTAR ROTAS DOS MÓDULOS ==========
+    from .routes.dashboard import register_dashboard_routes
+    from .routes.pedidos import register_pedidos_routes
+    from .routes.analise import register_analise_routes
+    from .routes.historico import register_historico_routes
+    from .routes.perfil import register_perfil_routes
+    from .routes.configuracoes import register_configuracoes_routes
+    
+    # Registrar rotas
+    register_dashboard_routes(analista_bp, analista_required, execute_query, formatar_data)
+    register_pedidos_routes(analista_bp, analista_required, execute_query, formatar_data, calcular_idade)
+    register_analise_routes(
+        analista_bp, analista_required, execute_query, formatar_data, calcular_idade,
+        analisar_imagem_com_gemini, salvar_imagem_temporaria, preparar_contexto_clinico,
+        criar_notificacao_medico, salvar_diagnostico_ia, gemini_available, MODEL_NAME
+    )
+    register_historico_routes(analista_bp, analista_required, execute_query, formatar_data)
+    register_perfil_routes(analista_bp, analista_required, execute_query, formatar_data)
+    register_configuracoes_routes(analista_bp, analista_required, execute_query, formatar_data, gemini_available, MODEL_NAME)
+    
+    print("✅ Blueprint do analista inicializado com sucesso!")
+    
     return analista_bp
