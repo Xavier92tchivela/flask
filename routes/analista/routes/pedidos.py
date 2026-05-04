@@ -67,7 +67,10 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     p.data_nascimento, 
                     COALESCE(p.genero, '') as genero,
                     COALESCE(m_u.nome, 'Não informado') as medico_nome, 
-                    COALESCE(m.especialidade, '') as medico_especialidade
+                    COALESCE(m.especialidade, '') as medico_especialidade,
+                    pa.resultado_analise,
+                    pa.diagnostico_analista,
+                    pa.recomendacoes_analista
                 FROM pedidos_analise pa
                 LEFT JOIN pacientes p ON pa.paciente_id = p.id
                 LEFT JOIN usuarios u ON p.usuario_id = u.id
@@ -113,30 +116,35 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                             'paciente_idade': idade,
                             'paciente_genero': garantir_string(pedido.get('genero')),
                             'medico_nome': garantir_string(pedido.get('medico_nome')),
-                            'medico_especialidade': garantir_string(pedido.get('medico_especialidade'))
+                            'medico_especialidade': garantir_string(pedido.get('medico_especialidade')),
+                            'resultado_analise': garantir_string(pedido.get('resultado_analise')),
+                            'diagnostico_analista': garantir_string(pedido.get('diagnostico_analista')),
+                            'recomendacoes_analista': garantir_string(pedido.get('recomendacoes_analista'))
                         })
                     else:
                         # É tupla/lista
                         idade = calcular_idade(pedido[9]) if len(pedido) > 9 and pedido[9] else ''
                         
                         pedidos_list.append({
-                            'id': pedido[0],
-                            'tipo_exame': garantir_string(pedido[1]) or 'Não especificado',
-                            'urgencia': garantir_string(pedido[2]) or 'normal',
-                            'status': garantir_string(pedido[3]) or 'pendente',
-                            'data_solicitacao': formatar_data(pedido[4]),
-                            'data_conclusao': formatar_data(pedido[5]),
-                            'descricao': garantir_string(pedido[6]),
-                            'observacoes': garantir_string(pedido[7]),
-                            'paciente_nome': garantir_string(pedido[8]),
+                            'id': pedido[0] if len(pedido) > 0 else None,
+                            'tipo_exame': garantir_string(pedido[1]) if len(pedido) > 1 else 'Não especificado',
+                            'urgencia': garantir_string(pedido[2]) if len(pedido) > 2 else 'normal',
+                            'status': garantir_string(pedido[3]) if len(pedido) > 3 else 'pendente',
+                            'data_solicitacao': formatar_data(pedido[4]) if len(pedido) > 4 else None,
+                            'data_conclusao': formatar_data(pedido[5]) if len(pedido) > 5 else None,
+                            'descricao': garantir_string(pedido[6]) if len(pedido) > 6 else '',
+                            'observacoes': garantir_string(pedido[7]) if len(pedido) > 7 else '',
+                            'paciente_nome': garantir_string(pedido[8]) if len(pedido) > 8 else 'Não informado',
                             'paciente_data_nascimento': formatar_data(pedido[9], '%d/%m/%Y') if len(pedido) > 9 and pedido[9] else '',
                             'paciente_idade': idade,
                             'paciente_genero': garantir_string(pedido[10]) if len(pedido) > 10 else '',
-                            'medico_nome': garantir_string(pedido[11]) if len(pedido) > 11 else '',
-                            'medico_especialidade': garantir_string(pedido[12]) if len(pedido) > 12 else ''
+                            'medico_nome': garantir_string(pedido[11]) if len(pedido) > 11 else 'Não informado',
+                            'medico_especialidade': garantir_string(pedido[12]) if len(pedido) > 12 else '',
+                            'resultado_analise': garantir_string(pedido[13]) if len(pedido) > 13 else '',
+                            'diagnostico_analista': garantir_string(pedido[14]) if len(pedido) > 14 else '',
+                            'recomendacoes_analista': garantir_string(pedido[15]) if len(pedido) > 15 else ''
                         })
             
-            # DEBUG: imprimir quantidade de pedidos encontrados
             print(f"[DEBUG] Pedidos encontrados: {len(pedidos_list)}")
             
             return render_template('analista/pedidos.html',
@@ -172,7 +180,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if not analista_info:
                 return jsonify({'error': 'Analista não encontrado'}), 404
             
-            # CORREÇÃO: Verificar se é dict ou tuple
             if isinstance(analista_info, dict):
                 analista_id = analista_info.get('id')
             else:
@@ -187,12 +194,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if not pedido:
                 return jsonify({'error': 'Pedido não encontrado'}), 404
             
-            # CORREÇÃO: Verificar o valor do analista_id no pedido
-            pedido_analista = None
-            if isinstance(pedido, dict):
-                pedido_analista = pedido.get('analista_id')
-            else:
-                pedido_analista = pedido[0] if len(pedido) > 0 else None
+            pedido_analista = pedido.get('analista_id') if isinstance(pedido, dict) else pedido[0]
             
             if pedido_analista is not None and pedido_analista != 0 and pedido_analista != analista_id:
                 return jsonify({'error': 'Acesso negado'}), 403
@@ -207,10 +209,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if not anexo:
                 return jsonify({'error': 'Anexo não encontrado'}), 404
             
-            # Construir caminho do arquivo
-            from ..file_utils import get_pedido_anexo_path
-            
-            # CORREÇÃO: Extrair dados do anexo
             if isinstance(anexo, dict):
                 anexo_arquivo = anexo.get('arquivo')
                 anexo_nome = anexo.get('nome')
@@ -220,6 +218,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 anexo_nome = anexo[1] if len(anexo) > 1 else filename
                 anexo_tipo = anexo[2] if len(anexo) > 2 else 'application/octet-stream'
             
+            from ..file_utils import get_pedido_anexo_path
             filepath = get_pedido_anexo_path(anexo_arquivo)
             
             if not os.path.exists(filepath):
@@ -256,7 +255,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Perfil de analista não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # CORREÇÃO: Verificar se é dict ou tuple
             if isinstance(analista_info, dict):
                 analista_id = analista_info.get('id')
             else:
@@ -309,7 +307,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 return redirect(url_for('analista.pedidos'))
             
             # Verificar permissão
-            pedido_analista = None
             if isinstance(pedido, dict):
                 pedido_analista = pedido.get('analista_id')
             else:
@@ -319,7 +316,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Você não tem permissão para acessar este pedido.', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            # Calcular idade
+            # Calcular idade (campo data_nascimento está no índice 18 para tupla)
             idade = ''
             if isinstance(pedido, dict):
                 data_nasc = pedido.get('data_nascimento')
@@ -348,7 +345,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     except:
                         idade = ''
             
-            # Extrair dados do pedido
+            # Construir dicionário do pedido
             if isinstance(pedido, dict):
                 pedido_dict = {
                     'id': pedido.get('id'),
@@ -391,16 +388,16 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     'observacoes': garantir_string(pedido[5]) or '',
                     'urgencia': garantir_string(pedido[6]) or 'normal',
                     'status': garantir_string(pedido[7]) or 'pendente',
-                    'data_solicitacao': pedido[8] if isinstance(pedido[8], datetime) else None,
-                    'data_conclusao': pedido[9] if isinstance(pedido[9], datetime) else None,
-                    'resultado_analise': garantir_string(pedido[10]) or '',
-                    'diagnostico_analista': garantir_string(pedido[11]) or '',
-                    'recomendacoes_analista': garantir_string(pedido[12]) or '',
-                    'analista_id': pedido[13],
-                    'status_aprovacao': garantir_string(pedido[14]) or 'pendente',
-                    'observacoes_medico': garantir_string(pedido[15]) or '',
-                    'consulta_id': pedido[16],
-                    'paciente_nome': garantir_string(pedido[17]) or 'Não informado',
+                    'data_solicitacao': pedido[8] if len(pedido) > 8 and isinstance(pedido[8], datetime) else None,
+                    'data_conclusao': pedido[9] if len(pedido) > 9 and isinstance(pedido[9], datetime) else None,
+                    'resultado_analise': garantir_string(pedido[10]) if len(pedido) > 10 else '',
+                    'diagnostico_analista': garantir_string(pedido[11]) if len(pedido) > 11 else '',
+                    'recomendacoes_analista': garantir_string(pedido[12]) if len(pedido) > 12 else '',
+                    'analista_id': pedido[13] if len(pedido) > 13 else None,
+                    'status_aprovacao': garantir_string(pedido[14]) if len(pedido) > 14 else 'pendente',
+                    'observacoes_medico': garantir_string(pedido[15]) if len(pedido) > 15 else '',
+                    'consulta_id': pedido[16] if len(pedido) > 16 else None,
+                    'paciente_nome': garantir_string(pedido[17]) if len(pedido) > 17 else 'Não informado',
                     'paciente_data_nascimento': pedido[18].strftime('%d/%m/%Y') if len(pedido) > 18 and pedido[18] else '',
                     'paciente_idade': idade,
                     'paciente_genero': garantir_string(pedido[19]) if len(pedido) > 19 else '',
@@ -539,8 +536,12 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Pedido não encontrado.', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            pedido_analista = pedido.get('analista_id') if isinstance(pedido, dict) else pedido[0]
-            pedido_status = pedido.get('status') if isinstance(pedido, dict) else pedido[1] if len(pedido) > 1 else None
+            if isinstance(pedido, dict):
+                pedido_analista = pedido.get('analista_id')
+                pedido_status = pedido.get('status')
+            else:
+                pedido_analista = pedido[0] if len(pedido) > 0 else None
+                pedido_status = pedido[1] if len(pedido) > 1 else None
             
             if pedido_analista and pedido_analista != analista_id:
                 flash('Você não tem permissão para este pedido.', 'danger')
@@ -561,14 +562,12 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             saved_files = []
             for file in files:
                 if file and file.filename:
-                    # Salvar arquivo
                     filename, original_name, size, filepath = save_uploaded_file(
                         file, 
                         subfolder='pedidos',
                         custom_filename=f"pedido_{pedido_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
                     )
                     
-                    # Salvar no banco
                     execute_query("""
                         INSERT INTO anexos_pedidos 
                         (pedido_id, arquivo, nome, tipo, tamanho, data_upload, analisado_ia)
@@ -622,8 +621,12 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Pedido não encontrado.', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            pedido_analista = pedido.get('analista_id') if isinstance(pedido, dict) else pedido[0]
-            pedido_status = pedido.get('status') if isinstance(pedido, dict) else pedido[1] if len(pedido) > 1 else None
+            if isinstance(pedido, dict):
+                pedido_analista = pedido.get('analista_id')
+                pedido_status = pedido.get('status')
+            else:
+                pedido_analista = pedido[0] if len(pedido) > 0 else None
+                pedido_status = pedido[1] if len(pedido) > 1 else None
             
             if pedido_analista != analista_id:
                 flash('Você não tem permissão para este pedido.', 'danger')
@@ -650,22 +653,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     data_conclusao = NOW()
                 WHERE id = %s
             """, (diagnostico, recomendacoes, pedido_id))
-            
-            # Criar notificação para o médico
-            medico_info = execute_query("""
-                SELECT usuario_id FROM medicos WHERE id = (
-                    SELECT medico_id FROM pedidos_analise WHERE id = %s
-                )
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if medico_info:
-                from ..notifications import criar_notificacao_medico
-                medico_usuario = medico_info.get('usuario_id') if isinstance(medico_info, dict) else medico_info[0]
-                criar_notificacao_medico(
-                    medico_usuario_id=medico_usuario,
-                    pedido_id=pedido_id,
-                    mensagem=f"Análise do pedido #{pedido_id} foi concluída e aguarda sua revisão."
-                )
             
             flash('Análise concluída com sucesso! O médico será notificado.', 'success')
             return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
@@ -699,7 +686,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if file.filename == '':
                 return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
             
-            # Salvar imagem temporariamente
             from ..file_utils import save_uploaded_file
             
             filename, original_name, size, filepath = save_uploaded_file(
@@ -708,7 +694,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 custom_filename=f"analise_{pedido_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
             )
             
-            # Chamar serviço de IA
             from ..gemini_service import analisar_imagem_com_gemini
             
             # Obter informações do paciente
@@ -747,7 +732,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 except:
                     idade = ''
             
-            # Preparar contexto
             contexto = f"""
             Paciente: {paciente_nome}
             Idade: {idade}
@@ -755,7 +739,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             Tipo de Exame: {request.form.get('tipo_exame', 'Não especificado')}
             """
             
-            # Analisar com Gemini
             from flask import current_app
             gemini_available = current_app.config.get('GEMINI_AVAILABLE', False)
             
@@ -764,7 +747,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             resultado = analisar_imagem_com_gemini(filepath, contexto)
             
-            # Limpar arquivo temporário
             try:
                 os.remove(filepath)
             except:
@@ -779,80 +761,3 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             logger.error(f"❌ Erro na análise de imagem: {e}")
             logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 500
-
-    # ========== ROTA: EDITAR ANÁLISE ==========
-    @bp.route('/pedido/<int:pedido_id>/editar', methods=['GET', 'POST'])
-    @analista_required
-    def editar_analise(pedido_id):
-        """Editar uma análise existente"""
-        try:
-            logger.info(f"Editando análise do pedido #{pedido_id}")
-            
-            user_id = session.get('user_id')
-            
-            # Verificar analista
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                flash('Perfil de analista não encontrado.', 'danger')
-                return redirect(url_for('auth.login'))
-            
-            if isinstance(analista_info, dict):
-                analista_id = analista_info.get('id')
-            else:
-                analista_id = analista_info[0] if len(analista_info) > 0 else None
-            
-            # Verificar se o pedido existe
-            pedido_check = execute_query("""
-                SELECT analista_id, status FROM pedidos_analise 
-                WHERE id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if not pedido_check:
-                flash('Pedido não encontrado.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            pedido_analista = pedido_check.get('analista_id') if isinstance(pedido_check, dict) else pedido_check[0]
-            
-            # Verificar permissão (pode editar se for o analista responsável)
-            if pedido_analista is not None and pedido_analista != 0 and pedido_analista != analista_id:
-                flash('Você não tem permissão para editar este pedido.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            if request.method == 'POST':
-                # Validar campos obrigatórios
-                resultado_analise = request.form.get('resultado_analise', '').strip()
-                diagnostico_analista = request.form.get('diagnostico_analista', '').strip()
-                recomendacoes_analista = request.form.get('recomendacoes_analista', '').strip()
-                
-                if not resultado_analise or not diagnostico_analista:
-                    flash('Resultado e diagnóstico são obrigatórios!', 'warning')
-                    return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-                
-                # Atualizar no banco
-                execute_query("""
-                    UPDATE pedidos_analise 
-                    SET resultado_analise = %s,
-                        diagnostico_analista = %s,
-                        recomendacoes_analista = %s,
-                        data_conclusao = NOW()
-                    WHERE id = %s
-                """, (resultado_analise, diagnostico_analista, recomendacoes_analista, pedido_id))
-                
-                logger.info(f"Análise #{pedido_id} atualizada com sucesso")
-                flash('Análise atualizada com sucesso!', 'success')
-                
-                # Redirecionar para a página de detalhes
-                return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-            # GET: mostrar página de detalhes
-            return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao editar análise: {e}")
-            logger.error(traceback.format_exc())
-            flash(f'Erro ao editar análise: {str(e)}', 'danger')
-            return redirect(url_for('analista.pedidos'))
