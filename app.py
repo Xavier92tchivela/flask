@@ -1,49 +1,97 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
-import pymysql
-pymysql.install_as_MySQLdb()
-import uuid
-from datetime import datetime
-from config import Config
+import sys
 import os
-from werkzeug.utils import secure_filename
-from PIL import Image
 import traceback
 import logging
 import json
+from datetime import datetime
+import uuid
 
-# Importar o middleware
-from middleware.timing import TimingMiddleware
+# ========== LOG DE DEPURAÇÃO INICIAL ==========
+print("=" * 70)
+print("INICIANDO APLICAÇÃO - DOCTORIA")
+print("=" * 70)
+print(f"Python version: {sys.version}")
+print(f"Python path: {sys.path}")
+print("=" * 70)
 
-# Importar utilitários
-from utils.gemini import configurar_gemini
-from utils.database import execute_query
-from utils.helpers import formatar_data, calcular_idade, allowed_file
-from utils.pdf import html_to_pdf
+try:
+    print("[1] Importando pymysql...")
+    import pymysql
+    pymysql.install_as_MySQLdb()
+    print("[1] ✅ pymysql importado com sucesso!")
+except Exception as e:
+    print(f"[1] ❌ Erro ao importar pymysql: {e}")
+    raise
 
-# Importar serviços
-from services.receita_service import ReceitaService
-from services.dashboard_service import DashboardService
+try:
+    print("[2] Importando werkzeug...")
+    from werkzeug.utils import secure_filename
+    print("[2] ✅ werkzeug importado com sucesso!")
+except Exception as e:
+    print(f"[2] ❌ Erro ao importar werkzeug: {e}")
+    raise
 
-# Importar rotas
-from routes.auth import init_auth
-from routes.medico import init_medico
-from routes.paciente import init_paciente
-from routes.consulta import create_consulta_blueprint
-from routes.analista import init_analista
-from routes.pedido_analise import init_pedido_analise
-from routes.enfermeiro import init_enfermeiro
-from routes.assinatura import assinatura_bp
-from routes.admin import init_admin
-from routes.farmaceutico import farmaceutico_bp
+try:
+    print("[3] Importando PIL...")
+    from PIL import Image
+    print("[3] ✅ PIL importado com sucesso!")
+except Exception as e:
+    print(f"[3] ❌ Erro ao importar PIL: {e}")
+    raise
+
+try:
+    print("[4] Importando módulos do sistema...")
+    from config import Config
+    from middleware.timing import TimingMiddleware
+    from utils.gemini import configurar_gemini
+    from utils.database import execute_query
+    from utils.helpers import formatar_data, calcular_idade, allowed_file
+    from utils.pdf import html_to_pdf
+    print("[4] ✅ Módulos do sistema importados com sucesso!")
+except Exception as e:
+    print(f"[4] ❌ Erro ao importar módulos do sistema: {e}")
+    traceback.print_exc()
+    raise
+
+try:
+    print("[5] Importando serviços...")
+    from services.receita_service import ReceitaService
+    from services.dashboard_service import DashboardService
+    print("[5] ✅ Serviços importados com sucesso!")
+except Exception as e:
+    print(f"[5] ❌ Erro ao importar serviços: {e}")
+    traceback.print_exc()
+    raise
+
+try:
+    print("[6] Importando rotas...")
+    from routes.auth import init_auth
+    from routes.medico import init_medico
+    from routes.paciente import init_paciente
+    from routes.consulta import create_consulta_blueprint
+    from routes.analista import init_analista
+    from routes.pedido_analise import init_pedido_analise
+    from routes.enfermeiro import init_enfermeiro
+    from routes.assinatura import assinatura_bp
+    from routes.admin import init_admin
+    from routes.farmaceutico import farmaceutico_bp
+    print("[6] ✅ Rotas importadas com sucesso!")
+except Exception as e:
+    print(f"[6] ❌ Erro ao importar rotas: {e}")
+    traceback.print_exc()
+    raise
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+print("[7] Criando aplicação Flask...")
 app = Flask(__name__)
 app.config.from_object(Config)
 app.wsgi_app = TimingMiddleware(app.wsgi_app)
 app.secret_key = app.config.get('SECRET_KEY', 'chave_secreta_padrao_para_desenvolvimento')
+print("[7] ✅ Aplicação Flask criada com sucesso!")
 
 # ========== INICIALIZAÇÃO DO BANCO DE DADOS COM PYMYSQL ==========
 class MySQLConnection:
@@ -108,8 +156,10 @@ mysql = MySQLConnection(app)
 print("✅ MySQL inicializado com sucesso!")
 
 # ========== CONFIGURAÇÃO GEMINI AI ==========
+print("[8] Configurando Gemini AI...")
 api_key = app.config.get('GEMINI_API_KEY') or os.environ.get('GEMINI_API_KEY')
 client, gemini_available, MODEL_NAME = configurar_gemini(api_key)
+print(f"[8] ✅ Gemini configurado: available={gemini_available}, model={MODEL_NAME}")
 
 # ========== CONFIGURAÇÕES GERAIS ==========
 UPLOAD_FOLDER = 'static/uploads'
@@ -117,7 +167,9 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # ========== SERVIÇOS ==========
+print("[9] Inicializando serviços...")
 receita_service = ReceitaService(mysql, app, gemini_available, MODEL_NAME)
+print("[9] ✅ Serviços inicializados com sucesso!")
 
 # ========== FUNÇÃO PARA VERIFICAR ROTAS ==========
 def verificar_rotas_blueprint(bp_name, bp_prefix):
@@ -140,15 +192,18 @@ print("=" * 70)
 
 # 1. Auth
 try:
+    print("[1/10] Registrando Auth...")
     auth_bp = init_auth(mysql)
     app.register_blueprint(auth_bp)
-    print("[1/10] Auth blueprint registrado com sucesso!")
+    print("[1/10] ✅ Auth blueprint registrado com sucesso!")
 except Exception as e:
-    print(f"[1/10] Erro ao registrar Auth: {e}")
+    print(f"[1/10] ❌ Erro ao registrar Auth: {e}")
+    traceback.print_exc()
     raise
 
 # 2. Médico
 try:
+    print("[2/10] Registrando Médico...")
     medico_bp = init_medico(
         mysql=mysql, 
         client=client, 
@@ -158,28 +213,30 @@ try:
         receita_service=receita_service
     )
     app.register_blueprint(medico_bp)
-    print("[2/10] Medico blueprint registrado com serviço de receitas!")
+    print("[2/10] ✅ Medico blueprint registrado com serviço de receitas!")
 except Exception as e:
-    print(f"[2/10] Erro ao registrar Medico: {e}")
+    print(f"[2/10] ❌ Erro ao registrar Medico: {e}")
     logger.error(f"Erro crítico no médico: {e}")
     logger.error(traceback.format_exc())
     raise
 
 # 3. Paciente
 try:
+    print("[3/10] Registrando Paciente...")
     paciente_bp = init_paciente(mysql, app)
     app.register_blueprint(paciente_bp)
-    print("[3/10] Paciente blueprint registrado com sucesso!")
+    print("[3/10] ✅ Paciente blueprint registrado com sucesso!")
 except Exception as e:
-    print(f"[3/10] Erro ao registrar Paciente: {e}")
+    print(f"[3/10] ❌ Erro ao registrar Paciente: {e}")
     raise
 
 # 4. Analista
 try:
-    print("\nInicializando blueprint do analista (modular)...")
+    print("[4/10] Registrando Analista...")
+    print("    Inicializando blueprint do analista (modular)...")
     analista_bp = init_analista(mysql, client, gemini_available, MODEL_NAME, app)
     app.register_blueprint(analista_bp)
-    print("[4/10] Analista blueprint registrado com sucesso!")
+    print("[4/10] ✅ Analista blueprint registrado com sucesso!")
     
     rotas = verificar_rotas_blueprint('analista', '/analista')
     rota_analisar = any('/analista/analisar/' in r for r in rotas)
@@ -189,33 +246,37 @@ try:
         print("   ⚠ Rota /analista/analisar/ NÃO encontrada!")
         
 except Exception as e:
-    print(f"[4/10] Erro ao registrar Analista: {e}")
+    print(f"[4/10] ❌ Erro ao registrar Analista: {e}")
     print("   Verifique o arquivo routes/analista/__init__.py")
+    traceback.print_exc()
     raise
 
 # 5. Pedido Análise
 try:
+    print("[5/10] Registrando Pedido Análise...")
     pedido_analise_bp = init_pedido_analise(mysql, app)
     app.register_blueprint(pedido_analise_bp)
-    print("[5/10] Pedido_analise blueprint registrado com sucesso!")
+    print("[5/10] ✅ Pedido_analise blueprint registrado com sucesso!")
 except Exception as e:
-    print(f"[5/10] Erro ao registrar Pedido_analise: {e}")
+    print(f"[5/10] ❌ Erro ao registrar Pedido_analise: {e}")
     raise
 
 # 6. Consulta
 try:
+    print("[6/10] Registrando Consulta...")
     consulta_bp = create_consulta_blueprint(mysql)
     app.register_blueprint(consulta_bp)
-    print("[6/10] Consulta blueprint registrado com sucesso!")
+    print("[6/10] ✅ Consulta blueprint registrado com sucesso!")
 except Exception as e:
-    print(f"[6/10] Erro ao registrar Consulta: {e}")
+    print(f("[6/10] ❌ Erro ao registrar Consulta: {e}")
     raise
 
 # 7. Enfermeiro
 try:
+    print("[7/10] Registrando Enfermeiro...")
     enfermeiro_bp = init_enfermeiro(mysql)
     app.register_blueprint(enfermeiro_bp)
-    print("[7/10] Enfermeiro blueprint registrado com sucesso!")
+    print("[7/10] ✅ Enfermeiro blueprint registrado com sucesso!")
     print("   Modulos carregados:")
     print("      • dashboard - Dashboard do enfermeiro")
     print("      • triagem - Gerenciamento de triagens")
@@ -224,15 +285,16 @@ try:
     print("      • perfil - Perfil do enfermeiro")
     print("      • api - API para consultas")
 except Exception as e:
-    print(f"[7/10] Erro ao registrar Enfermeiro: {e}")
+    print(f"[7/10] ❌ Erro ao registrar Enfermeiro: {e}")
     logger.error(f"Erro crítico no enfermeiro: {e}")
     logger.error(traceback.format_exc())
     raise
 
 # 8. Assinatura
 try:
+    print("[8/10] Registrando Assinatura...")
     app.register_blueprint(assinatura_bp)
-    print("[8/10] Assinatura blueprint registrado com sucesso!")
+    print("[8/10] ✅ Assinatura blueprint registrado com sucesso!")
     
     with app.app_context():
         rotas_ass = []
@@ -249,14 +311,15 @@ try:
             print("   ⚠ Nenhuma rota encontrada para /assinatura/")
             
 except Exception as e:
-    print(f"[8/10] Erro ao registrar Assinatura: {e}")
+    print(f"[8/10] ❌ Erro ao registrar Assinatura: {e}")
     raise
 
 # 9. Admin
 try:
+    print("[9/10] Registrando Admin...")
     admin_bp = init_admin(mysql)
     app.register_blueprint(admin_bp)
-    print("[9/10] Admin blueprint registrado com sucesso!")
+    print("[9/10] ✅ Admin blueprint registrado com sucesso!")
     print("   Modulos carregados:")
     print("      • auth - Autenticacao")
     print("      • dashboard - Dashboard principal")
@@ -268,13 +331,14 @@ try:
     print("      • estatisticas - Relatorios")
     print("      • configuracoes - Configuracoes do sistema")
 except Exception as e:
-    print(f"[9/10] Erro ao registrar Admin: {e}")
+    print(f"[9/10] ❌ Erro ao registrar Admin: {e}")
     raise
 
 # 10. FARMACÊUTICO
 try:
+    print("[10/10] Registrando Farmacêutico...")
     app.register_blueprint(farmaceutico_bp)
-    print("[10/10] Farmaceutico blueprint registrado com sucesso!")
+    print("[10/10] ✅ Farmaceutico blueprint registrado com sucesso!")
     print("   Modulos carregados:")
     print("      • dashboard - Dashboard do farmacêutico")
     print("      • prescricoes - Gerenciamento de prescrições")
@@ -284,10 +348,14 @@ try:
     print("      • fornecedores - Gerenciamento de fornecedores")
     print("      • relatorios - Relatórios do farmacêutico")
 except Exception as e:
-    print(f"[10/10] Erro ao registrar Farmaceutico: {e}")
+    print(f"[10/10] ❌ Erro ao registrar Farmaceutico: {e}")
     logger.error(f"Erro crítico no farmacêutico: {e}")
     logger.error(traceback.format_exc())
     raise
+
+print("\n" + "=" * 70)
+print("TODOS OS BLUEPRINTS REGISTRADOS COM SUCESSO!")
+print("=" * 70 + "\n")
 
 # ========== VERIFICACAO FINAL DE ROTAS ==========
 print("\n" + "=" * 70)
@@ -779,7 +847,8 @@ if __name__ == '__main__':
     print("   Acesse: http://localhost:5000")
     print("=" * 70 + "\n")
     
-    # 🔧 CORREÇÃO: Usar a porta do Render ou fallback para 5000
+    # 🔧 CORREÇÃO: Usar a porta do Render ou fallback para 10000
     import os
     port = int(os.environ.get('PORT', 10000))
+    print(f"\n🚀 Iniciando servidor na porta {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)
