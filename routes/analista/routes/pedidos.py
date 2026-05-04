@@ -30,7 +30,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
         try:
             user_id = session.get('user_id')
             
-            # 🔥 CORREÇÃO: Buscar analista_id tratando dict ou tuple
             analista_info = execute_query("""
                 SELECT a.id FROM analistas a
                 WHERE a.usuario_id = %s AND a.status = 'ativo'
@@ -94,25 +93,48 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             pedidos_list = []
             if pedidos_db:
                 for pedido in pedidos_db:
-                    idade = calcular_idade(pedido[9]) if pedido[9] else ''
-                    
-                    # Converter todos os campos para string
-                    pedidos_list.append({
-                        'id': pedido[0],
-                        'tipo_exame': garantir_string(pedido[1]) or 'Não especificado',
-                        'urgencia': garantir_string(pedido[2]) or 'normal',
-                        'status': garantir_string(pedido[3]) or 'pendente',
-                        'data_solicitacao': formatar_data(pedido[4]),
-                        'data_conclusao': formatar_data(pedido[5]),
-                        'descricao': garantir_string(pedido[6]),
-                        'observacoes': garantir_string(pedido[7]),
-                        'paciente_nome': garantir_string(pedido[8]),
-                        'paciente_data_nascimento': formatar_data(pedido[9], '%d/%m/%Y') if pedido[9] else '',
-                        'paciente_idade': idade,
-                        'paciente_genero': garantir_string(pedido[10]),
-                        'medico_nome': garantir_string(pedido[11]),
-                        'medico_especialidade': garantir_string(pedido[12])
-                    })
+                    # CORREÇÃO: Funciona com dict OU tuple
+                    if isinstance(pedido, dict):
+                        # É dicionário
+                        data_nascimento = pedido.get('data_nascimento')
+                        idade = calcular_idade(data_nascimento) if data_nascimento else ''
+                        
+                        pedidos_list.append({
+                            'id': pedido.get('id'),
+                            'tipo_exame': garantir_string(pedido.get('tipo_exame')) or 'Não especificado',
+                            'urgencia': garantir_string(pedido.get('urgencia')) or 'normal',
+                            'status': garantir_string(pedido.get('status')) or 'pendente',
+                            'data_solicitacao': formatar_data(pedido.get('data_solicitacao')),
+                            'data_conclusao': formatar_data(pedido.get('data_conclusao')),
+                            'descricao': garantir_string(pedido.get('descricao')),
+                            'observacoes': garantir_string(pedido.get('observacoes')),
+                            'paciente_nome': garantir_string(pedido.get('paciente_nome')),
+                            'paciente_data_nascimento': formatar_data(pedido.get('data_nascimento'), '%d/%m/%Y') if pedido.get('data_nascimento') else '',
+                            'paciente_idade': idade,
+                            'paciente_genero': garantir_string(pedido.get('genero')),
+                            'medico_nome': garantir_string(pedido.get('medico_nome')),
+                            'medico_especialidade': garantir_string(pedido.get('medico_especialidade'))
+                        })
+                    else:
+                        # É tupla/lista
+                        idade = calcular_idade(pedido[9]) if len(pedido) > 9 and pedido[9] else ''
+                        
+                        pedidos_list.append({
+                            'id': pedido[0],
+                            'tipo_exame': garantir_string(pedido[1]) or 'Não especificado',
+                            'urgencia': garantir_string(pedido[2]) or 'normal',
+                            'status': garantir_string(pedido[3]) or 'pendente',
+                            'data_solicitacao': formatar_data(pedido[4]),
+                            'data_conclusao': formatar_data(pedido[5]),
+                            'descricao': garantir_string(pedido[6]),
+                            'observacoes': garantir_string(pedido[7]),
+                            'paciente_nome': garantir_string(pedido[8]),
+                            'paciente_data_nascimento': formatar_data(pedido[9], '%d/%m/%Y') if len(pedido) > 9 and pedido[9] else '',
+                            'paciente_idade': idade,
+                            'paciente_genero': garantir_string(pedido[10]) if len(pedido) > 10 else '',
+                            'medico_nome': garantir_string(pedido[11]) if len(pedido) > 11 else '',
+                            'medico_especialidade': garantir_string(pedido[12]) if len(pedido) > 12 else ''
+                        })
             
             # DEBUG: imprimir quantidade de pedidos encontrados
             print(f"[DEBUG] Pedidos encontrados: {len(pedidos_list)}")
@@ -177,9 +199,9 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             # Buscar anexo
             anexo = execute_query("""
-                SELECT filename, original_name, tipo 
+                SELECT arquivo, nome, tipo 
                 FROM anexos_pedidos 
-                WHERE pedido_id = %s AND filename = %s
+                WHERE pedido_id = %s AND arquivo = %s
             """, (pedido_id, filename), fetch=True, one=True)
             
             if not anexo:
@@ -190,15 +212,15 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             # CORREÇÃO: Extrair dados do anexo
             if isinstance(anexo, dict):
-                anexo_filename = anexo.get('filename')
-                anexo_original = anexo.get('original_name')
+                anexo_arquivo = anexo.get('arquivo')
+                anexo_nome = anexo.get('nome')
                 anexo_tipo = anexo.get('tipo')
             else:
-                anexo_filename = anexo[0] if len(anexo) > 0 else None
-                anexo_original = anexo[1] if len(anexo) > 1 else filename
+                anexo_arquivo = anexo[0] if len(anexo) > 0 else None
+                anexo_nome = anexo[1] if len(anexo) > 1 else filename
                 anexo_tipo = anexo[2] if len(anexo) > 2 else 'application/octet-stream'
             
-            filepath = get_pedido_anexo_path(anexo_filename)
+            filepath = get_pedido_anexo_path(anexo_arquivo)
             
             if not os.path.exists(filepath):
                 return jsonify({'error': 'Arquivo não encontrado no servidor'}), 404
@@ -206,7 +228,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             return send_file(
                 filepath,
                 as_attachment=True,
-                download_name=anexo_original or filename,
+                download_name=anexo_nome or filename,
                 mimetype=anexo_tipo or 'application/octet-stream'
             )
             
@@ -299,18 +321,32 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             # Calcular idade
             idade = ''
-            if pedido[18] if isinstance(pedido, (list, tuple)) else pedido.get('data_nascimento'):
-                data_nasc = pedido[18] if isinstance(pedido, (list, tuple)) else pedido.get('data_nascimento')
-                try:
-                    if isinstance(data_nasc, str):
-                        data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
-                    hoje = datetime.now()
-                    idade_calc = hoje.year - data_nasc.year
-                    if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                        idade_calc -= 1
-                    idade = f"{idade_calc} anos"
-                except:
-                    idade = ''
+            if isinstance(pedido, dict):
+                data_nasc = pedido.get('data_nascimento')
+                if data_nasc:
+                    try:
+                        if isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
+                        hoje = datetime.now()
+                        idade_calc = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade_calc -= 1
+                        idade = f"{idade_calc} anos"
+                    except:
+                        idade = ''
+            else:
+                if len(pedido) > 18 and pedido[18]:
+                    data_nasc = pedido[18]
+                    try:
+                        if isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
+                        hoje = datetime.now()
+                        idade_calc = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade_calc -= 1
+                        idade = f"{idade_calc} anos"
+                    except:
+                        idade = ''
             
             # Extrair dados do pedido
             if isinstance(pedido, dict):
@@ -365,15 +401,15 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     'observacoes_medico': garantir_string(pedido[15]) or '',
                     'consulta_id': pedido[16],
                     'paciente_nome': garantir_string(pedido[17]) or 'Não informado',
-                    'paciente_data_nascimento': pedido[18].strftime('%d/%m/%Y') if pedido[18] else '',
+                    'paciente_data_nascimento': pedido[18].strftime('%d/%m/%Y') if len(pedido) > 18 and pedido[18] else '',
                     'paciente_idade': idade,
-                    'paciente_genero': garantir_string(pedido[19]) or '',
-                    'paciente_telefone': garantir_string(pedido[20]) or '',
-                    'paciente_endereco': garantir_string(pedido[21]) or '',
-                    'medico_nome': garantir_string(pedido[22]) or 'Não informado',
-                    'medico_especialidade': garantir_string(pedido[23]) or '',
-                    'medico_crm': garantir_string(pedido[24]) or '',
-                    'analista_nome': garantir_string(pedido[25]) or 'Não atribuído',
+                    'paciente_genero': garantir_string(pedido[19]) if len(pedido) > 19 else '',
+                    'paciente_telefone': garantir_string(pedido[20]) if len(pedido) > 20 else '',
+                    'paciente_endereco': garantir_string(pedido[21]) if len(pedido) > 21 else '',
+                    'medico_nome': garantir_string(pedido[22]) if len(pedido) > 22 else 'Não informado',
+                    'medico_especialidade': garantir_string(pedido[23]) if len(pedido) > 23 else '',
+                    'medico_crm': garantir_string(pedido[24]) if len(pedido) > 24 else '',
+                    'analista_nome': garantir_string(pedido[25]) if len(pedido) > 25 else 'Não atribuído',
                     'data_consulta': pedido[26] if len(pedido) > 26 and isinstance(pedido[26], datetime) else None,
                     'observacoes_consulta': garantir_string(pedido[27]) if len(pedido) > 27 else ''
                 }
@@ -399,11 +435,11 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     })
                 else:
                     anexos_lista.append({
-                        'arquivo': garantir_string(a[0]),
-                        'nome': garantir_string(a[1]),
-                        'tipo': garantir_string(a[2]),
-                        'tamanho': a[3],
-                        'data': a[4].strftime('%d/%m/%Y %H:%M') if a[4] else '',
+                        'arquivo': garantir_string(a[0]) if len(a) > 0 else '',
+                        'nome': garantir_string(a[1]) if len(a) > 1 else '',
+                        'tipo': garantir_string(a[2]) if len(a) > 2 else '',
+                        'tamanho': a[3] if len(a) > 3 else None,
+                        'data': a[4].strftime('%d/%m/%Y %H:%M') if len(a) > 4 and a[4] else '',
                         'analisado_ia': a[5] if len(a) > 5 else False
                     })
             
@@ -520,7 +556,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Nenhum arquivo selecionado.', 'warning')
                 return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
             
-            from ..file_utils import save_uploaded_file, get_pedido_anexo_path
+            from ..file_utils import save_uploaded_file
             
             saved_files = []
             for file in files:
@@ -638,7 +674,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             logger.error(f"❌ Erro ao concluir análise: {e}")
             logger.error(traceback.format_exc())
             flash(f'Erro ao concluir análise: {str(e)}', 'danger')
-            return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
+            return redirect(url_for('analista.pedidos'))
 
     # ========== ROTA: ANALISAR IMAGEM COM IA ==========
     @bp.route('/analisar-imagem/<int:pedido_id>', methods=['POST'])
@@ -674,7 +710,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             # Chamar serviço de IA
             from ..gemini_service import analisar_imagem_com_gemini
-            from ..gemini_service import set_gemini_config
             
             # Obter informações do paciente
             paciente_info = execute_query("""
