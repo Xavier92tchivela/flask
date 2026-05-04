@@ -781,5 +781,5 @@ if __name__ == '__main__':
     
     # 🔧 CORREÇÃO: Usar a porta do Render ou fallback para 5000
     import os
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 10000))
     app.run(host='0.0.0.0', port=port, debug=False)
