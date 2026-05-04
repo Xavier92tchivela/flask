@@ -268,7 +268,7 @@ try:
     app.register_blueprint(consulta_bp)
     print("[6/10] ✅ Consulta blueprint registrado com sucesso!")
 except Exception as e:
-    print(f("[6/10] ❌ Erro ao registrar Consulta: {e}")
+    print(f"[6/10] ❌ Erro ao registrar Consulta: {e}")
     raise
 
 # 7. Enfermeiro
