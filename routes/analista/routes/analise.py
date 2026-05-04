@@ -1,4 +1,3 @@
-# routes/analista/routes/analise.py
 """Rotas de análise de exames para analista"""
 from flask import render_template, session, flash, redirect, url_for, request, jsonify
 from datetime import datetime
@@ -70,7 +69,11 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Perfil de analista não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            analista_id = analista_info[0]
+            # CORREÇÃO: Verificar se é dict ou tuple
+            if isinstance(analista_info, dict):
+                analista_id = analista_info.get('id')
+            else:
+                analista_id = analista_info[0] if len(analista_info) > 0 else None
             
             pedido = execute_query("""
                 SELECT id FROM pedidos_analise 
@@ -91,7 +94,7 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Não há pedidos pendentes disponíveis.', 'info')
                 return redirect(url_for('analista.dashboard'))
             
-            pedido_id = pedido[0]
+            pedido_id = pedido[0] if isinstance(pedido, (list, tuple)) else pedido.get('id')
             
             result = execute_query("""
                 UPDATE pedidos_analise 
@@ -132,9 +135,16 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Perfil de analista não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            analista_id = analista_info[0]
+            # CORREÇÃO: Funciona com dict ou tuple
+            if isinstance(analista_info, dict):
+                analista_id = analista_info.get('id')
+                analista_nome = analista_info.get('nome')
+            else:
+                analista_id = analista_info[0] if len(analista_info) > 0 else None
+                analista_nome = analista_info[1] if len(analista_info) > 1 else 'Analista'
+            
             session['analista_id'] = analista_id
-            session['user_name'] = garantir_string(analista_info[1])
+            session['user_name'] = garantir_string(analista_nome)
             
             # Buscar informações completas do pedido
             pedido_info = execute_query("""
@@ -160,58 +170,97 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 flash(f'Pedido #{pedido_id} não encontrado.', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            print(f"[OK] Pedido #{pedido_id} encontrado - Status: {garantir_string(pedido_info[5])}")
+            # CORREÇÃO: Extrair dados de dict ou tuple
+            if isinstance(pedido_info, dict):
+                pedido_status = garantir_string(pedido_info.get('status', 'pendente'))
+                medico_id = pedido_info.get('medico_id')
+                consulta_id = pedido_info.get('consulta_id')
+                paciente_nome = pedido_info.get('paciente_nome')
+                data_nascimento = pedido_info.get('data_nascimento')
+            else:
+                pedido_status = garantir_string(pedido_info[5]) if len(pedido_info) > 5 else 'pendente'
+                medico_id = pedido_info[18] if len(pedido_info) > 18 else None
+                consulta_id = pedido_info[19] if len(pedido_info) > 19 else None
+                paciente_nome = pedido_info[12] if len(pedido_info) > 12 else None
+                data_nascimento = pedido_info[13] if len(pedido_info) > 13 else None
             
-            # Extrair informações
-            medico_id = pedido_info[18] if len(pedido_info) > 18 else None  # ID do médico
-            consulta_id = pedido_info[19] if len(pedido_info) > 19 else None  # ID da consulta
-            idade_paciente = calcular_idade(pedido_info[13]) if pedido_info[13] else ''
+            print(f"[OK] Pedido #{pedido_id} encontrado - Status: {pedido_status}")
             
-            # Preparar dicionário do pedido com conversão de bytes
-            pedido = {
-                'id': pedido_info[0],
-                'tipo_exame': garantir_string(pedido_info[1]) or 'Não especificado',
-                'descricao': garantir_string(pedido_info[2]),
-                'observacoes': garantir_string(pedido_info[3]),
-                'urgencia': garantir_string(pedido_info[4]) or 'normal',
-                'status': garantir_string(pedido_info[5]) or 'pendente',
-                'data_solicitacao': formatar_data(pedido_info[6]),
-                'data_conclusao': formatar_data(pedido_info[7]),
-                'resultado_analise': garantir_string(pedido_info[8]),
-                'diagnostico_analista': garantir_string(pedido_info[9]),
-                'recomendacoes_analista': garantir_string(pedido_info[10]),
-                'observacoes_medico': garantir_string(pedido_info[11]),
-                'paciente_nome': garantir_string(pedido_info[12]) or 'Não informado',
-                'paciente_data_nascimento': formatar_data(pedido_info[13], '%d/%m/%Y') if pedido_info[13] else '',
-                'paciente_idade': idade_paciente,
-                'paciente_genero': garantir_string(pedido_info[14]),
-                'medico_nome': garantir_string(pedido_info[15]) or 'Não informado',
-                'medico_especialidade': garantir_string(pedido_info[16]),
-                'medico_crm': garantir_string(pedido_info[17]),
-                'medico_id': medico_id,
-                'consulta_id': consulta_id,
-                'consulta_data': formatar_data(pedido_info[20]) if len(pedido_info) > 20 and pedido_info[20] else '',
-                'consulta_observacoes': garantir_string(pedido_info[21]) if len(pedido_info) > 21 else ''
-            }
+            idade_paciente = calcular_idade(data_nascimento) if data_nascimento else ''
+            
+            # Preparar dicionário do pedido
+            if isinstance(pedido_info, dict):
+                pedido = {
+                    'id': pedido_info.get('id'),
+                    'tipo_exame': garantir_string(pedido_info.get('tipo_exame')) or 'Não especificado',
+                    'descricao': garantir_string(pedido_info.get('descricao')),
+                    'observacoes': garantir_string(pedido_info.get('observacoes')),
+                    'urgencia': garantir_string(pedido_info.get('urgencia')) or 'normal',
+                    'status': pedido_status,
+                    'data_solicitacao': formatar_data(pedido_info.get('data_solicitacao')),
+                    'data_conclusao': formatar_data(pedido_info.get('data_conclusao')),
+                    'resultado_analise': garantir_string(pedido_info.get('resultado_analise')),
+                    'diagnostico_analista': garantir_string(pedido_info.get('diagnostico_analista')),
+                    'recomendacoes_analista': garantir_string(pedido_info.get('recomendacoes_analista')),
+                    'observacoes_medico': garantir_string(pedido_info.get('observacoes_medico')),
+                    'paciente_nome': garantir_string(paciente_nome) or 'Não informado',
+                    'paciente_data_nascimento': formatar_data(data_nascimento, '%d/%m/%Y') if data_nascimento else '',
+                    'paciente_idade': idade_paciente,
+                    'paciente_genero': garantir_string(pedido_info.get('genero')),
+                    'medico_nome': garantir_string(pedido_info.get('medico_nome')) or 'Não informado',
+                    'medico_especialidade': garantir_string(pedido_info.get('medico_especialidade')),
+                    'medico_crm': garantir_string(pedido_info.get('medico_crm')),
+                    'medico_id': medico_id,
+                    'consulta_id': consulta_id,
+                    'consulta_data': formatar_data(pedido_info.get('consulta_data')) if pedido_info.get('consulta_data') else '',
+                    'consulta_observacoes': garantir_string(pedido_info.get('consulta_observacoes')) if pedido_info.get('consulta_observacoes') else ''
+                }
+            else:
+                pedido = {
+                    'id': pedido_info[0],
+                    'tipo_exame': garantir_string(pedido_info[1]) or 'Não especificado',
+                    'descricao': garantir_string(pedido_info[2]),
+                    'observacoes': garantir_string(pedido_info[3]),
+                    'urgencia': garantir_string(pedido_info[4]) or 'normal',
+                    'status': pedido_status,
+                    'data_solicitacao': formatar_data(pedido_info[6]),
+                    'data_conclusao': formatar_data(pedido_info[7]),
+                    'resultado_analise': garantir_string(pedido_info[8]),
+                    'diagnostico_analista': garantir_string(pedido_info[9]),
+                    'recomendacoes_analista': garantir_string(pedido_info[10]),
+                    'observacoes_medico': garantir_string(pedido_info[11]),
+                    'paciente_nome': garantir_string(pedido_info[12]) or 'Não informado',
+                    'paciente_data_nascimento': formatar_data(pedido_info[13], '%d/%m/%Y') if len(pedido_info) > 13 and pedido_info[13] else '',
+                    'paciente_idade': idade_paciente,
+                    'paciente_genero': garantir_string(pedido_info[14]) if len(pedido_info) > 14 else '',
+                    'medico_nome': garantir_string(pedido_info[15]) or 'Não informado',
+                    'medico_especialidade': garantir_string(pedido_info[16]) if len(pedido_info) > 16 else '',
+                    'medico_crm': garantir_string(pedido_info[17]) if len(pedido_info) > 17 else '',
+                    'medico_id': medico_id,
+                    'consulta_id': consulta_id,
+                    'consulta_data': formatar_data(pedido_info[20]) if len(pedido_info) > 20 and pedido_info[20] else '',
+                    'consulta_observacoes': garantir_string(pedido_info[21]) if len(pedido_info) > 21 else ''
+                }
             
             # Se o pedido não tem analista, atribuir ao analista atual
             pedido_owner = execute_query("""
                 SELECT analista_id FROM pedidos_analise WHERE id = %s
             """, (pedido_id,), fetch=True, one=True)
             
-            if pedido_owner and (not pedido_owner[0] or pedido_owner[0] == 0):
-                execute_query("""
-                    UPDATE pedidos_analise 
-                    SET analista_id = %s, status = 'em_analise', atualizado_em = NOW()
-                    WHERE id = %s
-                """, (analista_id, pedido_id), commit=True)
-                pedido['status'] = 'em_analise'
-                print(f"[INFO] Pedido #{pedido_id} atribuído ao analista {analista_id}")
+            if pedido_owner:
+                owner_value = pedido_owner[0] if isinstance(pedido_owner, (list, tuple)) else pedido_owner.get('analista_id')
+                if not owner_value or owner_value == 0:
+                    execute_query("""
+                        UPDATE pedidos_analise 
+                        SET analista_id = %s, status = 'em_analise', atualizado_em = NOW()
+                        WHERE id = %s
+                    """, (analista_id, pedido_id), commit=True)
+                    pedido['status'] = 'em_analise'
+                    print(f"[INFO] Pedido #{pedido_id} atribuído ao analista {analista_id}")
             
-            # Buscar anexos - COM TRATAMENTO DE ERRO
+            # Buscar anexos
             anexos_list = []
             try:
-                # Verificar se a tabela existe
                 anexos = execute_query("""
                     SELECT id, filename, original_name, tipo, size, upload_date
                     FROM anexos_pedidos 
@@ -221,22 +270,31 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 
                 if anexos:
                     for anexo in anexos:
-                        anexos_list.append({
-                            'id': anexo[0],
-                            'filename': garantir_string(anexo[1]),
-                            'original_name': garantir_string(anexo[2]),
-                            'type': garantir_string(anexo[3]) or 'unknown',
-                            'size': anexo[4] if anexo[4] else 0,
-                            'upload_date': formatar_data(anexo[5]) if anexo[5] else ''
-                        })
+                        if isinstance(anexo, dict):
+                            anexos_list.append({
+                                'id': anexo.get('id'),
+                                'filename': garantir_string(anexo.get('filename')),
+                                'original_name': garantir_string(anexo.get('original_name')),
+                                'type': garantir_string(anexo.get('tipo')) or 'unknown',
+                                'size': anexo.get('size', 0),
+                                'upload_date': formatar_data(anexo.get('upload_date')) if anexo.get('upload_date') else ''
+                            })
+                        else:
+                            anexos_list.append({
+                                'id': anexo[0],
+                                'filename': garantir_string(anexo[1]),
+                                'original_name': garantir_string(anexo[2]),
+                                'type': garantir_string(anexo[3]) or 'unknown',
+                                'size': anexo[4] if len(anexo) > 4 else 0,
+                                'upload_date': formatar_data(anexo[5]) if len(anexo) > 5 and anexo[5] else ''
+                            })
             except Exception as e:
                 logger.warning(f"Não foi possível buscar anexos: {e}")
-                # Criar tabela se não existir
                 criar_tabela_anexos()
             
             # Buscar diagnósticos anteriores
             diagnosticos_anteriores = []
-            if pedido_info[12]:  # Se tem nome do paciente
+            if pedido.get('paciente_nome') and pedido['paciente_nome'] != 'Não informado':
                 try:
                     diagnosticos_db = execute_query("""
                         SELECT d.diagnostico_final, d.criado_em, m_u.nome as medico_nome, m.especialidade
@@ -249,20 +307,28 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                         WHERE u.nome = %s AND d.diagnostico_final IS NOT NULL
                         ORDER BY d.criado_em DESC
                         LIMIT 5
-                    """, (pedido_info[12],), fetch=True)
+                    """, (pedido['paciente_nome'],), fetch=True)
                     
                     if diagnosticos_db:
                         for diag in diagnosticos_db:
-                            diagnosticos_anteriores.append({
-                                'diagnostico': garantir_string(diag[0]),
-                                'data_consulta': formatar_data(diag[1]),
-                                'medico_nome': garantir_string(diag[2]),
-                                'medico_especialidade': garantir_string(diag[3])
-                            })
+                            if isinstance(diag, dict):
+                                diagnosticos_anteriores.append({
+                                    'diagnostico': garantir_string(diag.get('diagnostico_final')),
+                                    'data_consulta': formatar_data(diag.get('criado_em')),
+                                    'medico_nome': garantir_string(diag.get('medico_nome')),
+                                    'medico_especialidade': garantir_string(diag.get('especialidade'))
+                                })
+                            else:
+                                diagnosticos_anteriores.append({
+                                    'diagnostico': garantir_string(diag[0]) if len(diag) > 0 else '',
+                                    'data_consulta': formatar_data(diag[1]) if len(diag) > 1 else '',
+                                    'medico_nome': garantir_string(diag[2]) if len(diag) > 2 else '',
+                                    'medico_especialidade': garantir_string(diag[3]) if len(diag) > 3 else ''
+                                })
                 except Exception as e:
                     logger.warning(f"Erro ao buscar diagnósticos anteriores: {e}")
             
-            # Processar POST (iniciar análise ou concluir)
+            # Processar POST
             if request.method == 'POST':
                 acao = request.form.get('acao', '')
                 
@@ -300,14 +366,13 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                         ), commit=True)
                         
                         if result is not None:
-                            # Salvar na tabela diagnostico
-                            if consulta_id:
+                            if pedido.get('consulta_id'):
                                 try:
                                     salvar_diagnostico_ia(
-                                        consulta_id=consulta_id,
-                                        tipo_exame=pedido_info[1] or '',
-                                        descricao=pedido_info[2] or '',
-                                        observacoes=pedido_info[3] or '',
+                                        consulta_id=pedido['consulta_id'],
+                                        tipo_exame=pedido.get('tipo_exame', ''),
+                                        descricao=pedido.get('descricao', ''),
+                                        observacoes=pedido.get('observacoes', ''),
                                         resultado=resultado_analise,
                                         diagnostico_ia=diagnostico_analista,
                                         status='concluido'
@@ -315,15 +380,14 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                                 except Exception as e:
                                     logger.warning(f"Erro ao salvar diagnóstico: {e}")
                             
-                            # Notificar médico
-                            if medico_id:
+                            if pedido.get('medico_id'):
                                 try:
-                                    titulo = f"Diagnóstico disponível - {pedido_info[1] or 'Exame'}"
+                                    titulo = f"Diagnóstico disponível - {pedido.get('tipo_exame', 'Exame')}"
                                     mensagem = f"""
-                                    O diagnóstico do exame {pedido_info[1] or ''} do paciente {pedido_info[12] or ''} está disponível.
+                                    O diagnóstico do exame {pedido.get('tipo_exame', '')} do paciente {pedido.get('paciente_nome', '')} está disponível.
                                     Resultado: {resultado_analise[:100]}...
                                     """
-                                    criar_notificacao_medico(medico_id, pedido_id, titulo, mensagem, 'diagnostico')
+                                    criar_notificacao_medico(pedido['medico_id'], pedido_id, titulo, mensagem[:500], 'diagnostico')
                                 except Exception as e:
                                     logger.warning(f"Erro ao notificar médico: {e}")
                             
@@ -333,7 +397,6 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                         else:
                             flash('Erro ao salvar análise.', 'danger')
             
-            # Renderizar template
             return render_template('analista/analisar_exame.html',
                                  user=session,
                                  pedido=pedido,
@@ -367,7 +430,10 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
             if not analista_info:
                 return jsonify({'success': False, 'error': 'Analista não encontrado'}), 404
             
-            analista_id = analista_info[0]
+            if isinstance(analista_info, dict):
+                analista_id = analista_info.get('id')
+            else:
+                analista_id = analista_info[0] if len(analista_info) > 0 else None
             
             pedido = execute_query("""
                 SELECT id, analista_id, status FROM pedidos_analise 
@@ -377,7 +443,10 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
             if not pedido:
                 return jsonify({'success': False, 'error': 'Pedido não encontrado'}), 404
             
-            if pedido[1] != analista_id and pedido[2] != 'pendente':
+            pedido_analista = pedido[1] if isinstance(pedido, (list, tuple)) else pedido.get('analista_id')
+            pedido_status = pedido[2] if isinstance(pedido, (list, tuple)) else pedido.get('status')
+            
+            if pedido_analista != analista_id and pedido_status != 'pendente':
                 return jsonify({'success': False, 'error': 'Acesso negado a este pedido'}), 403
             
             if 'imagem' not in request.files:
@@ -388,7 +457,8 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 return jsonify({'success': False, 'error': 'Nenhum arquivo selecionado'}), 400
             
             allowed = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'tiff', 'tif'}
-            if '.' not in file.filename or file.filename.rsplit('.', 1)[1].lower() not in allowed:
+            ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if not ext or ext not in allowed:
                 return jsonify({
                     'success': False, 
                     'error': 'Formato não suportado. Use: PNG, JPG, JPEG, GIF, BMP, WEBP, TIFF'
@@ -417,11 +487,33 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
             """, (pedido_id,), fetch=True, one=True)
             
             if paciente_info:
-                paciente_nome, data_nascimento, genero, tipo_exame, descricao, observacoes, urgencia, consulta_id, medico_id, pedido_analista_id, pedido_status = paciente_info
-                idade = calcular_idade(data_nascimento)
+                if isinstance(paciente_info, dict):
+                    paciente_nome = garantir_string(paciente_info.get('nome', 'Não informado'))
+                    data_nascimento = paciente_info.get('data_nascimento')
+                    genero = garantir_string(paciente_info.get('genero', ''))
+                    tipo_exame = garantir_string(paciente_info.get('tipo_exame', 'Não especificado'))
+                    descricao = garantir_string(paciente_info.get('descricao', ''))
+                    observacoes = garantir_string(paciente_info.get('observacoes', ''))
+                    urgencia = garantir_string(paciente_info.get('urgencia', 'normal'))
+                    consulta_id = paciente_info.get('consulta_id')
+                    medico_id = paciente_info.get('medico_id')
+                    pedido_analista_id = paciente_info.get('analista_id')
+                    pedido_status = paciente_info.get('status', 'pendente')
+                else:
+                    paciente_nome = garantir_string(paciente_info[0]) if len(paciente_info) > 0 else 'Não informado'
+                    data_nascimento = paciente_info[1] if len(paciente_info) > 1 else None
+                    genero = garantir_string(paciente_info[2]) if len(paciente_info) > 2 else ''
+                    tipo_exame = garantir_string(paciente_info[3]) if len(paciente_info) > 3 else 'Não especificado'
+                    descricao = garantir_string(paciente_info[4]) if len(paciente_info) > 4 else ''
+                    observacoes = garantir_string(paciente_info[5]) if len(paciente_info) > 5 else ''
+                    urgencia = garantir_string(paciente_info[6]) if len(paciente_info) > 6 else 'normal'
+                    consulta_id = paciente_info[7] if len(paciente_info) > 7 else None
+                    medico_id = paciente_info[8] if len(paciente_info) > 8 else None
+                    pedido_analista_id = paciente_info[9] if len(paciente_info) > 9 else None
+                    pedido_status = paciente_info[10] if len(paciente_info) > 10 else 'pendente'
             else:
                 paciente_nome = "Não informado"
-                idade = ""
+                data_nascimento = None
                 genero = ""
                 tipo_exame = "Não especificado"
                 descricao = ""
@@ -431,6 +523,8 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                 medico_id = None
                 pedido_analista_id = None
                 pedido_status = 'pendente'
+            
+            idade = calcular_idade(data_nascimento) if data_nascimento else ''
             
             if not pedido_analista_id or pedido_analista_id == 0:
                 execute_query("""
@@ -465,7 +559,7 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                         atualizado_em = NOW()
                     WHERE id = %s
                 """, (
-                    diagnostico,
+                    diagnostico[:1000],
                     "Diagnóstico gerado por IA: " + diagnostico[:200] + ("..." if len(diagnostico) > 200 else ""),
                     pedido_id
                 ), commit=True)
@@ -488,7 +582,7 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                                 resultado=diagnostico, diagnostico_ia=diagnostico,
                                 status='concluido', imagem_path=temp_image_path,
                                 imagem_base64=imagem_base64,
-                                formato_imagem=file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else None,
+                                formato_imagem=ext,
                                 tamanho_imagem=file_length
                             )
                         except Exception as e:
@@ -496,21 +590,16 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                     
                     if medico_id:
                         try:
-                            titulo = f"Diagnóstico gerado por IA - {tipo_exame or 'Exame'}"
-                            mensagem = f"""
-                            O diagnóstico do exame {tipo_exame or ''} do paciente {paciente_nome or ''} foi gerado automaticamente pela IA.
-                            Status: EXAME CONCLUIDO
-                            Diagnóstico preliminar: {diagnostico[:150]}...
-                            Acesse sua área médica para ver o diagnóstico completo.
-                            """
-                            criar_notificacao_medico(medico_id, pedido_id, titulo, mensagem, 'diagnostico_ia')
+                            titulo = f"Diagnóstico gerado por IA - {tipo_exame}"
+                            mensagem = f"O diagnóstico do exame {tipo_exame} do paciente {paciente_nome} foi gerado automaticamente pela IA. Acesse sua área médica para ver o diagnóstico completo."
+                            criar_notificacao_medico(medico_id, pedido_id, titulo[:255], mensagem[:500], 'diagnostico_ia')
                         except Exception as e:
                             logger.warning(f"Erro ao notificar médico: {e}")
             else:
                 novo_status = pedido_status
         
             try:
-                if os.path.exists(temp_image_path):
+                if temp_image_path and os.path.exists(temp_image_path):
                     os.remove(temp_image_path)
             except:
                 pass
@@ -524,20 +613,16 @@ def register_analise_routes(bp, analista_required, execute_query, formatar_data,
                     'pedido_status': novo_status
                 }), 500
             
-            # Garantir que todos os dados sejam strings antes de retornar JSON
-            diagnostico_str = garantir_string(diagnostico)
-            paciente_nome_str = garantir_string(paciente_nome)
-            
             return jsonify({
                 'success': True, 
-                'diagnostico': diagnostico_str, 
+                'diagnostico': garantir_string(diagnostico), 
                 'contexto': contexto_clinico,
                 'tipo_analise': tipo_analise, 
-                'paciente': paciente_nome_str,
+                'paciente': garantir_string(paciente_nome),
                 'consulta_id': consulta_id, 
                 'timestamp': datetime.now().isoformat(),
                 'pedido_status': novo_status,
-                'status_message': 'EXAME CONCLUIDO - Diagnóstico gerado automaticamente por IA' if novo_status == 'concluido' else 'Análise em andamento'
+                'status_message': '✅ EXAME CONCLUÍDO - Diagnóstico gerado automaticamente por IA' if novo_status == 'concluido' else 'Análise em andamento'
             })
             
         except Exception as e:
