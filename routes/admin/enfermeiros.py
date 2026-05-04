@@ -1,4 +1,4 @@
-# routes/admin/enfermeiros.py
+# routes/admin/enfermeiros.py - VERSÃO CORRIGIDA
 from flask import render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash
 import logging
@@ -72,19 +72,31 @@ def init_enfermeiros_routes(admin_bp, mysql):
                 ORDER BY u.nome ASC
             """, fetch=True) or []
             
-            # Converter para lista de dicionários
+            # Converter para lista de dicionários (funciona com dict ou tuple)
             enfermeiros_list = []
             for e in enfermeiros:
-                enfermeiros_list.append({
-                    'id': e[0],
-                    'nome': e[1],
-                    'email': e[2],
-                    'telefone': e[3],
-                    'coren': e[4],
-                    'especialidade': e[5],
-                    'data_cadastro': e[6],
-                    'ativo': e[7]
-                })
+                if isinstance(e, dict):
+                    enfermeiros_list.append({
+                        'id': e.get('id'),
+                        'nome': e.get('nome'),
+                        'email': e.get('email'),
+                        'telefone': e.get('telefone'),
+                        'coren': e.get('coren'),
+                        'especialidade': e.get('especialidade'),
+                        'data_cadastro': e.get('data_cadastro'),
+                        'ativo': e.get('ativo')
+                    })
+                else:
+                    enfermeiros_list.append({
+                        'id': e[0],
+                        'nome': e[1],
+                        'email': e[2],
+                        'telefone': e[3],
+                        'coren': e[4],
+                        'especialidade': e[5],
+                        'data_cadastro': e[6],
+                        'ativo': e[7]
+                    })
             
             return render_template('admin/enfermeiros.html', 
                                  enfermeiros=enfermeiros_list, 
@@ -98,7 +110,7 @@ def init_enfermeiros_routes(admin_bp, mysql):
     @admin_bp.route('/enfermeiros/cadastrar', methods=['GET', 'POST'])
     @admin_required
     def cadastrar_enfermeiro():
-        """Cadastra um novo enfermeiro"""
+        """Cadastra um novo enfermeiro - CORRIGIDO"""
         if request.method == 'POST':
             nome = request.form.get('nome', '').strip()
             email = request.form.get('email', '').strip().lower()
@@ -122,8 +134,11 @@ def init_enfermeiros_routes(admin_bp, mysql):
             )
             
             if existing:
-                flash('Email já cadastrado.', 'danger')
-                return redirect(url_for('admin.cadastrar_enfermeiro'))
+                # existing pode ser dict ou tuple
+                existing_id = existing.get('id') if isinstance(existing, dict) else existing[0] if existing else None
+                if existing_id:
+                    flash('Email já cadastrado.', 'danger')
+                    return redirect(url_for('admin.cadastrar_enfermeiro'))
             
             # Verificar se COREN já existe
             coren_existing = execute_query(
@@ -132,8 +147,10 @@ def init_enfermeiros_routes(admin_bp, mysql):
             )
             
             if coren_existing:
-                flash('COREN já cadastrado.', 'danger')
-                return redirect(url_for('admin.cadastrar_enfermeiro'))
+                coren_id = coren_existing.get('id') if isinstance(coren_existing, dict) else coren_existing[0] if coren_existing else None
+                if coren_id:
+                    flash('COREN já cadastrado.', 'danger')
+                    return redirect(url_for('admin.cadastrar_enfermeiro'))
             
             try:
                 user_uuid = str(uuid.uuid4())
@@ -145,21 +162,27 @@ def init_enfermeiros_routes(admin_bp, mysql):
                     VALUES (%s, %s, %s, %s, %s, 'enfermeiro', 1, NOW())
                 """, (user_uuid, nome, email, senha_hash, telefone))
                 
-                # Pegar ID do usuário inserido
+                # Pegar ID do usuário inserido (CORREÇÃO: suporta dict ou tuple)
                 user = execute_query(
                     "SELECT id FROM usuarios WHERE email = %s",
                     (email,), fetch=True, one=True
                 )
                 
                 if user:
-                    # Inserir enfermeiro
-                    execute_query("""
-                        INSERT INTO enfermeiros (usuario_id, coren, especialidade, data_cadastro, ativo)
-                        VALUES (%s, %s, %s, NOW(), 1)
-                    """, (user[0], coren, especialidade))
+                    # user pode ser dict ou tuple
+                    user_id = user.get('id') if isinstance(user, dict) else user[0] if user else None
                     
-                    flash('Enfermeiro cadastrado com sucesso!', 'success')
-                    return redirect(url_for('admin.enfermeiros'))
+                    if user_id:
+                        # Inserir enfermeiro
+                        execute_query("""
+                            INSERT INTO enfermeiros (usuario_id, coren, especialidade, data_cadastro, ativo)
+                            VALUES (%s, %s, %s, NOW(), 1)
+                        """, (user_id, coren, especialidade))
+                        
+                        flash('Enfermeiro cadastrado com sucesso!', 'success')
+                        return redirect(url_for('admin.enfermeiros'))
+                    else:
+                        flash('Erro ao obter ID do usuário.', 'danger')
                 else:
                     flash('Erro ao cadastrar enfermeiro.', 'danger')
                     
@@ -233,16 +256,29 @@ def init_enfermeiros_routes(admin_bp, mysql):
             flash('Enfermeiro não encontrado.', 'danger')
             return redirect(url_for('admin.enfermeiros'))
         
-        enfermeiro_dict = {
-            'id': enfermeiro[0],
-            'nome': enfermeiro[1],
-            'email': enfermeiro[2],
-            'telefone': enfermeiro[3],
-            'ativo': enfermeiro[4],
-            'coren': enfermeiro[5],
-            'especialidade': enfermeiro[6],
-            'data_cadastro': enfermeiro[7]
-        }
+        # Converter para dicionário (funciona com dict ou tuple)
+        if isinstance(enfermeiro, dict):
+            enfermeiro_dict = {
+                'id': enfermeiro.get('id'),
+                'nome': enfermeiro.get('nome'),
+                'email': enfermeiro.get('email'),
+                'telefone': enfermeiro.get('telefone'),
+                'ativo': enfermeiro.get('ativo'),
+                'coren': enfermeiro.get('coren'),
+                'especialidade': enfermeiro.get('especialidade'),
+                'data_cadastro': enfermeiro.get('data_cadastro')
+            }
+        else:
+            enfermeiro_dict = {
+                'id': enfermeiro[0],
+                'nome': enfermeiro[1],
+                'email': enfermeiro[2],
+                'telefone': enfermeiro[3],
+                'ativo': enfermeiro[4],
+                'coren': enfermeiro[5],
+                'especialidade': enfermeiro[6],
+                'data_cadastro': enfermeiro[7]
+            }
         
         return render_template('admin/editar_enfermeiro.html', 
                              enfermeiro=enfermeiro_dict, 
@@ -267,15 +303,27 @@ def init_enfermeiros_routes(admin_bp, mysql):
             if not enfermeiro:
                 return jsonify({'error': 'Enfermeiro não encontrado'}), 404
             
-            return jsonify({
-                'nome': enfermeiro[0],
-                'email': enfermeiro[1],
-                'telefone': enfermeiro[2] or 'Não informado',
-                'coren': enfermeiro[3],
-                'especialidade': enfermeiro[4] or 'Não informada',
-                'data_cadastro': enfermeiro[5].strftime('%d/%m/%Y') if enfermeiro[5] else '',
-                'ativo': bool(enfermeiro[6])
-            })
+            # Converter para dict (funciona com dict ou tuple)
+            if isinstance(enfermeiro, dict):
+                return jsonify({
+                    'nome': enfermeiro.get('nome'),
+                    'email': enfermeiro.get('email'),
+                    'telefone': enfermeiro.get('telefone') or 'Não informado',
+                    'coren': enfermeiro.get('coren'),
+                    'especialidade': enfermeiro.get('especialidade') or 'Não informada',
+                    'data_cadastro': enfermeiro.get('data_cadastro').strftime('%d/%m/%Y') if enfermeiro.get('data_cadastro') else '',
+                    'ativo': bool(enfermeiro.get('ativo'))
+                })
+            else:
+                return jsonify({
+                    'nome': enfermeiro[0],
+                    'email': enfermeiro[1],
+                    'telefone': enfermeiro[2] or 'Não informado',
+                    'coren': enfermeiro[3],
+                    'especialidade': enfermeiro[4] or 'Não informada',
+                    'data_cadastro': enfermeiro[5].strftime('%d/%m/%Y') if enfermeiro[5] else '',
+                    'ativo': bool(enfermeiro[6])
+                })
             
         except Exception as e:
             logger.error(f"Erro ao visualizar enfermeiro: {e}")
@@ -293,16 +341,34 @@ def init_enfermeiros_routes(admin_bp, mysql):
                 WHERE enfermeiro_id = %s
             """, (enfermeiro_id,), fetch=True, one=True)
             
-            if sinais and sinais[0] > 0:
-                # Soft delete
-                execute_query(
-                    "UPDATE usuarios SET ativo = 0 WHERE id = %s",
-                    (enfermeiro_id,)
-                )
-                return jsonify({
-                    'success': True,
-                    'message': 'Enfermeiro desativado pois possui registros de sinais vitais.'
-                })
+            # Contar registros (funciona com dict ou tuple)
+            if sinais:
+                count = sinais.get('COUNT(*)') if isinstance(sinais, dict) else sinais[0] if sinais else 0
+                
+                if count > 0:
+                    # Soft delete
+                    execute_query(
+                        "UPDATE usuarios SET ativo = 0 WHERE id = %s",
+                        (enfermeiro_id,)
+                    )
+                    return jsonify({
+                        'success': True,
+                        'message': 'Enfermeiro desativado pois possui registros de sinais vitais.'
+                    })
+                else:
+                    # Hard delete
+                    execute_query(
+                        "DELETE FROM enfermeiros WHERE usuario_id = %s",
+                        (enfermeiro_id,)
+                    )
+                    execute_query(
+                        "DELETE FROM usuarios WHERE id = %s AND tipo = 'enfermeiro'",
+                        (enfermeiro_id,)
+                    )
+                    return jsonify({
+                        'success': True,
+                        'message': 'Enfermeiro excluído com sucesso!'
+                    })
             else:
                 # Hard delete
                 execute_query(
