@@ -233,6 +233,27 @@ def register_acoes_routes(bp, mysql):
                     "paciente_email": decode_bytes(consulta_raw[15]) if isinstance(consulta_raw[15], bytes) else consulta_raw[15]
                 }
             
+            # ========== CORREÇÃO: Garantir que campos não sejam None ==========
+            if consulta.get("paciente_endereco") is None:
+                consulta["paciente_endereco"] = ""
+            if consulta.get("paciente_nome") is None:
+                consulta["paciente_nome"] = "Não informado"
+            if consulta.get("paciente_telefone") is None:
+                consulta["paciente_telefone"] = ""
+            if consulta.get("observacoes") is None:
+                consulta["observacoes"] = ""
+            if consulta.get("sintomas") is None:
+                consulta["sintomas"] = ""
+            if consulta.get("diagnostico_final") is None:
+                consulta["diagnostico_final"] = ""
+            if consulta.get("medico_nome") is None:
+                consulta["medico_nome"] = "Médico não informado"
+            if consulta.get("especialidade") is None:
+                consulta["especialidade"] = ""
+            if consulta.get("crm") is None:
+                consulta["crm"] = ""
+            # ===============================================================
+            
             if consulta.get("data_nascimento"):
                 today = datetime.now().date()
                 birth_date = consulta["data_nascimento"]
@@ -252,7 +273,7 @@ def register_acoes_routes(bp, mysql):
             }
             consulta["status_class"] = status_classes.get(consulta["status"], 'secondary')
             
-            # VERIFICAR SE JÁ EXISTE INTERNAÇÃO (usando internacoes_pacientes)
+            # VERIFICAR SE JÁ EXISTE INTERNAÇÃO
             cursor.execute("""
                 SELECT id FROM internacoes_pacientes 
                 WHERE consulta_id = %s AND status = 'ativa'
@@ -400,6 +421,11 @@ def register_acoes_routes(bp, mysql):
                     "crm": decode_bytes(consulta_raw[10]) if isinstance(consulta_raw[10], bytes) else consulta_raw[10]
                 }
             
+            # ========== CORREÇÃO: Garantir campos não None ==========
+            if consulta.get("paciente_nome") is None:
+                consulta["paciente_nome"] = "Paciente não informado"
+            # =====================================================
+            
             print(f"Consulta encontrada - Paciente: {consulta['paciente_nome']}")
             print(f"Status da consulta: {consulta['status']}")
 
@@ -454,7 +480,6 @@ def register_acoes_routes(bp, mysql):
                     
                     cursor_insert = mysql.connection.cursor()
                     
-                    # ALTERADO: usando internacoes_pacientes
                     query_insert = """
                         INSERT INTO internacoes_pacientes 
                         (paciente_id, medico_responsavel_id, enfermeiro_responsavel_id, leito_id, consulta_id,
@@ -618,7 +643,6 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # ALTERADO: usando internacoes_pacientes
             query = """
                 SELECT 
                     i.id,
@@ -757,7 +781,6 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # ALTERADO: usando internacoes_pacientes
             cursor.execute("SELECT id, leito_id, consulta_id FROM internacoes_pacientes WHERE id = %s AND status = 'ativa'", (internacao_id,))
             internacao = cursor.fetchone()
             
@@ -772,7 +795,6 @@ def register_acoes_routes(bp, mysql):
                 leito_id = internacao[1] if len(internacao) > 1 else None
                 consulta_id = internacao[2] if len(internacao) > 2 else None
             
-            # ALTERADO: usando internacoes_pacientes
             cursor.execute("""
                 UPDATE internacoes_pacientes 
                 SET status = 'alta', 
@@ -809,7 +831,6 @@ def register_acoes_routes(bp, mysql):
             
             cursor = mysql.connection.cursor()
             
-            # ALTERADO: usando internacoes_pacientes
             query = """
                 SELECT 
                     i.id,
