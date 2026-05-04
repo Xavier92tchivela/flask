@@ -47,6 +47,16 @@ def init_medico_pedidos(base, gemini_available=False):
                 return item[index]
             return None
     
+    # ===== FUNÇÃO PARA CONVERTER VALOR PARA INTEIRO COM SEGURANÇA =====
+    def to_int(valor, default=0):
+        """Converte valor para inteiro com segurança"""
+        if valor is None:
+            return default
+        try:
+            return int(valor)
+        except (ValueError, TypeError):
+            return default
+    
     # ========== ROTA: PEDIDOS DE ANÁLISE ==========
     @medico_required
     def pedidos_analise():
@@ -68,7 +78,7 @@ def init_medico_pedidos(base, gemini_available=False):
             urgencia_filter = request.args.get('urgencia', '')
             aprovacao_filter = request.args.get('status_aprovacao', '')
             mes = request.args.get('mes', '')
-            ano = request.args.get('ano', datetime.now().strftime('%Y'))
+            ano = request.args.get('ano', '')
             data_especifica = request.args.get('data', '')
             filtro = request.args.get('filtro', '')
             
@@ -127,11 +137,11 @@ def init_medico_pedidos(base, gemini_available=False):
             
             if mes:
                 query += " AND MONTH(pa.data_solicitacao) = %s"
-                params.append(mes)
+                params.append(to_int(mes))
             
             if ano:
                 query += " AND YEAR(pa.data_solicitacao) = %s"
-                params.append(ano)
+                params.append(to_int(ano))
             
             if data_especifica:
                 query += " AND DATE(pa.data_solicitacao) = %s"
@@ -371,7 +381,7 @@ def init_medico_pedidos(base, gemini_available=False):
             # Ordenar datas
             datas_disponiveis = sorted(datas_dict.values(), key=lambda x: x['data_iso'], reverse=True)[:7]
             
-            # 🔧 CORREÇÃO: Buscar anos disponíveis (corrigido para dict/tuple)
+            # 🔧 CORREÇÃO: Buscar anos disponíveis
             anos_raw = execute_query("""
                 SELECT DISTINCT YEAR(data_solicitacao) as ano
                 FROM pedidos_analise
@@ -382,21 +392,27 @@ def init_medico_pedidos(base, gemini_available=False):
             anos_disponiveis = []
             for a in anos_raw:
                 if a:
-                    ano = get_valor(a, 0, 'ano')
-                    if ano:
-                        anos_disponiveis.append(ano)
+                    ano_valor = get_valor(a, 0, 'ano')
+                    if ano_valor:
+                        anos_disponiveis.append(ano_valor)
             
             if not anos_disponiveis:
                 anos_disponiveis = [datetime.now().year]
             
-            # Processar filtros
+            # 🔧 CORREÇÃO: Processar filtros - TRATAMENTO SEGURO
             mes_selecionado = None
-            if mes and mes.isdigit():
-                mes_selecionado = int(mes)
+            if mes:
+                try:
+                    mes_selecionado = int(mes)
+                except (ValueError, TypeError):
+                    mes_selecionado = None
             
             ano_selecionado = datetime.now().year
-            if ano and ano.isdigit():
-                ano_selecionado = int(ano)
+            if ano:
+                try:
+                    ano_selecionado = int(ano)
+                except (ValueError, TypeError):
+                    ano_selecionado = datetime.now().year
             
             # Aplicar filtro aos pedidos exibidos
             if filtro == 'hoje':
@@ -449,7 +465,7 @@ def init_medico_pedidos(base, gemini_available=False):
                 return redirect(url_for('auth.login'))
             
             medico_id = medico_info.get('id')
-            print(f"Médico ID: {medico_id}")
+            print(f"Médido ID: {medico_id}")
             
             # Buscar consultas do médico
             consultas_raw = execute_query("""
@@ -679,7 +695,7 @@ def init_medico_pedidos(base, gemini_available=False):
                 flash('Pedido não encontrado.', 'danger')
                 return redirect(url_for('medico.pedidos_analise'))
             
-            # Extrair dados (dict ou tuple)
+            # Extrair dados
             if isinstance(pedido, dict):
                 consulta_id = pedido.get('consulta_id')
                 analista_id = pedido.get('analista_id')
@@ -740,7 +756,6 @@ def init_medico_pedidos(base, gemini_available=False):
                             })
             
             # Buscar sintomas
-            sintomas_lista = []
             if consulta_id:
                 sintomas_data = execute_query("""
                     SELECT sintomas FROM consultas WHERE id = %s
@@ -750,9 +765,14 @@ def init_medico_pedidos(base, gemini_available=False):
                     sintomas_raw = get_valor(sintomas_data, 0, 'sintomas')
                     if sintomas_raw:
                         sintomas_lista = [s.strip() for s in converter_bytes_para_string(sintomas_raw).split(',') if s.strip()]
+                    else:
+                        sintomas_lista = []
+                else:
+                    sintomas_lista = []
+            else:
+                sintomas_lista = []
             
             # Buscar sinais vitais
-            sinais_vitais_dict = None
             if consulta_id:
                 sinais_vitais = execute_query("""
                     SELECT id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
@@ -785,6 +805,10 @@ def init_medico_pedidos(base, gemini_available=False):
                             'data_afericao': formatar_data(sinais_vitais[7]) if len(sinais_vitais) > 7 and sinais_vitais[7] else '',
                             'observacoes': sinais_vitais[8] if len(sinais_vitais) > 8 else ''
                         }
+                else:
+                    sinais_vitais_dict = None
+            else:
+                sinais_vitais_dict = None
             
             tem_receita = len(receitas_lista) > 0
             pertence_medico = (pedido_medico_id == medico_id)
@@ -792,7 +816,6 @@ def init_medico_pedidos(base, gemini_available=False):
             esta_atribuido = (analista_id is not None and analista_id != 0)
             
             # Buscar nome do paciente
-            paciente_nome = f"Paciente {paciente_id}"
             if paciente_id:
                 paciente_info = execute_query(
                     "SELECT u.nome, p.data_nascimento, p.genero FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = %s",
@@ -800,6 +823,10 @@ def init_medico_pedidos(base, gemini_available=False):
                 )
                 if paciente_info:
                     paciente_nome = converter_bytes_para_string(get_valor(paciente_info, 0, 'nome'))
+                else:
+                    paciente_nome = f"Paciente {paciente_id}"
+            else:
+                paciente_nome = "Paciente não informado"
             
             return render_template('medico/detalhes_pedido.html',
                                  pedido=pedido,
@@ -861,7 +888,6 @@ def init_medico_pedidos(base, gemini_available=False):
                 return redirect(url_for('medico.ver_detalhes_pedido', pedido_id=pedido_id))
             
             # Buscar nome do paciente
-            paciente_nome = f"Paciente {paciente_id}"
             if paciente_id:
                 paciente_info = execute_query(
                     "SELECT u.nome FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = %s",
@@ -869,6 +895,10 @@ def init_medico_pedidos(base, gemini_available=False):
                 )
                 if paciente_info:
                     paciente_nome = converter_bytes_para_string(get_valor(paciente_info, 0, 'nome'))
+                else:
+                    paciente_nome = f"Paciente {paciente_id}"
+            else:
+                paciente_nome = "Paciente não informado"
             
             pedido_dict = {
                 'id': pedido_id,
