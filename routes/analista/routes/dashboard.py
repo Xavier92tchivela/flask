@@ -1,200 +1,157 @@
-"""Rotas de pedidos para analista"""
-from flask import render_template, session, flash, redirect, url_for, request, send_file, jsonify
-import os
+"""Rotas de dashboard para analista"""
+from flask import render_template, session, flash, redirect, url_for, jsonify
+from datetime import datetime
 import logging
 import traceback
-from datetime import datetime 
 
 logger = logging.getLogger(__name__)
 
-def register_pedidos_routes(bp, analista_required, execute_query, formatar_data, calcular_idade):
+def register_dashboard_routes(bp, analista_required, execute_query, formatar_data):
     
-    # ===== FUNÇÃO AUXILIAR PARA CONVERTER BYTES =====
-    def garantir_string(valor):
-        """Converte qualquer valor para string, especialmente bytes"""
-        if valor is None:
-            return ''
-        if isinstance(valor, bytes):
-            try:
-                return valor.decode('utf-8')
-            except:
-                return str(valor)
-        if isinstance(valor, (int, float)):
-            return str(valor)
-        return str(valor) if valor is not None else ''
+    # ===== FUNÇÃO AUXILIAR PARA EXTRAIR VALOR =====
+    def get_count(result):
+        """Extrai o valor de COUNT(*) de dict ou tuple"""
+        if not result:
+            return 0
+        if isinstance(result, dict):
+            # Tenta encontrar o valor COUNT(*)
+            for key, value in result.items():
+                if 'COUNT' in key.upper() or key == 'COUNT(*)':
+                    return value if value else 0
+            # Se não encontrou, pega o primeiro valor
+            first_key = list(result.keys())[0] if result.keys() else None
+            return result.get(first_key, 0) if first_key else 0
+        else:
+            # É tupla/lista
+            return result[0] if len(result) > 0 else 0
     
-    @bp.route('/pedidos')
+    @bp.route('/dashboard')
     @analista_required
-    def pedidos():
-        """Lista todos os pedidos do analista"""
+    def dashboard():
+        """Dashboard do analista"""
         try:
             user_id = session.get('user_id')
             
-            print(f"[DEBUG] ========== PEDIDOS ==========")
-            print(f"[DEBUG] User ID: {user_id}")
-            print(f"[DEBUG] Session: {dict(session)}")
-            
             analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
+                SELECT a.id, u.nome, a.especialidade 
+                FROM analistas a
+                JOIN usuarios u ON a.usuario_id = u.id
+                WHERE u.id = %s AND a.status = 'ativo'
             """, (user_id,), fetch=True, one=True)
-            
-            print(f"[DEBUG] analista_info: {analista_info}")
-            print(f"[DEBUG] type(analista_info): {type(analista_info)}")
             
             if not analista_info:
                 flash('Perfil de analista não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # CORREÇÃO: Verificar se é dict ou tuple
+            # Funciona com dict ou tuple
             if isinstance(analista_info, dict):
                 analista_id = analista_info.get('id')
+                analista_nome = analista_info.get('nome')
+                analista_especialidade = analista_info.get('especialidade')
             else:
                 analista_id = analista_info[0] if len(analista_info) > 0 else None
+                analista_nome = analista_info[1] if len(analista_info) > 1 else 'Analista'
+                analista_especialidade = analista_info[2] if len(analista_info) > 2 else ''
             
-            print(f"[DEBUG] analista_id: {analista_id}")
+            session['analista_id'] = analista_id
+            session['user_name'] = analista_nome
+            session['analista_especialidade'] = analista_especialidade
             
-            if not analista_id:
-                flash('ID do analista não encontrado.', 'danger')
-                return redirect(url_for('auth.login'))
+            estatisticas = {
+                'pendentes': 0, 'em_analise': 0, 'concluidos': 0, 'urgentes': 0
+            }
             
-            # Filtros
-            status_filter = request.args.get('status', '')
-            urgencia_filter = request.args.get('urgencia', '')
+            # Contagem de pendentes
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND status = 'pendente'
+            """, (analista_id,), fetch=True, one=True)
+            estatisticas['pendentes'] = get_count(result)
             
-            print(f"[DEBUG] status_filter: {status_filter}")
-            print(f"[DEBUG] urgencia_filter: {urgencia_filter}")
+            # Contagem de em análise
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND status = 'em_analise'
+            """, (analista_id,), fetch=True, one=True)
+            estatisticas['em_analise'] = get_count(result)
             
-            query = """
+            # Contagem de concluídos
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND status = 'concluido'
+            """, (analista_id,), fetch=True, one=True)
+            estatisticas['concluidos'] = get_count(result)
+            
+            # Contagem de urgentes
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND urgencia = 'urgente' 
+                AND status IN ('pendente', 'em_analise')
+            """, (analista_id,), fetch=True, one=True)
+            estatisticas['urgentes'] = get_count(result)
+            
+            # Pedidos recentes
+            pedidos_recentes = execute_query("""
                 SELECT 
-                    pa.id, 
-                    pa.tipo_exame, 
-                    pa.urgencia, 
-                    pa.status, 
-                    pa.data_solicitacao,
-                    pa.data_conclusao, 
-                    pa.descricao, 
-                    pa.observacoes,
-                    COALESCE(u.nome, 'Não informado') as paciente_nome, 
-                    p.data_nascimento, 
-                    COALESCE(p.genero, '') as genero,
-                    COALESCE(m_u.nome, 'Não informado') as medico_nome, 
-                    COALESCE(m.especialidade, '') as medico_especialidade,
-                    pa.resultado_analise,
-                    pa.diagnostico_analista,
-                    pa.recomendacoes_analista
+                    pa.id, pa.tipo_exame, pa.urgencia, pa.status, pa.data_solicitacao,
+                    COALESCE(u.nome, 'Confidencial') as paciente_nome
                 FROM pedidos_analise pa
                 LEFT JOIN pacientes p ON pa.paciente_id = p.id
                 LEFT JOIN usuarios u ON p.usuario_id = u.id
-                LEFT JOIN medicos m ON pa.medico_id = m.id
-                LEFT JOIN usuarios m_u ON m.usuario_id = m_u.id
                 WHERE pa.analista_id = %s OR pa.analista_id IS NULL
-            """
-            
-            params = [analista_id]
-            
-            if status_filter:
-                query += " AND pa.status = %s"
-                params.append(status_filter)
-            
-            if urgencia_filter:
-                query += " AND pa.urgencia = %s"
-                params.append(urgencia_filter)
-            
-            query += " ORDER BY pa.data_solicitacao DESC"
-            
-            print(f"[DEBUG] Query: {query}")
-            print(f"[DEBUG] Params: {params}")
-            
-            pedidos_db = execute_query(query, params, fetch=True)
-            
-            print(f"[DEBUG] pedidos_db: {pedidos_db}")
-            print(f"[DEBUG] type(pedidos_db): {type(pedidos_db)}")
-            print(f"[DEBUG] len(pedidos_db): {len(pedidos_db) if pedidos_db else 0}")
+                ORDER BY 
+                    CASE pa.status 
+                        WHEN 'pendente' THEN 1
+                        WHEN 'em_analise' THEN 2
+                        ELSE 3
+                    END,
+                    pa.data_solicitacao DESC
+                LIMIT 10
+            """, (analista_id,), fetch=True)
             
             pedidos_list = []
-            if pedidos_db:
-                for idx, pedido in enumerate(pedidos_db):
-                    print(f"[DEBUG] Processando pedido {idx}: {pedido}")
-                    print(f"[DEBUG] type(pedido): {type(pedido)}")
-                    
-                    # CORREÇÃO: Funciona com dict OU tuple
-                    if isinstance(pedido, dict):
-                        print(f"[DEBUG] É dicionário - keys: {list(pedido.keys())}")
-                        # É dicionário
-                        data_nascimento = pedido.get('data_nascimento')
-                        idade = calcular_idade(data_nascimento) if data_nascimento else ''
-                        
+            if pedidos_recentes:
+                for p in pedidos_recentes:
+                    if isinstance(p, dict):
                         pedidos_list.append({
-                            'id': pedido.get('id'),
-                            'tipo_exame': garantir_string(pedido.get('tipo_exame')) or 'Não especificado',
-                            'urgencia': garantir_string(pedido.get('urgencia')) or 'normal',
-                            'status': garantir_string(pedido.get('status')) or 'pendente',
-                            'data_solicitacao': formatar_data(pedido.get('data_solicitacao')),
-                            'data_conclusao': formatar_data(pedido.get('data_conclusao')),
-                            'descricao': garantir_string(pedido.get('descricao')),
-                            'observacoes': garantir_string(pedido.get('observacoes')),
-                            'paciente_nome': garantir_string(pedido.get('paciente_nome')),
-                            'paciente_data_nascimento': formatar_data(pedido.get('data_nascimento'), '%d/%m/%Y') if pedido.get('data_nascimento') else '',
-                            'paciente_idade': idade,
-                            'paciente_genero': garantir_string(pedido.get('genero')),
-                            'medico_nome': garantir_string(pedido.get('medico_nome')),
-                            'medico_especialidade': garantir_string(pedido.get('medico_especialidade')),
-                            'resultado_analise': garantir_string(pedido.get('resultado_analise')),
-                            'diagnostico_analista': garantir_string(pedido.get('diagnostico_analista')),
-                            'recomendacoes_analista': garantir_string(pedido.get('recomendacoes_analista'))
+                            'id': p.get('id'),
+                            'tipo_exame': p.get('tipo_exame') or 'N/A',
+                            'urgencia': p.get('urgencia') or 'normal',
+                            'status': p.get('status') or 'pendente',
+                            'data_solicitacao': formatar_data(p.get('data_solicitacao')),
+                            'paciente_nome': p.get('paciente_nome') or 'Confidencial'
                         })
                     else:
-                        print(f"[DEBUG] É tupla/lista - tamanho: {len(pedido) if pedido else 0}")
-                        # É tupla/lista
-                        idade = calcular_idade(pedido[9]) if len(pedido) > 9 and pedido[9] else ''
-                        
                         pedidos_list.append({
-                            'id': pedido[0] if len(pedido) > 0 else None,
-                            'tipo_exame': garantir_string(pedido[1]) if len(pedido) > 1 else 'Não especificado',
-                            'urgencia': garantir_string(pedido[2]) if len(pedido) > 2 else 'normal',
-                            'status': garantir_string(pedido[3]) if len(pedido) > 3 else 'pendente',
-                            'data_solicitacao': formatar_data(pedido[4]) if len(pedido) > 4 else None,
-                            'data_conclusao': formatar_data(pedido[5]) if len(pedido) > 5 else None,
-                            'descricao': garantir_string(pedido[6]) if len(pedido) > 6 else '',
-                            'observacoes': garantir_string(pedido[7]) if len(pedido) > 7 else '',
-                            'paciente_nome': garantir_string(pedido[8]) if len(pedido) > 8 else 'Não informado',
-                            'paciente_data_nascimento': formatar_data(pedido[9], '%d/%m/%Y') if len(pedido) > 9 and pedido[9] else '',
-                            'paciente_idade': idade,
-                            'paciente_genero': garantir_string(pedido[10]) if len(pedido) > 10 else '',
-                            'medico_nome': garantir_string(pedido[11]) if len(pedido) > 11 else 'Não informado',
-                            'medico_especialidade': garantir_string(pedido[12]) if len(pedido) > 12 else '',
-                            'resultado_analise': garantir_string(pedido[13]) if len(pedido) > 13 else '',
-                            'diagnostico_analista': garantir_string(pedido[14]) if len(pedido) > 14 else '',
-                            'recomendacoes_analista': garantir_string(pedido[15]) if len(pedido) > 15 else ''
+                            'id': p[0] if len(p) > 0 else None,
+                            'tipo_exame': p[1] if len(p) > 1 else 'N/A',
+                            'urgencia': p[2] if len(p) > 2 else 'normal',
+                            'status': p[3] if len(p) > 3 else 'pendente',
+                            'data_solicitacao': formatar_data(p[4]) if len(p) > 4 else '',
+                            'paciente_nome': p[5] if len(p) > 5 else 'Confidencial'
                         })
             
-            print(f"[DEBUG] Pedidos encontrados: {len(pedidos_list)}")
-            print(f"[DEBUG] pedidos_list: {pedidos_list}")
-            
-            return render_template('analista/pedidos.html',
+            return render_template('analista/dashboard.html',
                                  user=session,
-                                 pedidos=pedidos_list,
-                                 status_filter=status_filter,
-                                 urgencia_filter=urgencia_filter,
+                                 estatisticas=estatisticas,
+                                 pedidos_atribuidos=pedidos_list,
+                                 analista_info={'id': analista_id, 'nome': analista_nome, 'especialidade': analista_especialidade},
                                  now=datetime.now())
             
         except Exception as e:
-            logger.error(f"❌ Erro ao listar pedidos: {e}")
+            logger.error(f"❌ Erro no dashboard: {e}")
             logger.error(traceback.format_exc())
-            print(f"[DEBUG] EXCEÇÃO: {e}")
-            flash('Erro ao carregar pedidos.', 'danger')
-            return render_template('analista/pedidos.html', 
-                                 user=session, 
-                                 pedidos=[], 
-                                 status_filter='', 
-                                 urgencia_filter='',
+            flash('Erro ao carregar dashboard.', 'danger')
+            return render_template('analista/dashboard.html',
+                                 user=session,
+                                 estatisticas={'pendentes':0,'em_analise':0,'concluidos':0,'urgentes':0},
+                                 pedidos_atribuidos=[],
                                  now=datetime.now())
 
-    @bp.route('/pedidos/<int:pedido_id>/anexo/<filename>')
+    @bp.route('/api/dashboard-stats')
     @analista_required
-    def download_anexo(pedido_id, filename):
-        """Download de anexo do pedido"""
+    def api_dashboard_stats():
+        """API para obter estatísticas do dashboard"""
         try:
             user_id = session.get('user_id')
             
@@ -206,584 +163,51 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if not analista_info:
                 return jsonify({'error': 'Analista não encontrado'}), 404
             
+            # Funciona com dict ou tuple
             if isinstance(analista_info, dict):
                 analista_id = analista_info.get('id')
             else:
                 analista_id = analista_info[0] if len(analista_info) > 0 else None
             
-            # Verificar permissão
-            pedido = execute_query("""
-                SELECT analista_id FROM pedidos_analise 
-                WHERE id = %s
-            """, (pedido_id,), fetch=True, one=True)
+            # Contagem de pendentes
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND status = 'pendente'
+            """, (analista_id,), fetch=True, one=True)
+            pendentes = get_count(result)
             
-            if not pedido:
-                return jsonify({'error': 'Pedido não encontrado'}), 404
+            # Contagem de em análise
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND status = 'em_analise'
+            """, (analista_id,), fetch=True, one=True)
+            em_analise = get_count(result)
             
-            pedido_analista = pedido.get('analista_id') if isinstance(pedido, dict) else pedido[0]
+            # Contagem de concluídos
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND status = 'concluido'
+            """, (analista_id,), fetch=True, one=True)
+            concluidos = get_count(result)
             
-            if pedido_analista is not None and pedido_analista != 0 and pedido_analista != analista_id:
-                return jsonify({'error': 'Acesso negado'}), 403
+            # Contagem de urgentes
+            result = execute_query("""
+                SELECT COUNT(*) FROM pedidos_analise 
+                WHERE (analista_id = %s OR analista_id IS NULL) AND urgencia = 'urgente' 
+                AND status IN ('pendente', 'em_analise')
+            """, (analista_id,), fetch=True, one=True)
+            urgentes = get_count(result)
             
-            # Buscar anexo
-            anexo = execute_query("""
-                SELECT arquivo, nome, tipo 
-                FROM anexos_pedidos 
-                WHERE pedido_id = %s AND arquivo = %s
-            """, (pedido_id, filename), fetch=True, one=True)
+            estatisticas = {
+                'pendentes': pendentes,
+                'em_analise': em_analise,
+                'concluidos': concluidos,
+                'urgentes': urgentes,
+                'total': pendentes + em_analise + concluidos
+            }
             
-            if not anexo:
-                return jsonify({'error': 'Anexo não encontrado'}), 404
-            
-            if isinstance(anexo, dict):
-                anexo_arquivo = anexo.get('arquivo')
-                anexo_nome = anexo.get('nome')
-                anexo_tipo = anexo.get('tipo')
-            else:
-                anexo_arquivo = anexo[0] if len(anexo) > 0 else None
-                anexo_nome = anexo[1] if len(anexo) > 1 else filename
-                anexo_tipo = anexo[2] if len(anexo) > 2 else 'application/octet-stream'
-            
-            from ..file_utils import get_pedido_anexo_path
-            filepath = get_pedido_anexo_path(anexo_arquivo)
-            
-            if not os.path.exists(filepath):
-                return jsonify({'error': 'Arquivo não encontrado no servidor'}), 404
-            
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=anexo_nome or filename,
-                mimetype=anexo_tipo or 'application/octet-stream'
-            )
+            return jsonify({'success': True, 'estatisticas': estatisticas})
             
         except Exception as e:
-            logger.error(f"❌ Erro no download: {e}")
-            logger.error(traceback.format_exc())
-            return jsonify({'error': str(e)}), 500
-
-    # ========== ROTA: VER DETALHES DO PEDIDO ==========
-    @bp.route('/pedido/<int:pedido_id>')
-    @analista_required
-    def ver_detalhes_pedido(pedido_id):
-        """Visualiza detalhes de um pedido específico"""
-        try:
-            logger.info(f"Visualizando detalhes do pedido #{pedido_id}")
-            
-            user_id = session.get('user_id')
-            
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                flash('Perfil de analista não encontrado.', 'danger')
-                return redirect(url_for('auth.login'))
-            
-            if isinstance(analista_info, dict):
-                analista_id = analista_info.get('id')
-            else:
-                analista_id = analista_info[0] if len(analista_info) > 0 else None
-            
-            # Buscar detalhes do pedido
-            pedido = execute_query("""
-                SELECT 
-                    pa.id,
-                    pa.paciente_id,
-                    pa.medico_id,
-                    pa.tipo_exame,
-                    pa.descricao,
-                    pa.observacoes,
-                    pa.urgencia,
-                    pa.status,
-                    pa.data_solicitacao,
-                    pa.data_conclusao,
-                    pa.resultado_analise,
-                    pa.diagnostico_analista,
-                    pa.recomendacoes_analista,
-                    pa.analista_id,
-                    pa.status_aprovacao,
-                    pa.observacoes_medico,
-                    pa.consulta_id,
-                    COALESCE(u.nome, 'Não informado') as paciente_nome,
-                    p.data_nascimento,
-                    COALESCE(p.genero, '') as paciente_genero,
-                    COALESCE(p.telefone, '') as paciente_telefone,
-                    COALESCE(p.endereco, '') as paciente_endereco,
-                    COALESCE(m_u.nome, 'Não informado') as medico_nome,
-                    COALESCE(m.especialidade, '') as medico_especialidade,
-                    COALESCE(m.crm, '') as medico_crm,
-                    COALESCE(a_u.nome, 'Não atribuído') as analista_nome,
-                    c.data_hora as data_consulta,
-                    c.observacoes as observacoes_consulta
-                FROM pedidos_analise pa
-                LEFT JOIN pacientes p ON pa.paciente_id = p.id
-                LEFT JOIN usuarios u ON p.usuario_id = u.id
-                LEFT JOIN medicos m ON pa.medico_id = m.id
-                LEFT JOIN usuarios m_u ON m.usuario_id = m_u.id
-                LEFT JOIN analistas a ON pa.analista_id = a.id
-                LEFT JOIN usuarios a_u ON a.usuario_id = a_u.id
-                LEFT JOIN consultas c ON pa.consulta_id = c.id
-                WHERE pa.id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if not pedido:
-                flash('Pedido não encontrado.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            # Verificar permissão
-            if isinstance(pedido, dict):
-                pedido_analista = pedido.get('analista_id')
-            else:
-                pedido_analista = pedido[13] if len(pedido) > 13 else None
-            
-            if pedido_analista is not None and pedido_analista != 0 and pedido_analista != analista_id:
-                flash('Você não tem permissão para acessar este pedido.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            # Calcular idade (campo data_nascimento está no índice 18 para tupla)
-            idade = ''
-            if isinstance(pedido, dict):
-                data_nasc = pedido.get('data_nascimento')
-                if data_nasc:
-                    try:
-                        if isinstance(data_nasc, str):
-                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
-                        hoje = datetime.now()
-                        idade_calc = hoje.year - data_nasc.year
-                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                            idade_calc -= 1
-                        idade = f"{idade_calc} anos"
-                    except:
-                        idade = ''
-            else:
-                if len(pedido) > 18 and pedido[18]:
-                    data_nasc = pedido[18]
-                    try:
-                        if isinstance(data_nasc, str):
-                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
-                        hoje = datetime.now()
-                        idade_calc = hoje.year - data_nasc.year
-                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                            idade_calc -= 1
-                        idade = f"{idade_calc} anos"
-                    except:
-                        idade = ''
-            
-            # Construir dicionário do pedido
-            if isinstance(pedido, dict):
-                pedido_dict = {
-                    'id': pedido.get('id'),
-                    'paciente_id': pedido.get('paciente_id'),
-                    'medico_id': pedido.get('medico_id'),
-                    'tipo_exame': garantir_string(pedido.get('tipo_exame')) or 'Não especificado',
-                    'descricao': garantir_string(pedido.get('descricao')) or '',
-                    'observacoes': garantir_string(pedido.get('observacoes')) or '',
-                    'urgencia': garantir_string(pedido.get('urgencia')) or 'normal',
-                    'status': garantir_string(pedido.get('status')) or 'pendente',
-                    'data_solicitacao': pedido.get('data_solicitacao'),
-                    'data_conclusao': pedido.get('data_conclusao'),
-                    'resultado_analise': garantir_string(pedido.get('resultado_analise')) or '',
-                    'diagnostico_analista': garantir_string(pedido.get('diagnostico_analista')) or '',
-                    'recomendacoes_analista': garantir_string(pedido.get('recomendacoes_analista')) or '',
-                    'analista_id': pedido.get('analista_id'),
-                    'status_aprovacao': garantir_string(pedido.get('status_aprovacao')) or 'pendente',
-                    'observacoes_medico': garantir_string(pedido.get('observacoes_medico')) or '',
-                    'consulta_id': pedido.get('consulta_id'),
-                    'paciente_nome': garantir_string(pedido.get('paciente_nome')) or 'Não informado',
-                    'paciente_data_nascimento': pedido.get('data_nascimento').strftime('%d/%m/%Y') if pedido.get('data_nascimento') else '',
-                    'paciente_idade': idade,
-                    'paciente_genero': garantir_string(pedido.get('paciente_genero')) or '',
-                    'paciente_telefone': garantir_string(pedido.get('paciente_telefone')) or '',
-                    'paciente_endereco': garantir_string(pedido.get('paciente_endereco')) or '',
-                    'medico_nome': garantir_string(pedido.get('medico_nome')) or 'Não informado',
-                    'medico_especialidade': garantir_string(pedido.get('medico_especialidade')) or '',
-                    'medico_crm': garantir_string(pedido.get('medico_crm')) or '',
-                    'analista_nome': garantir_string(pedido.get('analista_nome')) or 'Não atribuído',
-                    'data_consulta': pedido.get('data_consulta'),
-                    'observacoes_consulta': garantir_string(pedido.get('observacoes_consulta')) or ''
-                }
-            else:
-                pedido_dict = {
-                    'id': pedido[0],
-                    'paciente_id': pedido[1],
-                    'medico_id': pedido[2],
-                    'tipo_exame': garantir_string(pedido[3]) or 'Não especificado',
-                    'descricao': garantir_string(pedido[4]) or '',
-                    'observacoes': garantir_string(pedido[5]) or '',
-                    'urgencia': garantir_string(pedido[6]) or 'normal',
-                    'status': garantir_string(pedido[7]) or 'pendente',
-                    'data_solicitacao': pedido[8] if len(pedido) > 8 and isinstance(pedido[8], datetime) else None,
-                    'data_conclusao': pedido[9] if len(pedido) > 9 and isinstance(pedido[9], datetime) else None,
-                    'resultado_analise': garantir_string(pedido[10]) if len(pedido) > 10 else '',
-                    'diagnostico_analista': garantir_string(pedido[11]) if len(pedido) > 11 else '',
-                    'recomendacoes_analista': garantir_string(pedido[12]) if len(pedido) > 12 else '',
-                    'analista_id': pedido[13] if len(pedido) > 13 else None,
-                    'status_aprovacao': garantir_string(pedido[14]) if len(pedido) > 14 else 'pendente',
-                    'observacoes_medico': garantir_string(pedido[15]) if len(pedido) > 15 else '',
-                    'consulta_id': pedido[16] if len(pedido) > 16 else None,
-                    'paciente_nome': garantir_string(pedido[17]) if len(pedido) > 17 else 'Não informado',
-                    'paciente_data_nascimento': pedido[18].strftime('%d/%m/%Y') if len(pedido) > 18 and pedido[18] else '',
-                    'paciente_idade': idade,
-                    'paciente_genero': garantir_string(pedido[19]) if len(pedido) > 19 else '',
-                    'paciente_telefone': garantir_string(pedido[20]) if len(pedido) > 20 else '',
-                    'paciente_endereco': garantir_string(pedido[21]) if len(pedido) > 21 else '',
-                    'medico_nome': garantir_string(pedido[22]) if len(pedido) > 22 else 'Não informado',
-                    'medico_especialidade': garantir_string(pedido[23]) if len(pedido) > 23 else '',
-                    'medico_crm': garantir_string(pedido[24]) if len(pedido) > 24 else '',
-                    'analista_nome': garantir_string(pedido[25]) if len(pedido) > 25 else 'Não atribuído',
-                    'data_consulta': pedido[26] if len(pedido) > 26 and isinstance(pedido[26], datetime) else None,
-                    'observacoes_consulta': garantir_string(pedido[27]) if len(pedido) > 27 else ''
-                }
-            
-            # Buscar anexos do pedido
-            anexos = execute_query("""
-                SELECT arquivo, nome, tipo, tamanho, data_upload, analisado_ia
-                FROM anexos_pedidos
-                WHERE pedido_id = %s
-                ORDER BY data_upload DESC
-            """, (pedido_id,), fetch=True) or []
-            
-            anexos_lista = []
-            for a in anexos:
-                if isinstance(a, dict):
-                    anexos_lista.append({
-                        'arquivo': garantir_string(a.get('arquivo')),
-                        'nome': garantir_string(a.get('nome')),
-                        'tipo': garantir_string(a.get('tipo')),
-                        'tamanho': a.get('tamanho'),
-                        'data': a.get('data_upload').strftime('%d/%m/%Y %H:%M') if a.get('data_upload') else '',
-                        'analisado_ia': a.get('analisado_ia')
-                    })
-                else:
-                    anexos_lista.append({
-                        'arquivo': garantir_string(a[0]) if len(a) > 0 else '',
-                        'nome': garantir_string(a[1]) if len(a) > 1 else '',
-                        'tipo': garantir_string(a[2]) if len(a) > 2 else '',
-                        'tamanho': a[3] if len(a) > 3 else None,
-                        'data': a[4].strftime('%d/%m/%Y %H:%M') if len(a) > 4 and a[4] else '',
-                        'analisado_ia': a[5] if len(a) > 5 else False
-                    })
-            
-            return render_template('analista/ver_detalhes_pedido.html',
-                                 pedido=pedido_dict,
-                                 anexos=anexos_lista,
-                                 now=datetime.now(),
-                                 user=session,
-                                 user_type='analista')
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao ver detalhes do pedido: {e}")
-            logger.error(traceback.format_exc())
-            flash(f'Erro ao carregar pedido: {str(e)}', 'danger')
-            return redirect(url_for('analista.pedidos'))
-
-    # ========== ROTA: INICIAR ANÁLISE ==========
-    @bp.route('/pedido/<int:pedido_id>/iniciar', methods=['POST'])
-    @analista_required
-    def iniciar_analise(pedido_id):
-        """Inicia a análise de um pedido"""
-        try:
-            user_id = session.get('user_id')
-            
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                return jsonify({'error': 'Analista não encontrado'}), 404
-            
-            if isinstance(analista_info, dict):
-                analista_id = analista_info.get('id')
-            else:
-                analista_id = analista_info[0] if len(analista_info) > 0 else None
-            
-            # Verificar se o pedido existe e está pendente
-            pedido = execute_query("""
-                SELECT status FROM pedidos_analise 
-                WHERE id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if not pedido:
-                return jsonify({'error': 'Pedido não encontrado'}), 404
-            
-            pedido_status = pedido.get('status') if isinstance(pedido, dict) else pedido[0]
-            
-            if pedido_status != 'pendente':
-                return jsonify({'error': 'Este pedido não pode ser iniciado'}), 400
-            
-            # Iniciar análise
-            execute_query("""
-                UPDATE pedidos_analise 
-                SET status = 'em_analise', analista_id = %s
-                WHERE id = %s
-            """, (analista_id, pedido_id))
-            
-            flash('Análise iniciada com sucesso!', 'success')
-            return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao iniciar análise: {e}")
-            logger.error(traceback.format_exc())
-            flash(f'Erro ao iniciar análise: {str(e)}', 'danger')
-            return redirect(url_for('analista.pedidos'))
-
-    # ========== ROTA: UPLOAD DE ANEXOS ==========
-    @bp.route('/pedido/<int:pedido_id>/upload', methods=['POST'])
-    @analista_required
-    def upload_anexo(pedido_id):
-        """Upload de anexos para o pedido"""
-        try:
-            user_id = session.get('user_id')
-            
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                flash('Perfil de analista não encontrado.', 'danger')
-                return redirect(url_for('auth.login'))
-            
-            if isinstance(analista_info, dict):
-                analista_id = analista_info.get('id')
-            else:
-                analista_id = analista_info[0] if len(analista_info) > 0 else None
-            
-            # Verificar permissão
-            pedido = execute_query("""
-                SELECT analista_id, status FROM pedidos_analise 
-                WHERE id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if not pedido:
-                flash('Pedido não encontrado.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            if isinstance(pedido, dict):
-                pedido_analista = pedido.get('analista_id')
-                pedido_status = pedido.get('status')
-            else:
-                pedido_analista = pedido[0] if len(pedido) > 0 else None
-                pedido_status = pedido[1] if len(pedido) > 1 else None
-            
-            if pedido_analista and pedido_analista != analista_id:
-                flash('Você não tem permissão para este pedido.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            if pedido_status not in ['em_analise', 'pendente']:
-                flash('Não é possível adicionar anexos a este pedido.', 'warning')
-                return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-            # Processar upload
-            files = request.files.getlist('anexos')
-            if not files or files[0].filename == '':
-                flash('Nenhum arquivo selecionado.', 'warning')
-                return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-            from ..file_utils import save_uploaded_file
-            
-            saved_files = []
-            for file in files:
-                if file and file.filename:
-                    filename, original_name, size, filepath = save_uploaded_file(
-                        file, 
-                        subfolder='pedidos',
-                        custom_filename=f"pedido_{pedido_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
-                    )
-                    
-                    execute_query("""
-                        INSERT INTO anexos_pedidos 
-                        (pedido_id, arquivo, nome, tipo, tamanho, data_upload, analisado_ia)
-                        VALUES (%s, %s, %s, %s, %s, NOW(), %s)
-                    """, (pedido_id, filename, original_name, file.content_type, size, False))
-                    
-                    saved_files.append(original_name)
-            
-            if saved_files:
-                flash(f'Arquivos enviados com sucesso: {", ".join(saved_files)}', 'success')
-            else:
-                flash('Nenhum arquivo foi salvo.', 'warning')
-            
-            return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-        except Exception as e:
-            logger.error(f"❌ Erro no upload: {e}")
-            logger.error(traceback.format_exc())
-            flash(f'Erro no upload: {str(e)}', 'danger')
-            return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-
-    # ========== ROTA: CONCLUIR ANÁLISE ==========
-    @bp.route('/pedido/<int:pedido_id>/concluir', methods=['POST'])
-    @analista_required
-    def concluir_analise(pedido_id):
-        """Conclui a análise de um pedido"""
-        try:
-            user_id = session.get('user_id')
-            
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                flash('Perfil de analista não encontrado.', 'danger')
-                return redirect(url_for('auth.login'))
-            
-            if isinstance(analista_info, dict):
-                analista_id = analista_info.get('id')
-            else:
-                analista_id = analista_info[0] if len(analista_info) > 0 else None
-            
-            # Verificar permissão
-            pedido = execute_query("""
-                SELECT analista_id, status FROM pedidos_analise 
-                WHERE id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if not pedido:
-                flash('Pedido não encontrado.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            if isinstance(pedido, dict):
-                pedido_analista = pedido.get('analista_id')
-                pedido_status = pedido.get('status')
-            else:
-                pedido_analista = pedido[0] if len(pedido) > 0 else None
-                pedido_status = pedido[1] if len(pedido) > 1 else None
-            
-            if pedido_analista != analista_id:
-                flash('Você não tem permissão para este pedido.', 'danger')
-                return redirect(url_for('analista.pedidos'))
-            
-            if pedido_status != 'em_analise':
-                flash('Este pedido não está em análise.', 'warning')
-                return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-            # Validar campos
-            diagnostico = request.form.get('diagnostico', '').strip()
-            if not diagnostico:
-                flash('O campo de diagnóstico é obrigatório.', 'warning')
-                return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-            recomendacoes = request.form.get('recomendacoes', '').strip()
-            
-            # Atualizar pedido
-            execute_query("""
-                UPDATE pedidos_analise 
-                SET status = 'concluido',
-                    diagnostico_analista = %s,
-                    recomendacoes_analista = %s,
-                    data_conclusao = NOW()
-                WHERE id = %s
-            """, (diagnostico, recomendacoes, pedido_id))
-            
-            flash('Análise concluída com sucesso! O médico será notificado.', 'success')
-            return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
-            
-        except Exception as e:
-            logger.error(f"❌ Erro ao concluir análise: {e}")
-            logger.error(traceback.format_exc())
-            flash(f'Erro ao concluir análise: {str(e)}', 'danger')
-            return redirect(url_for('analista.pedidos'))
-
-    # ========== ROTA: ANALISAR IMAGEM COM IA ==========
-    @bp.route('/analisar-imagem/<int:pedido_id>', methods=['POST'])
-    @analista_required
-    def analisar_imagem(pedido_id):
-        """Analisa uma imagem usando IA"""
-        try:
-            user_id = session.get('user_id')
-            
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                return jsonify({'error': 'Analista não encontrado'}), 404
-            
-            if 'imagem' not in request.files:
-                return jsonify({'error': 'Nenhuma imagem enviada'}), 400
-            
-            file = request.files['imagem']
-            if file.filename == '':
-                return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
-            
-            from ..file_utils import save_uploaded_file
-            
-            filename, original_name, size, filepath = save_uploaded_file(
-                file, 
-                subfolder='temp',
-                custom_filename=f"analise_{pedido_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-            )
-            
-            from ..gemini_service import analisar_imagem_com_gemini
-            
-            # Obter informações do paciente
-            paciente_info = execute_query("""
-                SELECT u.nome, p.data_nascimento, p.genero
-                FROM pedidos_analise pa
-                JOIN pacientes p ON pa.paciente_id = p.id
-                JOIN usuarios u ON p.usuario_id = u.id
-                WHERE pa.id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if paciente_info:
-                if isinstance(paciente_info, dict):
-                    paciente_nome = garantir_string(paciente_info.get('nome')) or 'Paciente'
-                    data_nasc = paciente_info.get('data_nascimento')
-                    genero = garantir_string(paciente_info.get('genero')) or ''
-                else:
-                    paciente_nome = garantir_string(paciente_info[0]) if len(paciente_info) > 0 else 'Paciente'
-                    data_nasc = paciente_info[1] if len(paciente_info) > 1 else None
-                    genero = garantir_string(paciente_info[2]) if len(paciente_info) > 2 else ''
-            else:
-                paciente_nome = 'Paciente'
-                data_nasc = None
-                genero = ''
-            
-            idade = ''
-            if data_nasc:
-                try:
-                    if isinstance(data_nasc, str):
-                        data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
-                    hoje = datetime.now()
-                    idade_calc = hoje.year - data_nasc.year
-                    if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                        idade_calc -= 1
-                    idade = f"{idade_calc} anos"
-                except:
-                    idade = ''
-            
-            contexto = f"""
-            Paciente: {paciente_nome}
-            Idade: {idade}
-            Gênero: {genero}
-            Tipo de Exame: {request.form.get('tipo_exame', 'Não especificado')}
-            """
-            
-            from flask import current_app
-            gemini_available = current_app.config.get('GEMINI_AVAILABLE', False)
-            
-            if not gemini_available:
-                return jsonify({'error': 'API Gemini não disponível'}), 503
-            
-            resultado = analisar_imagem_com_gemini(filepath, contexto)
-            
-            try:
-                os.remove(filepath)
-            except:
-                pass
-            
-            if resultado and 'error' not in resultado:
-                return jsonify({'diagnostico': resultado.get('diagnostico', '')})
-            else:
-                return jsonify({'error': resultado.get('error', 'Erro na análise')}), 500
-            
-        except Exception as e:
-            logger.error(f"❌ Erro na análise de imagem: {e}")
-            logger.error(traceback.format_exc())
-            return jsonify({'error': str(e)}), 500
+            logger.error(f"❌ Erro na API de estatísticas: {e}")
+            return jsonify({'success': False, 'error': str(e)}), 500
