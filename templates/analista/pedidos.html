@@ -315,11 +315,6 @@
     box-sizing: border-box;
 }
 
-body {
-    font-size: 14px;
-    line-height: 1.5;
-}
-
 /* Container adjustments */
 @media (max-width: 576px) {
     .container-fluid {
@@ -839,17 +834,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         function handleSwipe() {
             const swipeThreshold = 100;
-            const currentUrl = new URL(window.location.href);
             
             if (touchendX < touchstartX - swipeThreshold) {
                 // Swipe left - próximo
                 console.log('Swipe left detected');
-                // Adicione lógica de navegação se necessário
             }
             if (touchendX > touchstartX + swipeThreshold) {
                 // Swipe right - anterior
                 console.log('Swipe right detected');
-                // Adicione lógica de navegação se necessário
             }
         }
     }
@@ -933,19 +925,6 @@ function aplicarFiltros() {
     window.location.href = url.toString();
 }
 
-// ===== DEBOUNCE PARA EVITAR MÚLTIPLAS REQUISIÇÕES =====
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
 // ===== TOAST PARA FEEDBACK =====
 function showToast(message, type = 'success') {
     const toastContainer = document.querySelector('.toast-container') || (() => {
@@ -989,11 +968,9 @@ function atualizarContadores() {
         row.querySelector('.badge.bg-info')
     ).length;
     
-    // Atualizar se necessário
     console.log(`Pendentes: ${pendentes}, Em análise: ${emAnalise}`);
 }
 
-// Chamar atualização quando necessário
 if (document.querySelector('tbody')) {
     atualizarContadores();
 }
