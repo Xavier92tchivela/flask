@@ -28,6 +28,25 @@ def init_medico_pedidos(base, gemini_available=False):
                 return str(valor)
         return str(valor) if valor else ''
     
+    # ===== FUNÇÃO AUXILIAR PARA EXTRAIR VALOR DE DICT OU TUPLE =====
+    def get_valor(item, index, key=None):
+        """Extrai valor de dict (por chave) ou tuple (por índice)"""
+        if item is None:
+            return None
+        if isinstance(item, dict):
+            if key:
+                return item.get(key)
+            # Tenta encontrar a chave pelo índice
+            keys = list(item.keys())
+            if index < len(keys):
+                return item.get(keys[index])
+            return None
+        else:
+            # É tupla/lista
+            if index < len(item):
+                return item[index]
+            return None
+    
     # ========== ROTA: PEDIDOS DE ANÁLISE ==========
     @medico_required
     def pedidos_analise():
@@ -82,7 +101,7 @@ def init_medico_pedidos(base, gemini_available=False):
             
             params = []
             
-            # Aplicar filtros baseados na categoria
+            # Aplicar filtros
             if filtro == 'hoje':
                 hoje = datetime.now().date()
                 query += " AND DATE(pa.data_solicitacao) = %s"
@@ -106,7 +125,6 @@ def init_medico_pedidos(base, gemini_available=False):
                 query += " AND pa.status_aprovacao = %s"
                 params.append(aprovacao_filter)
             
-            # Filtros por mês e ano
             if mes:
                 query += " AND MONTH(pa.data_solicitacao) = %s"
                 params.append(mes)
@@ -115,7 +133,6 @@ def init_medico_pedidos(base, gemini_available=False):
                 query += " AND YEAR(pa.data_solicitacao) = %s"
                 params.append(ano)
             
-            # Filtro por data específica
             if data_especifica:
                 query += " AND DATE(pa.data_solicitacao) = %s"
                 params.append(data_especifica)
@@ -129,27 +146,23 @@ def init_medico_pedidos(base, gemini_available=False):
             
             logger.info(f"Total de pedidos encontrados: {len(pedidos) if pedidos else 0}")
             
-            # Dicionários para contagem por mês
+            # Dicionários para contagem
             meses_contagem = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 11:0, 12:0}
             
-            # Nomes dos meses
             meses_nomes = {
                 1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
                 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
                 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
             }
             
-            # Nomes dos meses abreviados
             meses_abreviados = {
                 1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr',
                 5: 'Mai', 6: 'Jun', 7: 'Jul', 8: 'Ago',
                 9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
             }
             
-            # Dicionário para coletar datas disponíveis
             datas_dict = {}
             
-            # Estatísticas
             estatisticas = {
                 'total': 0,
                 'hoje': 0,
@@ -168,26 +181,50 @@ def init_medico_pedidos(base, gemini_available=False):
             if pedidos:
                 for p in pedidos:
                     try:
-                        id_pedido = p[0]
-                        consulta_id = p[1]
-                        pedido_medico_id = p[2]
-                        paciente_id = p[3]
-                        analista_id = p[4]
-                        tipo_exame = p[5] or 'Não especificado'
-                        descricao = p[6] or ''
-                        observacoes = p[7] or ''
-                        urgencia = p[8] or 'normal'
-                        status = p[9] or 'pendente'
-                        data_solicitacao = p[10]
-                        data_conclusao = p[11]
-                        resultado_analise = p[12] or ''
-                        diagnostico_analista = p[13] or ''
-                        recomendacoes_analista = p[14] or ''
-                        anexos_json = p[15]
-                        status_aprovacao = p[16] or 'pendente'
-                        observacoes_medico = p[17] or ''
-                        criado_em = p[18]
-                        atualizado_em = p[19]
+                        # 🔧 CORREÇÃO: Funciona com dict ou tuple
+                        if isinstance(p, dict):
+                            id_pedido = p.get('id')
+                            consulta_id = p.get('consulta_id')
+                            pedido_medico_id = p.get('medico_id')
+                            paciente_id = p.get('paciente_id')
+                            analista_id = p.get('analista_id')
+                            tipo_exame = p.get('tipo_exame') or 'Não especificado'
+                            descricao = p.get('descricao') or ''
+                            observacoes = p.get('observacoes') or ''
+                            urgencia = p.get('urgencia') or 'normal'
+                            status = p.get('status') or 'pendente'
+                            data_solicitacao = p.get('data_solicitacao')
+                            data_conclusao = p.get('data_conclusao')
+                            resultado_analise = p.get('resultado_analise') or ''
+                            diagnostico_analista = p.get('diagnostico_analista') or ''
+                            recomendacoes_analista = p.get('recomendacoes_analista') or ''
+                            anexos_json = p.get('anexos')
+                            status_aprovacao = p.get('status_aprovacao') or 'pendente'
+                            observacoes_medico = p.get('observacoes_medico') or ''
+                            criado_em = p.get('criado_em')
+                            atualizado_em = p.get('atualizado_em')
+                        else:
+                            # É tupla/lista
+                            id_pedido = p[0] if len(p) > 0 else None
+                            consulta_id = p[1] if len(p) > 1 else None
+                            pedido_medico_id = p[2] if len(p) > 2 else None
+                            paciente_id = p[3] if len(p) > 3 else None
+                            analista_id = p[4] if len(p) > 4 else None
+                            tipo_exame = p[5] if len(p) > 5 else 'Não especificado'
+                            descricao = p[6] if len(p) > 6 else ''
+                            observacoes = p[7] if len(p) > 7 else ''
+                            urgencia = p[8] if len(p) > 8 else 'normal'
+                            status = p[9] if len(p) > 9 else 'pendente'
+                            data_solicitacao = p[10] if len(p) > 10 else None
+                            data_conclusao = p[11] if len(p) > 11 else None
+                            resultado_analise = p[12] if len(p) > 12 else ''
+                            diagnostico_analista = p[13] if len(p) > 13 else ''
+                            recomendacoes_analista = p[14] if len(p) > 14 else ''
+                            anexos_json = p[15] if len(p) > 15 else None
+                            status_aprovacao = p[16] if len(p) > 16 else 'pendente'
+                            observacoes_medico = p[17] if len(p) > 17 else ''
+                            criado_em = p[18] if len(p) > 18 else None
+                            atualizado_em = p[19] if len(p) > 19 else None
                         
                         # Extrair informações da data
                         data_obj = None
@@ -208,11 +245,9 @@ def init_medico_pedidos(base, gemini_available=False):
                                 mes_pedido = data_obj.month
                                 ano_pedido = data_obj.year
                                 
-                                # Contagens por mês
                                 if mes_pedido in meses_contagem:
                                     meses_contagem[mes_pedido] += 1
                                 
-                                # Coletar datas para o filtro
                                 if data_iso not in datas_dict:
                                     datas_dict[data_iso] = {
                                         'data_iso': data_iso,
@@ -221,7 +256,6 @@ def init_medico_pedidos(base, gemini_available=False):
                                     }
                                 datas_dict[data_iso]['total'] += 1
                                 
-                                # Estatísticas
                                 estatisticas['total'] += 1
                                 
                                 if data_iso == hoje_str:
@@ -258,6 +292,7 @@ def init_medico_pedidos(base, gemini_available=False):
                             except:
                                 anexos = []
                         
+                        # Buscar nome do paciente
                         paciente_nome = f"Paciente {paciente_id}"
                         if paciente_id:
                             paciente_info = execute_query(
@@ -265,8 +300,9 @@ def init_medico_pedidos(base, gemini_available=False):
                                 (paciente_id,), fetch=True, one=True
                             )
                             if paciente_info:
-                                paciente_nome = converter_bytes_para_string(paciente_info[0])
+                                paciente_nome = converter_bytes_para_string(get_valor(paciente_info, 0, 'nome'))
                         
+                        # Buscar nome do médico
                         medico_nome = f"Médico {pedido_medico_id}"
                         if pedido_medico_id:
                             medico_info_db = execute_query(
@@ -274,8 +310,9 @@ def init_medico_pedidos(base, gemini_available=False):
                                 (pedido_medico_id,), fetch=True, one=True
                             )
                             if medico_info_db:
-                                medico_nome = converter_bytes_para_string(medico_info_db[0])
+                                medico_nome = converter_bytes_para_string(get_valor(medico_info_db, 0, 'nome'))
                         
+                        # Buscar nome do analista
                         analista_nome = "Não atribuído"
                         if analista_id and analista_id != 0:
                             analista_info = execute_query(
@@ -283,7 +320,7 @@ def init_medico_pedidos(base, gemini_available=False):
                                 (analista_id,), fetch=True, one=True
                             )
                             if analista_info:
-                                analista_nome = converter_bytes_para_string(analista_info[0])
+                                analista_nome = converter_bytes_para_string(get_valor(analista_info, 0, 'nome'))
                         
                         pedidos_formatados.append({
                             'id': id_pedido,
@@ -291,19 +328,19 @@ def init_medico_pedidos(base, gemini_available=False):
                             'medico_id': pedido_medico_id,
                             'paciente_id': paciente_id,
                             'analista_id': analista_id,
-                            'tipo_exame': tipo_exame,
-                            'descricao': descricao,
-                            'observacoes': observacoes,
-                            'urgencia': urgencia,
-                            'status': status,
+                            'tipo_exame': converter_bytes_para_string(tipo_exame),
+                            'descricao': converter_bytes_para_string(descricao),
+                            'observacoes': converter_bytes_para_string(observacoes),
+                            'urgencia': converter_bytes_para_string(urgencia),
+                            'status': converter_bytes_para_string(status),
                             'data_solicitacao': data_solicitacao_fmt,
                             'data_conclusao': data_conclusao_fmt,
-                            'resultado_analise': resultado_analise,
-                            'diagnostico_analista': diagnostico_analista,
-                            'recomendacoes_analista': recomendacoes_analista,
+                            'resultado_analise': converter_bytes_para_string(resultado_analise),
+                            'diagnostico_analista': converter_bytes_para_string(diagnostico_analista),
+                            'recomendacoes_analista': converter_bytes_para_string(recomendacoes_analista),
                             'anexos': anexos,
-                            'status_aprovacao': status_aprovacao,
-                            'observacoes_medico': observacoes_medico,
+                            'status_aprovacao': converter_bytes_para_string(status_aprovacao),
+                            'observacoes_medico': converter_bytes_para_string(observacoes_medico),
                             'criado_em': formatar_data(criado_em) if criado_em else '',
                             'atualizado_em': formatar_data(atualizado_em) if atualizado_em else '',
                             'paciente_nome': paciente_nome,
@@ -331,10 +368,10 @@ def init_medico_pedidos(base, gemini_available=False):
                 
                 logger.info(f"Pedidos formatados com sucesso: {len(pedidos_formatados)}")
             
-            # Ordenar datas e pegar as mais recentes (últimas 7)
+            # Ordenar datas
             datas_disponiveis = sorted(datas_dict.values(), key=lambda x: x['data_iso'], reverse=True)[:7]
             
-            # Buscar anos disponíveis
+            # 🔧 CORREÇÃO: Buscar anos disponíveis (corrigido para dict/tuple)
             anos_raw = execute_query("""
                 SELECT DISTINCT YEAR(data_solicitacao) as ano
                 FROM pedidos_analise
@@ -342,11 +379,17 @@ def init_medico_pedidos(base, gemini_available=False):
                 ORDER BY ano DESC
             """, (medico_id,), fetch=True) or []
             
-            anos_disponiveis = [a[0] for a in anos_raw if a and a[0]]
+            anos_disponiveis = []
+            for a in anos_raw:
+                if a:
+                    ano = get_valor(a, 0, 'ano')
+                    if ano:
+                        anos_disponiveis.append(ano)
+            
             if not anos_disponiveis:
                 anos_disponiveis = [datetime.now().year]
             
-            # Processar filtros da URL
+            # Processar filtros
             mes_selecionado = None
             if mes and mes.isdigit():
                 mes_selecionado = int(mes)
@@ -391,7 +434,7 @@ def init_medico_pedidos(base, gemini_available=False):
             flash(f'Erro ao carregar pedidos: {str(e)}', 'danger')
             return redirect(url_for('medico.dashboard'))
     
-    # ========== ROTA: NOVA ANÁLISE (FORMULÁRIO) - CORRIGIDA ==========
+    # ========== ROTA: NOVA ANÁLISE (FORMULÁRIO) ==========
     @medico_required
     def nova_analise():
         """Exibe o formulário para criar um novo pedido de análise"""
@@ -408,7 +451,7 @@ def init_medico_pedidos(base, gemini_available=False):
             medico_id = medico_info.get('id')
             print(f"Médico ID: {medico_id}")
             
-            # Buscar consultas do médico para selecionar
+            # Buscar consultas do médico
             consultas_raw = execute_query("""
                 SELECT c.id, u.nome, c.data_hora, c.paciente_id
                 FROM consultas c
@@ -419,14 +462,10 @@ def init_medico_pedidos(base, gemini_available=False):
             """, (medico_id,), fetch=True) or []
             
             print(f"Total de consultas encontradas: {len(consultas_raw)}")
-            if consultas_raw:
-                print(f"Tipo do primeiro resultado: {type(consultas_raw[0])}")
             
-            # CORREÇÃO: Converter cada consulta para dicionário de forma segura
             consultas_lista = []
             for c_raw in consultas_raw:
                 if isinstance(c_raw, dict):
-                    # Já é dicionário
                     paciente_nome = converter_bytes_para_string(c_raw.get('nome', ''))
                     consultas_lista.append({
                         'id': c_raw.get('id'),
@@ -434,8 +473,7 @@ def init_medico_pedidos(base, gemini_available=False):
                         'data_hora': formatar_data(c_raw.get('data_hora')),
                         'paciente_id': c_raw.get('paciente_id')
                     })
-                elif isinstance(c_raw, (tuple, list)):
-                    # É tupla/lista - acessar por índice com segurança
+                else:
                     num_fields = len(c_raw)
                     paciente_nome = converter_bytes_para_string(c_raw[1]) if num_fields > 1 else ''
                     consultas_lista.append({
@@ -447,28 +485,12 @@ def init_medico_pedidos(base, gemini_available=False):
             
             print(f"Consultas processadas: {len(consultas_lista)}")
             
-            # Tipos de exame comuns
             tipos_exame = [
-                'Hemograma Completo',
-                'Glicemia em Jejum',
-                'Colesterol Total e Frações',
-                'Triglicerídeos',
-                'Urina Tipo 1',
-                'Urocultura',
-                'Parcial de Urina',
-                'Fezes (Parasitológico)',
-                'TSH',
-                'T4 Livre',
-                'PCR',
-                'VHS',
-                'Raio-X',
-                'Ultrassonografia',
-                'Tomografia',
-                'Ressonância',
-                'Biópsia',
-                'Eletrocardiograma',
-                'Ecocardiograma',
-                'Teste Ergométrico'
+                'Hemograma Completo', 'Glicemia em Jejum', 'Colesterol Total e Frações',
+                'Triglicerídeos', 'Urina Tipo 1', 'Urocultura', 'Parcial de Urina',
+                'Fezes (Parasitológico)', 'TSH', 'T4 Livre', 'PCR', 'VHS',
+                'Raio-X', 'Ultrassonografia', 'Tomografia', 'Ressonância',
+                'Biópsia', 'Eletrocardiograma', 'Ecocardiograma', 'Teste Ergométrico'
             ]
             
             return render_template('medico/nova_analise.html',
@@ -479,8 +501,7 @@ def init_medico_pedidos(base, gemini_available=False):
             
         except Exception as e:
             logger.error(f"Erro ao carregar formulário: {e}")
-            logger.error(traceback.format_exc())
-            flash(f'Erro ao carregar formulário: {str(e)}', 'danger')
+            flash(f'Erro: {str(e)}', 'danger')
             return redirect(url_for('medico.pedidos_analise'))
     
     # ========== ROTA: SALVAR NOVA ANÁLISE ==========
@@ -547,13 +568,22 @@ def init_medico_pedidos(base, gemini_available=False):
             resultado = []
             if pedidos:
                 for p in pedidos:
-                    resultado.append({
-                        'id': p[0],
-                        'medico_id': p[1],
-                        'tipo_exame': p[2],
-                        'status': p[3],
-                        'data_solicitacao': str(p[4]) if p[4] else ''
-                    })
+                    if isinstance(p, dict):
+                        resultado.append({
+                            'id': p.get('id'),
+                            'medico_id': p.get('medico_id'),
+                            'tipo_exame': p.get('tipo_exame'),
+                            'status': p.get('status'),
+                            'data_solicitacao': str(p.get('data_solicitacao')) if p.get('data_solicitacao') else ''
+                        })
+                    else:
+                        resultado.append({
+                            'id': p[0] if len(p) > 0 else None,
+                            'medico_id': p[1] if len(p) > 1 else None,
+                            'tipo_exame': p[2] if len(p) > 2 else None,
+                            'status': p[3] if len(p) > 3 else None,
+                            'data_solicitacao': str(p[4]) if len(p) > 4 and p[4] else ''
+                        })
             
             return jsonify({
                 'total': len(resultado),
@@ -578,40 +608,30 @@ def init_medico_pedidos(base, gemini_available=False):
                 flash('Nenhum paciente encontrado. Crie um paciente primeiro.', 'danger')
                 return redirect(url_for('medico.pedidos_analise'))
             
-            paciente_id = paciente[0]
+            paciente_id = get_valor(paciente, 0, 'id')
             
             analista = execute_query("SELECT id FROM analistas WHERE status = 'ativo' LIMIT 1", fetch=True, one=True)
-            analista_id = analista[0] if analista else None
+            analista_id = get_valor(analista, 0, 'id') if analista else None
             
-            result = execute_query("""
+            execute_query("""
                 INSERT INTO pedidos_analise 
                 (medico_id, paciente_id, analista_id, tipo_exame, descricao, urgencia, status, data_solicitacao, status_aprovacao, criado_em)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s, NOW())
             """, (
-                medico_id, 
-                paciente_id, 
-                analista_id,
-                'Pedido de Teste', 
-                f'Pedido criado automaticamente para teste pelo médico ID {medico_id}', 
-                'normal', 
-                'pendente', 
-                'pendente'
+                medico_id, paciente_id, analista_id,
+                'Pedido de Teste', f'Pedido criado automaticamente para teste pelo médico ID {medico_id}', 
+                'normal', 'pendente', 'pendente'
             ))
             
-            if result:
-                flash('✅ Pedido criado para você com sucesso!', 'success')
-            else:
-                flash('❌ Erro ao criar pedido', 'danger')
-            
+            flash('✅ Pedido criado para você com sucesso!', 'success')
             return redirect(url_for('medico.pedidos_analise'))
             
         except Exception as e:
             logger.error(f"Erro ao criar pedido: {e}")
-            logger.error(traceback.format_exc())
             flash(f'Erro: {str(e)}', 'danger')
             return redirect(url_for('medico.pedidos_analise'))
     
-    # ========== ROTA: DETALHES DO PEDIDO (COM SINTOMAS E SINAIS VITAIS) ==========
+    # ========== ROTA: DETALHES DO PEDIDO ==========
     @medico_required
     def ver_detalhes_pedido(pedido_id):
         try:
@@ -625,12 +645,7 @@ def init_medico_pedidos(base, gemini_available=False):
                 flash('Médico não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            logger.info(f"Médico logado: ID={medico_info.get('id')}, Nome={medico_info.get('nome')}")
-            
             medico_id = medico_info.get('id')
-            
-            # Buscar pedido
-            logger.info(f"Buscando pedido #{pedido_id} no banco de dados...")
             
             pedido = execute_query("""
                 SELECT 
@@ -660,282 +675,143 @@ def init_medico_pedidos(base, gemini_available=False):
             """, (pedido_id,), fetch=True, one=True)
             
             if not pedido:
-                logger.error(f"Pedido #{pedido_id} não encontrado no banco de dados")
+                logger.error(f"Pedido #{pedido_id} não encontrado")
                 flash('Pedido não encontrado.', 'danger')
                 return redirect(url_for('medico.pedidos_analise'))
             
-            logger.info(f"Pedido encontrado: ID={pedido[0]}, Status={pedido[10]}, Consulta ID={pedido[1]}")
+            # Extrair dados (dict ou tuple)
+            if isinstance(pedido, dict):
+                consulta_id = pedido.get('consulta_id')
+                analista_id = pedido.get('analista_id')
+                status = pedido.get('status')
+                status_aprovacao = pedido.get('status_aprovacao')
+                pedido_medico_id = pedido.get('medico_id')
+                anexos_json = pedido.get('anexos')
+                paciente_id = pedido.get('paciente_id')
+            else:
+                consulta_id = pedido[1] if len(pedido) > 1 else None
+                analista_id = pedido[4] if len(pedido) > 4 else None
+                status = pedido[10] if len(pedido) > 10 else None
+                status_aprovacao = pedido[17] if len(pedido) > 17 else None
+                pedido_medico_id = pedido[2] if len(pedido) > 2 else None
+                anexos_json = pedido[16] if len(pedido) > 16 else None
+                paciente_id = pedido[3] if len(pedido) > 3 else None
             
             # Processar anexos
             anexos = []
-            if pedido[16] and isinstance(pedido[16], str):
+            if anexos_json and isinstance(anexos_json, str):
                 try:
-                    anexos = json.loads(pedido[16])
-                    logger.info(f"Anexos processados: {len(anexos)} arquivos")
-                except Exception as e:
-                    logger.error(f"Erro ao processar anexos: {e}")
+                    anexos = json.loads(anexos_json)
+                except:
                     anexos = []
             
             # Buscar receitas
             receitas_lista = []
-            if pedido[1]:  # consulta_id
-                logger.info(f"Buscando receitas para consulta #{pedido[1]}...")
-                
+            if consulta_id:
                 receitas = execute_query("""
-                    SELECT 
-                        id, 
-                        diagnostico, 
-                        prescricao, 
-                        recomendacoes, 
-                        status, 
-                        created_at,
-                        receita_pdf_path, 
-                        pdf_gerado
-                    FROM receita 
-                    WHERE consulta_id = %s
-                    ORDER BY created_at DESC
-                """, (pedido[1],), fetch=True)
+                    SELECT id, diagnostico, prescricao, recomendacoes, status, created_at,
+                           receita_pdf_path, pdf_gerado
+                    FROM receita WHERE consulta_id = %s ORDER BY created_at DESC
+                """, (consulta_id,), fetch=True)
                 
                 if receitas:
-                    logger.info(f"Encontradas {len(receitas)} receitas")
                     for r in receitas:
-                        receitas_lista.append({
-                            'id': r[0],
-                            'diagnostico': r[1] or '',
-                            'prescricao': r[2] or '',
-                            'recomendacoes': r[3] or '',
-                            'status': r[4] or '',
-                            'created_at': formatar_data(r[5]),
-                            'receita_pdf_path': r[6] or '',
-                            'pdf_gerado': bool(r[7])
-                        })
-                else:
-                    logger.info("Nenhuma receita encontrada para esta consulta")
+                        if isinstance(r, dict):
+                            receitas_lista.append({
+                                'id': r.get('id'),
+                                'diagnostico': r.get('diagnostico') or '',
+                                'prescricao': r.get('prescricao') or '',
+                                'recomendacoes': r.get('recomendacoes') or '',
+                                'status': r.get('status') or '',
+                                'created_at': formatar_data(r.get('created_at')),
+                                'receita_pdf_path': r.get('receita_pdf_path') or '',
+                                'pdf_gerado': bool(r.get('pdf_gerado'))
+                            })
+                        else:
+                            receitas_lista.append({
+                                'id': r[0] if len(r) > 0 else None,
+                                'diagnostico': r[1] if len(r) > 1 else '',
+                                'prescricao': r[2] if len(r) > 2 else '',
+                                'recomendacoes': r[3] if len(r) > 3 else '',
+                                'status': r[4] if len(r) > 4 else '',
+                                'created_at': formatar_data(r[5]) if len(r) > 5 else '',
+                                'receita_pdf_path': r[6] if len(r) > 6 else '',
+                                'pdf_gerado': bool(r[7]) if len(r) > 7 else False
+                            })
             
-            # ===== BUSCAR SINTOMAS DA CONSULTA =====
+            # Buscar sintomas
             sintomas_lista = []
-            if pedido[1]:  # consulta_id
-                logger.info(f"Buscando sintomas para consulta #{pedido[1]}...")
+            if consulta_id:
                 sintomas_data = execute_query("""
                     SELECT sintomas FROM consultas WHERE id = %s
-                """, (pedido[1],), fetch=True, one=True)
+                """, (consulta_id,), fetch=True, one=True)
                 
-                if sintomas_data and sintomas_data[0]:
-                    sintomas_raw = converter_bytes_para_string(sintomas_data[0])
-                    sintomas_lista = [s.strip() for s in sintomas_raw.split(',') if s.strip()]
-                    logger.info(f"Encontrados {len(sintomas_lista)} sintomas")
+                if sintomas_data:
+                    sintomas_raw = get_valor(sintomas_data, 0, 'sintomas')
+                    if sintomas_raw:
+                        sintomas_lista = [s.strip() for s in converter_bytes_para_string(sintomas_raw).split(',') if s.strip()]
             
-            # ===== BUSCAR SINAIS VITAIS DA CONSULTA =====
+            # Buscar sinais vitais
             sinais_vitais_dict = None
-            if pedido[1]:  # consulta_id
-                logger.info(f"Buscando sinais vitais para consulta #{pedido[1]}...")
+            if consulta_id:
                 sinais_vitais = execute_query("""
-                    SELECT 
-                        id,
-                        pressao_arterial,
-                        frequencia_cardiaca,
-                        frequencia_respiratoria,
-                        temperatura,
-                        saturacao_oxigenio,
-                        glicemia,
-                        data_afericao,
-                        observacoes
-                    FROM sinais_vitais 
-                    WHERE consulta_id = %s
-                    ORDER BY data_afericao DESC
-                    LIMIT 1
-                """, (pedido[1],), fetch=True, one=True)
+                    SELECT id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
+                           temperatura, saturacao_oxigenio, glicemia, data_afericao, observacoes
+                    FROM sinais_vitais WHERE consulta_id = %s ORDER BY data_afericao DESC LIMIT 1
+                """, (consulta_id,), fetch=True, one=True)
                 
                 if sinais_vitais:
-                    logger.info(f"Sinais vitais encontrados para consulta #{pedido[1]}")
-                    
-                    # Função para classificar os sinais vitais
-                    def classificar_sinais_vitais(sv):
-                        classificacoes = {}
-                        
-                        # Classificar Pressão Arterial
-                        if sv[1]:  # pressao_arterial
-                            try:
-                                pa_parts = sv[1].split('/')
-                                if len(pa_parts) == 2:
-                                    sistolica = int(pa_parts[0].strip())
-                                    diastolica = int(pa_parts[1].strip())
-                                    
-                                    if sistolica < 90 or diastolica < 60:
-                                        classificacoes['pa'] = {'classificacao': 'Baixa', 'status': 'warning'}
-                                    elif sistolica > 140 or diastolica > 90:
-                                        classificacoes['pa'] = {'classificacao': 'Elevada', 'status': 'danger'}
-                                    else:
-                                        classificacoes['pa'] = {'classificacao': 'Normal', 'status': 'success'}
-                            except:
-                                classificacoes['pa'] = {'classificacao': 'Indefinido', 'status': 'secondary'}
-                        
-                        # Classificar Frequência Cardíaca
-                        if sv[2]:
-                            fc = sv[2]
-                            if fc < 60:
-                                classificacoes['fc'] = {'classificacao': 'Bradicardia', 'status': 'warning'}
-                            elif fc > 100:
-                                classificacoes['fc'] = {'classificacao': 'Taquicardia', 'status': 'danger'}
-                            else:
-                                classificacoes['fc'] = {'classificacao': 'Normal', 'status': 'success'}
-                        
-                        # Classificar Frequência Respiratória
-                        if sv[3]:
-                            fr = sv[3]
-                            if fr < 12:
-                                classificacoes['fr'] = {'classificacao': 'Baixa', 'status': 'warning'}
-                            elif fr > 20:
-                                classificacoes['fr'] = {'classificacao': 'Elevada', 'status': 'danger'}
-                            else:
-                                classificacoes['fr'] = {'classificacao': 'Normal', 'status': 'success'}
-                        
-                        # Classificar Temperatura
-                        if sv[4]:
-                            temp = float(sv[4])
-                            if temp < 35.5:
-                                classificacoes['temp'] = {'classificacao': 'Hipotermia', 'status': 'warning'}
-                            elif temp > 37.8:
-                                classificacoes['temp'] = {'classificacao': 'Febre', 'status': 'danger'}
-                            else:
-                                classificacoes['temp'] = {'classificacao': 'Normal', 'status': 'success'}
-                        
-                        # Classificar Saturação de Oxigênio
-                        if sv[5]:
-                            spo2 = sv[5]
-                            if spo2 < 90:
-                                classificacoes['spo2'] = {'classificacao': 'Crítico', 'status': 'danger'}
-                            elif spo2 < 95:
-                                classificacoes['spo2'] = {'classificacao': 'Baixo', 'status': 'warning'}
-                            else:
-                                classificacoes['spo2'] = {'classificacao': 'Normal', 'status': 'success'}
-                        
-                        # Classificar Glicemia
-                        if sv[6]:
-                            glic = sv[6]
-                            if glic < 70:
-                                classificacoes['glicemia'] = {'classificacao': 'Hipoglicemia', 'status': 'warning'}
-                            elif glic > 126:
-                                classificacoes['glicemia'] = {'classificacao': 'Hiperglicemia', 'status': 'danger'}
-                            else:
-                                classificacoes['glicemia'] = {'classificacao': 'Normal', 'status': 'success'}
-                        
-                        return classificacoes
-                    
-                    # Processar sinais vitais
-                    sinais_vitais_dict = {
-                        'id': sinais_vitais[0],
-                        'pressao_arterial': sinais_vitais[1] or '---',
-                        'frequencia_cardiaca': sinais_vitais[2],
-                        'frequencia_respiratoria': sinais_vitais[3],
-                        'temperatura': float(sinais_vitais[4]) if sinais_vitais[4] else None,
-                        'saturacao_oxigenio': sinais_vitais[5],
-                        'glicemia': sinais_vitais[6],
-                        'data_afericao': formatar_data(sinais_vitais[7]) if sinais_vitais[7] else '',
-                        'observacoes': sinais_vitais[8] or '',
-                        'classificacoes': classificar_sinais_vitais(sinais_vitais)
-                    }
-                    logger.info(f"Sinais vitais processados: PA={sinais_vitais_dict['pressao_arterial']}, FC={sinais_vitais_dict['frequencia_cardiaca']}")
-                else:
-                    logger.info(f"Nenhum sinal vital encontrado para consulta #{pedido[1]}")
+                    if isinstance(sinais_vitais, dict):
+                        sinais_vitais_dict = {
+                            'id': sinais_vitais.get('id'),
+                            'pressao_arterial': sinais_vitais.get('pressao_arterial') or '---',
+                            'frequencia_cardiaca': sinais_vitais.get('frequencia_cardiaca'),
+                            'frequencia_respiratoria': sinais_vitais.get('frequencia_respiratoria'),
+                            'temperatura': float(sinais_vitais.get('temperatura')) if sinais_vitais.get('temperatura') else None,
+                            'saturacao_oxigenio': sinais_vitais.get('saturacao_oxigenio'),
+                            'glicemia': sinais_vitais.get('glicemia'),
+                            'data_afericao': formatar_data(sinais_vitais.get('data_afericao')) if sinais_vitais.get('data_afericao') else '',
+                            'observacoes': sinais_vitais.get('observacoes') or ''
+                        }
+                    else:
+                        sinais_vitais_dict = {
+                            'id': sinais_vitais[0] if len(sinais_vitais) > 0 else None,
+                            'pressao_arterial': sinais_vitais[1] if len(sinais_vitais) > 1 else '---',
+                            'frequencia_cardiaca': sinais_vitais[2] if len(sinais_vitais) > 2 else None,
+                            'frequencia_respiratoria': sinais_vitais[3] if len(sinais_vitais) > 3 else None,
+                            'temperatura': float(sinais_vitais[4]) if len(sinais_vitais) > 4 and sinais_vitais[4] else None,
+                            'saturacao_oxigenio': sinais_vitais[5] if len(sinais_vitais) > 5 else None,
+                            'glicemia': sinais_vitais[6] if len(sinais_vitais) > 6 else None,
+                            'data_afericao': formatar_data(sinais_vitais[7]) if len(sinais_vitais) > 7 and sinais_vitais[7] else '',
+                            'observacoes': sinais_vitais[8] if len(sinais_vitais) > 8 else ''
+                        }
             
             tem_receita = len(receitas_lista) > 0
-            
-            pedido_medico_id = pedido[2]
             pertence_medico = (pedido_medico_id == medico_id)
-            
-            analista_id = pedido[4]
+            tem_resultado = (status == 'concluido' and status_aprovacao == 'pendente')
             esta_atribuido = (analista_id is not None and analista_id != 0)
             
-            status = pedido[10]
-            status_aprovacao = pedido[17]
-            tem_resultado = (status == 'concluido' and status_aprovacao == 'pendente')
-            
-            paciente_nome = f"Paciente {pedido[3]}"
-            paciente_idade = ''
-            paciente_genero = ''
-            
-            if pedido[3]:
+            # Buscar nome do paciente
+            paciente_nome = f"Paciente {paciente_id}"
+            if paciente_id:
                 paciente_info = execute_query(
                     "SELECT u.nome, p.data_nascimento, p.genero FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = %s",
-                    (pedido[3],), fetch=True, one=True
+                    (paciente_id,), fetch=True, one=True
                 )
                 if paciente_info:
-                    paciente_nome = converter_bytes_para_string(paciente_info[0])
-                    if paciente_info[1]:
-                        idade = calcular_idade(paciente_info[1])
-                        paciente_idade = idade if idade else ''
-                    paciente_genero = paciente_info[2] or ''
-            
-            medico_nome = f"Médico {pedido_medico_id}"
-            if pedido_medico_id:
-                medico_info_db = execute_query(
-                    "SELECT u.nome FROM medicos m JOIN usuarios u ON m.usuario_id = u.id WHERE m.id = %s",
-                    (pedido_medico_id,), fetch=True, one=True
-                )
-                if medico_info_db:
-                    medico_nome = converter_bytes_para_string(medico_info_db[0])
-            
-            analista_nome = "Não atribuído"
-            analista_especialidade = ''
-            if analista_id and analista_id != 0:
-                analista_info = execute_query(
-                    "SELECT u.nome, a.especialidade FROM analistas a JOIN usuarios u ON a.usuario_id = u.id WHERE a.id = %s",
-                    (analista_id,), fetch=True, one=True
-                )
-                if analista_info:
-                    analista_nome = converter_bytes_para_string(analista_info[0])
-                    analista_especialidade = analista_info[1] or ''
-            
-            pedido_dict = {
-                'id': pedido[0],
-                'consulta_id': pedido[1],
-                'medico_id': pedido_medico_id,
-                'paciente_id': pedido[3],
-                'analista_id': analista_id,
-                'tipo_exame': pedido[5] or 'Não especificado',
-                'descricao': pedido[6] or '',
-                'instrucoes': pedido[7] or '',
-                'observacoes': pedido[8] or '',
-                'urgencia': pedido[9] or 'normal',
-                'status': status,
-                'data_solicitacao': formatar_data(pedido[11]) if pedido[11] else '',
-                'data_conclusao': formatar_data(pedido[12]) if pedido[12] else '',
-                'resultado_analise': pedido[13] or '',
-                'diagnostico_analista': pedido[14] or '',
-                'recomendacoes_analista': pedido[15] or '',
-                'anexos': anexos,
-                'status_aprovacao': status_aprovacao,
-                'observacoes_medico': pedido[18] or '',
-                'criado_em': formatar_data(pedido[19]) if pedido[19] else '',
-                'atualizado_em': formatar_data(pedido[20]) if pedido[20] else '',
-                'paciente_nome': paciente_nome,
-                'paciente_idade': paciente_idade,
-                'paciente_genero': paciente_genero,
-                'analista_nome': analista_nome,
-                'analista_especialidade': analista_especialidade,
-                'medico_nome': medico_nome,
-                'tem_receita': tem_receita,
-                'tem_resultado': tem_resultado,
-                'pertence_medico': pertence_medico,
-                'esta_atribuido': esta_atribuido,
-                'total_anexos': len(anexos),
-                'sintomas_lista': sintomas_lista
-            }
-            
-            logger.info(f"Renderizando template com {len(receitas_lista)} receitas, {len(sintomas_lista)} sintomas e sinais vitais")
+                    paciente_nome = converter_bytes_para_string(get_valor(paciente_info, 0, 'nome'))
             
             return render_template('medico/detalhes_pedido.html',
-                                 pedido=pedido_dict,
+                                 pedido=pedido,
                                  receitas=receitas_lista,
                                  sinais_vitais=sinais_vitais_dict,
+                                 sintomas_lista=sintomas_lista,
                                  gemini_available=gemini_available,
                                  user=session,
                                  medico=medico_info)
             
         except Exception as e:
             logger.error(f"Erro ao carregar detalhes: {e}")
-            logger.error(traceback.format_exc())
             flash('Erro ao carregar detalhes.', 'danger')
             return redirect(url_for('medico.pedidos_analise'))
     
@@ -951,16 +827,9 @@ def init_medico_pedidos(base, gemini_available=False):
             medico_id = medico_info.get('id')
             
             pedido = execute_query("""
-                SELECT 
-                    pa.id, 
-                    pa.tipo_exame, 
-                    pa.descricao, 
-                    pa.resultado_analise,
-                    pa.diagnostico_analista, 
-                    pa.recomendacoes_analista,
-                    pa.status_aprovacao, 
-                    pa.observacoes_medico,
-                    pa.paciente_id
+                SELECT pa.id, pa.tipo_exame, pa.descricao, pa.resultado_analise,
+                       pa.diagnostico_analista, pa.recomendacoes_analista,
+                       pa.status_aprovacao, pa.observacoes_medico, pa.paciente_id
                 FROM pedidos_analise pa
                 WHERE pa.id = %s AND pa.medico_id = %s
             """, (pedido_id, medico_id), fetch=True, one=True)
@@ -969,28 +838,47 @@ def init_medico_pedidos(base, gemini_available=False):
                 flash('Pedido não encontrado.', 'danger')
                 return redirect(url_for('medico.pedidos_analise'))
             
-            if pedido[6] != 'pendente':
+            # Extrair dados
+            if isinstance(pedido, dict):
+                paciente_id = pedido.get('paciente_id')
+                status_aprovacao = pedido.get('status_aprovacao')
+                tipo_exame = pedido.get('tipo_exame')
+                descricao = pedido.get('descricao')
+                resultado_analise = pedido.get('resultado_analise')
+                diagnostico_analista = pedido.get('diagnostico_analista')
+                recomendacoes_analista = pedido.get('recomendacoes_analista')
+            else:
+                paciente_id = pedido[8] if len(pedido) > 8 else None
+                status_aprovacao = pedido[6] if len(pedido) > 6 else 'pendente'
+                tipo_exame = pedido[1] if len(pedido) > 1 else ''
+                descricao = pedido[2] if len(pedido) > 2 else ''
+                resultado_analise = pedido[3] if len(pedido) > 3 else ''
+                diagnostico_analista = pedido[4] if len(pedido) > 4 else ''
+                recomendacoes_analista = pedido[5] if len(pedido) > 5 else ''
+            
+            if status_aprovacao != 'pendente':
                 flash('Este pedido já foi revisado.', 'warning')
                 return redirect(url_for('medico.ver_detalhes_pedido', pedido_id=pedido_id))
             
-            paciente_nome = f"Paciente {pedido[8]}"
-            if pedido[8]:
+            # Buscar nome do paciente
+            paciente_nome = f"Paciente {paciente_id}"
+            if paciente_id:
                 paciente_info = execute_query(
                     "SELECT u.nome FROM pacientes p JOIN usuarios u ON p.usuario_id = u.id WHERE p.id = %s",
-                    (pedido[8],), fetch=True, one=True
+                    (paciente_id,), fetch=True, one=True
                 )
                 if paciente_info:
-                    paciente_nome = converter_bytes_para_string(paciente_info[0])
+                    paciente_nome = converter_bytes_para_string(get_valor(paciente_info, 0, 'nome'))
             
             pedido_dict = {
-                'id': pedido[0],
-                'tipo_exame': pedido[1] or 'Não especificado',
-                'descricao': pedido[2] or '',
-                'resultado_analise': pedido[3] or '',
-                'diagnostico_analista': pedido[4] or '',
-                'recomendacoes_analista': pedido[5] or '',
-                'status_aprovacao': pedido[6] or 'pendente',
-                'observacoes_medico': pedido[7] or '',
+                'id': pedido_id,
+                'tipo_exame': converter_bytes_para_string(tipo_exame),
+                'descricao': converter_bytes_para_string(descricao),
+                'resultado_analise': converter_bytes_para_string(resultado_analise),
+                'diagnostico_analista': converter_bytes_para_string(diagnostico_analista),
+                'recomendacoes_analista': converter_bytes_para_string(recomendacoes_analista),
+                'status_aprovacao': status_aprovacao,
+                'observacoes_medico': '',
                 'paciente_nome': paciente_nome
             }
             
@@ -1001,7 +889,6 @@ def init_medico_pedidos(base, gemini_available=False):
             
         except Exception as e:
             logger.error(f"Erro ao carregar revisão: {e}")
-            logger.error(traceback.format_exc())
             flash('Erro ao carregar revisão.', 'danger')
             return redirect(url_for('medico.pedidos_analise'))
     
@@ -1111,43 +998,40 @@ def init_medico_pedidos(base, gemini_available=False):
                 flash('Nenhum pedido disponível para atribuição no momento.', 'info')
                 return redirect(url_for('medico.pedidos_analise'))
             
+            pedido_id = get_valor(pedido, 0, 'id')
+            
             analista = execute_query("""
-                SELECT id FROM analistas 
-                WHERE status = 'ativo' 
-                ORDER BY RAND() LIMIT 1
+                SELECT id FROM analistas WHERE status = 'ativo' ORDER BY RAND() LIMIT 1
             """, fetch=True, one=True)
             
-            analista_id = analista[0] if analista else None
+            analista_id = get_valor(analista, 0, 'id') if analista else None
             
             if analista_id:
                 execute_query("""
                     UPDATE pedidos_analise 
                     SET analista_id = %s, status = 'em_analise', atualizado_em = NOW()
                     WHERE id = %s
-                """, (analista_id, pedido[0]))
+                """, (analista_id, pedido_id))
                 
-                flash(f'Pedido #{pedido[0]} atribuído ao analista ID {analista_id}!', 'success')
+                flash(f'Pedido #{pedido_id} atribuído ao analista ID {analista_id}!', 'success')
             else:
                 flash('Nenhum analista disponível no momento.', 'warning')
             
-            return redirect(url_for('medico.ver_detalhes_pedido', pedido_id=pedido[0]))
+            return redirect(url_for('medico.ver_detalhes_pedido', pedido_id=pedido_id))
             
         except Exception as e:
             logger.error(f"Erro ao atribuir pedido: {e}")
-            logger.error(traceback.format_exc())
             flash(f'Erro ao atribuir pedido: {str(e)}', 'danger')
             return redirect(url_for('medico.pedidos_analise'))
     
     # ========== ROTA: DETALHES DA CONSULTA PARA ANÁLISE ==========
     @medico_required
     def analise(consulta_id):
-        """Redireciona para os detalhes da consulta"""
         return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
     
-    # ========== ROTA: NOVA ANÁLISE COMPLETA (REDIRECIONAMENTO) ==========
+    # ========== ROTA: NOVA ANÁLISE COMPLETA ==========
     @medico_required
     def nova_analise_completa():
-        """Redireciona para o formulário de nova análise"""
         return redirect(url_for('medico.nova_analise'))
     
     return {
