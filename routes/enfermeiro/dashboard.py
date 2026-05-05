@@ -255,118 +255,147 @@ def index():
     logger.info(f"Enfermeiro ID: {enfermeiro_id}")
     logger.info(f"Data selecionada: {data_selecionada}")
     
+    # Valores padrão
+    total_afericoes_hoje = 0
+    pacientes_aguardando = 0
+    total_consultas_hoje = 0
+    triagens = []
+    ultimas = []
+    dias = []
+    dados_grafico = []
+    consultas_data = []
+    internados_lista = []
+    pacientes_internados = 0
+    
     try:
         # Total de aferições hoje
-        total_hoje_result = execute_query("""
-            SELECT COUNT(*) as total FROM sinais_vitais 
-            WHERE enfermeiro_id = %s AND DATE(data_afericao) = %s
-        """, (enfermeiro_id, hoje), fetch=True, one=True)
-        
-        total_afericoes_hoje = total_hoje_result.get('total', 0) if total_hoje_result else 0
-        logger.info(f"Total aferições hoje: {total_afericoes_hoje}")
-        
-        # Consultas pendentes de triagem
-        pendentes_result = execute_query("""
-            SELECT COUNT(*) as total FROM consultas c
-            WHERE DATE(c.data_hora) = %s
-            AND c.status NOT IN ('cancelada', 'CANCELADA', 'realizada', 'REALIZADA')
-            AND (c.status_triagem IS NULL OR c.status_triagem != 'REALIZADA')
-        """, (hoje,), fetch=True, one=True)
-        
-        pacientes_aguardando = pendentes_result.get('total', 0) if pendentes_result else 0
-        logger.info(f"Triagens pendentes: {pacientes_aguardando}")
-        
-        # Total de consultas hoje
-        total_consultas_result = execute_query("""
-            SELECT COUNT(*) as total FROM consultas 
-            WHERE DATE(data_hora) = %s
-        """, (hoje,), fetch=True, one=True)
-        
-        total_consultas_hoje = total_consultas_result.get('total', 0) if total_consultas_result else 0
-        logger.info(f"Total consultas hoje: {total_consultas_hoje}")
-        
-        # Triagens pendentes (detalhadas)
-        triagens = execute_query("""
-            SELECT 
-                c.id, 
-                u.nome as paciente_nome, 
-                p.id as paciente_id, 
-                TIME_FORMAT(c.data_hora, '%%H:%%i') as hora_chegada
-            FROM consultas c
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios u ON p.usuario_id = u.id
-            WHERE DATE(c.data_hora) = %s 
-            AND c.status NOT IN ('cancelada', 'CANCELADA', 'realizada', 'REALIZADA')
-            AND (c.status_triagem IS NULL OR c.status_triagem != 'REALIZADA')
-            ORDER BY c.data_hora LIMIT 10
-        """, (hoje,), fetch=True) or []
-        
-        logger.info(f"Triagens pendentes lista: {len(triagens)}")
-        
-        # Últimas aferições
-        ultimas = execute_query("""
-            SELECT 
-                sv.id, 
-                sv.pressao_arterial, 
-                sv.frequencia_cardiaca,
-                sv.frequencia_respiratoria, 
-                sv.temperatura, 
-                sv.saturacao_oxigenio,
-                sv.glicemia, 
-                sv.peso, 
-                sv.data_afericao, 
-                sv.observacoes,
-                u.nome as paciente_nome, 
-                p.id as paciente_id
-            FROM sinais_vitais sv
-            JOIN consultas c ON sv.consulta_id = c.id
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios u ON p.usuario_id = u.id
-            WHERE sv.enfermeiro_id = %s
-            ORDER BY sv.data_afericao DESC LIMIT 10
-        """, (enfermeiro_id,), fetch=True) or []
-        
-        logger.info(f"Últimas aferições: {len(ultimas)}")
-        
-        # Dados para o gráfico (últimos 7 dias)
-        dias = []
-        dados_grafico = []
-        for i in range(6, -1, -1):
-            dia = hoje - timedelta(days=i)
-            dias.append(dia.strftime('%d/%m'))
-            count_result = execute_query("""
+        try:
+            total_hoje_result = execute_query("""
                 SELECT COUNT(*) as total FROM sinais_vitais 
                 WHERE enfermeiro_id = %s AND DATE(data_afericao) = %s
-            """, (enfermeiro_id, dia), fetch=True, one=True)
-            count = count_result.get('total', 0) if count_result else 0
-            dados_grafico.append(count)
+            """, (enfermeiro_id, hoje), fetch=True, one=True)
+            total_afericoes_hoje = total_hoje_result.get('total', 0) if total_hoje_result else 0
+            logger.info(f"Total aferições hoje: {total_afericoes_hoje}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar total aferições: {e}")
+        
+        # Consultas pendentes de triagem
+        try:
+            pendentes_result = execute_query("""
+                SELECT COUNT(*) as total FROM consultas c
+                WHERE DATE(c.data_hora) = %s
+                AND c.status NOT IN ('cancelada', 'CANCELADA', 'realizada', 'REALIZADA')
+                AND (c.status_triagem IS NULL OR c.status_triagem != 'REALIZADA')
+            """, (hoje,), fetch=True, one=True)
+            pacientes_aguardando = pendentes_result.get('total', 0) if pendentes_result else 0
+            logger.info(f"Triagens pendentes: {pacientes_aguardando}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar triagens pendentes: {e}")
+        
+        # Total de consultas hoje
+        try:
+            total_consultas_result = execute_query("""
+                SELECT COUNT(*) as total FROM consultas 
+                WHERE DATE(data_hora) = %s
+            """, (hoje,), fetch=True, one=True)
+            total_consultas_hoje = total_consultas_result.get('total', 0) if total_consultas_result else 0
+            logger.info(f"Total consultas hoje: {total_consultas_hoje}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar total consultas: {e}")
+        
+        # Triagens pendentes (detalhadas)
+        try:
+            triagens = execute_query("""
+                SELECT 
+                    c.id, 
+                    u.nome as paciente_nome, 
+                    p.id as paciente_id, 
+                    TIME_FORMAT(c.data_hora, '%%H:%%i') as hora_chegada
+                FROM consultas c
+                JOIN pacientes p ON c.paciente_id = p.id
+                JOIN usuarios u ON p.usuario_id = u.id
+                WHERE DATE(c.data_hora) = %s 
+                AND c.status NOT IN ('cancelada', 'CANCELADA', 'realizada', 'REALIZADA')
+                AND (c.status_triagem IS NULL OR c.status_triagem != 'REALIZADA')
+                ORDER BY c.data_hora LIMIT 10
+            """, (hoje,), fetch=True) or []
+            logger.info(f"Triagens pendentes lista: {len(triagens)}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar lista de triagens: {e}")
+        
+        # Últimas aferições
+        try:
+            ultimas = execute_query("""
+                SELECT 
+                    sv.id, 
+                    sv.pressao_arterial, 
+                    sv.frequencia_cardiaca,
+                    sv.frequencia_respiratoria, 
+                    sv.temperatura, 
+                    sv.saturacao_oxigenio,
+                    sv.glicemia, 
+                    sv.peso, 
+                    sv.data_afericao, 
+                    sv.observacoes,
+                    u.nome as paciente_nome, 
+                    p.id as paciente_id
+                FROM sinais_vitais sv
+                JOIN consultas c ON sv.consulta_id = c.id
+                JOIN pacientes p ON c.paciente_id = p.id
+                JOIN usuarios u ON p.usuario_id = u.id
+                WHERE sv.enfermeiro_id = %s
+                ORDER BY sv.data_afericao DESC LIMIT 10
+            """, (enfermeiro_id,), fetch=True) or []
+            logger.info(f"Últimas aferições: {len(ultimas)}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar últimas aferições: {e}")
+        
+        # Dados para o gráfico (últimos 7 dias)
+        try:
+            for i in range(6, -1, -1):
+                dia = hoje - timedelta(days=i)
+                dias.append(dia.strftime('%d/%m'))
+                count_result = execute_query("""
+                    SELECT COUNT(*) as total FROM sinais_vitais 
+                    WHERE enfermeiro_id = %s AND DATE(data_afericao) = %s
+                """, (enfermeiro_id, dia), fetch=True, one=True)
+                count = count_result.get('total', 0) if count_result else 0
+                dados_grafico.append(count)
+            logger.info(f"Dados do gráfico: {dados_grafico}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar dados do gráfico: {e}")
         
         # Consultas do dia selecionado
-        consultas_data = execute_query("""
-            SELECT 
-                c.id,
-                TIME_FORMAT(c.data_hora, '%%H:%%i') as hora,
-                u.nome as paciente_nome,
-                p.id as paciente_id,
-                COALESCE(m_u.nome, 'Não atribuído') as medico_nome,
-                c.status,
-                COALESCE(c.status_triagem, 'NAO_REALIZADA') as status_triagem,
-                (SELECT COUNT(*) FROM sinais_vitais WHERE consulta_id = c.id) as sinais_vitais_count,
-                (SELECT id FROM sinais_vitais WHERE consulta_id = c.id LIMIT 1) as vital_id
-            FROM consultas c
-            INNER JOIN pacientes p ON c.paciente_id = p.id
-            INNER JOIN usuarios u ON p.usuario_id = u.id
-            LEFT JOIN medicos m ON c.medico_id = m.id
-            LEFT JOIN usuarios m_u ON m.usuario_id = m_u.id
-            WHERE DATE(c.data_hora) = %s
-            ORDER BY c.data_hora ASC
-        """, (data_selecionada,), fetch=True) or []
-        
-        logger.info(f"Consultas do dia {data_selecionada}: {len(consultas_data)}")
+        try:
+            consultas_data = execute_query("""
+                SELECT 
+                    c.id,
+                    TIME_FORMAT(c.data_hora, '%%H:%%i') as hora,
+                    u.nome as paciente_nome,
+                    p.id as paciente_id,
+                    COALESCE(m_u.nome, 'Não atribuído') as medico_nome,
+                    c.status,
+                    COALESCE(c.status_triagem, 'NAO_REALIZADA') as status_triagem,
+                    (SELECT COUNT(*) FROM sinais_vitais WHERE consulta_id = c.id) as sinais_vitais_count,
+                    (SELECT id FROM sinais_vitais WHERE consulta_id = c.id LIMIT 1) as vital_id
+                FROM consultas c
+                INNER JOIN pacientes p ON c.paciente_id = p.id
+                INNER JOIN usuarios u ON p.usuario_id = u.id
+                LEFT JOIN medicos m ON c.medico_id = m.id
+                LEFT JOIN usuarios m_u ON m.usuario_id = m_u.id
+                WHERE DATE(c.data_hora) = %s
+                ORDER BY c.data_hora ASC
+            """, (data_selecionada,), fetch=True) or []
+            logger.info(f"Consultas do dia {data_selecionada}: {len(consultas_data)}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar consultas do dia: {e}")
         
         # Buscar pacientes internados
-        internados_lista, pacientes_internados = buscar_pacientes_internados()
-        logger.info(f"Pacientes internados: {pacientes_internados}")
+        try:
+            internados_lista, pacientes_internados = buscar_pacientes_internados()
+            logger.info(f"Pacientes internados: {pacientes_internados}")
+        except Exception as e:
+            logger.error(f"Erro ao buscar pacientes internados: {e}")
         
         # Decodificar nomes nas listas
         for triagem in triagens:
