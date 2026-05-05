@@ -6,6 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ===================== NOME CORRETO DO BLUEPRINT =====================
 medicamentos_bp = Blueprint('medicamentos', __name__, url_prefix='/medicamentos')
 
 # Variável global para o MySQL
@@ -15,6 +16,13 @@ def set_mysql(mysql_instance):
     """Configura a conexão MySQL"""
     global mysql
     mysql = mysql_instance
+
+def dict_factory(cursor, row):
+    """Converte uma tupla em dicionário"""
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
 
 def decode_bytes(value):
     """Decodifica bytes para string UTF-8"""
@@ -45,7 +53,6 @@ def converter_para_time(valor):
     if isinstance(valor, time):
         return valor
     if isinstance(valor, timedelta):
-        # Converter timedelta para time
         total_seconds = int(valor.total_seconds())
         hours = total_seconds // 3600
         minutes = (total_seconds % 3600) // 60
@@ -85,6 +92,7 @@ def listar_por_internacao(internacao_id):
             return redirect(url_for("auth.login"))
         
         cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
         # Buscar dados da internação
         cursor.execute("""
@@ -104,19 +112,21 @@ def listar_por_internacao(internacao_id):
         
         # Calcular idade
         idade = None
-        if internacao[3]:
+        data_nasc = internacao.get('data_nascimento')
+        if data_nasc:
             today = datetime.now().date()
-            birth_date = internacao[3]
-            if isinstance(birth_date, datetime):
-                birth_date = birth_date.date()
+            if isinstance(data_nasc, datetime):
+                birth_date = data_nasc.date()
+            else:
+                birth_date = data_nasc
             idade = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
         
         internacao_dados = {
-            'id': internacao[0],
-            'prontuario': internacao[1],
-            'paciente_nome': decode_bytes(internacao[2]) if isinstance(internacao[2], bytes) else internacao[2],
+            'id': internacao.get('id'),
+            'prontuario': internacao.get('numero_prontuario'),
+            'paciente_nome': decode_bytes(internacao.get('paciente_nome')),
             'idade': idade,
-            'data_internacao': internacao[4]
+            'data_internacao': internacao.get('data_internacao')
         }
         
         # Buscar medicamentos prescritos
@@ -151,48 +161,55 @@ def listar_por_internacao(internacao_id):
                 FROM administracao_medicamentos
                 WHERE medicamento_prescrito_id = %s
                 ORDER BY data_hora_administracao DESC
-            """, (med[0],))
+            """, (med.get('id'),))
             
             administracoes = cursor.fetchall()
             
             administracoes_lista = []
             for adm in administracoes:
                 administracoes_lista.append({
-                    'id': adm[0],
-                    'data_hora': adm[1],
-                    'administrado': bool(adm[2]),
-                    'observacoes': decode_bytes(adm[3]) if adm[3] else None
+                    'id': adm.get('id'),
+                    'data_hora': adm.get('data_hora_administracao'),
+                    'administrado': bool(adm.get('administrado')),
+                    'observacoes': decode_bytes(adm.get('observacoes'))
                 })
             
             # Calcular próximos horários
             proximos_horarios = []
-            if med[4] and med[5] and med[6] and med[7]:
+            frequencia = med.get('frequencia')
+            horario_inicio_obj = med.get('horario_inicio')
+            horario_fim_obj = med.get('horario_fim')
+            data_inicio = med.get('data_inicio')
+            data_fim = med.get('data_fim')
+            
+            if frequencia and horario_inicio_obj and horario_fim_obj and data_inicio:
                 hoje = datetime.now()
-                data_inicio = med[7]
                 if isinstance(data_inicio, datetime):
                     data_inicio = data_inicio.date()
                 
-                data_fim = med[8] if med[8] else hoje.date() + timedelta(days=30)
-                if isinstance(data_fim, datetime):
-                    data_fim = data_fim.date()
+                if data_fim:
+                    if isinstance(data_fim, datetime):
+                        data_fim = data_fim.date()
+                else:
+                    data_fim = hoje.date() + timedelta(days=30)
                 
                 if data_inicio <= hoje.date() <= data_fim:
                     # Converter horários para time
-                    horario_inicio = converter_para_time(med[5])
-                    horario_fim = converter_para_time(med[6])
-                    frequencia = med[4].lower()
+                    horario_inicio = converter_para_time(horario_inicio_obj)
+                    horario_fim = converter_para_time(horario_fim_obj)
+                    freq_lower = frequencia.lower()
                     
                     # Determinar intervalos baseado na frequência
                     intervalos = []
-                    if '8/8' in frequencia or '8 em 8' in frequencia:
+                    if '8/8' in freq_lower or '8 em 8' in freq_lower:
                         intervalos = [8, 16]
-                    elif '12/12' in frequencia or '12 em 12' in frequencia:
+                    elif '12/12' in freq_lower or '12 em 12' in freq_lower:
                         intervalos = [12, 24]
-                    elif '6/6' in frequencia or '6 em 6' in frequencia:
+                    elif '6/6' in freq_lower or '6 em 6' in freq_lower:
                         intervalos = [6, 12, 18]
-                    elif '24/24' in frequencia or '1x' in frequencia:
+                    elif '24/24' in freq_lower or '1x' in freq_lower:
                         intervalos = [24]
-                    elif '12' in frequencia:
+                    elif '12' in freq_lower:
                         intervalos = [12, 24]
                     else:
                         intervalos = [12]
@@ -205,7 +222,7 @@ def listar_por_internacao(internacao_id):
                         if horario_inicio and horario_fim:
                             if horario_time >= horario_inicio and horario_time <= horario_fim:
                                 ja_administrado = any(
-                                    adm['data_hora'].date() == horario.date() and 
+                                    adm.get('data_hora') and adm['data_hora'].date() == horario.date() and 
                                     abs((adm['data_hora'] - horario).total_seconds()) < 3600
                                     for adm in administracoes_lista
                                 )
@@ -213,22 +230,22 @@ def listar_por_internacao(internacao_id):
                                     proximos_horarios.append(horario.strftime('%H:%M'))
             
             # Usar a função formatar_hora para os horários
-            horario_inicio_str = formatar_hora(med[5]) if med[5] else None
-            horario_fim_str = formatar_hora(med[6]) if med[6] else None
+            horario_inicio_str = formatar_hora(horario_inicio_obj)
+            horario_fim_str = formatar_hora(horario_fim_obj)
             
             medicamentos.append({
-                'id': med[0],
-                'medicamento': decode_bytes(med[1]) if isinstance(med[1], bytes) else med[1],
-                'dosagem': decode_bytes(med[2]) if isinstance(med[2], bytes) else med[2],
-                'via': decode_bytes(med[3]) if isinstance(med[3], bytes) else med[3],
-                'frequencia': decode_bytes(med[4]) if isinstance(med[4], bytes) else med[4],
+                'id': med.get('id'),
+                'medicamento': decode_bytes(med.get('medicamento')),
+                'dosagem': decode_bytes(med.get('dosagem')),
+                'via': decode_bytes(med.get('via')),
+                'frequencia': decode_bytes(med.get('frequencia')),
                 'horario_inicio': horario_inicio_str,
                 'horario_fim': horario_fim_str,
-                'data_inicio': med[7].strftime('%d/%m/%Y') if med[7] else None,
-                'data_fim': med[8].strftime('%d/%m/%Y') if med[8] else 'Indeterminado',
-                'observacoes': decode_bytes(med[9]) if med[9] else None,
-                'status': decode_bytes(med[10]) if isinstance(med[10], bytes) else med[10],
-                'medico_nome': decode_bytes(med[11]) if med[11] else 'Não informado',
+                'data_inicio': med.get('data_inicio').strftime('%d/%m/%Y') if med.get('data_inicio') else None,
+                'data_fim': med.get('data_fim').strftime('%d/%m/%Y') if med.get('data_fim') else 'Indeterminado',
+                'observacoes': decode_bytes(med.get('observacoes')),
+                'status': decode_bytes(med.get('status')),
+                'medico_nome': decode_bytes(med.get('medico_nome')) if med.get('medico_nome') else 'Não informado',
                 'administracoes': administracoes_lista,
                 'proximos_horarios': proximos_horarios[:3]
             })
@@ -245,7 +262,7 @@ def listar_por_internacao(internacao_id):
         administracoes_hoje = sum(
             1 for m in medicamentos 
             for a in m['administracoes'] 
-            if a['data_hora'].date() == hoje_str and a['administrado']
+            if a.get('data_hora') and a['data_hora'].date() == hoje_str and a['administrado']
         )
         
         return render_template('enfermeiro/medicamentos_lista.html',
@@ -258,8 +275,8 @@ def listar_por_internacao(internacao_id):
                                user=session)
         
     except Exception as e:
-        print(f"ERRO: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em listar_por_internacao: {e}")
+        logger.error(traceback.format_exc())
         flash(str(e), "danger")
         return redirect(url_for("enfermeiro.dashboard.index"))
 
@@ -285,6 +302,7 @@ def administrar_medicamento(medicamento_id):
         data_hora = datetime.strptime(horario, '%Y-%m-%d %H:%M')
         
         cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
         # Verificar se o medicamento existe e está ativo
         cursor.execute("""
@@ -317,23 +335,23 @@ def administrar_medicamento(medicamento_id):
             (medicamento_prescrito_id, internacao_id, data_hora_administracao, 
              administrado, enfermeiro_id, observacoes)
             VALUES (%s, %s, %s, %s, %s, %s)
-        """, (medicamento_id, medicamento[1], data_hora, True, enfermeiro_id, observacoes))
+        """, (medicamento_id, medicamento.get('internacao_id'), data_hora, True, enfermeiro_id, observacoes))
         
         mysql.connection.commit()
         cursor.close()
         
         return jsonify({
             "success": True, 
-            "message": f"{medicamento[2]} {medicamento[3]} administrado com sucesso!",
-            "medicamento": medicamento[2],
-            "dosagem": medicamento[3],
-            "via": medicamento[4],
+            "message": f"{medicamento.get('medicamento')} {medicamento.get('dosagem')} administrado com sucesso!",
+            "medicamento": medicamento.get('medicamento'),
+            "dosagem": medicamento.get('dosagem'),
+            "via": medicamento.get('via'),
             "horario": data_hora.strftime('%H:%M')
         })
         
     except Exception as e:
-        print(f"ERRO: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em administrar_medicamento: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ===================== HISTÓRICO DE ADMINISTRAÇÕES =====================
@@ -346,6 +364,7 @@ def historico_administracoes(internacao_id):
             return redirect(url_for("auth.login"))
         
         cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
         # Buscar dados da internação
         cursor.execute("""
@@ -387,20 +406,20 @@ def historico_administracoes(internacao_id):
         administracoes_lista = []
         for adm in administracoes:
             administracoes_lista.append({
-                'id': adm[0],
-                'data_hora': adm[1],
-                'administrado': bool(adm[2]),
-                'observacoes': decode_bytes(adm[3]) if adm[3] else None,
-                'medicamento': decode_bytes(adm[4]) if isinstance(adm[4], bytes) else adm[4],
-                'dosagem': decode_bytes(adm[5]) if isinstance(adm[5], bytes) else adm[5],
-                'via': decode_bytes(adm[6]) if isinstance(adm[6], bytes) else adm[6],
-                'enfermeiro_nome': decode_bytes(adm[7]) if adm[7] else 'Não informado'
+                'id': adm.get('id'),
+                'data_hora': adm.get('data_hora_administracao'),
+                'administrado': bool(adm.get('administrado')),
+                'observacoes': decode_bytes(adm.get('observacoes')),
+                'medicamento': decode_bytes(adm.get('medicamento')),
+                'dosagem': decode_bytes(adm.get('dosagem')),
+                'via': decode_bytes(adm.get('via')),
+                'enfermeiro_nome': decode_bytes(adm.get('enfermeiro_nome')) if adm.get('enfermeiro_nome') else 'Não informado'
             })
         
         internacao_dados = {
-            'id': internacao[0],
-            'prontuario': internacao[1],
-            'paciente_nome': decode_bytes(internacao[2]) if isinstance(internacao[2], bytes) else internacao[2]
+            'id': internacao.get('id'),
+            'prontuario': internacao.get('numero_prontuario'),
+            'paciente_nome': decode_bytes(internacao.get('paciente_nome'))
         }
         
         return render_template('enfermeiro/medicamentos_historico.html',
@@ -409,7 +428,7 @@ def historico_administracoes(internacao_id):
                                user=session)
         
     except Exception as e:
-        print(f"ERRO: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em historico_administracoes: {e}")
+        logger.error(traceback.format_exc())
         flash(str(e), "danger")
         return redirect(url_for("enfermeiro.dashboard.index"))
