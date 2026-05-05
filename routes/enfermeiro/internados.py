@@ -33,18 +33,22 @@ def calcular_idade(data_nascimento):
     """Calcula idade a partir da data de nascimento"""
     if not data_nascimento:
         return None
-    today = datetime.now().date()
-    if isinstance(data_nascimento, datetime):
-        birth_date = data_nascimento.date()
-    else:
-        birth_date = data_nascimento
-    if isinstance(birth_date, str):
-        try:
-            birth_date = datetime.strptime(birth_date, '%Y-%m-%d').date()
-        except:
+    try:
+        today = datetime.now().date()
+        if isinstance(data_nascimento, datetime):
+            birth_date = data_nascimento.date()
+        elif isinstance(data_nascimento, date):
+            birth_date = data_nascimento
+        elif isinstance(data_nascimento, str):
+            birth_date = datetime.strptime(data_nascimento, '%Y-%m-%d').date()
+        else:
             return None
-    idade = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-    return idade
+        
+        idade = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        return idade
+    except Exception as e:
+        logger.error(f"Erro ao calcular idade: {e}")
+        return None
 
 def formatar_data(data, formato='%d/%m/%Y %H:%M'):
     """Formata data de forma segura, verificando o tipo"""
@@ -78,7 +82,8 @@ def listar_internados():
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        cursor = mysql.connection.cursor()
+        # CORREÇÃO: Usar cursor com dictionary=True
+        cursor = mysql.connection.cursor(dictionary=True)
         
         query = """
             SELECT 
@@ -116,15 +121,17 @@ def listar_internados():
         
         internados_lista = []
         for internacao in internacoes_raw:
-            idade = calcular_idade(internacao[10]) if len(internacao) > 10 else None
+            # CORREÇÃO: Acessar por nome da coluna em vez de índice
+            idade = calcular_idade(internacao.get('data_nascimento'))
             
             # Buscar últimos sinais vitais
             ultimos_sinais = None
-            consulta_id = internacao[7] if len(internacao) > 7 else None
+            consulta_id = internacao.get('consulta_id')
             
             if consulta_id:
                 try:
-                    cursor.execute("""
+                    cursor_sinais = mysql.connection.cursor(dictionary=True)
+                    cursor_sinais.execute("""
                         SELECT pressao_arterial, frequencia_cardiaca, temperatura, 
                                saturacao_oxigenio, glicemia, data_afericao
                         FROM sinais_vitais
@@ -133,49 +140,52 @@ def listar_internados():
                         LIMIT 1
                     """, (consulta_id,))
                     
-                    sinais_raw = cursor.fetchone()
+                    sinais_raw = cursor_sinais.fetchone()
+                    cursor_sinais.close()
+                    
                     if sinais_raw:
                         ultimos_sinais = {
-                            'pressao_arterial': decode_bytes(sinais_raw[0]) if sinais_raw[0] else None,
-                            'frequencia_cardiaca': sinais_raw[1],
-                            'temperatura': sinais_raw[2],
-                            'saturacao_oxigenio': sinais_raw[3],
-                            'glicemia': sinais_raw[4],
-                            'data_afericao': sinais_raw[5]
+                            'pressao_arterial': decode_bytes(sinais_raw.get('pressao_arterial')),
+                            'frequencia_cardiaca': sinais_raw.get('frequencia_cardiaca'),
+                            'temperatura': sinais_raw.get('temperatura'),
+                            'saturacao_oxigenio': sinais_raw.get('saturacao_oxigenio'),
+                            'glicemia': sinais_raw.get('glicemia'),
+                            'data_afericao': sinais_raw.get('data_afericao')
                         }
                 except Exception as e:
-                    print(f"Erro ao buscar sinais vitais: {e}")
+                    logger.error(f"Erro ao buscar sinais vitais: {e}")
             
             internados_lista.append({
-                'id': internacao[0],
-                'numero_prontuario': internacao[1],
-                'data_internacao': internacao[2],
-                'tipo_internacao': decode_bytes(internacao[3]) if isinstance(internacao[3], bytes) else internacao[3] or 'Não informado',
-                'diagnostico_inicial': decode_bytes(internacao[4]) if internacao[4] else 'Não informado',
-                'observacoes': decode_bytes(internacao[5]) if internacao[5] else None,
-                'status': decode_bytes(internacao[6]) if isinstance(internacao[6], bytes) else internacao[6],
-                'consulta_id': internacao[7],
-                'paciente_id': internacao[8],
-                'paciente_nome': decode_bytes(internacao[9]) if isinstance(internacao[9], bytes) else internacao[9],
+                'id': internacao.get('id'),
+                'numero_prontuario': internacao.get('numero_prontuario') or 'N/A',
+                'data_internacao': internacao.get('data_internacao'),
+                'tipo_internacao': decode_bytes(internacao.get('tipo_internacao')) or 'Não informado',
+                'diagnostico_inicial': decode_bytes(internacao.get('diagnostico_inicial')) or 'Não informado',
+                'observacoes': decode_bytes(internacao.get('observacoes')),
+                'status': decode_bytes(internacao.get('status')),
+                'consulta_id': internacao.get('consulta_id'),
+                'paciente_id': internacao.get('paciente_id'),
+                'paciente_nome': decode_bytes(internacao.get('paciente_nome')),
                 'idade': idade,
-                'telefone': decode_bytes(internacao[11]) if len(internacao) > 11 and internacao[11] else None,
-                'leito_id': internacao[12] if len(internacao) > 12 else None,
-                'leito_alas': decode_bytes(internacao[13]) if len(internacao) > 13 and internacao[13] else 'Não definido',
-                'leito_numero': internacao[14] if len(internacao) > 14 else '?',
-                'leito_tipo': decode_bytes(internacao[15]) if len(internacao) > 15 and internacao[15] else 'Não definido',
-                'medico_id': internacao[16] if len(internacao) > 16 else None,
-                'medico_nome': decode_bytes(internacao[17]) if len(internacao) > 17 and internacao[17] else 'Não informado',
-                'medico_crm': decode_bytes(internacao[18]) if len(internacao) > 18 and internacao[18] else '---',
+                'telefone': decode_bytes(internacao.get('telefone')),
+                'leito_id': internacao.get('leito_id'),
+                'leito_alas': decode_bytes(internacao.get('alas')) or 'Não definido',
+                'leito_numero': internacao.get('leito_numero') or '?',
+                'leito_tipo': decode_bytes(internacao.get('leito_tipo')) or 'Não definido',
+                'medico_id': internacao.get('medico_id'),
+                'medico_nome': decode_bytes(internacao.get('medico_nome')) or 'Não informado',
+                'medico_crm': decode_bytes(internacao.get('crm')) or '---',
                 'ultimos_sinais': ultimos_sinais
             })
         
         cursor.close()
         
         # Contar total de internados
-        cursor = mysql.connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM internacoes WHERE status = 'ativa'")
-        total_internados = cursor.fetchone()[0] or 0
-        cursor.close()
+        cursor_count = mysql.connection.cursor(dictionary=True)
+        cursor_count.execute("SELECT COUNT(*) as total FROM internacoes WHERE status = 'ativa'")
+        total_result = cursor_count.fetchone()
+        total_internados = total_result['total'] if total_result else 0
+        cursor_count.close()
         
         return render_template(
             'enfermeiro/internados.html',
@@ -185,8 +195,8 @@ def listar_internados():
         )
         
     except Exception as e:
-        print(f"ERRO em listar_internados: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em listar_internados: {e}")
+        logger.error(traceback.format_exc())
         flash(str(e), "danger")
         return redirect(url_for("enfermeiro.dashboard.index"))
 
@@ -199,7 +209,7 @@ def detalhes_internacao(internacao_id):
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        cursor = mysql.connection.cursor()
+        cursor = mysql.connection.cursor(dictionary=True)
         
         query = """
             SELECT 
@@ -245,11 +255,12 @@ def detalhes_internacao(internacao_id):
             return redirect(url_for("enfermeiro.dashboard.index"))
         
         # Buscar sinais vitais
-        consulta_id = internacao_raw[8]
+        consulta_id = internacao_raw.get('consulta_id')
         sinais_vitais = []
         
         if consulta_id:
-            cursor.execute("""
+            cursor_sinais = mysql.connection.cursor(dictionary=True)
+            cursor_sinais.execute("""
                 SELECT id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
                        temperatura, saturacao_oxigenio, glicemia, peso, observacoes, data_afericao
                 FROM sinais_vitais
@@ -257,55 +268,54 @@ def detalhes_internacao(internacao_id):
                 ORDER BY data_afericao DESC
             """, (consulta_id,))
             
-            sinais_raw = cursor.fetchall()
+            sinais_raw = cursor_sinais.fetchall()
+            cursor_sinais.close()
+            
             for s in sinais_raw:
                 sinais_vitais.append({
-                    'id': s[0],
-                    'pressao_arterial': decode_bytes(s[1]) if s[1] else None,
-                    'frequencia_cardiaca': s[2],
-                    'frequencia_respiratoria': s[3],
-                    'temperatura': s[4],
-                    'saturacao_oxigenio': s[5],
-                    'glicemia': s[6],
-                    'peso': s[7],
-                    'observacoes': decode_bytes(s[8]) if s[8] else None,
-                    'data_afericao': s[9]
+                    'id': s.get('id'),
+                    'pressao_arterial': decode_bytes(s.get('pressao_arterial')),
+                    'frequencia_cardiaca': s.get('frequencia_cardiaca'),
+                    'frequencia_respiratoria': s.get('frequencia_respiratoria'),
+                    'temperatura': s.get('temperatura'),
+                    'saturacao_oxigenio': s.get('saturacao_oxigenio'),
+                    'glicemia': s.get('glicemia'),
+                    'peso': s.get('peso'),
+                    'observacoes': decode_bytes(s.get('observacoes')),
+                    'data_afericao': s.get('data_afericao')
                 })
         
         cursor.close()
         
         internacao = {
-            'id': internacao_raw[0],
-            'numero_prontuario': internacao_raw[1],
-            'data_internacao': internacao_raw[2],
-            'tipo_internacao': decode_bytes(internacao_raw[3]) if isinstance(internacao_raw[3], bytes) else internacao_raw[3],
-            'diagnostico_inicial': decode_bytes(internacao_raw[4]) if internacao_raw[4] else None,
-            'diagnostico_final': decode_bytes(internacao_raw[5]) if internacao_raw[5] else None,
-            'observacoes': decode_bytes(internacao_raw[6]) if internacao_raw[6] else None,
-            'status': decode_bytes(internacao_raw[7]) if isinstance(internacao_raw[7], bytes) else internacao_raw[7],
-            'consulta_id': internacao_raw[8],
-            'paciente_id': internacao_raw[9],
-            'paciente_nome': decode_bytes(internacao_raw[10]) if isinstance(internacao_raw[10], bytes) else internacao_raw[10],
-            'data_nascimento': internacao_raw[11],
-            'telefone': decode_bytes(internacao_raw[12]) if internacao_raw[12] else None,
-            'endereco': decode_bytes(internacao_raw[13]) if internacao_raw[13] else None,
-            'alergias': decode_bytes(internacao_raw[14]) if internacao_raw[14] else None,
-            'medicamentos_uso': decode_bytes(internacao_raw[15]) if internacao_raw[15] else None,
-            'historico_doencas': decode_bytes(internacao_raw[16]) if internacao_raw[16] else None,
-            'contato_emergencia': decode_bytes(internacao_raw[17]) if internacao_raw[17] else None,
-            'leito_alas': decode_bytes(internacao_raw[19]) if internacao_raw[19] else 'Não definido',
-            'leito_numero': internacao_raw[20] if internacao_raw[20] else '?',
-            'leito_tipo': decode_bytes(internacao_raw[21]) if internacao_raw[21] else 'Não definido',
-            'medico_nome': decode_bytes(internacao_raw[23]) if internacao_raw[23] else 'Não informado',
-            'medico_crm': decode_bytes(internacao_raw[24]) if internacao_raw[24] else '---',
+            'id': internacao_raw.get('id'),
+            'numero_prontuario': internacao_raw.get('numero_prontuario'),
+            'data_internacao': internacao_raw.get('data_internacao'),
+            'tipo_internacao': decode_bytes(internacao_raw.get('tipo_internacao')),
+            'diagnostico_inicial': decode_bytes(internacao_raw.get('diagnostico_inicial')),
+            'diagnostico_final': decode_bytes(internacao_raw.get('diagnostico_final')),
+            'observacoes': decode_bytes(internacao_raw.get('observacoes')),
+            'status': decode_bytes(internacao_raw.get('status')),
+            'consulta_id': internacao_raw.get('consulta_id'),
+            'paciente_id': internacao_raw.get('paciente_id'),
+            'paciente_nome': decode_bytes(internacao_raw.get('paciente_nome')),
+            'data_nascimento': internacao_raw.get('data_nascimento'),
+            'telefone': decode_bytes(internacao_raw.get('telefone')),
+            'endereco': decode_bytes(internacao_raw.get('endereco')),
+            'alergias': decode_bytes(internacao_raw.get('alergias')),
+            'medicamentos_uso': decode_bytes(internacao_raw.get('medicamentos_uso')),
+            'historico_doencas': decode_bytes(internacao_raw.get('historico_doencas')),
+            'contato_emergencia': decode_bytes(internacao_raw.get('contato_emergencia')),
+            'leito_alas': decode_bytes(internacao_raw.get('alas')) or 'Não definido',
+            'leito_numero': internacao_raw.get('leito_numero') or '?',
+            'leito_tipo': decode_bytes(internacao_raw.get('leito_tipo')) or 'Não definido',
+            'medico_nome': decode_bytes(internacao_raw.get('medico_nome')) or 'Não informado',
+            'medico_crm': decode_bytes(internacao_raw.get('crm')) or '---',
             'sinais_vitais': sinais_vitais
         }
         
         # Calcular idade
-        if internacao['data_nascimento']:
-            internacao['idade'] = calcular_idade(internacao['data_nascimento'])
-        else:
-            internacao['idade'] = None
+        internacao['idade'] = calcular_idade(internacao_raw.get('data_nascimento'))
         
         return render_template(
             'enfermeiro/detalhes_internacao.html',
@@ -314,8 +324,8 @@ def detalhes_internacao(internacao_id):
         )
         
     except Exception as e:
-        print(f"ERRO em detalhes_internacao: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em detalhes_internacao: {e}")
+        logger.error(traceback.format_exc())
         flash(str(e), "danger")
         return redirect(url_for("enfermeiro.dashboard.index"))
 
@@ -328,7 +338,7 @@ def registrar_sinais_vitais(paciente_id, internacao_id):
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        cursor = mysql.connection.cursor()
+        cursor = mysql.connection.cursor(dictionary=True)
         
         # Buscar dados do paciente
         cursor.execute("""
@@ -346,9 +356,9 @@ def registrar_sinais_vitais(paciente_id, internacao_id):
         internacao = cursor.fetchone()
         cursor.close()
         
-        paciente_nome = decode_bytes(paciente[0]) if paciente else "Paciente"
-        numero_prontuario = internacao[0] if internacao else "N/A"
-        consulta_id = internacao[1] if internacao else None
+        paciente_nome = decode_bytes(paciente['nome']) if paciente else "Paciente"
+        numero_prontuario = internacao['numero_prontuario'] if internacao else "N/A"
+        consulta_id = internacao['consulta_id'] if internacao else None
         
         return render_template(
             'enfermeiro/registrar_sinais_vitais.html',
@@ -361,8 +371,8 @@ def registrar_sinais_vitais(paciente_id, internacao_id):
         )
         
     except Exception as e:
-        print(f"ERRO: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em registrar_sinais_vitais: {e}")
+        logger.error(traceback.format_exc())
         flash(str(e), "danger")
         return redirect(url_for("enfermeiro.dashboard.index"))
 
@@ -379,64 +389,26 @@ def salvar_sinais_vitais():
         internacao_id = request.form.get('internacao_id')
         consulta_id = request.form.get('consulta_id')
         
-        # ===================== CORREÇÃO: CONVERTER VALORES VAZIOS PARA NONE =====================
-        pressao_arterial = request.form.get('pressao_arterial')
-        if pressao_arterial == '':
-            pressao_arterial = None
+        # Converter valores
+        pressao_arterial = request.form.get('pressao_arterial') or None
         
         frequencia_cardiaca = request.form.get('frequencia_cardiaca')
-        if frequencia_cardiaca == '':
-            frequencia_cardiaca = None
-        else:
-            try:
-                frequencia_cardiaca = int(frequencia_cardiaca)
-            except:
-                frequencia_cardiaca = None
+        frequencia_cardiaca = int(frequencia_cardiaca) if frequencia_cardiaca and frequencia_cardiaca.strip() else None
         
         frequencia_respiratoria = request.form.get('frequencia_respiratoria')
-        if frequencia_respiratoria == '':
-            frequencia_respiratoria = None
-        else:
-            try:
-                frequencia_respiratoria = int(frequencia_respiratoria)
-            except:
-                frequencia_respiratoria = None
+        frequencia_respiratoria = int(frequencia_respiratoria) if frequencia_respiratoria and frequencia_respiratoria.strip() else None
         
         temperatura = request.form.get('temperatura')
-        if temperatura == '':
-            temperatura = None
-        else:
-            try:
-                temperatura = float(temperatura)
-            except:
-                temperatura = None
+        temperatura = float(temperatura) if temperatura and temperatura.strip() else None
         
         saturacao_oxigenio = request.form.get('saturacao_oxigenio')
-        if saturacao_oxigenio == '':
-            saturacao_oxigenio = None
-        else:
-            try:
-                saturacao_oxigenio = int(saturacao_oxigenio)
-            except:
-                saturacao_oxigenio = None
+        saturacao_oxigenio = int(saturacao_oxigenio) if saturacao_oxigenio and saturacao_oxigenio.strip() else None
         
         glicemia = request.form.get('glicemia')
-        if glicemia == '':
-            glicemia = None
-        else:
-            try:
-                glicemia = int(glicemia)
-            except:
-                glicemia = None
+        glicemia = int(glicemia) if glicemia and glicemia.strip() else None
         
         peso = request.form.get('peso')
-        if peso == '':
-            peso = None
-        else:
-            try:
-                peso = float(peso)
-            except:
-                peso = None
+        peso = float(peso) if peso and peso.strip() else None
         
         observacoes = request.form.get('observacoes')
         
@@ -460,8 +432,8 @@ def salvar_sinais_vitais():
         return redirect(url_for('enfermeiro.internados.detalhes_internacao', internacao_id=internacao_id))
         
     except Exception as e:
-        print(f"ERRO: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em salvar_sinais_vitais: {e}")
+        logger.error(traceback.format_exc())
         flash(f"Erro ao registrar sinais vitais: {str(e)}", "danger")
         return redirect(request.referrer or url_for("enfermeiro.dashboard.index"))
 
@@ -477,7 +449,7 @@ def dar_alta(internacao_id):
         diagnostico_final = data.get('diagnostico_final', '')
         observacoes_alta = data.get('observacoes_alta', '')
         
-        cursor = mysql.connection.cursor()
+        cursor = mysql.connection.cursor(dictionary=True)
         
         # Verificar se a internação existe
         cursor.execute("""
@@ -490,8 +462,8 @@ def dar_alta(internacao_id):
             cursor.close()
             return jsonify({"success": False, "error": "Internação não encontrada ou já encerrada"}), 404
         
-        leito_id = internacao[1]
-        consulta_id = internacao[2]
+        leito_id = internacao.get('leito_id')
+        consulta_id = internacao.get('consulta_id')
         
         # Atualizar internação
         cursor.execute("""
@@ -504,7 +476,8 @@ def dar_alta(internacao_id):
         """, (datetime.now(), diagnostico_final, observacoes_alta, internacao_id))
         
         # Liberar leito
-        cursor.execute("UPDATE leitos SET status = 'disponivel' WHERE id = %s", (leito_id,))
+        if leito_id:
+            cursor.execute("UPDATE leitos SET status = 'disponivel' WHERE id = %s", (leito_id,))
         
         # Atualizar status da consulta
         if consulta_id:
@@ -516,6 +489,6 @@ def dar_alta(internacao_id):
         return jsonify({"success": True, "message": "Alta realizada com sucesso!"})
         
     except Exception as e:
-        print(f"ERRO em dar_alta: {e}")
-        print(traceback.format_exc())
+        logger.error(f"ERRO em dar_alta: {e}")
+        logger.error(traceback.format_exc())
         return jsonify({"success": False, "error": str(e)}), 500
