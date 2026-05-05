@@ -34,7 +34,7 @@ def buscar_pacientes_internados():
             return [], 0
             
         cursor = dashboard_bp.mysql.connection.cursor()
-        cursor.row_factory = dict_factory  # <-- CORREÇÃO AQUI
+        cursor.row_factory = dict_factory
         
         # Query para buscar pacientes internados
         query = """
@@ -66,7 +66,7 @@ def buscar_pacientes_internados():
         
         internados_lista = []
         for row in internados_raw:
-            # Extrair dados - ACESSANDO POR NOME DA COLUNA
+            # Extrair dados
             internacao_id = row['id']
             prontuario = row['numero_prontuario'] if row['numero_prontuario'] else 'N/A'
             data_internacao = row['data_internacao']
@@ -107,7 +107,7 @@ def buscar_pacientes_internados():
             if leito_id:
                 try:
                     cursor_leito = dashboard_bp.mysql.connection.cursor()
-                    cursor_leito.row_factory = dict_factory  # <-- CORREÇÃO AQUI
+                    cursor_leito.row_factory = dict_factory
                     cursor_leito.execute("SELECT alas, numero, tipo FROM leitos WHERE id = %s", (leito_id,))
                     leito = cursor_leito.fetchone()
                     cursor_leito.close()
@@ -126,12 +126,14 @@ def buscar_pacientes_internados():
             ultimos_sinais = None
             try:
                 cursor_sinais = dashboard_bp.mysql.connection.cursor()
-                cursor_sinais.row_factory = dict_factory  # <-- CORREÇÃO AQUI
+                cursor_sinais.row_factory = dict_factory
                 cursor_sinais.execute("""
-                    SELECT pressao_arterial, frequencia_cardiaca, temperatura, saturacao_oxigenio, glicemia, data_afericao
-                    FROM sinais_vitais
-                    WHERE consulta_id IN (SELECT id FROM consultas WHERE paciente_id = %s)
-                    ORDER BY data_afericao DESC
+                    SELECT pressao_arterial, frequencia_cardiaca, temperatura, 
+                           saturacao_oxigenio, glicemia, data_afericao
+                    FROM sinais_vitais sv
+                    JOIN consultas c ON sv.consulta_id = c.id
+                    WHERE c.paciente_id = %s
+                    ORDER BY sv.data_afericao DESC
                     LIMIT 1
                 """, (paciente_id,))
                 sinais = cursor_sinais.fetchone()
@@ -190,7 +192,7 @@ def teste_internados():
             return jsonify({'error': 'MySQL não configurado'})
             
         cursor = dashboard_bp.mysql.connection.cursor()
-        cursor.row_factory = dict_factory  # <-- CORREÇÃO AQUI
+        cursor.row_factory = dict_factory
         
         # Testar query direta
         cursor.execute("SELECT COUNT(*) as total FROM internacoes WHERE status = 'ativa'")
@@ -251,46 +253,75 @@ def index():
     hoje_str = hoje.strftime('%Y-%m-%d')
     data_selecionada = request.args.get('data_consulta', hoje_str)
     
+    logger.info(f"=== DASHBOARD ENFERMEIRO ===")
+    logger.info(f"Enfermeiro ID: {enfermeiro_id}")
+    logger.info(f"Data selecionada: {data_selecionada}")
+    
     try:
         # Total de aferições hoje
-        total_hoje = execute_query("""
+        total_hoje_result = execute_query("""
             SELECT COUNT(*) as total FROM sinais_vitais 
             WHERE enfermeiro_id = %s AND DATE(data_afericao) = %s
         """, (enfermeiro_id, hoje), fetch=True, one=True)
         
+        total_afericoes_hoje = total_hoje_result.get('total', 0) if total_hoje_result else 0
+        logger.info(f"Total aferições hoje: {total_afericoes_hoje}")
+        
         # Consultas pendentes de triagem
-        pendentes = execute_query("""
+        pendentes_result = execute_query("""
             SELECT COUNT(*) as total FROM consultas c
             WHERE DATE(c.data_hora) = %s
-            AND c.status IN ('agendada', 'AGUARDANDO', 'pendente', 'confirmada')
-            AND (c.status_triagem IS NULL OR c.status_triagem = 'NAO_REALIZADA')
+            AND c.status NOT IN ('cancelada', 'CANCELADA', 'realizada', 'REALIZADA')
+            AND (c.status_triagem IS NULL OR c.status_triagem != 'REALIZADA')
         """, (hoje,), fetch=True, one=True)
         
+        pacientes_aguardando = pendentes_result.get('total', 0) if pendentes_result else 0
+        logger.info(f"Triagens pendentes: {pacientes_aguardando}")
+        
         # Total de consultas hoje
-        total_consultas = execute_query("""
+        total_consultas_result = execute_query("""
             SELECT COUNT(*) as total FROM consultas 
             WHERE DATE(data_hora) = %s
         """, (hoje,), fetch=True, one=True)
         
-        # Triagens pendentes
+        total_consultas_hoje = total_consultas_result.get('total', 0) if total_consultas_result else 0
+        logger.info(f"Total consultas hoje: {total_consultas_hoje}")
+        
+        # Triagens pendentes (detalhadas)
         triagens = execute_query("""
-            SELECT c.id, u.nome as paciente_nome, p.id as paciente_id, 
-                   DATE_FORMAT(c.data_hora, '%%H:%%i') as hora_chegada
+            SELECT 
+                c.id, 
+                u.nome as paciente_nome, 
+                p.id as paciente_id, 
+                TIME_FORMAT(c.data_hora, '%%H:%%i') as hora_chegada
             FROM consultas c
             JOIN pacientes p ON c.paciente_id = p.id
             JOIN usuarios u ON p.usuario_id = u.id
             WHERE DATE(c.data_hora) = %s 
-            AND c.status IN ('agendada', 'AGUARDANDO', 'pendente', 'confirmada')
-            AND (c.status_triagem IS NULL OR c.status_triagem = 'NAO_REALIZADA')
+            AND c.status NOT IN ('cancelada', 'CANCELADA', 'realizada', 'REALIZADA')
+            AND (c.status_triagem IS NULL OR c.status_triagem != 'REALIZADA')
             ORDER BY c.data_hora LIMIT 10
         """, (hoje,), fetch=True) or []
         
+        logger.info(f"Triagens pendentes lista: {len(triagens)}")
+        for t in triagens:
+            logger.info(f"  - Consulta {t.get('id')}: {t.get('paciente_nome')}")
+        
         # Últimas aferições
         ultimas = execute_query("""
-            SELECT sv.id, sv.pressao_arterial, sv.frequencia_cardiaca,
-                   sv.frequencia_respiratoria, sv.temperatura, sv.saturacao_oxigenio,
-                   sv.glicemia, sv.peso, sv.data_afericao, sv.observacoes,
-                   u.nome as paciente_nome, p.id as paciente_id
+            SELECT 
+                sv.id, 
+                sv.pressao_arterial, 
+                sv.frequencia_cardiaca,
+                sv.frequencia_respiratoria, 
+                sv.temperatura, 
+                sv.saturacao_oxigenio,
+                sv.glicemia, 
+                sv.peso, 
+                sv.data_afericao, 
+                sv.observacoes,
+                u.nome as paciente_nome, 
+                p.id as paciente_id
             FROM sinais_vitais sv
             JOIN consultas c ON sv.consulta_id = c.id
             JOIN pacientes p ON c.paciente_id = p.id
@@ -299,23 +330,29 @@ def index():
             ORDER BY sv.data_afericao DESC LIMIT 10
         """, (enfermeiro_id,), fetch=True) or []
         
-        # Dados para o gráfico
+        logger.info(f"Últimas aferições: {len(ultimas)}")
+        
+        # Dados para o gráfico (últimos 7 dias)
         dias = []
         dados_grafico = []
         for i in range(6, -1, -1):
             dia = hoje - timedelta(days=i)
             dias.append(dia.strftime('%d/%m'))
-            count = execute_query("""
+            count_result = execute_query("""
                 SELECT COUNT(*) as total FROM sinais_vitais 
                 WHERE enfermeiro_id = %s AND DATE(data_afericao) = %s
             """, (enfermeiro_id, dia), fetch=True, one=True)
-            dados_grafico.append(count['total'] if count else 0)
+            count = count_result.get('total', 0) if count_result else 0
+            dados_grafico.append(count)
+        
+        logger.info(f"Dias do gráfico: {dias}")
+        logger.info(f"Dados do gráfico: {dados_grafico}")
         
         # Consultas do dia selecionado
         consultas_data = execute_query("""
             SELECT 
                 c.id,
-                DATE_FORMAT(c.data_hora, '%%H:%%i') as hora,
+                TIME_FORMAT(c.data_hora, '%%H:%%i') as hora,
                 u.nome as paciente_nome,
                 p.id as paciente_id,
                 COALESCE(m_u.nome, 'Não atribuído') as medico_nome,
@@ -332,19 +369,30 @@ def index():
             ORDER BY c.data_hora ASC
         """, (data_selecionada,), fetch=True) or []
         
-        # ===================== BUSCAR PACIENTES INTERNADOS =====================
+        logger.info(f"Consultas do dia {data_selecionada}: {len(consultas_data)}")
+        for c in consultas_data:
+            logger.info(f"  - {c.get('hora')}: {c.get('paciente_nome')} - {c.get('medico_nome')}")
+        
+        # Buscar pacientes internados
         internados_lista, pacientes_internados = buscar_pacientes_internados()
+        logger.info(f"Pacientes internados: {pacientes_internados}")
         
         # Decodificar nomes nas listas
         for triagem in triagens:
             if 'paciente_nome' in triagem and isinstance(triagem['paciente_nome'], bytes):
                 triagem['paciente_nome'] = decode_bytes(triagem['paciente_nome'])
+            if 'hora_chegada' in triagem and isinstance(triagem['hora_chegada'], bytes):
+                triagem['hora_chegada'] = decode_bytes(triagem['hora_chegada'])
         
         for consulta in consultas_data:
             if 'paciente_nome' in consulta and isinstance(consulta['paciente_nome'], bytes):
                 consulta['paciente_nome'] = decode_bytes(consulta['paciente_nome'])
             if 'medico_nome' in consulta and isinstance(consulta['medico_nome'], bytes):
                 consulta['medico_nome'] = decode_bytes(consulta['medico_nome'])
+            if 'hora' in consulta and isinstance(consulta['hora'], bytes):
+                consulta['hora'] = decode_bytes(consulta['hora'])
+            if 'status' in consulta and isinstance(consulta['status'], bytes):
+                consulta['status'] = decode_bytes(consulta['status'])
         
         for vital in ultimas:
             if 'paciente_nome' in vital and isinstance(vital['paciente_nome'], bytes):
@@ -352,12 +400,12 @@ def index():
             if 'pressao_arterial' in vital and isinstance(vital['pressao_arterial'], bytes):
                 vital['pressao_arterial'] = decode_bytes(vital['pressao_arterial'])
         
-        logger.info(f"✅ Dashboard carregado: {pacientes_internados} internados encontrados")
+        logger.info(f"✅ Dashboard carregado com sucesso!")
         
         return render_template('enfermeiro/dashboard.html',
-            total_afericoes_hoje=total_hoje['total'] if total_hoje else 0,
-            pacientes_aguardando=pendentes['total'] if pendentes else 0,
-            total_consultas_hoje=total_consultas['total'] if total_consultas else 0,
+            total_afericoes_hoje=total_afericoes_hoje,
+            pacientes_aguardando=pacientes_aguardando,
+            total_consultas_hoje=total_consultas_hoje,
             triagens_pendentes=triagens,
             ultimas_afericoes=ultimas,
             classificar_pressao=classificar_pressao,
