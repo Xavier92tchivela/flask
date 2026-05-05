@@ -50,28 +50,12 @@ def calcular_idade(data_nascimento):
         logger.error(f"Erro ao calcular idade: {e}")
         return None
 
-def formatar_data(data, formato='%d/%m/%Y %H:%M'):
-    """Formata data de forma segura, verificando o tipo"""
-    if data is None:
-        return ''
-    if isinstance(data, datetime):
-        return data.strftime(formato)
-    if isinstance(data, date):
-        return data.strftime('%d/%m/%Y')
-    if isinstance(data, str):
-        return data
-    return str(data)
-
-def converter_valor_numerico(valor):
-    """Converte valor para inteiro ou float, retorna None se vazio ou inválido"""
-    if valor is None or valor == '':
-        return None
-    try:
-        if '.' in str(valor):
-            return float(valor)
-        return int(valor)
-    except:
-        return None
+def dict_factory(cursor, row):
+    """Converte uma tupla em dicionário"""
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
 
 # ===================== LISTAR PACIENTES INTERNADOS =====================
 @internados_bp.route('/')
@@ -82,8 +66,9 @@ def listar_internados():
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        # CORREÇÃO: Usar cursor com dictionary=True
-        cursor = mysql.connection.cursor(dictionary=True)
+        # CORREÇÃO: Usar cursor normal e definir row_factory para dicionário
+        cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
         query = """
             SELECT 
@@ -121,7 +106,6 @@ def listar_internados():
         
         internados_lista = []
         for internacao in internacoes_raw:
-            # CORREÇÃO: Acessar por nome da coluna em vez de índice
             idade = calcular_idade(internacao.get('data_nascimento'))
             
             # Buscar últimos sinais vitais
@@ -130,7 +114,8 @@ def listar_internados():
             
             if consulta_id:
                 try:
-                    cursor_sinais = mysql.connection.cursor(dictionary=True)
+                    cursor_sinais = mysql.connection.cursor()
+                    cursor_sinais.row_factory = dict_factory
                     cursor_sinais.execute("""
                         SELECT pressao_arterial, frequencia_cardiaca, temperatura, 
                                saturacao_oxigenio, glicemia, data_afericao
@@ -181,10 +166,10 @@ def listar_internados():
         cursor.close()
         
         # Contar total de internados
-        cursor_count = mysql.connection.cursor(dictionary=True)
+        cursor_count = mysql.connection.cursor()
         cursor_count.execute("SELECT COUNT(*) as total FROM internacoes WHERE status = 'ativa'")
         total_result = cursor_count.fetchone()
-        total_internados = total_result['total'] if total_result else 0
+        total_internados = total_result[0] if total_result else 0
         cursor_count.close()
         
         return render_template(
@@ -209,7 +194,8 @@ def detalhes_internacao(internacao_id):
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        cursor = mysql.connection.cursor(dictionary=True)
+        cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
         query = """
             SELECT 
@@ -259,7 +245,8 @@ def detalhes_internacao(internacao_id):
         sinais_vitais = []
         
         if consulta_id:
-            cursor_sinais = mysql.connection.cursor(dictionary=True)
+            cursor_sinais = mysql.connection.cursor()
+            cursor_sinais.row_factory = dict_factory
             cursor_sinais.execute("""
                 SELECT id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
                        temperatura, saturacao_oxigenio, glicemia, peso, observacoes, data_afericao
@@ -338,7 +325,8 @@ def registrar_sinais_vitais(paciente_id, internacao_id):
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        cursor = mysql.connection.cursor(dictionary=True)
+        cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
         # Buscar dados do paciente
         cursor.execute("""
@@ -449,7 +437,7 @@ def dar_alta(internacao_id):
         diagnostico_final = data.get('diagnostico_final', '')
         observacoes_alta = data.get('observacoes_alta', '')
         
-        cursor = mysql.connection.cursor(dictionary=True)
+        cursor = mysql.connection.cursor()
         
         # Verificar se a internação existe
         cursor.execute("""
@@ -462,8 +450,9 @@ def dar_alta(internacao_id):
             cursor.close()
             return jsonify({"success": False, "error": "Internação não encontrada ou já encerrada"}), 404
         
-        leito_id = internacao.get('leito_id')
-        consulta_id = internacao.get('consulta_id')
+        # CORREÇÃO: Acessar por índice quando usando cursor normal (sem row_factory)
+        leito_id = internacao[1] if len(internacao) > 1 else None
+        consulta_id = internacao[2] if len(internacao) > 2 else None
         
         # Atualizar internação
         cursor.execute("""
