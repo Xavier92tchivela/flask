@@ -115,7 +115,6 @@
                                 <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-outline-primary btn-sm">
                                     <i class="fas fa-list me-1"></i> Triagens
                                 </a>
-                                <!-- CORREÇÃO: Link direto em vez de url_for -->
                                 <a href="/enfermeiro/internados" class="btn btn-outline-danger btn-sm">
                                     <i class="fas fa-procedures me-1"></i> Internados
                                 </a>
@@ -389,7 +388,18 @@
                                         <td>{{ consulta.medico_nome }}</td>
                                         <td><span class="badge bg-{{ 'success' if consulta.status == 'REALIZADA' else 'danger' if consulta.status == 'CANCELADA' else 'warning' if consulta.status == 'AGUARDANDO' else 'secondary' }}">{{ consulta.status|default('agendada')|capitalize }}</span></td>
                                         <td>{% if consulta.status_triagem == 'REALIZADA' %}<span class="badge bg-success">Realizada</span>{% else %}<span class="badge bg-warning">Pendente</span>{% endif %}</td>
-                                        <td><a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i></a></td>
+                                        <td>
+                                            <!-- CORREÇÃO: Verificar se consulta.id existe antes de usar -->
+                                            {% if consulta.id and consulta.id != 'id' %}
+                                                <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            {% endif %}
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -409,6 +419,13 @@
                                         <span class="badge bg-{{ 'success' if consulta.status == 'REALIZADA' else 'danger' if consulta.status == 'CANCELADA' else 'warning' }}">{{ consulta.status|default('agendada')|capitalize }}</span>
                                         <span class="badge bg-{{ 'success' if consulta.status_triagem == 'REALIZADA' else 'warning' }}">{{ 'Realizada' if consulta.status_triagem == 'REALIZADA' else 'Pendente' }}</span>
                                     </div>
+                                    {% if consulta.id and consulta.id != 'id' %}
+                                    <div class="mt-2">
+                                        <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" class="btn btn-sm btn-outline-primary w-100">
+                                            <i class="fas fa-eye me-1"></i> Ver Detalhes
+                                        </a>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% endfor %}
@@ -433,7 +450,18 @@
                     {% if ultimas_afericoes %}
                         <div class="table-responsive d-none d-md-block">
                             <table class="table table-hover table-vitals mb-0">
-                                <thead><tr><th>Data/Hora</th><th>Paciente</th><th>Pressão</th><th>FC</th><th>Temp</th><th>Sat O2</th><th>Glicemia</th><th>Ações</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Paciente</th>
+                                        <th>Pressão</th>
+                                        <th>FC</th>
+                                        <th>Temp</th>
+                                        <th>Sat O2</th>
+                                        <th>Glicemia</th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
                                 <tbody>
                                     {% for vital in ultimas_afericoes %}
                                     <tr>
