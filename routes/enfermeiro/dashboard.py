@@ -19,6 +19,13 @@ def set_mysql(mysql_instance):
     from .utils import set_mysql as set_utils_mysql
     set_utils_mysql(mysql_instance)
 
+def dict_factory(cursor, row):
+    """Converte uma tupla em dicionário"""
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 def buscar_pacientes_internados():
     """Busca pacientes internados para o dashboard"""
     try:
@@ -26,7 +33,8 @@ def buscar_pacientes_internados():
             logger.error("MySQL não configurado")
             return [], 0
             
-        cursor = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO: Adicionado dictionary=True
+        cursor = dashboard_bp.mysql.connection.cursor()
+        cursor.row_factory = dict_factory  # <-- CORREÇÃO AQUI
         
         # Query para buscar pacientes internados
         query = """
@@ -58,7 +66,7 @@ def buscar_pacientes_internados():
         
         internados_lista = []
         for row in internados_raw:
-            # Extrair dados - AGORA ACESSANDO POR NOME DA COLUNA
+            # Extrair dados - ACESSANDO POR NOME DA COLUNA
             internacao_id = row['id']
             prontuario = row['numero_prontuario'] if row['numero_prontuario'] else 'N/A'
             data_internacao = row['data_internacao']
@@ -98,7 +106,8 @@ def buscar_pacientes_internados():
             
             if leito_id:
                 try:
-                    cursor_leito = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO
+                    cursor_leito = dashboard_bp.mysql.connection.cursor()
+                    cursor_leito.row_factory = dict_factory  # <-- CORREÇÃO AQUI
                     cursor_leito.execute("SELECT alas, numero, tipo FROM leitos WHERE id = %s", (leito_id,))
                     leito = cursor_leito.fetchone()
                     cursor_leito.close()
@@ -116,7 +125,8 @@ def buscar_pacientes_internados():
             # Buscar últimos sinais vitais
             ultimos_sinais = None
             try:
-                cursor_sinais = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO
+                cursor_sinais = dashboard_bp.mysql.connection.cursor()
+                cursor_sinais.row_factory = dict_factory  # <-- CORREÇÃO AQUI
                 cursor_sinais.execute("""
                     SELECT pressao_arterial, frequencia_cardiaca, temperatura, saturacao_oxigenio, glicemia, data_afericao
                     FROM sinais_vitais
@@ -179,7 +189,8 @@ def teste_internados():
         if not dashboard_bp.mysql:
             return jsonify({'error': 'MySQL não configurado'})
             
-        cursor = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO
+        cursor = dashboard_bp.mysql.connection.cursor()
+        cursor.row_factory = dict_factory  # <-- CORREÇÃO AQUI
         
         # Testar query direta
         cursor.execute("SELECT COUNT(*) as total FROM internacoes WHERE status = 'ativa'")
