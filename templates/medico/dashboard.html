@@ -93,7 +93,7 @@
     </div>
 </div>
 
-<!-- Card Gerenciar Internações - NOVO -->
+<!-- Card Gerenciar Internações -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow border-left-success">
@@ -128,7 +128,7 @@
     </div>
 </div>
 
-<!-- Botão de Ação Principal - Responsivo -->
+<!-- Botão de Ação Principal -->
 <div class="row mb-4">
     <div class="col-12">
         <div class="card shadow border-left-success">
@@ -264,7 +264,6 @@
                                             </a>
                                             {% endif %}
                                             
-                                            <!-- Botão Internar - NOVO -->
                                             {% if consulta.status in ['agendada', 'realizada'] and not consulta.internado %}
                                             <a href="{{ url_for('medico.consulta.internar_paciente', consulta_id=consulta.id) }}" 
                                                class="btn btn-sm btn-success flex-fill">
@@ -273,7 +272,6 @@
                                             </a>
                                             {% endif %}
                                             
-                                            <!-- Botão Ver Internação - NOVO -->
                                             {% if consulta.status == 'internado' %}
                                             <a href="{{ url_for('medico.consulta.pacientes_internados') }}" 
                                                class="btn btn-sm btn-info flex-fill">
@@ -301,7 +299,7 @@
                                             {% endif %}
                                         </div>
                                     </div>
-                                </td>
+                                 </div>
                                 <td class="d-none d-md-table-cell">
                                     {% if consulta.data_hora %}
                                         {% if '/' in consulta.data_hora %}
@@ -318,12 +316,12 @@
                                             {% endif %}
                                         </small>
                                     {% endif %}
-                                </td>
+                                 </div>
                                 <td class="d-none d-md-table-cell">
                                     <span class="badge bg-{% if consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% elif consulta.status == 'agendada' %}primary{% elif consulta.status == 'internado' %}info{% else %}warning{% endif %}">
                                         {{ consulta.status|capitalize }}
                                     </span>
-                                </td>
+                                 </div>
                                 <td class="d-none d-md-table-cell text-center">
                                     <div class="btn-group btn-group-sm" role="group">
                                         <a href="{{ url_for('medico.analise', consulta_id=consulta.id) }}" 
@@ -348,7 +346,6 @@
                                         </a>
                                         {% endif %}
                                         
-                                        <!-- Botão Internar - NOVO Desktop -->
                                         {% if consulta.status in ['agendada', 'realizada'] and not consulta.internado %}
                                         <a href="{{ url_for('medico.consulta.internar_paciente', consulta_id=consulta.id) }}" 
                                            class="btn btn-success"
@@ -357,7 +354,6 @@
                                         </a>
                                         {% endif %}
                                         
-                                        <!-- Botão Ver Internação - NOVO Desktop -->
                                         {% if consulta.status == 'internado' %}
                                         <a href="{{ url_for('medico.consulta.pacientes_internados') }}" 
                                            class="btn btn-info"
@@ -366,7 +362,7 @@
                                         </a>
                                         {% endif %}
                                     </div>
-                                </td>
+                                 </div>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -379,9 +375,6 @@
                     </div>
                     <h5 class="text-gray-800 h6 h5-md">Nenhuma consulta agendada</h5>
                     <p class="text-gray-600 small">Você não tem consultas marcadas no momento.</p>
-                    <a href="#" class="btn btn-primary btn-sm btn-md mt-2 mt-md-3">
-                        <i class="fas fa-user-clock me-2"></i> Agendar Nova Consulta
-                    </a>
                 </div>
                 {% endif %}
             </div>
@@ -427,7 +420,6 @@
             </div>
             <div class="card-body p-2 p-md-3">
                 <div class="d-grid gap-2 gap-md-3">
-                    <!-- Botão Pacientes Internados - NOVO -->
                     <a href="{{ url_for('medico.consulta.pacientes_internados') }}" class="btn btn-success btn-block py-2 py-md-3">
                         <div class="d-flex align-items-center justify-content-center">
                             <i class="fas fa-procedures fa-2x me-3"></i>
@@ -586,236 +578,65 @@
     </div>
 </div>
 
-<!-- CSS Responsivo Adicional -->
+<!-- CSS Responsivo -->
 <style>
-/* Mobile First Adjustments */
 @media (max-width: 768px) {
-    .card-body {
-        padding: 0.75rem !important;
-    }
-    
-    .h5 {
-        font-size: 1rem;
-    }
-    
-    .badge {
-        font-size: 0.7rem;
-    }
-    
-    .btn {
-        font-size: 0.875rem;
-    }
-    
-    .border-left-primary,
-    .border-left-success,
-    .border-left-warning,
-    .border-left-info {
-        border-left-width: 3px !important;
-    }
-    
-    .mobile-consulta-card {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        border: 1px solid #e9ecef;
-    }
-    
-    /* Ajustes para tabela mobile */
-    .table-responsive {
-        border: none;
-    }
-    
-    .consulta-row {
-        margin-bottom: 1rem;
-        background-color: white;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    .consulta-row:last-child {
-        margin-bottom: 0;
-    }
-    
-    /* Ajustes para ícones */
-    .fa-2x {
-        font-size: 1.5rem;
-    }
-    
-    /* Ajustes para cards de estatísticas */
-    .card.border-left-primary .card-body,
-    .card.border-left-success .card-body,
-    .card.border-left-warning .card-body,
-    .card.border-left-info .card-body {
-        padding: 0.75rem !important;
-    }
-    
-    .text-xs {
-        font-size: 0.7rem;
-    }
-    
-    .h5.mb-0 {
-        font-size: 1rem;
-    }
-    
-    /* Ajustes para botões */
-    .btn-lg {
-        padding: 0.5rem 1rem;
-        font-size: 1rem;
-    }
-    
-    .btn-block {
-        width: 100%;
-    }
-    
-    /* Ajustes para listas */
-    .list-group-item {
-        padding: 0.75rem;
-    }
-    
-    /* Ajustes para modals */
-    .modal-dialog {
-        margin: 0.5rem;
-    }
-    
-    /* Espaçamento entre elementos */
-    .gap-2 {
-        gap: 0.5rem !important;
-    }
-    
-    /* Ajustes para o card de ação principal */
-    .card.border-left-success .btn {
-        font-size: 0.875rem;
-        padding: 0.75rem;
-    }
+    .card-body { padding: 0.75rem !important; }
+    .h5 { font-size: 1rem; }
+    .badge { font-size: 0.7rem; }
+    .btn { font-size: 0.875rem; }
+    .border-left-primary, .border-left-success, .border-left-warning, .border-left-info { border-left-width: 3px !important; }
+    .mobile-consulta-card { background-color: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef; }
+    .table-responsive { border: none; }
+    .consulta-row { margin-bottom: 1rem; background-color: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .consulta-row:last-child { margin-bottom: 0; }
+    .fa-2x { font-size: 1.5rem; }
+    .card.border-left-primary .card-body, .card.border-left-success .card-body, .card.border-left-warning .card-body, .card.border-left-info .card-body { padding: 0.75rem !important; }
+    .text-xs { font-size: 0.7rem; }
+    .h5.mb-0 { font-size: 1rem; }
+    .btn-lg { padding: 0.5rem 1rem; font-size: 1rem; }
+    .btn-block { width: 100%; }
+    .list-group-item { padding: 0.75rem; }
+    .modal-dialog { margin: 0.5rem; }
+    .gap-2 { gap: 0.5rem !important; }
+    .card.border-left-success .btn { font-size: 0.875rem; padding: 0.75rem; }
+    .btn, .dropdown-item, .list-group-item { min-height: 44px; display: flex; align-items: center; }
+    .btn-group-sm .btn { min-height: 38px; }
+    .dropdown-menu { max-height: 300px; overflow-y: auto; }
+    a, button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+    .table-responsive { -webkit-overflow-scrolling: touch; }
 }
 
-/* Ajustes para telas muito pequenas */
 @media (max-width: 375px) {
-    .col-6 {
-        padding: 0 4px;
-    }
-    
-    .btn-sm {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-    }
-    
-    .badge {
-        font-size: 0.65rem;
-    }
-    
-    .mobile-consulta-card .btn {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-    }
+    .col-6 { padding: 0 4px; }
+    .btn-sm { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+    .badge { font-size: 0.65rem; }
+    .mobile-consulta-card .btn { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
 }
 
-/* Ajustes para tablets */
 @media (min-width: 768px) and (max-width: 992px) {
-    .container {
-        max-width: 100%;
-        padding: 0 15px;
-    }
-    
-    .card-body {
-        padding: 1rem !important;
-    }
-    
-    .btn-lg {
-        padding: 0.75rem 1.5rem;
-    }
+    .container { max-width: 100%; padding: 0 15px; }
+    .card-body { padding: 1rem !important; }
+    .btn-lg { padding: 0.75rem 1.5rem; }
 }
 
-/* Melhorias de touch para mobile */
-@media (max-width: 768px) {
-    .btn, 
-    .dropdown-item,
-    .list-group-item {
-        min-height: 44px;
-        display: flex;
-        align-items: center;
-    }
-    
-    .btn-group-sm .btn {
-        min-height: 38px;
-    }
-    
-    .dropdown-menu {
-        max-height: 300px;
-        overflow-y: auto;
-    }
-    
-    /* Aumentar área de clique */
-    a, button {
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-    }
-    
-    /* Melhorar scroll */
-    .table-responsive {
-        -webkit-overflow-scrolling: touch;
-    }
-}
-
-/* Classes utilitárias responsivas */
-.d-none.d-md-table-cell {
-    display: none !important;
-}
-
-.d-block.d-md-table-row {
-    display: block !important;
-}
+.d-none.d-md-table-cell { display: none !important; }
+.d-block.d-md-table-row { display: block !important; }
 
 @media (min-width: 768px) {
-    .d-none.d-md-table-cell {
-        display: table-cell !important;
-    }
-    
-    .d-block.d-md-table-row {
-        display: table-row !important;
-    }
-    
-    .w-md-auto {
-        width: auto !important;
-    }
-    
-    .text-md-end {
-        text-align: right !important;
-    }
-    
-    .h5-md {
-        font-size: 1.25rem !important;
-    }
+    .d-none.d-md-table-cell { display: table-cell !important; }
+    .d-block.d-md-table-row { display: table-row !important; }
+    .w-md-auto { width: auto !important; }
+    .text-md-end { text-align: right !important; }
+    .h5-md { font-size: 1.25rem !important; }
 }
 
-/* Animações suaves */
-.consulta-row {
-    transition: all 0.2s ease;
-}
-
-.consulta-row:active {
-    transform: scale(0.98);
-}
-
-/* Loading states */
-.spinner-border-sm {
-    width: 1.5rem;
-    height: 1.5rem;
-    border-width: 0.2rem;
-}
-
-/* Ajustes para notificações */
-#listaNotificacoes .list-group-item {
-    border-left: none;
-    border-right: none;
-}
-
-#listaNotificacoes .list-group-item:first-child {
-    border-top: none;
-}
-
-#listaNotificacoes .list-group-item:last-child {
-    border-bottom: none;
-}
+.consulta-row { transition: all 0.2s ease; }
+.consulta-row:active { transform: scale(0.98); }
+.spinner-border-sm { width: 1.5rem; height: 1.5rem; border-width: 0.2rem; }
+#listaNotificacoes .list-group-item { border-left: none; border-right: none; }
+#listaNotificacoes .list-group-item:first-child { border-top: none; }
+#listaNotificacoes .list-group-item:last-child { border-bottom: none; }
 </style>
 
 <script>
@@ -837,15 +658,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // Fechar dropdown após seleção
             const dropdown = bootstrap.Dropdown.getInstance(this.closest('.dropdown').querySelector('[data-bs-toggle="dropdown"]'));
-            if (dropdown) {
-                dropdown.hide();
-            }
+            if (dropdown) dropdown.hide();
         });
     });
     
-    // Funções de carregamento de dados
+    // Função para carregar pedidos recentes
     function carregarPedidosRecentes() {
         fetch('/medico/api/pedidos-recentes')
             .then(response => response.ok ? response.json() : { pedidos: [] })
@@ -863,8 +681,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         let btnAction = 'Ver';
                         let btnClass = 'outline-primary';
-                        let btnUrl = `/medico/pedidos_analise`;
+                        let btnUrl = '#';
                         
+                        // CORREÇÃO: URLs corretas
                         if (pedido.status === 'concluido' && pedido.status_aprovacao === 'pendente') {
                             btnAction = 'Revisar';
                             btnClass = 'success';
@@ -873,22 +692,35 @@ document.addEventListener('DOMContentLoaded', function() {
                             btnAction = 'Resultado';
                             btnClass = 'info';
                             btnUrl = `/medico/revisar-analise/${pedido.id}`;
+                        } else if (pedido.status === 'em_analise') {
+                            btnAction = 'Aguardando';
+                            btnClass = 'secondary disabled';
+                            btnUrl = '#';
+                        } else if (pedido.status === 'pendente') {
+                            btnAction = 'Pendente';
+                            btnClass = 'warning disabled';
+                            btnUrl = '#';
+                        } else {
+                            btnAction = 'Ver';
+                            btnClass = 'outline-primary';
+                            btnUrl = `/medico/pedidos_analise`;
                         }
                         
                         html += `
                         <div class="list-group-item list-group-item-action p-2 p-md-3">
                             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
                                 <div class="flex-grow-1 mb-2 mb-sm-0 me-sm-3">
-                                    <h6 class="mb-1">${pedido.paciente_nome}</h6>
-                                    <p class="mb-1 small text-muted">${pedido.tipo_exame}</p>
+                                    <h6 class="mb-1">${pedido.paciente_nome || 'Paciente'}</h6>
+                                    <p class="mb-1 small text-muted">${pedido.tipo_exame || 'Exame'}</p>
                                     <div class="d-flex align-items-center flex-wrap">
-                                        <span class="badge bg-${badgeClass} me-2">${pedido.status}</span>
-                                        <small class="text-muted">${pedido.data_solicitacao}</small>
+                                        <span class="badge bg-${badgeClass} me-2">${pedido.status || 'pendente'}</span>
+                                        <small class="text-muted">${pedido.data_solicitacao || ''}</small>
                                     </div>
                                 </div>
-                                <a href="${btnUrl}" class="btn btn-sm btn-${btnClass} w-100 w-sm-auto">
-                                    ${btnAction}
-                                </a>
+                                ${btnUrl !== '#' ? 
+                                    `<a href="${btnUrl}" class="btn btn-sm btn-${btnClass} w-100 w-sm-auto">${btnAction}</a>` :
+                                    `<span class="btn btn-sm btn-${btnClass} w-100 w-sm-auto disabled">${btnAction}</span>`
+                                }
                             </div>
                         </div>
                         `;
@@ -907,33 +739,35 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 }
             })
-            .catch(() => {
+            .catch(error => {
+                console.error('Erro ao carregar pedidos:', error);
                 document.getElementById('listaPedidos').innerHTML = `
                 <div class="text-center py-4">
-                    <i class="fas fa-microscope fa-3x text-muted mb-3"></i>
-                    <p class="small text-muted">Módulo de pedidos disponível</p>
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <p class="small text-muted">Erro ao carregar pedidos</p>
                 </div>
                 `;
             });
     }
     
+    // Função para carregar contadores
     function carregarContadores() {
         fetch('/medico/api/contadores')
             .then(response => response.ok ? response.json() : {})
             .then(data => {
-                document.getElementById('contadorResultados').textContent = data.resultados_pendentes || 0;
+                document.getElementById('contadorResultados')?.setAttribute('data-value', data.resultados_pendentes || 0);
                 document.getElementById('contadorAnalises').textContent = data.analises_solicitadas || 0;
-                document.getElementById('contadorPedidos').textContent = (data.analises_solicitadas || 0) + (data.resultados_pendentes || 0);
+                document.getElementById('contadorPedidosRapidos').textContent = (data.analises_solicitadas || 0) + (data.resultados_pendentes || 0);
                 document.getElementById('badgeResultados').textContent = data.resultados_pendentes || 0;
                 document.getElementById('contadorNotificacoes').textContent = data.notificacoes || 0;
                 document.getElementById('consultasHoje').textContent = data.consultas_hoje || 0;
-                document.getElementById('contadorPedidosRapidos').textContent = (data.analises_solicitadas || 0) + (data.resultados_pendentes || 0);
                 document.getElementById('pacientesInternados').textContent = data.pacientes_internados || 0;
                 document.getElementById('leitosOcupados').textContent = data.leitos_ocupados || 0;
             })
             .catch(console.error);
     }
     
+    // CORREÇÃO: Função para carregar notificações com URLs corretas
     function carregarNotificacoes() {
         fetch('/medico/api/notificacoes')
             .then(response => response.ok ? response.json() : { notificacoes: [] })
@@ -943,14 +777,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.notificacoes && data.notificacoes.length > 0) {
                     let html = '';
                     data.notificacoes.slice(0, 3).forEach(notificacao => {
+                        // CORREÇÃO: Garantir URL válida
+                        let linkUrl = notificacao.link || '#';
+                        if (linkUrl !== '#' && !linkUrl.startsWith('http') && !linkUrl.startsWith('/')) {
+                            linkUrl = '/' + linkUrl;
+                        }
+                        
                         html += `
-                        <a href="${notificacao.link}" class="list-group-item list-group-item-action p-3">
+                        <a href="${linkUrl}" class="list-group-item list-group-item-action p-3">
                             <div class="d-flex w-100 justify-content-between align-items-start">
                                 <div class="flex-grow-1 me-3">
-                                    <h6 class="mb-1 small fw-bold">${notificacao.titulo}</h6>
-                                    <p class="mb-1 small">${notificacao.mensagem}</p>
+                                    <h6 class="mb-1 small fw-bold">${notificacao.titulo || 'Notificação'}</h6>
+                                    <p class="mb-1 small">${notificacao.mensagem || ''}</p>
                                 </div>
-                                <small class="text-muted text-nowrap">${notificacao.tempo}</small>
+                                <small class="text-muted text-nowrap">${notificacao.tempo || ''}</small>
                             </div>
                         </a>
                         `;
@@ -967,7 +807,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 }
             })
-            .catch(console.error);
+            .catch(error => {
+                console.error('Erro ao carregar notificações:', error);
+                document.getElementById('listaNotificacoes').innerHTML = `
+                <div class="list-group-item p-3">
+                    <div class="text-center py-2">
+                        <i class="fas fa-exclamation-triangle text-warning mb-2"></i>
+                        <p class="small text-muted mb-0">Erro ao carregar notificações</p>
+                    </div>
+                </div>
+                `;
+            });
     }
     
     // Inicializar
@@ -996,7 +846,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 </a>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             `;
-            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.row'));
+            const container = document.querySelector('.container-fluid') || document.querySelector('.container');
+            if (container) {
+                container.insertBefore(alertDiv, container.firstChild);
+            }
         }, 500);
     }
     
