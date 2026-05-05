@@ -1,3 +1,5 @@
+# routes/enfermeiro/dashboard.py
+
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify
 from datetime import date, timedelta, datetime
 from .utils import execute_query, enfermeiro_required, classificar_pressao, formatar_data, formatar_data_hora, decode_bytes
@@ -24,7 +26,7 @@ def buscar_pacientes_internados():
             logger.error("MySQL não configurado")
             return [], 0
             
-        cursor = dashboard_bp.mysql.connection.cursor()
+        cursor = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO: Adicionado dictionary=True
         
         # Query para buscar pacientes internados
         query = """
@@ -56,17 +58,17 @@ def buscar_pacientes_internados():
         
         internados_lista = []
         for row in internados_raw:
-            # Extrair dados
-            internacao_id = row[0]
-            prontuario = row[1] if row[1] else 'N/A'
-            data_internacao = row[2]
-            tipo_internacao = row[3]
-            diagnostico_inicial = row[4]
-            status = row[5]
-            leito_id = row[6]
-            paciente_id = row[7]
-            paciente_nome = row[8]
-            data_nasc = row[9]
+            # Extrair dados - AGORA ACESSANDO POR NOME DA COLUNA
+            internacao_id = row['id']
+            prontuario = row['numero_prontuario'] if row['numero_prontuario'] else 'N/A'
+            data_internacao = row['data_internacao']
+            tipo_internacao = row['tipo_internacao']
+            diagnostico_inicial = row['diagnostico_inicial']
+            status = row['status']
+            leito_id = row['leito_id']
+            paciente_id = row['paciente_id']
+            paciente_nome = row['paciente_nome']
+            data_nasc = row['data_nascimento']
             
             # Decodificar se for bytes
             if isinstance(paciente_nome, bytes):
@@ -96,25 +98,25 @@ def buscar_pacientes_internados():
             
             if leito_id:
                 try:
-                    cursor_leito = dashboard_bp.mysql.connection.cursor()
+                    cursor_leito = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO
                     cursor_leito.execute("SELECT alas, numero, tipo FROM leitos WHERE id = %s", (leito_id,))
                     leito = cursor_leito.fetchone()
                     cursor_leito.close()
                     if leito:
-                        leito_alas = leito[0] if leito[0] else "Não definido"
+                        leito_alas = leito['alas'] if leito['alas'] else "Não definido"
                         if isinstance(leito_alas, bytes):
                             leito_alas = leito_alas.decode('utf-8', errors='ignore')
-                        leito_numero = leito[1] if leito[1] else "?"
-                        leito_tipo = leito[2] if leito[2] else "Não definido"
+                        leito_numero = leito['numero'] if leito['numero'] else "?"
+                        leito_tipo = leito['tipo'] if leito['tipo'] else "Não definido"
                         if isinstance(leito_tipo, bytes):
                             leito_tipo = leito_tipo.decode('utf-8', errors='ignore')
-                except:
-                    pass
+                except Exception as e:
+                    logger.error(f"Erro ao buscar leito: {e}")
             
             # Buscar últimos sinais vitais
             ultimos_sinais = None
             try:
-                cursor_sinais = dashboard_bp.mysql.connection.cursor()
+                cursor_sinais = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO
                 cursor_sinais.execute("""
                     SELECT pressao_arterial, frequencia_cardiaca, temperatura, saturacao_oxigenio, glicemia, data_afericao
                     FROM sinais_vitais
@@ -126,20 +128,20 @@ def buscar_pacientes_internados():
                 cursor_sinais.close()
                 
                 if sinais:
-                    pressao = sinais[0]
+                    pressao = sinais['pressao_arterial']
                     if isinstance(pressao, bytes):
                         pressao = pressao.decode('utf-8', errors='ignore')
                     
                     ultimos_sinais = {
                         'pressao_arterial': pressao,
-                        'frequencia_cardiaca': sinais[1],
-                        'temperatura': sinais[2],
-                        'saturacao_oxigenio': sinais[3],
-                        'glicemia': sinais[4],
-                        'data_afericao': sinais[5]
+                        'frequencia_cardiaca': sinais['frequencia_cardiaca'],
+                        'temperatura': sinais['temperatura'],
+                        'saturacao_oxigenio': sinais['saturacao_oxigenio'],
+                        'glicemia': sinais['glicemia'],
+                        'data_afericao': sinais['data_afericao']
                     }
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"Erro ao buscar sinais vitais: {e}")
             
             internados_lista.append({
                 'id': internacao_id,
@@ -174,11 +176,15 @@ def buscar_pacientes_internados():
 def teste_internados():
     """Rota de teste para verificar internados"""
     try:
-        cursor = dashboard_bp.mysql.connection.cursor()
+        if not dashboard_bp.mysql:
+            return jsonify({'error': 'MySQL não configurado'})
+            
+        cursor = dashboard_bp.mysql.connection.cursor(dictionary=True)  # <-- ALTERADO
         
         # Testar query direta
-        cursor.execute("SELECT COUNT(*) FROM internacoes WHERE status = 'ativa'")
-        total = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as total FROM internacoes WHERE status = 'ativa'")
+        total_result = cursor.fetchone()
+        total = total_result['total'] if total_result else 0
         
         cursor.execute("""
             SELECT 
@@ -201,18 +207,18 @@ def teste_internados():
         
         resultado = []
         for internado in internados:
-            nome = internado[7]
+            nome = internado['paciente_nome']
             if isinstance(nome, bytes):
                 nome = nome.decode('utf-8', errors='ignore')
             
             resultado.append({
-                'id': internado[0],
-                'prontuario': internado[1],
-                'data': str(internado[2]),
-                'tipo': internado[3],
-                'diagnostico': internado[4],
-                'status': internado[5],
-                'paciente_id': internado[6],
+                'id': internado['id'],
+                'prontuario': internado['numero_prontuario'],
+                'data': str(internado['data_internacao']),
+                'tipo': internado['tipo_internacao'],
+                'diagnostico': internado['diagnostico_inicial'],
+                'status': internado['status'],
+                'paciente_id': internado['paciente_id'],
                 'paciente_nome': nome
             })
         
@@ -222,6 +228,7 @@ def teste_internados():
         })
         
     except Exception as e:
+        logger.error(f"Erro no teste: {e}")
         return jsonify({'error': str(e), 'traceback': traceback.format_exc()})
 
 @dashboard_bp.route('/')
