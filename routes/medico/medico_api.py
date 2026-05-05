@@ -1,4 +1,4 @@
-# routes/medico/medico_api.py - VERSÃO COMPLETA CORRIGIDA
+# routes/medico/medico_api.py - VERSÃO COMPLETAMENTE CORRIGIDA
 from flask import jsonify
 from datetime import datetime
 import logging
@@ -23,30 +23,11 @@ def init_medico_api(mysql, base):
                 return valor.decode('utf-8', errors='ignore')
             except:
                 return str(valor)
-        # Se já for string, retorna normal
         if isinstance(valor, str):
             return valor
-        # Se for outro tipo, converte para string
+        if isinstance(valor, datetime):
+            return valor.strftime('%d/%m/%Y %H:%M')
         return str(valor) if valor else ''
-    
-    def converter_lista_para_json(dados):
-        """Converte todos os campos bytes para string em uma lista de tuplas"""
-        if not dados:
-            return []
-        
-        resultados = []
-        for item in dados:
-            novo_item = []
-            for valor in item:
-                if isinstance(valor, bytes):
-                    novo_item.append(converter_bytes_para_string(valor))
-                elif isinstance(valor, datetime):
-                    novo_item.append(valor.strftime('%Y-%m-%d %H:%M:%S'))
-                else:
-                    novo_item.append(valor)
-            resultados.append(tuple(novo_item))
-        
-        return resultados
     
     # Função segura para extrair valor de resultado
     def extrair_valor(resultado, indice=0, padrao=0):
@@ -54,28 +35,25 @@ def init_medico_api(mysql, base):
         if resultado is None:
             return padrao
         try:
-            # Se for tupla ou lista
             if isinstance(resultado, (tuple, list)) and len(resultado) > indice:
                 valor = resultado[indice]
                 if isinstance(valor, bytes):
                     return int(valor.decode('utf-8', errors='ignore'))
                 return int(valor) if valor is not None else padrao
-            # Se for dicionário
             elif isinstance(resultado, dict):
-                keys = list(resultado.keys())
-                if len(keys) > indice:
-                    valor = resultado[keys[indice]]
-                else:
-                    valor = resultado.get('COUNT(*)', resultado.get('total', padrao))
-                if isinstance(valor, bytes):
-                    return int(valor.decode('utf-8', errors='ignore'))
-                return int(valor) if valor is not None else padrao
+                # Pegar o primeiro valor do dicionário
+                valores = list(resultado.values())
+                if len(valores) > indice:
+                    valor = valores[indice]
+                    if isinstance(valor, bytes):
+                        return int(valor.decode('utf-8', errors='ignore'))
+                    return int(valor) if valor is not None else padrao
             return padrao
         except Exception as e:
             logger.warning(f"Erro ao extrair valor: {e}")
             return padrao
     
-    # ========== API: PEDIDOS RECENTES ==========
+    # ========== API: PEDIDOS RECENTES - CORRIGIDA ==========
     @medico_required
     def api_pedidos_recentes():
         try:
@@ -84,9 +62,10 @@ def init_medico_api(mysql, base):
                 return jsonify({'error': 'Médico não encontrado'}), 401
             
             medico_id = medico_info.get('id')
-            if not medico_id or medico_id < 0:
+            if not medico_id:
                 return jsonify({'pedidos': []})
             
+            # Buscar pedidos
             pedidos_raw = execute_query("""
                 SELECT 
                     pa.id, 
@@ -102,30 +81,39 @@ def init_medico_api(mysql, base):
                 ORDER BY pa.data_solicitacao DESC LIMIT 5
             """, (medico_id,), fetch=True)
             
-            # Converter bytes para string
-            pedidos = converter_lista_para_json(pedidos_raw) if pedidos_raw else []
-            
             pedidos_lista = []
-            if pedidos:
-                for p in pedidos:
-                    # Garantir que todos os campos são strings
-                    paciente_nome = converter_bytes_para_string(p[1]) if len(p) > 1 else 'Paciente'
-                    tipo_exame = converter_bytes_para_string(p[2]) if len(p) > 2 else 'Exame'
-                    status = converter_bytes_para_string(p[3]) if len(p) > 3 else 'pendente'
-                    data = p[4] if len(p) > 4 else None
-                    if isinstance(data, datetime):
-                        data_str = data.strftime('%d/%m/%Y')
-                    else:
-                        data_str = str(data) if data else ''
-                    
-                    pedidos_lista.append({
-                        'id': p[0],
-                        'paciente_nome': paciente_nome,
-                        'tipo_exame': tipo_exame,
-                        'status': status,
-                        'data_solicitacao': data_str,
-                        'status_aprovacao': converter_bytes_para_string(p[5]) if len(p) > 5 else ''
-                    })
+            if pedidos_raw:
+                for p in pedidos_raw:
+                    # Se for dicionário (execute_query com dict)
+                    if isinstance(p, dict):
+                        pedido_id = p.get('id', 0)
+                        paciente_nome = converter_bytes_para_string(p.get('paciente_nome', 'Paciente'))
+                        tipo_exame = converter_bytes_para_string(p.get('tipo_exame', 'Exame'))
+                        status = converter_bytes_para_string(p.get('status', 'pendente'))
+                        data_solicitacao = p.get('data_solicitacao', '')
+                        if isinstance(data_solicitacao, datetime):
+                            data_str = data_solicitacao.strftime('%d/%m/%Y')
+                        else:
+                            data_str = converter_bytes_para_string(data_solicitacao)
+                        
+                        pedidos_lista.append({
+                            'id': pedido_id,
+                            'paciente_nome': paciente_nome,
+                            'tipo_exame': tipo_exame,
+                            'status': status,
+                            'data_solicitacao': data_str,
+                            'status_aprovacao': converter_bytes_para_string(p.get('status_aprovacao', ''))
+                        })
+                    # Se for tupla/lista
+                    elif isinstance(p, (tuple, list)) and len(p) >= 5:
+                        pedidos_lista.append({
+                            'id': p[0],
+                            'paciente_nome': converter_bytes_para_string(p[1]),
+                            'tipo_exame': converter_bytes_para_string(p[2]),
+                            'status': converter_bytes_para_string(p[3]),
+                            'data_solicitacao': converter_bytes_para_string(p[4]),
+                            'status_aprovacao': converter_bytes_para_string(p[5]) if len(p) > 5 else ''
+                        })
             
             return jsonify({'pedidos': pedidos_lista})
             
@@ -133,7 +121,7 @@ def init_medico_api(mysql, base):
             logger.error(f"Erro em api_pedidos_recentes: {e}")
             import traceback
             traceback.print_exc()
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'pedidos': []}), 200
     
     # ========== API: CONTADORES ==========
     @medico_required
@@ -149,53 +137,78 @@ def init_medico_api(mysql, base):
                     'consultas_hoje': 0,
                     'resultados_pendentes': 0,
                     'analises_solicitadas': 0,
-                    'pedidos_criados': 0,
-                    'notificacoes': 0
+                    'pacientes_internados': 0,
+                    'leitos_ocupados': 0
                 })
             
-            # Consultas hoje - COM TRATAMENTO DE ERRO
+            # Consultas hoje
             hoje = datetime.now().strftime('%Y-%m-%d')
             consultas_result = execute_query("""
-                SELECT COUNT(*) FROM consultas 
+                SELECT COUNT(*) as total FROM consultas 
                 WHERE medico_id = %s AND DATE(data_hora) = %s
             """, (medico_id, hoje), fetch=True, one=True)
             
-            # Extrair valor com segurança
-            consultas_hoje = extrair_valor(consultas_result, 0, 0)
+            consultas_hoje = 0
+            if consultas_result:
+                if isinstance(consultas_result, dict):
+                    consultas_hoje = consultas_result.get('total', 0)
+                elif isinstance(consultas_result, (tuple, list)):
+                    consultas_hoje = consultas_result[0] if consultas_result[0] else 0
+                else:
+                    consultas_hoje = consultas_result if isinstance(consultas_result, (int, float)) else 0
             
             # Resultados pendentes
             resultados_result = execute_query("""
-                SELECT COUNT(*) FROM pedidos_analise 
+                SELECT COUNT(*) as total FROM pedidos_analise 
                 WHERE medico_id = %s AND status = 'concluido' 
                 AND status_aprovacao = 'pendente'
             """, (medico_id,), fetch=True, one=True)
             
-            resultados_pendentes = extrair_valor(resultados_result, 0, 0)
+            resultados_pendentes = 0
+            if resultados_result:
+                if isinstance(resultados_result, dict):
+                    resultados_pendentes = resultados_result.get('total', 0)
+                elif isinstance(resultados_result, (tuple, list)):
+                    resultados_pendentes = resultados_result[0] if resultados_result[0] else 0
+                else:
+                    resultados_pendentes = resultados_result if isinstance(resultados_result, (int, float)) else 0
             
-            # Análises solicitadas (pendentes + em análise)
+            # Análises solicitadas
             analises_result = execute_query("""
-                SELECT COUNT(*) FROM pedidos_analise 
+                SELECT COUNT(*) as total FROM pedidos_analise 
                 WHERE medico_id = %s AND status IN ('pendente', 'em_analise')
             """, (medico_id,), fetch=True, one=True)
             
-            analises_solicitadas = extrair_valor(analises_result, 0, 0)
+            analises_solicitadas = 0
+            if analises_result:
+                if isinstance(analises_result, dict):
+                    analises_solicitadas = analises_result.get('total', 0)
+                elif isinstance(analises_result, (tuple, list)):
+                    analises_solicitadas = analises_result[0] if analises_result[0] else 0
+                else:
+                    analises_solicitadas = analises_result if isinstance(analises_result, (int, float)) else 0
             
-            # Total de pedidos criados
-            pedidos_result = execute_query("""
-                SELECT COUNT(*) FROM pedidos_analise 
-                WHERE medico_id = %s
-            """, (medico_id,), fetch=True, one=True)
+            # Pacientes internados
+            internados_result = execute_query("""
+                SELECT COUNT(*) as total FROM internacoes_pacientes 
+                WHERE status = 'ativa'
+            """, fetch=True, one=True)
             
-            pedidos_criados = extrair_valor(pedidos_result, 0, 0)
-            
-            # Log para debug
-            logger.info(f"API Contadores - Médico {medico_id}: Consultas={consultas_hoje}, Resultados={resultados_pendentes}, Análises={analises_solicitadas}, Total={pedidos_criados}")
+            pacientes_internados = 0
+            if internados_result:
+                if isinstance(internados_result, dict):
+                    pacientes_internados = internados_result.get('total', 0)
+                elif isinstance(internados_result, (tuple, list)):
+                    pacientes_internados = internados_result[0] if internados_result[0] else 0
+                else:
+                    pacientes_internados = internados_result if isinstance(internados_result, (int, float)) else 0
             
             return jsonify({
                 'consultas_hoje': consultas_hoje,
                 'resultados_pendentes': resultados_pendentes,
                 'analises_solicitadas': analises_solicitadas,
-                'pedidos_criados': pedidos_criados,
+                'pacientes_internados': pacientes_internados,
+                'leitos_ocupados': pacientes_internados,
                 'notificacoes': resultados_pendentes
             })
             
@@ -203,17 +216,16 @@ def init_medico_api(mysql, base):
             logger.error(f"Erro em api_contadores: {e}")
             import traceback
             logger.error(traceback.format_exc())
-            # Retornar valores padrão mesmo em caso de erro
             return jsonify({
                 'consultas_hoje': 0,
                 'resultados_pendentes': 0,
                 'analises_solicitadas': 0,
-                'pedidos_criados': 0,
-                'notificacoes': 0,
-                'error': str(e)
-            }), 200  # Retorna 200 mesmo com erro para não quebrar o frontend
+                'pacientes_internados': 0,
+                'leitos_ocupados': 0,
+                'notificacoes': 0
+            }), 200
     
-    # ========== API: NOTIFICAÇÕES - VERSÃO CORRIGIDA ==========
+    # ========== API: NOTIFICAÇÕES - CORRIGIDA ==========
     @medico_required
     def api_notificacoes():
         try:
@@ -240,21 +252,24 @@ def init_medico_api(mysql, base):
                 ORDER BY pa.data_conclusao DESC LIMIT 5
             """, (medico_id,), fetch=True)
             
-            # Converter bytes para string
-            pedidos = converter_lista_para_json(pedidos_raw) if pedidos_raw else []
-            
             notificacoes = []
-            if pedidos:
-                for p in pedidos:
-                    # Garantir que todos os campos são strings
-                    paciente_nome = converter_bytes_para_string(p[3]) if len(p) > 3 else 'Paciente'
-                    tipo_exame = converter_bytes_para_string(p[1]) if len(p) > 1 else 'Exame'
+            if pedidos_raw:
+                for p in pedidos_raw:
+                    # Extrair dados com segurança
+                    if isinstance(p, dict):
+                        pedido_id = p.get('id', 0)
+                        tipo_exame = converter_bytes_para_string(p.get('tipo_exame', 'Exame'))
+                        paciente_nome = converter_bytes_para_string(p.get('paciente_nome', 'Paciente'))
+                        data_conclusao = p.get('data_conclusao')
+                    else:
+                        pedido_id = p[0] if len(p) > 0 else 0
+                        tipo_exame = converter_bytes_para_string(p[1]) if len(p) > 1 else 'Exame'
+                        paciente_nome = converter_bytes_para_string(p[3]) if len(p) > 3 else 'Paciente'
+                        data_conclusao = p[2] if len(p) > 2 else None
                     
-                    pedido_id = p[0]
-                    
-                    data = p[2] if len(p) > 2 else None
-                    if data and isinstance(data, datetime):
-                        dias = (datetime.now() - data).days
+                    # Calcular tempo
+                    if data_conclusao and isinstance(data_conclusao, datetime):
+                        dias = (datetime.now() - data_conclusao).days
                     else:
                         dias = 0
                     
@@ -265,12 +280,11 @@ def init_medico_api(mysql, base):
                     else:
                         tempo = f"{dias} dias atrás"
                     
-                    # CORREÇÃO: Link usando a rota correta
                     notificacoes.append({
                         'id': pedido_id,
                         'titulo': f"Resultado: {tipo_exame}",
                         'mensagem': f"Resultado de {paciente_nome} aguardando revisão",
-                        'link': f"/medico/revisar-analise/{pedido_id}",  # <- CORRIGIDO!
+                        'link': f"/medico/revisar-analise/{pedido_id}",
                         'tempo': tempo
                     })
             
