@@ -1,4 +1,4 @@
-# routes/medico/medico_api.py - VERSÃO CORRIGIDA
+# routes/medico/medico_api.py - VERSÃO COMPLETA CORRIGIDA
 from flask import jsonify
 from datetime import datetime
 import logging
@@ -135,7 +135,7 @@ def init_medico_api(mysql, base):
             traceback.print_exc()
             return jsonify({'error': str(e)}), 500
     
-    # ========== API: CONTADORES - VERSÃO CORRIGIDA ==========
+    # ========== API: CONTADORES ==========
     @medico_required
     def api_contadores():
         try:
@@ -213,7 +213,7 @@ def init_medico_api(mysql, base):
                 'error': str(e)
             }), 200  # Retorna 200 mesmo com erro para não quebrar o frontend
     
-    # ========== API: NOTIFICAÇÕES ==========
+    # ========== API: NOTIFICAÇÕES - VERSÃO CORRIGIDA ==========
     @medico_required
     def api_notificacoes():
         try:
@@ -250,6 +250,8 @@ def init_medico_api(mysql, base):
                     paciente_nome = converter_bytes_para_string(p[3]) if len(p) > 3 else 'Paciente'
                     tipo_exame = converter_bytes_para_string(p[1]) if len(p) > 1 else 'Exame'
                     
+                    pedido_id = p[0]
+                    
                     data = p[2] if len(p) > 2 else None
                     if data and isinstance(data, datetime):
                         dias = (datetime.now() - data).days
@@ -263,11 +265,12 @@ def init_medico_api(mysql, base):
                     else:
                         tempo = f"{dias} dias atrás"
                     
+                    # CORREÇÃO: Link usando a rota correta
                     notificacoes.append({
-                        'id': p[0],
+                        'id': pedido_id,
                         'titulo': f"Resultado: {tipo_exame}",
                         'mensagem': f"Resultado de {paciente_nome} aguardando revisão",
-                        'link': f"/pedido-analise/pedido/{p[0]}",
+                        'link': f"/medico/revisar-analise/{pedido_id}",  # <- CORRIGIDO!
                         'tempo': tempo
                     })
             
