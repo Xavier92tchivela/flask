@@ -14,7 +14,13 @@ def set_mysql(mysql_instance):
     global _mysql
     _mysql = mysql_instance
 
-# ===== FUNÇÃO PARA DECODIFICAR BYTES =====
+def dict_factory(cursor, row):
+    """Converte uma tupla em dicionário"""
+    d = {}
+    for idx, col in enumerate(cursor.description):
+        d[col[0]] = row[idx]
+    return d
+
 def decode_bytes(data):
     """
     Decodifica recursivamente qualquer valor bytes para string
@@ -41,8 +47,11 @@ def execute_query(query, params=None, fetch=False, one=False):
         if not _mysql:
             logger.error("MySQL connection not configured")
             return None if fetch else False
-            
+        
+        # CORREÇÃO: Usar cursor com row_factory
         cur = _mysql.connection.cursor()
+        cur.row_factory = dict_factory
+        
         if params:
             cur.execute(query, params)
         else:
@@ -50,36 +59,31 @@ def execute_query(query, params=None, fetch=False, one=False):
 
         if fetch:
             result = cur.fetchall()
-            if one and result:
-                # Converter para dicionário se possível
-                if hasattr(cur, 'description'):
-                    columns = [col[0] for col in cur.description]
-                    result_dict = dict(zip(columns, result[0]))
-                    cur.close()
-                    # DECODIFICAR BYTES
-                    return decode_bytes(result_dict)
-                cur.close()
-                # DECODIFICAR BYTES
+            cur.close()
+            
+            if not result:
+                return None if one else []
+            
+            if one:
+                # Retorna o primeiro resultado como dicionário
                 return decode_bytes(result[0])
             
-            # Converter lista de tuplas para lista de dicionários
-            if result and hasattr(cur, 'description'):
-                columns = [col[0] for col in cur.description]
-                result_list = [dict(zip(columns, row)) for row in result]
-                cur.close()
-                # DECODIFICAR BYTES
-                return decode_bytes(result_list)
-            cur.close()
-            # DECODIFICAR BYTES
+            # Retorna lista de dicionários
             return decode_bytes(result)
         else:
             _mysql.connection.commit()
             cur.close()
             return True
+            
     except Exception as e:
         logger.error(f"Database error: {e}")
+        logger.error(f"Query: {query}")
+        logger.error(f"Params: {params}")
         if _mysql:
-            _mysql.connection.rollback()
+            try:
+                _mysql.connection.rollback()
+            except:
+                pass
         return None if fetch else False
 
 def enfermeiro_required(f):
