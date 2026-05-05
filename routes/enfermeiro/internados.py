@@ -66,10 +66,10 @@ def listar_internados():
             flash("Você precisa estar logado.", "danger")
             return redirect(url_for("auth.login"))
         
-        # CORREÇÃO: Usar cursor normal e definir row_factory para dicionário
         cursor = mysql.connection.cursor()
         cursor.row_factory = dict_factory
         
+        # CORREÇÃO: Usar o nome correto da tabela 'internacoes_pacientes'
         query = """
             SELECT 
                 i.id,
@@ -91,7 +91,7 @@ def listar_internados():
                 m.id as medico_id,
                 mu.nome as medico_nome,
                 m.crm
-            FROM internacoes i
+            FROM internacoes_pacientes i
             JOIN pacientes p ON i.paciente_id = p.id
             JOIN usuarios u ON p.usuario_id = u.id
             LEFT JOIN leitos l ON i.leito_id = l.id
@@ -165,11 +165,12 @@ def listar_internados():
         
         cursor.close()
         
-        # Contar total de internados
+        # Contar total de internados - CORREÇÃO: usar dict_factory e nome correto da tabela
         cursor_count = mysql.connection.cursor()
-        cursor_count.execute("SELECT COUNT(*) as total FROM internacoes WHERE status = 'ativa'")
+        cursor_count.row_factory = dict_factory
+        cursor_count.execute("SELECT COUNT(*) as total FROM internacoes_pacientes WHERE status = 'ativa'")
         total_result = cursor_count.fetchone()
-        total_internados = total_result[0] if total_result else 0
+        total_internados = total_result['total'] if total_result else 0
         cursor_count.close()
         
         return render_template(
@@ -197,6 +198,7 @@ def detalhes_internacao(internacao_id):
         cursor = mysql.connection.cursor()
         cursor.row_factory = dict_factory
         
+        # CORREÇÃO: Usar 'internacoes_pacientes'
         query = """
             SELECT 
                 i.id,
@@ -224,7 +226,7 @@ def detalhes_internacao(internacao_id):
                 m.id as medico_id,
                 mu.nome as medico_nome,
                 m.crm
-            FROM internacoes i
+            FROM internacoes_pacientes i
             JOIN pacientes p ON i.paciente_id = p.id
             JOIN usuarios u ON p.usuario_id = u.id
             LEFT JOIN leitos l ON i.leito_id = l.id
@@ -336,9 +338,9 @@ def registrar_sinais_vitais(paciente_id, internacao_id):
         """, (paciente_id,))
         paciente = cursor.fetchone()
         
-        # Buscar dados da internação
+        # Buscar dados da internação - CORREÇÃO: usar 'internacoes_pacientes'
         cursor.execute("""
-            SELECT numero_prontuario, consulta_id FROM internacoes 
+            SELECT numero_prontuario, consulta_id FROM internacoes_pacientes 
             WHERE id = %s
         """, (internacao_id,))
         internacao = cursor.fetchone()
@@ -438,10 +440,11 @@ def dar_alta(internacao_id):
         observacoes_alta = data.get('observacoes_alta', '')
         
         cursor = mysql.connection.cursor()
+        cursor.row_factory = dict_factory
         
-        # Verificar se a internação existe
+        # Verificar se a internação existe - CORREÇÃO: usar 'internacoes_pacientes'
         cursor.execute("""
-            SELECT id, leito_id, consulta_id FROM internacoes 
+            SELECT id, leito_id, consulta_id FROM internacoes_pacientes 
             WHERE id = %s AND status = 'ativa'
         """, (internacao_id,))
         internacao = cursor.fetchone()
@@ -450,13 +453,12 @@ def dar_alta(internacao_id):
             cursor.close()
             return jsonify({"success": False, "error": "Internação não encontrada ou já encerrada"}), 404
         
-        # CORREÇÃO: Acessar por índice quando usando cursor normal (sem row_factory)
-        leito_id = internacao[1] if len(internacao) > 1 else None
-        consulta_id = internacao[2] if len(internacao) > 2 else None
+        leito_id = internacao.get('leito_id')
+        consulta_id = internacao.get('consulta_id')
         
-        # Atualizar internação
+        # Atualizar internação - CORREÇÃO: usar 'internacoes_pacientes'
         cursor.execute("""
-            UPDATE internacoes 
+            UPDATE internacoes_pacientes 
             SET status = 'alta', 
                 data_alta = %s,
                 diagnostico_final = %s,
