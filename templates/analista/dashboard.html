@@ -43,7 +43,7 @@
                                 </div>
                                 <i class="fas fa-calendar-check stat-icon text-primary"></i>
                             </div>
-                            <small class="text-muted" id="todayDate"></small>
+                            <small class="text-muted">Agendadas</small>
                         </div>
                     </div>
                 </div>
@@ -53,14 +53,14 @@
                         <div class="card-body p-2 p-md-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <div class="stat-label text-warning">TRIAGENS</div>
+                                    <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
                                     <div class="stat-value" id="statTriagensPendentes">
                                         {{ triagens_pendentes|length if triagens_pendentes is iterable else triagens_pendentes|default(0) }}
                                     </div>
                                 </div>
                                 <i class="fas fa-stethoscope stat-icon text-warning"></i>
                             </div>
-                            <small class="text-muted">Pendentes</small>
+                            <small class="text-muted">Aguardando</small>
                         </div>
                     </div>
                 </div>
@@ -70,14 +70,14 @@
                         <div class="card-body p-2 p-md-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <div class="stat-label text-danger">INTERNADOS</div>
+                                    <div class="stat-label text-danger">PACIENTES INTERNADOS</div>
                                     <div class="stat-value" id="statInternados">
                                         {{ internados_hoje|length if internados_hoje is iterable else internados_hoje|default(0) }}
                                     </div>
                                 </div>
                                 <i class="fas fa-procedures stat-icon text-danger"></i>
                             </div>
-                            <small class="text-muted">Em leitos</small>
+                            <small class="text-muted">Internados</small>
                         </div>
                     </div>
                 </div>
@@ -87,14 +87,14 @@
                         <div class="card-body p-2 p-md-3">
                             <div class="d-flex justify-content-between align-items-start">
                                 <div>
-                                    <div class="stat-label text-success">AFERIÇÕES</div>
+                                    <div class="stat-label text-success">AFERIÇÕES HOJE</div>
                                     <div class="stat-value" id="statAfericoesHoje">
                                         {{ afericoes_hoje|length if afericoes_hoje is iterable else afericoes_hoje|default(0) }}
                                     </div>
                                 </div>
                                 <i class="fas fa-heartbeat stat-icon text-success"></i>
                             </div>
-                            <small class="text-muted">Hoje</small>
+                            <small class="text-muted">Registros</small>
                         </div>
                     </div>
                 </div>
@@ -117,79 +117,18 @@
             </div>
             {% endif %}
             
-            <!-- Métricas de Performance -->
-            <div class="card mb-3">
-                <div class="card-header bg-white py-2">
-                    <h6 class="mb-0 fw-bold text-primary">
-                        <i class="fas fa-chart-line me-2"></i> Performance
-                    </h6>
-                </div>
-                <div class="card-body p-2 p-md-3">
-                    <div class="row g-2">
-                        <div class="col-6 col-md-3">
-                            <div class="text-center p-2">
-                                <i class="fas fa-calendar-check fa-lg text-primary"></i>
-                                <div class="metric-value" id="metricTotalConsultas">{{ total_consultas|default(0) }}</div>
-                                <small class="text-muted">Total Consultas</small>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-center p-2">
-                                <i class="fas fa-check-circle fa-lg text-success"></i>
-                                <div class="metric-value" id="metricTriagensRealizadas">{{ triagens_realizadas|default(0) }}</div>
-                                <small class="text-muted">Triagens</small>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-center p-2">
-                                <i class="fas fa-heartbeat fa-lg text-info"></i>
-                                <div class="metric-value" id="metricAfericoesSemana">{{ afericoes_semana|default(0) }}</div>
-                                <small class="text-muted">Aferições (7d)</small>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-center p-2">
-                                <i class="fas fa-percentage fa-lg text-warning"></i>
-                                <div class="metric-value" id="metricTaxaOcupacao">{{ taxa_ocupacao|default(0) }}%</div>
-                                <small class="text-muted">Ocupação</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Barras de Progresso -->
-                    <div class="row g-2 mt-2">
-                        <div class="col-md-6">
-                            <div class="d-flex justify-content-between small">
-                                <span>Meta Semanal</span>
-                                <span class="fw-bold" id="progressValueSemanal">{{ meta_atual|default(0) }}/{{ meta_semanal|default(50) }}</span>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div id="progressSemanal" class="progress-bar bg-success" style="width: {{ progresso_semanal|default(0) }}%"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6 mt-2 mt-md-0">
-                            <div class="d-flex justify-content-between small">
-                                <span>Triagens Hoje</span>
-                                <span class="fw-bold" id="progressValueHoje">{{ triagens_hoje|default(0) }}/{{ meta_triagens_diaria|default(10) }}</span>
-                            </div>
-                            <div class="progress" style="height: 6px;">
-                                <div id="progressHoje" class="progress-bar bg-info" style="width: {{ progresso_triagens|default(0) }}%"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Últimos Atendimentos e Ações Rápidas em 2 colunas -->
-            <div class="row g-2">
-                <!-- Últimos Atendimentos -->
-                <div class="col-md-7">
-                    <div class="card h-100">
+            <!-- ÚLTIMOS ATENDIMENTOS - MOVIDO PARA CIMA -->
+            <div class="row g-2 mb-3">
+                <div class="col-12">
+                    <div class="card">
                         <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
                             <h6 class="mb-0 fw-bold text-primary">
                                 <i class="fas fa-history me-2"></i> Últimos Atendimentos
                             </h6>
-                            <span class="badge bg-primary">{{ ultimos_atendimentos|length if ultimos_atendimentos else 0 }}</span>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-primary">{{ ultimos_atendimentos|length if ultimos_atendimentos else 0 }}</span>
+                                <a href="/enfermeiro/historico" class="btn btn-sm btn-outline-primary">Ver Todos</a>
+                            </div>
                         </div>
                         <div class="card-body p-0">
                             {% if ultimos_atendimentos and ultimos_atendimentos|length > 0 %}
@@ -197,14 +136,17 @@
                                 {% for item in ultimos_atendimentos[:5] %}
                                 <div class="list-group-item list-group-item-action px-3 py-2">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <div class="fw-semibold small">{{ item.paciente }}</div>
-                                            <div class="d-flex align-items-center gap-2">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <strong class="small">{{ item.paciente }}</strong>
                                                 <span class="badge bg-{{ item.cor|default('primary') }}" style="font-size: 0.65rem;">{{ item.tipo }}</span>
                                                 <small class="text-muted">{{ item.data }}</small>
                                             </div>
+                                            {% if item.detalhe %}
+                                            <div class="small text-muted mt-1">{{ item.detalhe }}</div>
+                                            {% endif %}
                                         </div>
-                                        <a href="{{ item.link }}" class="btn btn-sm btn-outline-primary">
+                                        <a href="{{ item.link }}" class="btn btn-sm btn-outline-primary ms-2">
                                             <i class="fas fa-eye"></i>
                                         </a>
                                     </div>
@@ -215,14 +157,85 @@
                             <div class="text-center py-4">
                                 <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
                                 <p class="text-muted small mb-0">Nenhum atendimento recente</p>
+                                <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm mt-2">
+                                    <i class="fas fa-calendar-plus me-1"></i> Agendar Consulta
+                                </a>
                             </div>
                             {% endif %}
                         </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Métricas de Performance e Ações Rápidas lado a lado -->
+            <div class="row g-2">
+                <!-- Métricas de Performance -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-white py-2">
+                            <h6 class="mb-0 fw-bold text-primary">
+                                <i class="fas fa-chart-line me-2"></i> Performance
+                            </h6>
+                        </div>
+                        <div class="card-body p-2 p-md-3">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="text-center p-2">
+                                        <i class="fas fa-calendar-check fa-lg text-primary"></i>
+                                        <div class="metric-value" id="metricTotalConsultas">{{ total_consultas|default(0) }}</div>
+                                        <small class="text-muted">Total Consultas</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2">
+                                        <i class="fas fa-check-circle fa-lg text-success"></i>
+                                        <div class="metric-value" id="metricTriagensRealizadas">{{ triagens_realizadas|default(0) }}</div>
+                                        <small class="text-muted">Triagens</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2">
+                                        <i class="fas fa-heartbeat fa-lg text-info"></i>
+                                        <div class="metric-value" id="metricAfericoesSemana">{{ afericoes_semana|default(0) }}</div>
+                                        <small class="text-muted">Aferições (7d)</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2">
+                                        <i class="fas fa-percentage fa-lg text-warning"></i>
+                                        <div class="metric-value" id="metricTaxaOcupacao">{{ taxa_ocupacao|default(0) }}%</div>
+                                        <small class="text-muted">Ocupação</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Barras de Progresso -->
+                            <div class="mt-2">
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between small">
+                                        <span>Meta Semanal</span>
+                                        <span class="fw-bold" id="progressValueSemanal">{{ meta_atual|default(0) }}/{{ meta_semanal|default(50) }}</span>
+                                    </div>
+                                    <div class="progress" style="height: 5px;">
+                                        <div id="progressSemanal" class="progress-bar bg-success" style="width: {{ progresso_semanal|default(0) }}%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="d-flex justify-content-between small">
+                                        <span>Triagens Hoje</span>
+                                        <span class="fw-bold" id="progressValueHoje">{{ triagens_hoje|default(0) }}/{{ meta_triagens_diaria|default(10) }}</span>
+                                    </div>
+                                    <div class="progress" style="height: 5px;">
+                                        <div id="progressHoje" class="progress-bar bg-info" style="width: {{ progresso_triagens|default(0) }}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Ações Rápidas -->
-                <div class="col-md-5">
+                <div class="col-md-6">
                     <div class="card h-100">
                         <div class="card-header bg-white py-2">
                             <h6 class="mb-0 fw-bold text-primary">
@@ -233,7 +246,7 @@
                             <div class="row g-2">
                                 <div class="col-6">
                                     <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
-                                       class="btn btn-warning w-100 py-2 d-flex flex-column align-items-center action-btn">
+                                       class="btn btn-warning w-100 py-3 py-md-2 d-flex flex-column align-items-center action-btn">
                                         <i class="fas fa-stethoscope fa-lg mb-1"></i>
                                         <span class="small fw-bold">Triagem</span>
                                         <small class="text-dark" id="triagensPendentesCount">{{ qtde_triagens }}</small>
@@ -241,7 +254,7 @@
                                 </div>
                                 <div class="col-6">
                                     <a href="/enfermeiro/internados" 
-                                       class="btn btn-danger w-100 py-2 d-flex flex-column align-items-center action-btn">
+                                       class="btn btn-danger w-100 py-3 py-md-2 d-flex flex-column align-items-center action-btn">
                                         <i class="fas fa-procedures fa-lg mb-1"></i>
                                         <span class="small fw-bold">Internados</span>
                                         <small>{{ internados_hoje|length if internados_hoje is iterable else internados_hoje|default(0) }}</small>
@@ -249,7 +262,7 @@
                                 </div>
                                 <div class="col-6">
                                     <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
-                                       class="btn btn-info w-100 py-2 d-flex flex-column align-items-center action-btn">
+                                       class="btn btn-info w-100 py-3 py-md-2 d-flex flex-column align-items-center action-btn">
                                         <i class="fas fa-heartbeat fa-lg mb-1"></i>
                                         <span class="small fw-bold">Sinais</span>
                                         <small>Registrar</small>
@@ -257,7 +270,7 @@
                                 </div>
                                 <div class="col-6">
                                     <a href="/enfermeiro/medicamentos" 
-                                       class="btn btn-success w-100 py-2 d-flex flex-column align-items-center action-btn">
+                                       class="btn btn-success w-100 py-3 py-md-2 d-flex flex-column align-items-center action-btn">
                                         <i class="fas fa-capsules fa-lg mb-1"></i>
                                         <span class="small fw-bold">Medicamentos</span>
                                         <small>Administrar</small>
@@ -395,9 +408,6 @@
         
         const currentTimeEl = document.getElementById('currentTime');
         if (currentTimeEl) currentTimeEl.textContent = `${dateStr} ${timeStr}`;
-        
-        const todayDateEl = document.getElementById('todayDate');
-        if (todayDateEl) todayDateEl.textContent = dateStr;
         
         const lastUpdateEl = document.getElementById('lastUpdate');
         if (lastUpdateEl) {
