@@ -6,70 +6,146 @@
 {% block content %}
 <div class="container-fluid px-4">
     <div class="row">
-        <!-- Menu Lateral Esquerdo - Moderno -->
-        <div class="col-md-3 col-lg-2 mb-4 mb-md-0">
-            <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <!-- Menu Lateral Esquerdo - Mais Largo -->
+        <div class="col-md-4 col-lg-3 mb-4 mb-md-0">
+            <div class="card shadow-sm border-0 rounded-4 overflow-hidden sticky-top" style="top: 20px;">
                 <div class="card-header bg-gradient-primary text-white py-4 border-0">
                     <div class="text-center">
                         <div class="avatar-circle mb-3 mx-auto">
                             <i class="fas fa-user-nurse fa-3x"></i>
                         </div>
-                        <h6 class="mb-0 fw-bold">{{ session.get('user_name', 'Enfermeiro') }}</h6>
+                        <h5 class="mb-0 fw-bold">{{ session.get('user_name', 'Enfermeiro') }}</h5>
                         <small class="opacity-75">Enfermeiro(a)</small>
+                        <div class="mt-2">
+                            <span class="badge bg-light text-dark rounded-pill px-3">
+                                <i class="fas fa-id-card me-1"></i> COREN: {{ session.get('enfermeiro_coren', 'Não informado') }}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div class="list-group list-group-flush">
                     <a href="/enfermeiro/dashboard/" class="list-group-item list-group-item-action active border-0 py-3">
-                        <i class="fas fa-tachometer-alt fa-fw me-3"></i>
-                        Dashboard
-                        <small class="d-block text-white-50 ms-4">Visão geral</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-tachometer-alt fa-lg"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Dashboard</strong>
+                                <div class="menu-subtitle">Visão geral do sistema</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-calendar-plus fa-fw me-3 text-primary"></i>
-                        Consultas
-                        <small class="d-block text-muted ms-4">Agendar e gerenciar</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-calendar-plus fa-lg text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Consultas</strong>
+                                <div class="menu-subtitle">Agendar e gerenciar consultas</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="/enfermeiro/internados" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-procedures fa-fw me-3 text-danger"></i>
-                        Internados
-                        <small class="d-block text-muted ms-4">Acompanhar internados</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-procedures fa-lg text-danger"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Pacientes Internados</strong>
+                                <div class="menu-subtitle">Acompanhar internados</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-stethoscope fa-fw me-3 text-warning"></i>
-                        Triagem
-                        <small class="d-block text-muted ms-4">Classificação de risco</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-stethoscope fa-lg text-warning"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Triagem</strong>
+                                <div class="menu-subtitle">Classificação de risco</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-heartbeat fa-fw me-3 text-success"></i>
-                        Sinais Vitais
-                        <small class="d-block text-muted ms-4">Histórico de aferições</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-heartbeat fa-lg text-success"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Sinais Vitais</strong>
+                                <div class="menu-subtitle">Histórico de aferições</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="/enfermeiro/medicamentos" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-capsules fa-fw me-3 text-info"></i>
-                        Medicamentos
-                        <small class="d-block text-muted ms-4">Controle de medicações</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-capsules fa-lg text-info"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Medicamentos</strong>
+                                <div class="menu-subtitle">Controle de medicações</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="/enfermeiro/historico" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-history fa-fw me-3 text-secondary"></i>
-                        Histórico
-                        <small class="d-block text-muted ms-4">Registros anteriores</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-history fa-lg text-secondary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Histórico</strong>
+                                <div class="menu-subtitle">Registros anteriores</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="/enfermeiro/relatorios" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-chart-bar fa-fw me-3 text-dark"></i>
-                        Relatórios
-                        <small class="d-block text-muted ms-4">Estatísticas</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-chart-bar fa-lg text-dark"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Relatórios</strong>
+                                <div class="menu-subtitle">Estatísticas e análises</div>
+                            </div>
+                        </div>
                     </a>
+                    
                     <a href="/enfermeiro/perfil" class="list-group-item list-group-item-action border-0 py-3">
-                        <i class="fas fa-user-circle fa-fw me-3 text-primary"></i>
-                        Perfil
-                        <small class="d-block text-muted ms-4">Informações pessoais</small>
+                        <div class="d-flex align-items-center">
+                            <div class="menu-icon me-3">
+                                <i class="fas fa-user-circle fa-lg text-primary"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Meu Perfil</strong>
+                                <div class="menu-subtitle">Informações pessoais</div>
+                            </div>
+                        </div>
                     </a>
+                </div>
+                
+                <!-- Footer do Menu -->
+                <div class="card-footer bg-white border-0 py-3">
+                    <div class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-shield-alt me-1"></i> DoctorIA v1.0
+                        </small>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Conteúdo Principal -->
-        <div class="col-md-9 col-lg-10">
+        <div class="col-md-8 col-lg-9">
             <!-- Header Moderno -->
             <div class="welcome-card mb-4 p-4 rounded-4 shadow-sm">
                 <div class="row align-items-center">
@@ -79,7 +155,8 @@
                             Olá, {{ session.get('user_name', 'Enfermeiro') }}
                         </h2>
                         <p class="text-muted mb-0">
-                            <i class="fas fa-id-card me-1"></i> COREN: {{ session.get('enfermeiro_coren', 'Não informado') }}
+                            <i class="fas fa-calendar-alt me-1"></i> 
+                            {{ now.strftime('%A, %d de %B de %Y') if now else '' }}
                         </p>
                     </div>
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
@@ -87,26 +164,20 @@
                             <span class="status-dot me-2"></span>
                             <span class="small fw-semibold text-success">Online</span>
                         </div>
-                        <div class="mt-2">
-                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2">
-                                <i class="fas fa-calendar-alt me-1"></i>
-                                {{ now.strftime('%d/%m/%Y') if now else '' }}
-                            </span>
-                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Cards de Métricas -->
             <div class="row g-4 mb-4">
-                <div class="col-md-3 col-6">
+                <div class="col-sm-6 col-xl-3">
                     <div class="metric-card p-3 rounded-4 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="text-muted mb-1">Consultas Hoje</h6>
                                 <h2 class="mb-0 fw-bold">{% if consultas_hoje is iterable and consultas_hoje is not string %}{{ consultas_hoje|length }}{% else %}{{ consultas_hoje|default(0) }}{% endif %}</h2>
-                                <small class="text-success">
-                                    <i class="fas fa-arrow-up me-1"></i> +0%
+                                <small class="text-success mt-2 d-inline-block">
+                                    <i class="fas fa-calendar-check me-1"></i> Agendadas
                                 </small>
                             </div>
                             <div class="metric-icon bg-primary bg-opacity-10 rounded-circle p-3">
@@ -115,13 +186,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6">
+                
+                <div class="col-sm-6 col-xl-3">
                     <div class="metric-card p-3 rounded-4 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="text-muted mb-1">Triagens Pendentes</h6>
                                 <h2 class="mb-0 fw-bold">{% if triagens_pendentes is iterable and triagens_pendentes is not string %}{{ triagens_pendentes|length }}{% else %}{{ triagens_pendentes|default(0) }}{% endif %}</h2>
-                                <small class="text-warning">
+                                <small class="text-warning mt-2 d-inline-block">
                                     <i class="fas fa-clock me-1"></i> Aguardando
                                 </small>
                             </div>
@@ -131,13 +203,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6">
+                
+                <div class="col-sm-6 col-xl-3">
                     <div class="metric-card p-3 rounded-4 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="text-muted mb-1">Pacientes Internados</h6>
                                 <h2 class="mb-0 fw-bold">{% if internados_hoje is iterable and internados_hoje is not string %}{{ internados_hoje|length }}{% else %}{{ internados_hoje|default(0) }}{% endif %}</h2>
-                                <small class="text-danger">
+                                <small class="text-danger mt-2 d-inline-block">
                                     <i class="fas fa-bed me-1"></i> Internados
                                 </small>
                             </div>
@@ -147,13 +220,14 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-6">
+                
+                <div class="col-sm-6 col-xl-3">
                     <div class="metric-card p-3 rounded-4 shadow-sm">
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="text-muted mb-1">Aferições Hoje</h6>
                                 <h2 class="mb-0 fw-bold">{% if afericoes_hoje is iterable and afericoes_hoje is not string %}{{ afericoes_hoje|length }}{% else %}{{ afericoes_hoje|default(0) }}{% endif %}</h2>
-                                <small class="text-info">
+                                <small class="text-info mt-2 d-inline-block">
                                     <i class="fas fa-heartbeat me-1"></i> Registros
                                 </small>
                             </div>
@@ -165,7 +239,7 @@
                 </div>
             </div>
 
-            <!-- Alertas e Tarefas -->
+            <!-- Alertas -->
             {% set qtde_triagens = triagens_pendentes|length if triagens_pendentes is iterable and triagens_pendentes is not string else triagens_pendentes|default(0) %}
             {% if qtde_triagens > 0 %}
             <div class="alert alert-warning alert-modern mb-4 border-0 rounded-4 shadow-sm" role="alert">
@@ -175,11 +249,11 @@
                     </div>
                     <div class="flex-grow-1 ms-3">
                         <h6 class="alert-heading mb-1">Atenção! Triagens Pendentes</h6>
-                        <p class="mb-0">Existem <strong>{{ qtde_triagens }}</strong> paciente(s) aguardando triagem. Por favor, realize a classificação de risco.</p>
+                        <p class="mb-0">Existem <strong>{{ qtde_triagens }}</strong> paciente(s) aguardando triagem.</p>
                     </div>
                     <div class="flex-shrink-0">
                         <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm rounded-pill px-4">
-                            <i class="fas fa-arrow-right me-1"></i> Ir para Triagem
+                            Realizar Triagem <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
                 </div>
@@ -195,7 +269,7 @@
                             Últimos Atendimentos
                         </h5>
                         <a href="/enfermeiro/historico" class="btn btn-sm btn-outline-primary rounded-pill px-3">
-                            Ver todos <i class="fas fa-arrow-right ms-1"></i>
+                            Histórico Completo <i class="fas fa-arrow-right ms-1"></i>
                         </a>
                     </div>
                 </div>
@@ -209,7 +283,7 @@
                                 </div>
                             </div>
                             <div class="flex-grow-1 ms-3">
-                                <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap">
                                     <div>
                                         <h6 class="mb-0 fw-semibold">{{ item.paciente }}</h6>
                                         <small class="text-muted">
@@ -220,28 +294,23 @@
                                             {% endif %}
                                         </small>
                                     </div>
-                                    <span class="badge bg-{{ item.cor|default('primary') }} bg-opacity-10 text-{{ item.cor|default('primary') }} rounded-pill px-3 py-1">
+                                    <span class="badge bg-{{ item.cor|default('primary') }} bg-opacity-10 text-{{ item.cor|default('primary') }} rounded-pill px-3 py-1 mt-2 mt-sm-0">
                                         {{ item.tipo }}
                                     </span>
                                 </div>
                             </div>
                             <div class="flex-shrink-0 ms-3">
-                                <a href="{{ item.link }}" class="btn btn-sm btn-link text-primary">
-                                    <i class="fas fa-chevron-right"></i>
+                                <a href="{{ item.link }}" class="btn btn-sm btn-link text-primary p-0">
+                                    <i class="fas fa-chevron-right fa-lg"></i>
                                 </a>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
                         <div class="text-center py-5">
-                            <div class="empty-state">
-                                <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
-                                <h6 class="text-muted">Nenhum atendimento recente</h6>
-                                <p class="text-muted small">Os atendimentos realizados aparecerão aqui</p>
-                                <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm rounded-pill px-4 mt-2">
-                                    <i class="fas fa-plus me-1"></i> Agendar Consulta
-                                </a>
-                            </div>
+                            <i class="fas fa-clipboard-list fa-4x text-muted mb-3"></i>
+                            <h6 class="text-muted">Nenhum atendimento recente</h6>
+                            <p class="text-muted small mb-0">Os atendimentos realizados aparecerão aqui</p>
                         </div>
                     {% endif %}
                 </div>
@@ -251,25 +320,21 @@
 </div>
 
 <style>
-    /* Gradientes e Cores */
-    .bg-gradient-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Menu mais largo */
+    .col-md-4 {
+        width: 33.33333333%;
     }
     
-    /* Avatar */
-    .avatar-circle {
-        width: 80px;
-        height: 80px;
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(10px);
+    /* Sticky Menu */
+    .sticky-top {
+        position: sticky;
+        top: 20px;
+        z-index: 100;
     }
     
-    /* Menu Lateral */
+    /* Menu Items com mais espaço */
     .list-group-item {
+        padding: 1rem 1.25rem !important;
         transition: all 0.3s ease;
         border-left: 3px solid transparent;
     }
@@ -283,11 +348,36 @@
     .list-group-item.active {
         background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
         border-left-color: white;
-        color: white;
     }
     
-    .list-group-item.active i {
-        color: white !important;
+    .menu-subtitle {
+        font-size: 0.7rem;
+        opacity: 0.7;
+    }
+    
+    .list-group-item.active .menu-subtitle {
+        color: rgba(255, 255, 255, 0.8);
+    }
+    
+    .menu-icon {
+        width: 35px;
+        text-align: center;
+    }
+    
+    /* Gradientes */
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    /* Avatar */
+    .avatar-circle {
+        width: 80px;
+        height: 80px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* Welcome Card */
@@ -309,8 +399,8 @@
     }
     
     .metric-icon {
-        width: 60px;
-        height: 60px;
+        width: 55px;
+        height: 55px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -327,15 +417,9 @@
     }
     
     @keyframes pulse {
-        0% {
-            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
-        }
-        70% {
-            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
-        }
-        100% {
-            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
-        }
+        0% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
+        70% { box-shadow: 0 0 0 10px rgba(40, 167, 69, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
     }
     
     /* Alert Modern */
@@ -352,49 +436,21 @@
     .activity-item:hover {
         background-color: #f8f9fa;
         transform: translateX(5px);
-    }
-    
-    .activity-icon div {
-        width: 45px;
-        height: 45px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    /* Empty State */
-    .empty-state {
-        animation: fadeIn 0.5s ease;
-    }
-    
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
         border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 10px;
+        padding-left: 10px !important;
     }
     
     /* Responsive */
     @media (max-width: 768px) {
+        .col-md-4 {
+            width: 100%;
+        }
+        
+        .sticky-top {
+            position: relative;
+            top: 0;
+        }
+        
         .metric-icon {
             width: 45px;
             height: 45px;
@@ -412,38 +468,33 @@
         .avatar-circle i {
             font-size: 2rem;
         }
-        
-        .welcome-card h2 {
-            font-size: 1.5rem;
-        }
-    }
-    
-    /* Animações */
-    .card, .metric-card {
-        animation: slideUp 0.5s ease;
-    }
-    
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
     }
 </style>
 
 <script>
-    console.log('✅ Dashboard moderno carregado');
+    console.log('✅ Dashboard com menu mais largo carregado');
     
-    // Adicionar animação aos cards
     document.addEventListener('DOMContentLoaded', function() {
-        const cards = document.querySelectorAll('.metric-card, .card');
+        const cards = document.querySelectorAll('.metric-card');
         cards.forEach((card, index) => {
-            card.style.animationDelay = `${index * 0.1}s`;
+            card.style.animation = `slideUp 0.5s ease ${index * 0.1}s forwards`;
+            card.style.opacity = '0';
         });
     });
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    `;
+    document.head.appendChild(style);
 </script>
 {% endblock %}
