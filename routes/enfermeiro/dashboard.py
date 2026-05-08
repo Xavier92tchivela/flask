@@ -6,6 +6,7 @@ from functools import wraps
 
 logger = logging.getLogger(__name__)
 
+# Criar o blueprint
 dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
 
 _mysql = None
@@ -25,11 +26,11 @@ def enfermeiro_required(f):
     return decorated_function
 
 def execute_query(query, params=None, fetch=False, one=False, commit=False):
-    """Executa queries no banco de dados com tratamento de erro"""
+    """Executa queries no banco de dados"""
     try:
         if _mysql is None:
             logger.error("MySQL não inicializado")
-            return [] if fetch else False
+            return None if fetch else False
             
         cur = _mysql.connection.cursor()
         
@@ -44,7 +45,7 @@ def execute_query(query, params=None, fetch=False, one=False, commit=False):
             else:
                 result = cur.fetchall()
             cur.close()
-            return result if result else (None if one else [])
+            return result
         
         if commit:
             _mysql.connection.commit()
@@ -56,7 +57,7 @@ def execute_query(query, params=None, fetch=False, one=False, commit=False):
         logger.error(f"Database error: {e}")
         if commit and _mysql:
             _mysql.connection.rollback()
-        return [] if fetch else False
+        return None if fetch else False
 
 @dashboard_bp.route('/')
 @enfermeiro_required
@@ -67,11 +68,11 @@ def index():
         hoje_inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
         hoje_fim = hoje_inicio + timedelta(days=1)
         
-        # Buscar consultas de hoje
+        # Buscar consultas de hoje - corrigido para usar data_hora
         consultas_hoje = execute_query("""
             SELECT 
                 c.id,
-                c.horario as hora,
+                TIME(c.data_hora) as hora,
                 c.status,
                 COALESCE(u.nome, 'Paciente') as paciente_nome,
                 m.nome as medico_nome
@@ -80,56 +81,50 @@ def index():
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             LEFT JOIN medicos m ON c.medico_id = m.id
             WHERE c.data_hora >= %s AND c.data_hora < %s
-            ORDER BY c.horario ASC
+            ORDER BY c.data_hora ASC
         """, (hoje_inicio, hoje_fim), fetch=True)
         
-        # Buscar triagens pendentes (usando a tabela correta)
-        triagens_pendentes = []
-        try:
-            triagens_pendentes = execute_query("""
-                SELECT 
-                    c.id,
-                    c.horario as hora_chegada,
-                    COALESCE(u.nome, 'Paciente') as paciente_nome,
-                    c.status
-                FROM consultas c
-                LEFT JOIN pacientes p ON c.paciente_id = p.id
-                LEFT JOIN usuarios u ON p.usuario_id = u.id
-                WHERE c.data_hora >= %s AND c.data_hora < %s
-                AND c.status_triagem != 'realizada'
-                AND c.status != 'cancelada'
-                ORDER BY c.horario ASC
-            """, (hoje_inicio, hoje_fim), fetch=True)
-        except Exception as e:
-            logger.warning(f"Erro ao buscar triagens pendentes: {e}")
-            triagens_pendentes = []
+        # Buscar triagens pendentes - usando status_triagem
+        triagens_pendentes = execute_query("""
+            SELECT 
+                c.id,
+                TIME(c.data_hora) as hora_chegada,
+                COALESCE(u.nome, 'Paciente') as paciente_nome,
+                c.status
+            FROM consultas c
+            LEFT JOIN pacientes p ON c.paciente_id = p.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE c.data_hora >= %s AND c.data_hora < %s
+            AND (c.status_triagem IS NULL OR c.status_triagem = 'pendente')
+            AND c.status != 'cancelada'
+            ORDER BY c.data_hora ASC
+        """, (hoje_inicio, hoje_fim), fetch=True)
         
-        # Buscar pacientes internados
-        internados_lista = []
-        try:
-            internados_lista = execute_query("""
-                SELECT 
-                    i.id,
-                    i.data_internacao,
-                    i.tipo_internacao,
-                    i.diagnostico_inicial,
-                    i.status,
-                    p.id as paciente_id,
-                    p.numero_prontuario,
-                    COALESCE(u.nome, 'Paciente') as paciente_nome,
-                    p.data_nascimento,
-                    l.id as leito_id,
-                    l.numero as leito_numero,
-                    l.tipo as leito_tipo
-                FROM internacoes i
-                JOIN pacientes p ON i.paciente_id = p.id
-                JOIN usuarios u ON p.usuario_id = u.id
-                JOIN leitos l ON i.leito_id = l.id
-                WHERE i.status = 'internado'
-                ORDER BY i.data_internacao DESC
-            """, fetch=True)
-        except Exception as e:
-            logger.warning(f"Erro ao buscar internados: {e}")
+        # Buscar pacientes internados - sem a tabela alas
+        internados_lista = execute_query("""
+            SELECT 
+                i.id,
+                i.data_internacao,
+                i.tipo_internacao,
+                i.diagnostico_inicial,
+                i.status,
+                p.id as paciente_id,
+                p.numero_prontuario,
+                COALESCE(u.nome, 'Paciente') as paciente_nome,
+                p.data_nascimento,
+                l.id as leito_id,
+                l.numero as leito_numero,
+                l.tipo as leito_tipo
+            FROM internacoes i
+            JOIN pacientes p ON i.paciente_id = p.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            JOIN leitos l ON i.leito_id = l.id
+            WHERE i.status = 'internado'
+            ORDER BY i.data_internacao DESC
+        """, fetch=True)
+        
+        # Verificar se internados_lista não é None
+        if internados_lista is None:
             internados_lista = []
         
         # Calcular idade para cada internado
@@ -159,6 +154,7 @@ def index():
                 """, (internado['paciente_id'],), fetch=True, one=True)
                 internado['ultimos_sinais'] = ultimos_sinais
             except Exception as e:
+                logger.warning(f"Erro ao buscar sinais vitais: {e}")
                 internado['ultimos_sinais'] = None
         
         # Buscar últimas aferições
@@ -178,6 +174,9 @@ def index():
             ORDER BY sv.data_afericao DESC
             LIMIT 10
         """, fetch=True)
+        
+        if ultimas_afericoes is None:
+            ultimas_afericoes = []
         
         # Preparar dados para o gráfico
         dias_semana = []
@@ -210,33 +209,35 @@ def index():
         pacientes_internados = len(internados_lista) if internados_lista else 0
         pacientes_aguardando = len(triagens_pendentes) if triagens_pendentes else 0
         
-        # Criar lista de últimos atendimentos para o template
+        # Criar lista de últimos atendimentos
         ultimos_atendimentos = []
         
-        # Adicionar triagens recentes
+        # Adicionar triagens pendentes
         if triagens_pendentes:
             for t in triagens_pendentes[:3]:
-                ultimos_atendimentos.append({
-                    'paciente': t.get('paciente_nome', 'Paciente'),
-                    'tipo': 'Triagem Pendente',
-                    'cor': 'warning',
-                    'icone': 'stethoscope',
-                    'data': str(t.get('hora_chegada', '')) if t.get('hora_chegada') else '',
-                    'link': f"/enfermeiro/triagem/realizar/{t['id']}" if t.get('id') else '#'
-                })
+                if t:
+                    ultimos_atendimentos.append({
+                        'paciente': t.get('paciente_nome', 'Paciente'),
+                        'tipo': 'Triagem Pendente',
+                        'cor': 'warning',
+                        'icone': 'stethoscope',
+                        'data': str(t.get('hora_chegada', '')) if t.get('hora_chegada') else '',
+                        'link': f"/enfermeiro/triagem/realizar/{t['id']}" if t.get('id') else '#'
+                    })
         
         # Adicionar aferições recentes
         if ultimas_afericoes:
             for a in ultimas_afericoes[:3]:
-                ultimos_atendimentos.append({
-                    'paciente': a.get('paciente_nome', 'Paciente'),
-                    'tipo': 'Sinais Vitais',
-                    'cor': 'success',
-                    'icone': 'heartbeat',
-                    'data': str(a.get('data_afericao', '')) if a.get('data_afericao') else '',
-                    'detalhe': f"PA: {a.get('pressao_arterial', '-')} | FC: {a.get('frequencia_cardiaca', '-')}",
-                    'link': f"/enfermeiro/sinais-vitais/{a['id']}" if a.get('id') else '#'
-                })
+                if a:
+                    ultimos_atendimentos.append({
+                        'paciente': a.get('paciente_nome', 'Paciente'),
+                        'tipo': 'Sinais Vitais',
+                        'cor': 'success',
+                        'icone': 'heartbeat',
+                        'data': str(a.get('data_afericao', '')) if a.get('data_afericao') else '',
+                        'detalhe': f"PA: {a.get('pressao_arterial', '-')} | FC: {a.get('frequencia_cardiaca', '-')}",
+                        'link': f"/enfermeiro/sinais-vitais/{a['id']}" if a.get('id') else '#'
+                    })
         
         return render_template('enfermeiro/dashboard.html',
             hoje=hoje.strftime('%Y-%m-%d'),
@@ -254,7 +255,6 @@ def index():
             total_consultas_hoje=total_consultas_hoje['total'] if total_consultas_hoje else 0,
             pacientes_internados=pacientes_internados,
             pacientes_aguardando=pacientes_aguardando,
-            # Métricas adicionais
             total_consultas=total_consultas_hoje['total'] if total_consultas_hoje else 0,
             triagens_realizadas=0,
             afericoes_semana=sum(dados_grafico) if dados_grafico else 0,
@@ -263,7 +263,7 @@ def index():
             meta_semanal=50,
             triagens_hoje=0,
             meta_triagens_diaria=10,
-            progresso_semanal=(total_consultas_hoje['total'] / 50 * 100) if total_consultas_hoje and total_consultas_hoje['total'] > 0 else 0,
+            progresso_semanal=((total_consultas_hoje['total'] if total_consultas_hoje else 0) / 50 * 100) if total_consultas_hoje and total_consultas_hoje['total'] else 0,
             progresso_triagens=0
         )
         
@@ -301,7 +301,10 @@ def index():
         )
 
 
-# API endpoints para o dashboard
+# ============================================================
+# API ENDPOINTS
+# ============================================================
+
 @dashboard_bp.route('/api/contadores')
 @enfermeiro_required
 def api_contadores():
@@ -320,7 +323,7 @@ def api_contadores():
             SELECT COUNT(*) as total
             FROM consultas c
             WHERE c.data_hora >= %s AND c.data_hora < %s
-            AND c.status_triagem != 'realizada'
+            AND (c.status_triagem IS NULL OR c.status_triagem = 'pendente')
             AND c.status != 'cancelada'
         """, (hoje_inicio, hoje_fim), fetch=True, one=True)
         
@@ -352,3 +355,45 @@ def api_contadores():
             'afericoes_hoje': 0,
             'error': str(e)
         }), 500
+
+
+@dashboard_bp.route('/api/ultimos-registros')
+@enfermeiro_required
+def api_ultimos_registros():
+    """API para últimos registros"""
+    try:
+        ultimas_afericoes = execute_query("""
+            SELECT 
+                sv.id,
+                sv.data_afericao,
+                sv.pressao_arterial,
+                sv.frequencia_cardiaca,
+                sv.temperatura,
+                COALESCE(u.nome, 'Paciente') as paciente_nome
+            FROM sinais_vitais sv
+            LEFT JOIN pacientes p ON sv.paciente_id = p.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            ORDER BY sv.data_afericao DESC
+            LIMIT 5
+        """, fetch=True)
+        
+        registros = []
+        if ultimas_afericoes:
+            for a in ultimas_afericoes:
+                if a:
+                    registros.append({
+                        'id': a['id'],
+                        'paciente': a['paciente_nome'],
+                        'tipo': 'Sinais Vitais',
+                        'cor': 'success',
+                        'icone': 'heartbeat',
+                        'data': str(a['data_afericao']) if a['data_afericao'] else '',
+                        'detalhe': f"PA: {a['pressao_arterial']} | FC: {a['frequencia_cardiaca']}",
+                        'link': f"/enfermeiro/sinais-vitais/{a['id']}"
+                    })
+        
+        return jsonify({'registros': registros})
+        
+    except Exception as e:
+        logger.error(f"Erro na API ultimos_registros: {e}")
+        return jsonify({'error': str(e), 'registros': []}), 500
