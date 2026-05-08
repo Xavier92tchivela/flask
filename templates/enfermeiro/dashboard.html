@@ -29,72 +29,120 @@
                 </div>
             </div>
             
-            <!-- Cards de Estatísticas - 4 por linha -->
+            <!-- Cards de Estatísticas + Últimos Atendimentos lado a lado -->
             <div class="row g-2 mb-3">
-                <div class="col-6 col-sm-3">
-                    <div class="card stat-card border-left-primary h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-primary">CONSULTAS HOJE</div>
-                                    <div class="stat-value" id="statConsultasHoje">
-                                        {{ consultas_hoje|length if consultas_hoje is iterable else consultas_hoje|default(0) }}
+                <!-- Coluna Esquerda: Cards de Estatísticas -->
+                <div class="col-md-8">
+                    <div class="row g-2">
+                        <div class="col-6 col-sm-3">
+                            <div class="card stat-card border-left-primary h-100">
+                                <div class="card-body p-2 p-md-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="stat-label text-primary">CONSULTAS HOJE</div>
+                                            <div class="stat-value" id="statConsultasHoje">
+                                                {{ consultas_hoje|length if consultas_hoje is iterable else consultas_hoje|default(0) }}
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-calendar-check stat-icon text-primary"></i>
                                     </div>
+                                    <small class="text-muted">Agendadas</small>
                                 </div>
-                                <i class="fas fa-calendar-check stat-icon text-primary"></i>
                             </div>
-                            <small class="text-muted">Agendadas</small>
+                        </div>
+                        
+                        <div class="col-6 col-sm-3">
+                            <div class="card stat-card border-left-warning h-100">
+                                <div class="card-body p-2 p-md-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
+                                            <div class="stat-value" id="statTriagensPendentes">
+                                                {{ triagens_pendentes|length if triagens_pendentes is iterable else triagens_pendentes|default(0) }}
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-stethoscope stat-icon text-warning"></i>
+                                    </div>
+                                    <small class="text-muted">Aguardando</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-6 col-sm-3">
+                            <div class="card stat-card border-left-danger h-100">
+                                <div class="card-body p-2 p-md-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="stat-label text-danger">PACIENTES INTERNADOS</div>
+                                            <div class="stat-value" id="statInternados">
+                                                {{ internados_hoje|length if internados_hoje is iterable else internados_hoje|default(0) }}
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-procedures stat-icon text-danger"></i>
+                                    </div>
+                                    <small class="text-muted">Internados</small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-6 col-sm-3">
+                            <div class="card stat-card border-left-success h-100">
+                                <div class="card-body p-2 p-md-3">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <div class="stat-label text-success">AFERIÇÕES HOJE</div>
+                                            <div class="stat-value" id="statAfericoesHoje">
+                                                {{ afericoes_hoje|length if afericoes_hoje is iterable else afericoes_hoje|default(0) }}
+                                            </div>
+                                        </div>
+                                        <i class="fas fa-heartbeat stat-icon text-success"></i>
+                                    </div>
+                                    <small class="text-muted">Registros</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-6 col-sm-3">
-                    <div class="card stat-card border-left-warning h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
-                                    <div class="stat-value" id="statTriagensPendentes">
-                                        {{ triagens_pendentes|length if triagens_pendentes is iterable else triagens_pendentes|default(0) }}
-                                    </div>
-                                </div>
-                                <i class="fas fa-stethoscope stat-icon text-warning"></i>
-                            </div>
-                            <small class="text-muted">Aguardando</small>
+                <!-- Coluna Direita: Últimos Atendimentos -->
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 fw-bold text-primary">
+                                <i class="fas fa-history me-2"></i> Últimos Atendimentos
+                            </h6>
+                            <span class="badge bg-primary">{{ ultimos_atendimentos|length if ultimos_atendimentos else 0 }}</span>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="col-6 col-sm-3">
-                    <div class="card stat-card border-left-danger h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-danger">PACIENTES INTERNADOS</div>
-                                    <div class="stat-value" id="statInternados">
-                                        {{ internados_hoje|length if internados_hoje is iterable else internados_hoje|default(0) }}
+                        <div class="card-body p-0">
+                            {% if ultimos_atendimentos and ultimos_atendimentos|length > 0 %}
+                            <div class="list-group list-group-flush">
+                                {% for item in ultimos_atendimentos[:3] %}
+                                <div class="list-group-item list-group-item-action px-3 py-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <strong class="small">{{ item.paciente }}</strong>
+                                                <span class="badge bg-{{ item.cor|default('primary') }}" style="font-size: 0.6rem;">{{ item.tipo }}</span>
+                                            </div>
+                                            <small class="text-muted">{{ item.data }}</small>
+                                        </div>
+                                        <a href="{{ item.link }}" class="btn btn-sm btn-outline-primary ms-2">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
                                     </div>
                                 </div>
-                                <i class="fas fa-procedures stat-icon text-danger"></i>
+                                {% endfor %}
                             </div>
-                            <small class="text-muted">Internados</small>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-6 col-sm-3">
-                    <div class="card stat-card border-left-success h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-success">AFERIÇÕES HOJE</div>
-                                    <div class="stat-value" id="statAfericoesHoje">
-                                        {{ afericoes_hoje|length if afericoes_hoje is iterable else afericoes_hoje|default(0) }}
-                                    </div>
-                                </div>
-                                <i class="fas fa-heartbeat stat-icon text-success"></i>
+                            <div class="text-center py-2 border-top">
+                                <a href="/enfermeiro/historico" class="btn btn-link btn-sm">Ver todos →</a>
                             </div>
-                            <small class="text-muted">Registros</small>
+                            {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
+                                <p class="text-muted small mb-0">Nenhum atendimento recente</p>
+                                <p class="text-muted small">Os atendimentos aparecerão aqui</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -116,58 +164,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             {% endif %}
-            
-            <!-- ============================================ -->
-            <!-- ÚLTIMOS ATENDIMENTOS - NO TOPO (EM PRIMEIRO) -->
-            <!-- ============================================ -->
-            <div class="row g-2 mb-3">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0 fw-bold text-primary">
-                                <i class="fas fa-history me-2"></i> Últimos Atendimentos
-                            </h6>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="badge bg-primary">{{ ultimos_atendimentos|length if ultimos_atendimentos else 0 }}</span>
-                                <a href="/enfermeiro/historico" class="btn btn-sm btn-outline-primary">Ver Todos</a>
-                            </div>
-                        </div>
-                        <div class="card-body p-0">
-                            {% if ultimos_atendimentos and ultimos_atendimentos|length > 0 %}
-                            <div class="list-group list-group-flush">
-                                {% for item in ultimos_atendimentos[:5] %}
-                                <div class="list-group-item list-group-item-action px-3 py-2">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                                <strong class="small">{{ item.paciente }}</strong>
-                                                <span class="badge bg-{{ item.cor|default('primary') }}" style="font-size: 0.65rem;">{{ item.tipo }}</span>
-                                                <small class="text-muted">{{ item.data }}</small>
-                                            </div>
-                                            {% if item.detalhe %}
-                                            <div class="small text-muted mt-1">{{ item.detalhe }}</div>
-                                            {% endif %}
-                                        </div>
-                                        <a href="{{ item.link }}" class="btn btn-sm btn-outline-primary ms-2">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% else %}
-                            <div class="text-center py-4">
-                                <i class="fas fa-clipboard-list fa-2x text-muted mb-2"></i>
-                                <p class="text-muted small mb-0">Nenhum atendimento recente</p>
-                                <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm mt-2">
-                                    <i class="fas fa-calendar-plus me-1"></i> Agendar Consulta
-                                </a>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>
             
             <!-- Métricas de Performance e Ações Rápidas lado a lado -->
             <div class="row g-2">
