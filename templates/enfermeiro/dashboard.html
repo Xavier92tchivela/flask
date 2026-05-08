@@ -108,7 +108,7 @@
                     <div class="card bg-primary text-white h-100">
                         <div class="card-body text-center">
                             <i class="fas fa-calendar-day fa-2x mb-2"></i>
-                            <h4>{{ consultas_hoje|default(0) }}</h4>
+                            <h4>{{ consultas_hoje|default(0)|length if consultas_hoje is iterable and consultas_hoje is not string else consultas_hoje|default(0) }}</h4>
                             <small>Consultas Hoje</small>
                         </div>
                     </div>
@@ -117,7 +117,7 @@
                     <div class="card bg-warning text-dark h-100">
                         <div class="card-body text-center">
                             <i class="fas fa-clock fa-2x mb-2"></i>
-                            <h4>{{ triagens_pendentes|default(0) }}</h4>
+                            <h4>{% if triagens_pendentes is iterable and triagens_pendentes is not string %}{{ triagens_pendentes|length }}{% else %}{{ triagens_pendentes|default(0) }}{% endif %}</h4>
                             <small>Triagens Pendentes</small>
                         </div>
                     </div>
@@ -126,7 +126,7 @@
                     <div class="card bg-danger text-white h-100">
                         <div class="card-body text-center">
                             <i class="fas fa-procedures fa-2x mb-2"></i>
-                            <h4>{{ internados_hoje|default(0) }}</h4>
+                            <h4>{% if internados_hoje is iterable and internados_hoje is not string %}{{ internados_hoje|length }}{% else %}{{ internados_hoje|default(0) }}{% endif %}</h4>
                             <small>Internados</small>
                         </div>
                     </div>
@@ -135,7 +135,7 @@
                     <div class="card bg-info text-white h-100">
                         <div class="card-body text-center">
                             <i class="fas fa-heartbeat fa-2x mb-2"></i>
-                            <h4>{{ afericoes_hoje|default(0) }}</h4>
+                            <h4>{% if afericoes_hoje is iterable and afericoes_hoje is not string %}{{ afericoes_hoje|length }}{% else %}{{ afericoes_hoje|default(0) }}{% endif %}</h4>
                             <small>Aferições Hoje</small>
                         </div>
                     </div>
@@ -151,11 +151,12 @@
                             <strong>TAREFAS PENDENTES</strong>
                         </div>
                         <div class="card-body">
-                            {% if triagens_pendentes > 0 %}
+                            {% set qtde_triagens = triagens_pendentes|length if triagens_pendentes is iterable and triagens_pendentes is not string else triagens_pendentes|default(0) %}
+                            {% if qtde_triagens > 0 %}
                             <div class="alert alert-warning d-flex justify-content-between align-items-center">
                                 <div>
                                     <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <strong>{{ triagens_pendentes }}</strong> pacientes aguardando triagem
+                                    <strong>{{ qtde_triagens }}</strong> pacientes aguardando triagem
                                 </div>
                                 <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
                                     Fazer Triagem <i class="fas fa-arrow-right ms-1"></i>
