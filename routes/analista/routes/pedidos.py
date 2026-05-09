@@ -1,6 +1,7 @@
 """Rotas de pedidos para analista"""
 from flask import render_template, session, flash, redirect, url_for, request, send_file, jsonify
 import os
+import json
 import logging
 import traceback
 from datetime import datetime 
@@ -39,7 +40,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Perfil de analista não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # CORREÇÃO: Verificar se é dict ou tuple
             if isinstance(analista_info, dict):
                 analista_id = analista_info.get('id')
             else:
@@ -96,9 +96,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             pedidos_list = []
             if pedidos_db:
                 for pedido in pedidos_db:
-                    # CORREÇÃO: Funciona com dict OU tuple
                     if isinstance(pedido, dict):
-                        # É dicionário
                         data_nascimento = pedido.get('data_nascimento')
                         idade = calcular_idade(data_nascimento) if data_nascimento else ''
                         
@@ -122,7 +120,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                             'recomendacoes_analista': garantir_string(pedido.get('recomendacoes_analista'))
                         })
                     else:
-                        # É tupla/lista
                         idade = calcular_idade(pedido[9]) if len(pedido) > 9 and pedido[9] else ''
                         
                         pedidos_list.append({
@@ -165,10 +162,11 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                                  urgencia_filter='',
                                  now=datetime.now())
 
-    @bp.route('/pedidos/<int:pedido_id>/anexo/<filename>')
+    # ========== ROTA: DOWNLOAD DE ANEXOS (USANDO JSON) ==========
+    @bp.route('/pedidos/<int:pedido_id>/anexo/<int:anexo_index>')
     @analista_required
-    def download_anexo(pedido_id, filename):
-        """Download de anexo do pedido"""
+    def download_anexo(pedido_id, anexo_index):
+        """Download de anexo do pedido - usando coluna JSON"""
         try:
             user_id = session.get('user_id')
             
@@ -187,7 +185,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             # Verificar permissão
             pedido = execute_query("""
-                SELECT analista_id FROM pedidos_analise 
+                SELECT analista_id, anexos FROM pedidos_analise 
                 WHERE id = %s
             """, (pedido_id,), fetch=True, one=True)
             
@@ -199,27 +197,40 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if pedido_analista is not None and pedido_analista != 0 and pedido_analista != analista_id:
                 return jsonify({'error': 'Acesso negado'}), 403
             
-            # Buscar anexo
-            anexo = execute_query("""
-                SELECT arquivo, nome, tipo 
-                FROM anexos_pedidos 
-                WHERE pedido_id = %s AND arquivo = %s
-            """, (pedido_id, filename), fetch=True, one=True)
+            # Buscar anexos do JSON
+            anexos_json = pedido.get('anexos') if isinstance(pedido, dict) else pedido[1] if len(pedido) > 1 else None
             
-            if not anexo:
+            if not anexos_json:
+                return jsonify({'error': 'Nenhum anexo encontrado'}), 404
+            
+            # Converter para lista se for string JSON
+            if isinstance(anexos_json, str):
+                try:
+                    anexos_lista = json.loads(anexos_json)
+                except:
+                    return jsonify({'error': 'Erro ao processar anexos'}), 500
+            else:
+                anexos_lista = anexos_json
+            
+            if not isinstance(anexos_lista, list):
+                return jsonify({'error': 'Formato de anexos inválido'}), 500
+            
+            if anexo_index >= len(anexos_lista):
                 return jsonify({'error': 'Anexo não encontrado'}), 404
             
-            if isinstance(anexo, dict):
-                anexo_arquivo = anexo.get('arquivo')
-                anexo_nome = anexo.get('nome')
-                anexo_tipo = anexo.get('tipo')
-            else:
-                anexo_arquivo = anexo[0] if len(anexo) > 0 else None
-                anexo_nome = anexo[1] if len(anexo) > 1 else filename
-                anexo_tipo = anexo[2] if len(anexo) > 2 else 'application/octet-stream'
+            anexo = anexos_lista[anexo_index]
             
+            # Obter informações do anexo
+            anexo_filename = anexo.get('filename') if isinstance(anexo, dict) else anexo[0] if isinstance(anexo, (list, tuple)) else None
+            anexo_nome = anexo.get('original_name') if isinstance(anexo, dict) else anexo[1] if len(anexo) > 1 else anexo_filename
+            anexo_tipo = anexo.get('tipo') if isinstance(anexo, dict) else anexo[2] if len(anexo) > 2 else 'application/octet-stream'
+            
+            if not anexo_filename:
+                return jsonify({'error': 'Arquivo não encontrado'}), 404
+            
+            # Buscar arquivo no sistema
             from ..file_utils import get_pedido_anexo_path
-            filepath = get_pedido_anexo_path(anexo_arquivo)
+            filepath = get_pedido_anexo_path(anexo_filename)
             
             if not os.path.exists(filepath):
                 return jsonify({'error': 'Arquivo não encontrado no servidor'}), 404
@@ -227,7 +238,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             return send_file(
                 filepath,
                 as_attachment=True,
-                download_name=anexo_nome or filename,
+                download_name=anexo_nome or anexo_filename,
                 mimetype=anexo_tipo or 'application/octet-stream'
             )
             
@@ -254,7 +265,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Perfil de analista não encontrado.', 'danger')
                 return redirect(url_for('auth.login'))
             
-            # CORREÇÃO: Verificar se é dict ou tuple
             if isinstance(analista_info, dict):
                 analista_id = analista_info.get('id')
             else:
@@ -358,7 +368,8 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     COALESCE(m.crm, '') as medico_crm,
                     COALESCE(a_u.nome, 'Não atribuído') as analista_nome,
                     c.data_hora as data_consulta,
-                    c.observacoes as observacoes_consulta
+                    c.observacoes as observacoes_consulta,
+                    pa.anexos
                 FROM pedidos_analise pa
                 LEFT JOIN pacientes p ON pa.paciente_id = p.id
                 LEFT JOIN usuarios u ON p.usuario_id = u.id
@@ -412,6 +423,45 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                         idade = f"{idade_calc} anos"
                     except:
                         idade = ''
+            
+            # Processar anexos do JSON
+            anexos_lista = []
+            if isinstance(pedido, dict):
+                anexos_json = pedido.get('anexos')
+            else:
+                anexos_json = pedido[28] if len(pedido) > 28 else None
+            
+            if anexos_json:
+                if isinstance(anexos_json, str):
+                    try:
+                        anexos_data = json.loads(anexos_json)
+                    except:
+                        anexos_data = []
+                else:
+                    anexos_data = anexos_json
+                
+                if isinstance(anexos_data, list):
+                    for idx, a in enumerate(anexos_data):
+                        if isinstance(a, dict):
+                            anexos_lista.append({
+                                'index': idx,
+                                'arquivo': a.get('filename', ''),
+                                'nome': a.get('original_name', 'Arquivo'),
+                                'tipo': a.get('tipo', 'unknown'),
+                                'tamanho': a.get('size', 0),
+                                'data': a.get('upload_date', ''),
+                                'analisado_ia': a.get('analisado_ia', False)
+                            })
+                        elif isinstance(a, (list, tuple)):
+                            anexos_lista.append({
+                                'index': idx,
+                                'arquivo': a[0] if len(a) > 0 else '',
+                                'nome': a[1] if len(a) > 1 else 'Arquivo',
+                                'tipo': a[2] if len(a) > 2 else 'unknown',
+                                'tamanho': a[3] if len(a) > 3 else 0,
+                                'data': a[4] if len(a) > 4 else '',
+                                'analisado_ia': a[5] if len(a) > 5 else False
+                            })
             
             # Construir dicionário do pedido
             if isinstance(pedido, dict):
@@ -479,35 +529,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                     'observacoes_consulta': garantir_string(pedido[27]) if len(pedido) > 27 else ''
                 }
             
-            # Buscar anexos do pedido
-            anexos = execute_query("""
-                SELECT arquivo, nome, tipo, tamanho, data_upload, analisado_ia
-                FROM anexos_pedidos
-                WHERE pedido_id = %s
-                ORDER BY data_upload DESC
-            """, (pedido_id,), fetch=True) or []
-            
-            anexos_lista = []
-            for a in anexos:
-                if isinstance(a, dict):
-                    anexos_lista.append({
-                        'arquivo': garantir_string(a.get('arquivo')),
-                        'nome': garantir_string(a.get('nome')),
-                        'tipo': garantir_string(a.get('tipo')),
-                        'tamanho': a.get('tamanho'),
-                        'data': a.get('data_upload').strftime('%d/%m/%Y %H:%M') if a.get('data_upload') else '',
-                        'analisado_ia': a.get('analisado_ia')
-                    })
-                else:
-                    anexos_lista.append({
-                        'arquivo': garantir_string(a[0]) if len(a) > 0 else '',
-                        'nome': garantir_string(a[1]) if len(a) > 1 else '',
-                        'tipo': garantir_string(a[2]) if len(a) > 2 else '',
-                        'tamanho': a[3] if len(a) > 3 else None,
-                        'data': a[4].strftime('%d/%m/%Y %H:%M') if len(a) > 4 and a[4] else '',
-                        'analisado_ia': a[5] if len(a) > 5 else False
-                    })
-            
             return render_template('analista/ver_detalhes_pedido.html',
                                  pedido=pedido_dict,
                                  anexos=anexos_lista,
@@ -559,9 +580,9 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             # Iniciar análise
             execute_query("""
                 UPDATE pedidos_analise 
-                SET status = 'em_analise', analista_id = %s
+                SET status = 'em_analise', analista_id = %s, atualizado_em = NOW()
                 WHERE id = %s
-            """, (analista_id, pedido_id))
+            """, (analista_id, pedido_id), commit=True)
             
             flash('Análise iniciada com sucesso!', 'success')
             return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
@@ -576,7 +597,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
     @bp.route('/pedido/<int:pedido_id>/upload', methods=['POST'])
     @analista_required
     def upload_anexo(pedido_id):
-        """Upload de anexos para o pedido"""
+        """Upload de anexos para o pedido (armazena em JSON)"""
         try:
             user_id = session.get('user_id')
             
@@ -596,7 +617,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             # Verificar permissão
             pedido = execute_query("""
-                SELECT analista_id, status FROM pedidos_analise 
+                SELECT analista_id, status, anexos FROM pedidos_analise 
                 WHERE id = %s
             """, (pedido_id,), fetch=True, one=True)
             
@@ -607,9 +628,11 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             if isinstance(pedido, dict):
                 pedido_analista = pedido.get('analista_id')
                 pedido_status = pedido.get('status')
+                anexos_atual = pedido.get('anexos')
             else:
                 pedido_analista = pedido[0] if len(pedido) > 0 else None
                 pedido_status = pedido[1] if len(pedido) > 1 else None
+                anexos_atual = pedido[2] if len(pedido) > 2 else None
             
             if pedido_analista and pedido_analista != analista_id:
                 flash('Você não tem permissão para este pedido.', 'danger')
@@ -627,6 +650,17 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
             from ..file_utils import save_uploaded_file
             
+            # Carregar anexos existentes
+            anexos_lista = []
+            if anexos_atual:
+                if isinstance(anexos_atual, str):
+                    try:
+                        anexos_lista = json.loads(anexos_atual)
+                    except:
+                        anexos_lista = []
+                elif isinstance(anexos_atual, list):
+                    anexos_lista = anexos_atual
+            
             saved_files = []
             for file in files:
                 if file and file.filename:
@@ -636,15 +670,25 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                         custom_filename=f"pedido_{pedido_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{file.filename}"
                     )
                     
-                    execute_query("""
-                        INSERT INTO anexos_pedidos 
-                        (pedido_id, arquivo, nome, tipo, tamanho, data_upload, analisado_ia)
-                        VALUES (%s, %s, %s, %s, %s, NOW(), %s)
-                    """, (pedido_id, filename, original_name, file.content_type, size, False))
-                    
+                    novo_anexo = {
+                        'filename': filename,
+                        'original_name': original_name,
+                        'tipo': file.content_type,
+                        'size': size,
+                        'upload_date': datetime.now().isoformat(),
+                        'analisado_ia': False
+                    }
+                    anexos_lista.append(novo_anexo)
                     saved_files.append(original_name)
             
             if saved_files:
+                # Salvar lista de anexos como JSON
+                execute_query("""
+                    UPDATE pedidos_analise 
+                    SET anexos = %s, atualizado_em = NOW()
+                    WHERE id = %s
+                """, (json.dumps(anexos_lista, ensure_ascii=False), pedido_id), commit=True)
+                
                 flash(f'Arquivos enviados com sucesso: {", ".join(saved_files)}', 'success')
             else:
                 flash('Nenhum arquivo foi salvo.', 'warning')
@@ -718,9 +762,10 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 SET status = 'concluido',
                     diagnostico_analista = %s,
                     recomendacoes_analista = %s,
-                    data_conclusao = NOW()
+                    data_conclusao = NOW(),
+                    atualizado_em = NOW()
                 WHERE id = %s
-            """, (diagnostico, recomendacoes, pedido_id))
+            """, (diagnostico, recomendacoes, pedido_id), commit=True)
             
             flash('Análise concluída com sucesso! O médico será notificado.', 'success')
             return redirect(url_for('analista.ver_detalhes_pedido', pedido_id=pedido_id))
@@ -827,6 +872,107 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             
         except Exception as e:
             logger.error(f"❌ Erro na análise de imagem: {e}")
+            logger.error(traceback.format_exc())
+            return jsonify({'error': str(e)}), 500
+
+    # ========== ROTA: LISTAR ANEXOS ==========
+    @bp.route('/pedido/<int:pedido_id>/anexos')
+    @analista_required
+    def listar_anexos(pedido_id):
+        """Lista os anexos de um pedido"""
+        try:
+            pedido = execute_query("""
+                SELECT anexos FROM pedidos_analise WHERE id = %s
+            """, (pedido_id,), fetch=True, one=True)
+            
+            if not pedido:
+                return jsonify({'error': 'Pedido não encontrado'}), 404
+            
+            anexos_json = pedido.get('anexos') if isinstance(pedido, dict) else pedido[0]
+            
+            anexos_lista = []
+            if anexos_json:
+                if isinstance(anexos_json, str):
+                    try:
+                        anexos_lista = json.loads(anexos_json)
+                    except:
+                        anexos_lista = []
+                else:
+                    anexos_lista = anexos_json
+            
+            return jsonify({'success': True, 'anexos': anexos_lista})
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao listar anexos: {e}")
+            return jsonify({'error': str(e)}), 500
+
+    # ========== ROTA: REMOVER ANEXO ==========
+    @bp.route('/pedido/<int:pedido_id>/anexo/<int:anexo_index>/remover', methods=['DELETE'])
+    @analista_required
+    def remover_anexo(pedido_id, anexo_index):
+        """Remove um anexo do pedido"""
+        try:
+            user_id = session.get('user_id')
+            
+            analista_info = execute_query("""
+                SELECT a.id FROM analistas a
+                WHERE a.usuario_id = %s AND a.status = 'ativo'
+            """, (user_id,), fetch=True, one=True)
+            
+            if not analista_info:
+                return jsonify({'error': 'Analista não encontrado'}), 404
+            
+            pedido = execute_query("""
+                SELECT analista_id, anexos FROM pedidos_analise WHERE id = %s
+            """, (pedido_id,), fetch=True, one=True)
+            
+            if not pedido:
+                return jsonify({'error': 'Pedido não encontrado'}), 404
+            
+            pedido_analista = pedido.get('analista_id') if isinstance(pedido, dict) else pedido[0]
+            anexos_json = pedido.get('anexos') if isinstance(pedido, dict) else pedido[1] if len(pedido) > 1 else None
+            
+            if pedido_analista and pedido_analista != analista_id:
+                return jsonify({'error': 'Acesso negado'}), 403
+            
+            if not anexos_json:
+                return jsonify({'error': 'Nenhum anexo encontrado'}), 404
+            
+            if isinstance(anexos_json, str):
+                try:
+                    anexos_lista = json.loads(anexos_json)
+                except:
+                    return jsonify({'error': 'Erro ao processar anexos'}), 500
+            else:
+                anexos_lista = anexos_json
+            
+            if anexo_index >= len(anexos_lista):
+                return jsonify({'error': 'Anexo não encontrado'}), 404
+            
+            # Remover arquivo físico
+            anexo = anexos_lista[anexo_index]
+            filename = anexo.get('filename') if isinstance(anexo, dict) else anexo[0] if len(anexo) > 0 else None
+            
+            if filename:
+                from ..file_utils import get_pedido_anexo_path
+                filepath = get_pedido_anexo_path(filename)
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+            
+            # Remover do JSON
+            anexos_lista.pop(anexo_index)
+            
+            # Salvar lista atualizada
+            execute_query("""
+                UPDATE pedidos_analise 
+                SET anexos = %s, atualizado_em = NOW()
+                WHERE id = %s
+            """, (json.dumps(anexos_lista, ensure_ascii=False), pedido_id), commit=True)
+            
+            return jsonify({'success': True, 'message': 'Anexo removido com sucesso'})
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao remover anexo: {e}")
             logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 500
 
