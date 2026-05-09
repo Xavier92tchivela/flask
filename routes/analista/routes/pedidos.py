@@ -162,6 +162,171 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                                  urgencia_filter='',
                                  now=datetime.now())
 
+    # ========== ROTA: ANÁLISE MANUAL ==========
+    @bp.route('/analise-manual/<int:pedido_id>')
+    @analista_required
+    def analise_manual(pedido_id):
+        """Página de análise manual para um pedido específico"""
+        try:
+            user_id = session.get('user_id')
+            
+            analista_info = execute_query("""
+                SELECT a.id FROM analistas a
+                WHERE a.usuario_id = %s AND a.status = 'ativo'
+            """, (user_id,), fetch=True, one=True)
+            
+            if not analista_info:
+                flash('Perfil de analista não encontrado.', 'danger')
+                return redirect(url_for('auth.login'))
+            
+            if isinstance(analista_info, dict):
+                analista_id = analista_info.get('id')
+            else:
+                analista_id = analista_info[0] if len(analista_info) > 0 else None
+            
+            # Buscar detalhes do pedido
+            pedido = execute_query("""
+                SELECT 
+                    pa.id,
+                    pa.paciente_id,
+                    pa.medico_id,
+                    pa.tipo_exame,
+                    pa.descricao,
+                    pa.observacoes,
+                    pa.urgencia,
+                    pa.status,
+                    pa.data_solicitacao,
+                    pa.data_conclusao,
+                    pa.resultado_analise,
+                    pa.diagnostico_analista,
+                    pa.recomendacoes_analista,
+                    pa.analista_id,
+                    pa.observacoes_medico,
+                    pa.consulta_id,
+                    COALESCE(u.nome, 'Não informado') as paciente_nome,
+                    p.data_nascimento,
+                    COALESCE(p.genero, '') as paciente_genero,
+                    COALESCE(m_u.nome, 'Não informado') as medico_nome,
+                    COALESCE(m.especialidade, '') as medico_especialidade,
+                    COALESCE(m.crm, '') as medico_crm
+                FROM pedidos_analise pa
+                LEFT JOIN pacientes p ON pa.paciente_id = p.id
+                LEFT JOIN usuarios u ON p.usuario_id = u.id
+                LEFT JOIN medicos m ON pa.medico_id = m.id
+                LEFT JOIN usuarios m_u ON m.usuario_id = m_u.id
+                WHERE pa.id = %s
+            """, (pedido_id,), fetch=True, one=True)
+            
+            if not pedido:
+                flash('Pedido não encontrado.', 'danger')
+                return redirect(url_for('analista.pedidos'))
+            
+            # Verificar permissão
+            if isinstance(pedido, dict):
+                pedido_analista = pedido.get('analista_id')
+                pedido_status = pedido.get('status')
+            else:
+                pedido_analista = pedido[13] if len(pedido) > 13 else None
+                pedido_status = pedido[7] if len(pedido) > 7 else None
+            
+            if pedido_analista is not None and pedido_analista != 0 and pedido_analista != analista_id:
+                flash('Você não tem permissão para acessar este pedido.', 'danger')
+                return redirect(url_for('analista.pedidos'))
+            
+            # Calcular idade
+            idade = ''
+            if isinstance(pedido, dict):
+                data_nasc = pedido.get('data_nascimento')
+                if data_nasc:
+                    try:
+                        if isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
+                        hoje = datetime.now()
+                        idade_calc = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade_calc -= 1
+                        idade = f"{idade_calc} anos"
+                    except:
+                        idade = ''
+            else:
+                if len(pedido) > 17 and pedido[17]:
+                    data_nasc = pedido[17]
+                    try:
+                        if isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
+                        hoje = datetime.now()
+                        idade_calc = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade_calc -= 1
+                        idade = f"{idade_calc} anos"
+                    except:
+                        idade = ''
+            
+            # Montar dicionário do pedido
+            if isinstance(pedido, dict):
+                pedido_dict = {
+                    'id': pedido.get('id'),
+                    'paciente_id': pedido.get('paciente_id'),
+                    'medico_id': pedido.get('medico_id'),
+                    'tipo_exame': garantir_string(pedido.get('tipo_exame')) or 'Não especificado',
+                    'descricao': garantir_string(pedido.get('descricao')) or '',
+                    'observacoes': garantir_string(pedido.get('observacoes')) or '',
+                    'urgencia': garantir_string(pedido.get('urgencia')) or 'normal',
+                    'status': garantir_string(pedido.get('status')) or 'pendente',
+                    'data_solicitacao': pedido.get('data_solicitacao'),
+                    'data_conclusao': pedido.get('data_conclusao'),
+                    'resultado_analise': garantir_string(pedido.get('resultado_analise')) or '',
+                    'diagnostico_analista': garantir_string(pedido.get('diagnostico_analista')) or '',
+                    'recomendacoes_analista': garantir_string(pedido.get('recomendacoes_analista')) or '',
+                    'analista_id': pedido.get('analista_id'),
+                    'observacoes_medico': garantir_string(pedido.get('observacoes_medico')) or '',
+                    'consulta_id': pedido.get('consulta_id'),
+                    'paciente_nome': garantir_string(pedido.get('paciente_nome')) or 'Não informado',
+                    'paciente_data_nascimento': pedido.get('data_nascimento').strftime('%d/%m/%Y') if pedido.get('data_nascimento') else '',
+                    'paciente_idade': idade,
+                    'paciente_genero': garantir_string(pedido.get('paciente_genero')) or '',
+                    'medico_nome': garantir_string(pedido.get('medico_nome')) or 'Não informado',
+                    'medico_especialidade': garantir_string(pedido.get('medico_especialidade')) or '',
+                    'medico_crm': garantir_string(pedido.get('medico_crm')) or ''
+                }
+            else:
+                pedido_dict = {
+                    'id': pedido[0],
+                    'paciente_id': pedido[1],
+                    'medico_id': pedido[2],
+                    'tipo_exame': garantir_string(pedido[3]) or 'Não especificado',
+                    'descricao': garantir_string(pedido[4]) or '',
+                    'observacoes': garantir_string(pedido[5]) or '',
+                    'urgencia': garantir_string(pedido[6]) or 'normal',
+                    'status': garantir_string(pedido[7]) or 'pendente',
+                    'data_solicitacao': pedido[8] if len(pedido) > 8 and isinstance(pedido[8], datetime) else None,
+                    'data_conclusao': pedido[9] if len(pedido) > 9 and isinstance(pedido[9], datetime) else None,
+                    'resultado_analise': garantir_string(pedido[10]) if len(pedido) > 10 else '',
+                    'diagnostico_analista': garantir_string(pedido[11]) if len(pedido) > 11 else '',
+                    'recomendacoes_analista': garantir_string(pedido[12]) if len(pedido) > 12 else '',
+                    'analista_id': pedido[13] if len(pedido) > 13 else None,
+                    'observacoes_medico': garantir_string(pedido[14]) if len(pedido) > 14 else '',
+                    'consulta_id': pedido[15] if len(pedido) > 15 else None,
+                    'paciente_nome': garantir_string(pedido[16]) if len(pedido) > 16 else 'Não informado',
+                    'paciente_data_nascimento': pedido[17].strftime('%d/%m/%Y') if len(pedido) > 17 and pedido[17] else '',
+                    'paciente_idade': idade,
+                    'paciente_genero': garantir_string(pedido[18]) if len(pedido) > 18 else '',
+                    'medico_nome': garantir_string(pedido[19]) if len(pedido) > 19 else 'Não informado',
+                    'medico_especialidade': garantir_string(pedido[20]) if len(pedido) > 20 else '',
+                    'medico_crm': garantir_string(pedido[21]) if len(pedido) > 21 else ''
+                }
+            
+            return render_template('analista/analise_manual.html',
+                                 pedido=pedido_dict,
+                                 user=session,
+                                 now=datetime.now())
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao carregar análise manual: {e}")
+            logger.error(traceback.format_exc())
+            flash('Erro ao carregar página de análise manual.', 'danger')
+            return redirect(url_for('analista.pedidos'))
+
     # ========== ROTA: DOWNLOAD DE ANEXOS (USANDO JSON) ==========
     @bp.route('/pedidos/<int:pedido_id>/anexo/<int:anexo_index>')
     @analista_required
@@ -775,105 +940,6 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             logger.error(traceback.format_exc())
             flash(f'Erro ao concluir análise: {str(e)}', 'danger')
             return redirect(url_for('analista.pedidos'))
-
-    # ========== ROTA: ANALISAR IMAGEM COM IA ==========
-    @bp.route('/analisar-imagem/<int:pedido_id>', methods=['POST'])
-    @analista_required
-    def analisar_imagem(pedido_id):
-        """Analisa uma imagem usando IA"""
-        try:
-            user_id = session.get('user_id')
-            
-            analista_info = execute_query("""
-                SELECT a.id FROM analistas a
-                WHERE a.usuario_id = %s AND a.status = 'ativo'
-            """, (user_id,), fetch=True, one=True)
-            
-            if not analista_info:
-                return jsonify({'error': 'Analista não encontrado'}), 404
-            
-            if 'imagem' not in request.files:
-                return jsonify({'error': 'Nenhuma imagem enviada'}), 400
-            
-            file = request.files['imagem']
-            if file.filename == '':
-                return jsonify({'error': 'Nenhum arquivo selecionado'}), 400
-            
-            from ..file_utils import save_uploaded_file
-            
-            filename, original_name, size, filepath = save_uploaded_file(
-                file, 
-                subfolder='temp',
-                custom_filename=f"analise_{pedido_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
-            )
-            
-            from ..gemini_service import analisar_imagem_com_gemini
-            
-            # Obter informações do paciente
-            paciente_info = execute_query("""
-                SELECT u.nome, p.data_nascimento, p.genero
-                FROM pedidos_analise pa
-                JOIN pacientes p ON pa.paciente_id = p.id
-                JOIN usuarios u ON p.usuario_id = u.id
-                WHERE pa.id = %s
-            """, (pedido_id,), fetch=True, one=True)
-            
-            if paciente_info:
-                if isinstance(paciente_info, dict):
-                    paciente_nome = garantir_string(paciente_info.get('nome')) or 'Paciente'
-                    data_nasc = paciente_info.get('data_nascimento')
-                    genero = garantir_string(paciente_info.get('genero')) or ''
-                else:
-                    paciente_nome = garantir_string(paciente_info[0]) if len(paciente_info) > 0 else 'Paciente'
-                    data_nasc = paciente_info[1] if len(paciente_info) > 1 else None
-                    genero = garantir_string(paciente_info[2]) if len(paciente_info) > 2 else ''
-            else:
-                paciente_nome = 'Paciente'
-                data_nasc = None
-                genero = ''
-            
-            idade = ''
-            if data_nasc:
-                try:
-                    if isinstance(data_nasc, str):
-                        data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
-                    hoje = datetime.now()
-                    idade_calc = hoje.year - data_nasc.year
-                    if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
-                        idade_calc -= 1
-                    idade = f"{idade_calc} anos"
-                except:
-                    idade = ''
-            
-            contexto = f"""
-            Paciente: {paciente_nome}
-            Idade: {idade}
-            Gênero: {genero}
-            Tipo de Exame: {request.form.get('tipo_exame', 'Não especificado')}
-            """
-            
-            from flask import current_app
-            gemini_available = current_app.config.get('GEMINI_AVAILABLE', False)
-            
-            if not gemini_available:
-                return jsonify({'error': 'API Gemini não disponível'}), 503
-            
-            resultado = analisar_imagem_com_gemini(filepath, contexto)
-            
-            try:
-                os.remove(filepath)
-            except:
-                pass
-            
-            if resultado and 'error' not in resultado:
-                return jsonify({'diagnostico': resultado.get('diagnostico', '')})
-            else:
-                return jsonify({'error': resultado.get('error', 'Erro na análise')}), 500
-            
-        except Exception as e:
-            logger.error(f"❌ Erro na análise de imagem: {e}")
-            logger.error(traceback.format_exc())
-            return jsonify({'error': str(e)}), 500
 
     # ========== ROTA: LISTAR ANEXOS ==========
     @bp.route('/pedido/<int:pedido_id>/anexos')
