@@ -19,17 +19,37 @@ logger = logging.getLogger(__name__)
 
 def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_service=None):
     """
-    Inicializa e retorna o blueprint completo do médico
+    Inicializa e retorna o blueprint completo do médico e enfermeira
     """
     try:
         print("\n" + "="*50)
-        print("INICIALIZANDO BLUEPRINT MÉDICO")
+        print("INICIALIZANDO BLUEPRINT MÉDICO E ENFERMEIRA")
         print("="*50)
         
         medico_bp = Blueprint('medico', __name__, url_prefix='/medico')
         
         # Inicializar funções base
         base = init_medico_base(mysql)
+        
+        # ===================== DECORATOR PARA PROFISSIONAL DE SAÚDE =====================
+        def profissional_saude_required(f):
+            """Decorator para permitir acesso a médicos e enfermeiras/enfermeiros"""
+            from functools import wraps
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                if 'user_id' not in session:
+                    flash('Faça login para continuar.', 'warning')
+                    return redirect(url_for('auth.login'))
+                
+                user_type = session.get('user_type')
+                
+                # Verificar se é médico ou enfermeira/enfermeiro
+                if user_type not in ['medico', 'enfermeira', 'enfermeiro']:
+                    flash('Acesso restrito a profissionais de saúde.', 'warning')
+                    return redirect(url_for('dashboard'))
+                
+                return f(*args, **kwargs)
+            return decorated_function
         
         # ===================== FUNÇÃO AUXILIAR =====================
         def decode_bytes(value):
@@ -44,29 +64,61 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: RECEITA DIGITAL (CRIAR) =====================
         @medico_bp.route('/consulta/<int:consulta_id>/receita-digital')
+        @profissional_saude_required
         def criar_receita_digital(consulta_id):
-            """Página para criar receita digital"""
+            """Página para criar receita digital (médicos e enfermeiras)"""
             from utils.receitas_data import MEDICAMENTOS_POR_CONDICAO
             
-            medico_info = base['obter_info_medico']()
-            if not medico_info:
+            user_type = session.get('user_type')
+            
+            # Buscar informações do profissional
+            if user_type == 'medico':
+                profissional_info = base['obter_info_medico']()
+                campo_identificador = 'crm'
+                identificador_valor = profissional_info.get('crm', '') if profissional_info else ''
+                tipo_profissional = 'Médico'
+            else:
+                profissional_info = base.get('obter_info_enfermeiro', lambda: None)()
+                campo_identificador = 'registro_profissional'
+                identificador_valor = profissional_info.get('registro_profissional', '') if profissional_info else ''
+                tipo_profissional = 'Enfermeiro(a)'
+            
+            if not profissional_info:
                 flash('Acesso não autorizado.', 'danger')
                 return redirect(url_for('auth.login'))
             
             cursor = mysql.connection.cursor()
-            cursor.execute("""
-                SELECT 
-                    c.id, c.paciente_id, c.medico_id, c.status, c.data_hora,
-                    c.observacoes, c.diagnostico_texto,
-                    p_u.nome as paciente_nome, p.data_nascimento,
-                    m_u.nome as medico_nome, m.especialidade, m.crm
-                FROM consultas c
-                JOIN pacientes p ON c.paciente_id = p.id
-                JOIN usuarios p_u ON p.usuario_id = p_u.id
-                JOIN medicos m ON c.medico_id = m.id
-                JOIN usuarios m_u ON m.usuario_id = m_u.id
-                WHERE c.id = %s AND c.medico_id = %s
-            """, (consulta_id, medico_info['id']))
+            
+            # Verificar permissão da consulta
+            if user_type == 'medico':
+                cursor.execute("""
+                    SELECT 
+                        c.id, c.paciente_id, c.medico_id, c.status, c.data_hora,
+                        c.observacoes, c.diagnostico_texto,
+                        p_u.nome as paciente_nome, p.data_nascimento,
+                        m_u.nome as medico_nome, m.especialidade, m.crm
+                    FROM consultas c
+                    JOIN pacientes p ON c.paciente_id = p.id
+                    JOIN usuarios p_u ON p.usuario_id = p_u.id
+                    JOIN medicos m ON c.medico_id = m.id
+                    JOIN usuarios m_u ON m.usuario_id = m_u.id
+                    WHERE c.id = %s AND c.medico_id = %s
+                """, (consulta_id, profissional_info['id']))
+            else:
+                # Enfermeiras podem acessar consultas, mas sem modificar
+                cursor.execute("""
+                    SELECT 
+                        c.id, c.paciente_id, c.medico_id, c.status, c.data_hora,
+                        c.observacoes, c.diagnostico_texto,
+                        p_u.nome as paciente_nome, p.data_nascimento,
+                        m_u.nome as medico_nome, m.especialidade, m.crm
+                    FROM consultas c
+                    JOIN pacientes p ON c.paciente_id = p.id
+                    JOIN usuarios p_u ON p.usuario_id = p_u.id
+                    JOIN medicos m ON c.medico_id = m.id
+                    JOIN usuarios m_u ON m.usuario_id = m_u.id
+                    WHERE c.id = %s
+                """, (consulta_id,))
             
             consulta_raw = cursor.fetchone()
             cursor.close()
@@ -106,15 +158,22 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     'medico_crm': consulta_raw[11]
                 }
             
+            # Adicionar informações do profissional responsável
+            consulta['responsavel_tipo'] = tipo_profissional
+            consulta['responsavel_nome'] = profissional_info.get('nome')
+            consulta['responsavel_identificador'] = identificador_valor
+            
             return render_template('medico/receita_digital.html',
                                   consulta=consulta,
                                   medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
+                                  profissional_tipo=user_type,
                                   datetime=datetime)
         
-        # ===================== ROTA: SALVAR RECEITA AJAX COM REDIRECIONAMENTO =====================
+        # ===================== ROTA: SALVAR RECEITA AJAX =====================
         @medico_bp.route('/receita/salvar-ajax', methods=['POST'])
+        @profissional_saude_required
         def salvar_receita_ajax():
-            """Salva a receita via AJAX e retorna URL de redirecionamento"""
+            """Salva a receita via AJAX (médicos e enfermeiras)"""
             try:
                 if 'user_id' not in session:
                     return jsonify({"success": False, "error": "Não autorizado"}), 401
@@ -132,9 +191,8 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 observacoes = data.get('observacoes_gerais', '')
                 receita_texto = data.get('receita_texto', '')
                 
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    return jsonify({"success": False, "error": "Médico não encontrado"}), 404
+                user_type = session.get('user_type')
+                profissional_nome = session.get('user_name', 'Profissional')
                 
                 prescricao_texto = receita_texto
                 
@@ -161,7 +219,10 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     except:
                         pass
                 
-                # Usar conexão direta
+                # Adicionar cabeçalho com informações do profissional
+                if prescricao_texto:
+                    prescricao_texto = f"[Prescrição por: {profissional_nome} ({user_type}) - {datetime.now().strftime('%d/%m/%Y %H:%M')}]\n\n{prescricao_texto}"
+                
                 conn = mysql.connection
                 cursor = conn.cursor()
                 
@@ -175,16 +236,21 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             UPDATE receita 
                             SET diagnostico = %s,
                                 prescricao = %s,
-                                recomendacoes = %s
+                                recomendacoes = %s,
+                                profissional_tipo = %s,
+                                profissional_nome = %s,
+                                atualizado_em = NOW()
                             WHERE consulta_id = %s
-                        """, (diagnostico, prescricao_texto, observacoes, consulta_id))
+                        """, (diagnostico, prescricao_texto, observacoes, user_type, profissional_nome, consulta_id))
                         receita_id = existing_id
                     else:
                         cursor.execute("""
                             INSERT INTO receita 
-                            (consulta_id, diagnostico, prescricao, recomendacoes, status, created_at)
-                            VALUES (%s, %s, %s, %s, 'ativa', NOW())
-                        """, (consulta_id, diagnostico, prescricao_texto, observacoes))
+                            (consulta_id, diagnostico, prescricao, recomendacoes, 
+                             profissional_tipo, profissional_nome, status, created_at)
+                            VALUES (%s, %s, %s, %s, %s, %s, 'ativa', NOW())
+                        """, (consulta_id, diagnostico, prescricao_texto, observacoes, 
+                              user_type, profissional_nome))
                         receita_id = cursor.lastrowid
                     
                     conn.commit()
@@ -195,7 +261,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 finally:
                     cursor.close()
                 
-                # Retornar URL de redirecionamento para a receita criada
                 redirect_url = url_for('medico.visualizar_receita_gerada', receita_id=receita_id, _external=False)
                 
                 return jsonify({
@@ -212,8 +277,9 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: VISUALIZAR RECEITA GERADA =====================
         @medico_bp.route('/receita/<int:receita_id>/visualizar')
+        @profissional_saude_required
         def visualizar_receita_gerada(receita_id):
-            """Visualiza uma receita já gerada"""
+            """Visualiza uma receita já gerada (médicos e enfermeiras)"""
             try:
                 if 'user_id' not in session:
                     flash('Faça login para acessar.', 'danger')
@@ -240,11 +306,15 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     diagnostico = row.get('diagnostico')
                     prescricao = row.get('prescricao')
                     recomendacoes = row.get('recomendacoes')
+                    profissional_tipo = row.get('profissional_tipo')
+                    profissional_nome = row.get('profissional_nome')
                 else:
                     consulta_id = result[1] if len(result) > 1 else None
                     diagnostico = result[2] if len(result) > 2 else None
                     prescricao = result[3] if len(result) > 3 else None
                     recomendacoes = result[4] if len(result) > 4 else None
+                    profissional_tipo = result[8] if len(result) > 8 else None
+                    profissional_nome = result[9] if len(result) > 9 else None
                 
                 cursor = mysql.connection.cursor()
                 cursor.execute("SELECT paciente_id, medico_id FROM consultas WHERE id = %s", (consulta_id,))
@@ -314,6 +384,8 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                       receita=prescricao or '',
                                       observacoes_receita=recomendacoes or '',
                                       medicamentos=[],
+                                      profissional_tipo=profissional_tipo,
+                                      profissional_nome=profissional_nome,
                                       pedido={
                                           'id': consulta_id,
                                           'paciente_nome': paciente_nome or 'N/A',
@@ -338,35 +410,64 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         
         # ===================== ROTA: LISTAR TODAS AS RECEITAS =====================
         @medico_bp.route('/receitas')
+        @profissional_saude_required
         def listar_receitas():
-            """Lista todas as receitas do médico"""
+            """Lista todas as receitas (médicos e enfermeiras)"""
             try:
                 if 'user_id' not in session:
                     flash('Faça login para acessar.', 'danger')
                     return redirect(url_for('auth.login'))
                 
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    flash('Médico não encontrado.', 'danger')
-                    return redirect(url_for('auth.login'))
+                user_type = session.get('user_type')
+                user_id = session.get('user_id')
                 
                 cursor = mysql.connection.cursor()
-                cursor.execute("""
-                    SELECT 
-                        r.id,
-                        r.consulta_id,
-                        r.diagnostico,
-                        r.prescricao,
-                        r.created_at,
-                        c.data_hora as consulta_data,
-                        u.nome as paciente_nome
-                    FROM receita r
-                    JOIN consultas c ON r.consulta_id = c.id
-                    JOIN pacientes p ON c.paciente_id = p.id
-                    JOIN usuarios u ON p.usuario_id = u.id
-                    WHERE c.medico_id = %s
-                    ORDER BY r.created_at DESC
-                """, (medico_info['id'],))
+                
+                if user_type == 'medico':
+                    # Médico vê apenas suas receitas
+                    medico_info = base['obter_info_medico']()
+                    if not medico_info:
+                        flash('Médico não encontrado.', 'danger')
+                        return redirect(url_for('auth.login'))
+                    
+                    cursor.execute("""
+                        SELECT 
+                            r.id,
+                            r.consulta_id,
+                            r.diagnostico,
+                            r.prescricao,
+                            r.created_at,
+                            r.profissional_tipo,
+                            r.profissional_nome,
+                            c.data_hora as consulta_data,
+                            u.nome as paciente_nome
+                        FROM receita r
+                        JOIN consultas c ON r.consulta_id = c.id
+                        JOIN pacientes p ON c.paciente_id = p.id
+                        JOIN usuarios u ON p.usuario_id = u.id
+                        WHERE c.medico_id = %s
+                        ORDER BY r.created_at DESC
+                    """, (medico_info['id'],))
+                else:
+                    # Enfermeira vê todas as receitas que ajudou a criar
+                    cursor.execute("""
+                        SELECT 
+                            r.id,
+                            r.consulta_id,
+                            r.diagnostico,
+                            r.prescricao,
+                            r.created_at,
+                            r.profissional_tipo,
+                            r.profissional_nome,
+                            c.data_hora as consulta_data,
+                            u.nome as paciente_nome
+                        FROM receita r
+                        JOIN consultas c ON r.consulta_id = c.id
+                        JOIN pacientes p ON c.paciente_id = p.id
+                        JOIN usuarios u ON p.usuario_id = u.id
+                        WHERE r.profissional_nome = %s OR r.profissional_tipo = 'enfermeira'
+                        ORDER BY r.created_at DESC
+                    """, (session.get('user_name', ''),))
                 
                 receitas = cursor.fetchall()
                 cursor.close()
@@ -378,290 +479,22 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                         'consulta_id': rec[1],
                         'diagnostico': rec[2][:100] + '...' if rec[2] and len(rec[2]) > 100 else rec[2],
                         'created_at': rec[4].strftime('%d/%m/%Y %H:%M') if rec[4] else '',
-                        'consulta_data': rec[5].strftime('%d/%m/%Y %H:%M') if rec[5] else '',
-                        'paciente_nome': rec[6] if len(rec) > 6 else 'N/A'
+                        'consulta_data': rec[7].strftime('%d/%m/%Y %H:%M') if rec[7] else '',
+                        'paciente_nome': rec[8] if len(rec) > 8 else 'N/A',
+                        'profissional_tipo': rec[5] if len(rec) > 5 else 'N/A',
+                        'profissional_nome': rec[6] if len(rec) > 6 else 'N/A'
                     })
                 
                 return render_template('medico/listar_receitas.html',
                                       receitas=receitas_lista,
-                                      user=session)
+                                      user=session,
+                                      user_type=user_type)
                 
             except Exception as e:
                 logger.error(f"Erro ao listar receitas: {e}")
                 logger.error(traceback.format_exc())
                 flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
-        
-        # ===================== ROTA: LISTAR INTERNADOS =====================
-        @medico_bp.route('/internados')
-        def internados():
-            """Lista pacientes internados do médico"""
-            try:
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    flash("Médico não encontrado.", "danger")
-                    return redirect(url_for("auth.login"))
-                
-                medico_id = medico_info.get('id')
-                
-                cursor = mysql.connection.cursor()
-                cursor.execute("""
-                    SELECT 
-                        i.id,
-                        i.numero_prontuario,
-                        i.data_internacao,
-                        i.tipo_internacao,
-                        i.diagnostico_inicial,
-                        i.status,
-                        i.leito_id,
-                        p.id as paciente_id,
-                        u.nome as paciente_nome,
-                        p.data_nascimento,
-                        l.alas,
-                        l.numero as leito_numero,
-                        l.tipo as leito_tipo
-                    FROM internacoes_pacientes i
-                    JOIN pacientes p ON i.paciente_id = p.id
-                    JOIN usuarios u ON p.usuario_id = u.id
-                    LEFT JOIN leitos l ON i.leito_id = l.id
-                    WHERE i.medico_responsavel_id = %s AND i.status = 'ativa'
-                    ORDER BY i.data_internacao DESC
-                """, (medico_id,))
-                
-                internados = cursor.fetchall()
-                cursor.close()
-                
-                internados_lista = []
-                for internado in internados:
-                    idade = None
-                    if len(internado) > 9 and internado[9]:
-                        data_nasc = internado[9]
-                        if isinstance(data_nasc, datetime):
-                            birth_date = data_nasc.date()
-                        else:
-                            birth_date = data_nasc
-                        today = datetime.now().date()
-                        idade = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-                    
-                    internados_lista.append({
-                        'id': internado[0],
-                        'numero_prontuario': internado[1],
-                        'data_internacao': internado[2],
-                        'tipo_internacao': decode_bytes(internado[3]) if internado[3] else 'Não informado',
-                        'diagnostico_inicial': decode_bytes(internado[4]) if internado[4] else 'Não informado',
-                        'status': internado[5],
-                        'paciente_id': internado[6] if len(internado) > 6 else None,
-                        'paciente_nome': decode_bytes(internado[7]) if len(internado) > 7 and internado[7] else 'Paciente',
-                        'idade': idade,
-                        'leito_alas': decode_bytes(internado[10]) if len(internado) > 10 and internado[10] else 'Não definido',
-                        'leito_numero': internado[11] if len(internado) > 11 and internado[11] else '?',
-                        'leito_tipo': decode_bytes(internado[12]) if len(internado) > 12 and internado[12] else 'Não definido'
-                    })
-                
-                return render_template(
-                    'medico/internados.html',
-                    pacientes_internados_lista=internados_lista,
-                    user=session
-                )
-                
-            except Exception as e:
-                logger.error(f"Erro em internados: {e}")
-                logger.error(traceback.format_exc())
-                flash(str(e), "danger")
-                return redirect(url_for("medico.dashboard"))
-        
-        # ===================== ROTA: PRESCREVER MEDICAMENTO =====================
-        @medico_bp.route('/prescrever-medicamento/<int:internacao_id>')
-        def prescrever_medicamento(internacao_id):
-            """Página para prescrever medicamento"""
-            try:
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    flash("Médico não encontrado.", "danger")
-                    return redirect(url_for("auth.login"))
-                
-                cursor = mysql.connection.cursor()
-                cursor.execute("""
-                    SELECT i.id, i.numero_prontuario, u.nome as paciente_nome,
-                           p.data_nascimento
-                    FROM internacoes_pacientes i
-                    JOIN pacientes p ON i.paciente_id = p.id
-                    JOIN usuarios u ON p.usuario_id = u.id
-                    WHERE i.id = %s AND i.medico_responsavel_id = %s
-                """, (internacao_id, medico_info['id']))
-                
-                internacao = cursor.fetchone()
-                cursor.close()
-                
-                if not internacao:
-                    flash("Internação não encontrada.", "danger")
-                    return redirect(url_for("medico.internados"))
-                
-                hoje = datetime.now().strftime('%Y-%m-%d')
-                
-                return render_template(
-                    'medico/prescrever_medicamento.html',
-                    internacao=internacao,
-                    internacao_id=internacao_id,
-                    hoje=hoje,
-                    user=session
-                )
-                
-            except Exception as e:
-                logger.error(f"Erro em prescrever_medicamento: {e}")
-                logger.error(traceback.format_exc())
-                flash(str(e), "danger")
-                return redirect(url_for("medico.dashboard"))
-        
-        # ===================== ROTA: SALVAR PRESCRIÇÃO =====================
-        @medico_bp.route('/api/prescrever-medicamento', methods=['POST'])
-        def salvar_prescricao():
-            """Salvar prescrição de medicamento"""
-            try:
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    return jsonify({"success": False, "error": "Não autorizado"}), 401
-                
-                data = request.get_json()
-                internacao_id = data.get('internacao_id')
-                medicamento = data.get('medicamento')
-                dosagem = data.get('dosagem')
-                via = data.get('via')
-                frequencia = data.get('frequencia')
-                horario_inicio = data.get('horario_inicio')
-                horario_fim = data.get('horario_fim')
-                data_inicio = data.get('data_inicio')
-                data_fim = data.get('data_fim')
-                observacoes = data.get('observacoes', '')
-                
-                if not all([internacao_id, medicamento, dosagem, via, frequencia, data_inicio]):
-                    return jsonify({"success": False, "error": "Preencha todos os campos obrigatórios"}), 400
-                
-                cursor = mysql.connection.cursor()
-                cursor.execute("""
-                    INSERT INTO medicamentos_prescritos 
-                    (internacao_id, medicamento, dosagem, via, frequencia, 
-                     horario_inicio, horario_fim, data_inicio, data_fim, 
-                     observacoes, status, medico_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'ativa', %s)
-                """, (internacao_id, medicamento, dosagem, via, frequencia,
-                      horario_inicio, horario_fim, data_inicio, data_fim,
-                      observacoes, medico_info['id']))
-                
-                mysql.connection.commit()
-                cursor.close()
-                
-                return jsonify({"success": True, "message": "Medicamento prescrito com sucesso!"})
-                
-            except Exception as e:
-                logger.error(f"Erro em salvar_prescricao: {e}")
-                logger.error(traceback.format_exc())
-                return jsonify({"success": False, "error": str(e)}), 500
-        
-        # ===================== ROTA: LISTAR PRESCRIÇÕES =====================
-        @medico_bp.route('/prescricoes/<int:internacao_id>')
-        def listar_prescricoes(internacao_id):
-            """Lista medicamentos prescritos para um paciente internado"""
-            try:
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    flash("Médico não encontrado.", "danger")
-                    return redirect(url_for("auth.login"))
-                
-                cursor = mysql.connection.cursor()
-                cursor.execute("""
-                    SELECT i.id, i.numero_prontuario, u.nome as paciente_nome
-                    FROM internacoes_pacientes i
-                    JOIN pacientes p ON i.paciente_id = p.id
-                    JOIN usuarios u ON p.usuario_id = u.id
-                    WHERE i.id = %s AND i.medico_responsavel_id = %s
-                """, (internacao_id, medico_info['id']))
-                
-                internacao = cursor.fetchone()
-                
-                if not internacao:
-                    cursor.close()
-                    flash("Internação não encontrada.", "danger")
-                    return redirect(url_for("medico.internados"))
-                
-                cursor.execute("""
-                    SELECT 
-                        mp.id,
-                        mp.medicamento,
-                        mp.dosagem,
-                        mp.via,
-                        mp.frequencia,
-                        mp.horario_inicio,
-                        mp.horario_fim,
-                        mp.data_inicio,
-                        mp.data_fim,
-                        mp.observacoes,
-                        mp.status,
-                        mp.created_at
-                    FROM medicamentos_prescritos mp
-                    WHERE mp.internacao_id = %s
-                    ORDER BY mp.created_at DESC
-                """, (internacao_id,))
-                
-                prescricoes_raw = cursor.fetchall()
-                cursor.close()
-                
-                prescricoes = []
-                for p in prescricoes_raw:
-                    prescricoes.append({
-                        'id': p[0],
-                        'medicamento': decode_bytes(p[1]) if p[1] else '-',
-                        'dosagem': decode_bytes(p[2]) if p[2] else '-',
-                        'via': decode_bytes(p[3]) if p[3] else '-',
-                        'frequencia': decode_bytes(p[4]) if p[4] else '-',
-                        'horario_inicio': p[5].strftime('%H:%M') if p[5] else '-',
-                        'horario_fim': p[6].strftime('%H:%M') if p[6] else '-',
-                        'data_inicio': p[7].strftime('%d/%m/%Y') if p[7] else '-',
-                        'data_fim': p[8].strftime('%d/%m/%Y') if p[8] else 'Indeterminado',
-                        'observacoes': decode_bytes(p[9]) if p[9] else None,
-                        'status': decode_bytes(p[10]) if p[10] else 'ativa',
-                        'created_at': p[11].strftime('%d/%m/%Y %H:%M') if p[11] else '-'
-                    })
-                
-                return render_template(
-                    'medico/prescricoes.html',
-                    internacao_id=internacao_id,
-                    internacao=internacao,
-                    prescricoes=prescricoes,
-                    user=session
-                )
-                
-            except Exception as e:
-                logger.error(f"Erro em listar_prescricoes: {e}")
-                logger.error(traceback.format_exc())
-                flash(str(e), "danger")
-                return redirect(url_for("medico.dashboard"))
-        
-        # ===================== ROTA: SUSPENDER PRESCRIÇÃO =====================
-        @medico_bp.route('/api/suspender-prescricao/<int:prescricao_id>', methods=['POST'])
-        def suspender_prescricao(prescricao_id):
-            """Suspender uma prescrição de medicamento"""
-            try:
-                medico_info = base['obter_info_medico']()
-                if not medico_info:
-                    return jsonify({"success": False, "error": "Não autorizado"}), 401
-                
-                cursor = mysql.connection.cursor()
-                cursor.execute("""
-                    UPDATE medicamentos_prescritos 
-                    SET status = 'suspensa' 
-                    WHERE id = %s
-                """, (prescricao_id,))
-                
-                mysql.connection.commit()
-                cursor.close()
-                
-                return jsonify({"success": True, "message": "Prescrição suspensa com sucesso!"})
-                
-            except Exception as e:
-                logger.error(f"Erro em suspender_prescricao: {e}")
-                logger.error(traceback.format_exc())
-                return jsonify({"success": False, "error": str(e)}), 500
         
         # ===================== LISTA DE MÓDULOS EXISTENTES =====================
         modules = [
@@ -712,7 +545,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "处 perfil<th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
+            output += "<table><th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
