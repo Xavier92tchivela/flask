@@ -1,4 +1,4 @@
-# routes/medico/medico_receita_digital.py - VERSÃO COMPLETA CORRIGIDA
+# routes/medico/medico_receita_digital.py - VERSÃO COM PERMISSÃO PARA ENFERMEIRA
 # TODOS OS ENDPOINTS RENOMEADOS PARA EVITAR CONFLITOS
 from flask import render_template, request, redirect, url_for, flash, jsonify, Blueprint, session
 from datetime import datetime
@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 def init_medico_receita_digital(mysql, base):
     """
-    Inicializa o módulo de receita digital
+    Inicializa o módulo de receita digital com permissão para médicos e enfermeiras
     """
     
     # Importar dados de medicamentos
@@ -20,6 +20,51 @@ def init_medico_receita_digital(mysql, base):
     execute_query = base.get('execute_query')
     formatar_data = base.get('formatar_data')
     obter_medico_id = base.get('obter_medico_id')
+    obter_enfermeira_id = base.get('obter_enfermeira_id')
+    
+    # Função para verificar permissão (médico ou enfermeira)
+    def tem_permissao_receita():
+        """Verifica se o usuário atual tem permissão para criar/editar receitas"""
+        user_type = session.get('user_type')
+        return user_type in ['medico', 'enfermeira', 'enfermeiro']
+    
+    # Função para obter ID do profissional (médico ou enfermeira)
+    def obter_profissional_id():
+        """Retorna o ID do profissional (médico ou enfermeira) logado"""
+        user_type = session.get('user_type')
+        user_id = session.get('user_id')
+        
+        if user_type == 'medico':
+            if obter_medico_id:
+                return obter_medico_id()
+            else:
+                # Fallback para obter médico ID
+                try:
+                    cur = mysql.connection.cursor()
+                    cur.execute("SELECT id FROM medicos WHERE usuario_id = %s", (user_id,))
+                    result = cur.fetchone()
+                    cur.close()
+                    if result:
+                        return result[0] if isinstance(result, (tuple, list)) else result.get('id')
+                except:
+                    pass
+                return None
+        elif user_type in ['enfermeira', 'enfermeiro']:
+            if obter_enfermeira_id:
+                return obter_enfermeira_id()
+            else:
+                # Fallback para obter enfermeira ID
+                try:
+                    cur = mysql.connection.cursor()
+                    cur.execute("SELECT id FROM enfermeiros WHERE usuario_id = %s", (user_id,))
+                    result = cur.fetchone()
+                    cur.close()
+                    if result:
+                        return result[0] if isinstance(result, (tuple, list)) else result.get('id')
+                except:
+                    pass
+                return None
+        return None
     
     if obter_medico_id is None:
         logger.warning("obter_medico_id não encontrado no base. Usando função alternativa.")
@@ -41,6 +86,29 @@ def init_medico_receita_digital(mysql, base):
                 return None
             except Exception as e:
                 logger.error(f"Erro ao obter médico ID: {e}")
+                return None
+    
+    # Função para obter ID da enfermeira
+    if obter_enfermeira_id is None:
+        logger.warning("obter_enfermeira_id não encontrado no base. Criando função.")
+        
+        def obter_enfermeira_id():
+            if 'user_id' not in session or session.get('user_type') not in ['enfermeira', 'enfermeiro']:
+                return None
+            try:
+                cur = mysql.connection.cursor()
+                cur.execute("SELECT id FROM enfermeiros WHERE usuario_id = %s", (session['user_id'],))
+                result = cur.fetchone()
+                cur.close()
+                
+                if result:
+                    if isinstance(result, dict):
+                        return result.get('id')
+                    elif isinstance(result, (tuple, list)):
+                        return result[0] if len(result) > 0 else None
+                return None
+            except Exception as e:
+                logger.error(f"Erro ao obter enfermeira ID: {e}")
                 return None
     
     # Função para obter detalhes da consulta
@@ -219,7 +287,20 @@ def init_medico_receita_digital(mysql, base):
         html += '</div>'
         return html
     
+    # ========== FUNÇÃO DE VERIFICAÇÃO DE PERMISSÃO PARA ROTAS ==========
+    def profissional_required(f):
+        """Decorator para verificar se usuário é médico ou enfermeira"""
+        from functools import wraps
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not tem_permissao_receita():
+                flash('Acesso negado. Área restrita para médicos e enfermeiras.', 'danger')
+                return redirect(url_for('auth.login'))
+            return f(*args, **kwargs)
+        return decorated_function
+    
     # ========== ROTA PARA SALVAR RECEITA (AJAX) ==========
+    @profissional_required
     def salvar_receita_ajax():
         """Salva a receita via AJAX com medicamentos personalizados"""
         try:
@@ -230,6 +311,8 @@ def init_medico_receita_digital(mysql, base):
             receita_id = data.get('receita_id')
             medicamentos = data.get('medicamentos', [])
             observacoes = data.get('observacoes', '')
+            profissional_id = obter_profissional_id()
+            profissional_tipo = session.get('user_type')
             
             if not receita_id:
                 return jsonify({"success": False, "error": "ID da receita não informado"}), 400
@@ -238,9 +321,11 @@ def init_medico_receita_digital(mysql, base):
                 UPDATE receita 
                 SET medicamentos = %s, 
                     observacoes_receita = %s,
+                    profissional_id = %s,
+                    profissional_tipo = %s,
                     atualizado_em = NOW()
                 WHERE id = %s
-            """, (json.dumps(medicamentos), observacoes, receita_id))
+            """, (json.dumps(medicamentos), observacoes, profissional_id, profissional_tipo, receita_id))
             
             receita_html = gerar_html_receita_com_medicamentos(medicamentos, observacoes)
             
@@ -255,6 +340,7 @@ def init_medico_receita_digital(mysql, base):
             return jsonify({"success": False, "error": str(e)}), 500
     
     # ========== ROTA PARA OBTER DADOS DA RECEITA ==========
+    @profissional_required
     def obter_receita_json(receita_id):
         """Obtém os dados da receita para edição"""
         try:
@@ -289,15 +375,18 @@ def init_medico_receita_digital(mysql, base):
             return jsonify({"success": False, "error": str(e)}), 500
     
     # ========== ROTA DE TESTE ==========
+    @profissional_required
     def teste_receita_digital(consulta_id):
-        return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}</p>"
+        return f"<h1>✅ Rota de teste da Receita Digital funcionando!</h1><p>Consulta ID: {consulta_id}<br>Tipo de usuário: {session.get('user_type')}</p>"
     
     # ========== ROTA PRINCIPAL ==========
+    @profissional_required
     def criar_receita_digital(consulta_id):
-        """Página para criar receita digital"""
-        medico_id = obter_medico_id()
+        """Página para criar receita digital (médicos e enfermeiras)"""
+        profissional_id = obter_profissional_id()
+        profissional_tipo = session.get('user_type')
         
-        if not medico_id:
+        if not profissional_id:
             flash('Acesso não autorizado.', 'danger')
             return redirect(url_for('auth.login'))
         
@@ -307,18 +396,24 @@ def init_medico_receita_digital(mysql, base):
             flash('Consulta não encontrada.', 'danger')
             return redirect(url_for('medico.consultas'))
         
-        if consulta.get('medico_id') != medico_id:
+        # Apenas o médico responsável ou enfermeiras autorizadas podem acessar
+        if profissional_tipo == 'medico' and consulta.get('medico_id') != profissional_id:
             flash('Você não tem permissão para acessar esta consulta.', 'danger')
             return redirect(url_for('medico.consultas'))
+        
+        # Para enfermeiras, verificar se estão associadas a este médico (opcional)
+        # Pode adicionar lógica adicional aqui se necessário
         
         return render_template('medico/receita_digital.html',
                               consulta=consulta,
                               medicamentos_por_condicao=MEDICAMENTOS_POR_CONDICAO,
-                              medico_id=medico_id,
+                              profissional_id=profissional_id,
+                              profissional_tipo=profissional_tipo,
                               formatar_data=formatar_data,
                               datetime=datetime)
     
     # ========== ROTA PARA VER RECEITA GERADA ==========
+    @profissional_required
     def visualizar_receita_gerada(receita_id):
         """Visualiza uma receita já gerada"""
         try:
@@ -383,6 +478,7 @@ def init_medico_receita_digital(mysql, base):
                                       'crm': medico.get('crm') if medico else 'N/A',
                                       'especialidade': medico.get('especialidade') if medico else 'N/A'
                                   } if medico else {},
+                                  profissional_tipo=session.get('user_type'),
                                   gemini_available=True,
                                   datetime=datetime,
                                   pdf_path=None)
@@ -393,6 +489,7 @@ def init_medico_receita_digital(mysql, base):
             return redirect(url_for('medico.dashboard'))
     
     # ========== ROTA PARA EDITAR RECEITA ==========
+    @profissional_required
     def editar_receita_digital(receita_id):
         """Edita uma receita existente"""
         try:
@@ -456,14 +553,16 @@ def init_medico_receita_digital(mysql, base):
                                       'crm': medico.get('crm') if medico else 'N/A',
                                       'especialidade': medico.get('especialidade') if medico else 'N/A'
                                   } if medico else {},
+                                  profissional_tipo=session.get('user_type'),
                                   datetime=datetime)
             
         except Exception as e:
             logger.error(f"Erro ao editar receita: {e}")
             flash('Erro ao carregar receita para edição.', 'danger')
-            return redirect(url_for('medico.dashboard'))
+            return redirect(url_for('medico_receita_digital.editar_receita_digital', receita_id=receita_id))
     
     # ========== ROTA PARA SALVAR EDIÇÃO ==========
+    @profissional_required
     def salvar_edicao_receita_digital(receita_id):
         """Salva as alterações feitas na receita"""
         try:
@@ -474,6 +573,8 @@ def init_medico_receita_digital(mysql, base):
             diagnostico = request.form.get('diagnostico', '')
             prescricao = request.form.get('prescricao', '')
             observacoes = request.form.get('observacoes', '')
+            profissional_id = obter_profissional_id()
+            profissional_tipo = session.get('user_type')
             
             medicamentos = []
             i = 0
@@ -496,9 +597,12 @@ def init_medico_receita_digital(mysql, base):
                     prescricao = %s,
                     observacoes_receita = %s,
                     medicamentos = %s,
+                    profissional_id = %s,
+                    profissional_tipo = %s,
                     atualizado_em = NOW()
                 WHERE id = %s
-            """, (diagnostico, prescricao, observacoes, json.dumps(medicamentos), receita_id))
+            """, (diagnostico, prescricao, observacoes, json.dumps(medicamentos), 
+                  profissional_id, profissional_tipo, receita_id))
             
             flash('✅ Receita atualizada com sucesso!', 'success')
             return redirect(url_for('medico_receita_digital.visualizar_receita_gerada', receita_id=receita_id))
