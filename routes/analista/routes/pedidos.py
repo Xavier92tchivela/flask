@@ -236,6 +236,74 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 500
 
+    # ========== ROTA: PROXIMO PEDIDO ==========
+    @bp.route('/proximo-pedido')
+    @analista_required
+    def proximo_pedido():
+        """Atribui o próximo pedido pendente ao analista"""
+        try:
+            print("[DEBUG] Acessando proximo pedido")
+            user_id = session.get('user_id')
+            
+            analista_info = execute_query("""
+                SELECT a.id FROM analistas a
+                WHERE a.usuario_id = %s AND a.status = 'ativo'
+            """, (user_id,), fetch=True, one=True)
+            
+            if not analista_info:
+                flash('Perfil de analista não encontrado.', 'danger')
+                return redirect(url_for('auth.login'))
+            
+            # CORREÇÃO: Verificar se é dict ou tuple
+            if isinstance(analista_info, dict):
+                analista_id = analista_info.get('id')
+            else:
+                analista_id = analista_info[0] if len(analista_info) > 0 else None
+            
+            if not analista_id:
+                flash('ID do analista não encontrado.', 'danger')
+                return redirect(url_for('analista.pedidos'))
+            
+            # Buscar próximo pedido pendente
+            pedido = execute_query("""
+                SELECT id FROM pedidos_analise 
+                WHERE (analista_id IS NULL OR analista_id = 0)
+                AND status = 'pendente'
+                ORDER BY 
+                    CASE urgencia 
+                        WHEN 'urgente' THEN 1
+                        WHEN 'alta' THEN 2
+                        WHEN 'normal' THEN 3
+                        ELSE 4
+                    END,
+                    data_solicitacao ASC
+                LIMIT 1
+            """, fetch=True, one=True)
+            
+            if not pedido:
+                flash('Não há pedidos pendentes disponíveis.', 'info')
+                return redirect(url_for('analista.pedidos'))
+            
+            pedido_id = pedido['id'] if isinstance(pedido, dict) else pedido[0]
+            
+            # Atribuir pedido ao analista
+            execute_query("""
+                UPDATE pedidos_analise 
+                SET analista_id = %s, 
+                    status = 'em_analise', 
+                    atualizado_em = NOW()
+                WHERE id = %s
+            """, (analista_id, pedido_id), commit=True)
+            
+            flash(f'Pedido #{pedido_id} atribuído a você!', 'success')
+            return redirect(url_for('analista.analisar_pedido', pedido_id=pedido_id))
+            
+        except Exception as e:
+            logger.error(f"[ERRO] proximo_pedido: {e}")
+            logger.error(traceback.format_exc())
+            flash('Erro ao buscar próximo pedido.', 'danger')
+            return redirect(url_for('analista.pedidos'))
+
     # ========== ROTA: VER DETALHES DO PEDIDO ==========
     @bp.route('/pedido/<int:pedido_id>')
     @analista_required
@@ -316,7 +384,7 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
                 flash('Você não tem permissão para acessar este pedido.', 'danger')
                 return redirect(url_for('analista.pedidos'))
             
-            # Calcular idade (campo data_nascimento está no índice 18 para tupla)
+            # Calcular idade
             idade = ''
             if isinstance(pedido, dict):
                 data_nasc = pedido.get('data_nascimento')
@@ -761,3 +829,5 @@ def register_pedidos_routes(bp, analista_required, execute_query, formatar_data,
             logger.error(f"❌ Erro na análise de imagem: {e}")
             logger.error(traceback.format_exc())
             return jsonify({'error': str(e)}), 500
+
+    # ========== FIM DAS ROTAS ==========
