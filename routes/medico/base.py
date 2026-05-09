@@ -1,3 +1,4 @@
+
 # routes/medico/base.py
 from flask import session, flash, redirect, url_for
 from datetime import datetime
@@ -10,7 +11,7 @@ from utils.helpers import formatar_data, calcular_idade
 logger = logging.getLogger(__name__)
 
 def init_medico_base(mysql):
-    """Inicializa funções base compartilhadas do médico"""
+    """Inicializa funções base compartilhadas do médico e enfermeira"""
     
     # ========== FUNÇÃO EXECUTE QUERY ==========
     def execute_query(query, params=None, fetch=False, one=False):
@@ -21,7 +22,7 @@ def init_medico_base(mysql):
             logger.error(f"Erro ao executar query: {e}")
             return None
     
-    # ========== DECORATOR ==========
+    # ========== DECORATOR PARA MÉDICO ==========
     def medico_required(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -31,7 +32,6 @@ def init_medico_base(mysql):
             
             if session.get('user_type') != 'medico':
                 flash('Acesso restrito a médicos.', 'warning')
-                # 🔧 CORREÇÃO: 'auth.dashboard' → 'dashboard'
                 return redirect(url_for('dashboard'))
             
             # Verificar se tem médico_id na sessão
@@ -51,6 +51,59 @@ def init_medico_base(mysql):
                                 session['medico_id'] = medico[0]
                 except Exception as e:
                     logger.error(f"Erro ao buscar medico_id: {e}")
+            
+            return f(*args, **kwargs)
+        return decorated_function
+    
+    # ========== DECORATOR PARA MÉDICO OU ENFERMEIRA ==========
+    def profissional_saude_required(f):
+        """Decorator para permitir acesso a médicos e enfermeiras/enfermeiros"""
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                flash('Faça login para continuar.', 'warning')
+                return redirect(url_for('auth.login'))
+            
+            user_type = session.get('user_type')
+            
+            # Verificar se é médico ou enfermeira/enfermeiro
+            if user_type not in ['medico', 'enfermeira', 'enfermeiro']:
+                flash('Acesso restrito a profissionais de saúde.', 'warning')
+                return redirect(url_for('dashboard'))
+            
+            # Se for médico, garantir que tem médico_id
+            if user_type == 'medico' and not session.get('medico_id'):
+                try:
+                    user_id = session.get('user_id')
+                    if user_id:
+                        medico = execute_query("""
+                            SELECT id FROM medicos WHERE usuario_id = %s
+                        """, (user_id,), fetch=True, one=True)
+                        
+                        if medico:
+                            if isinstance(medico, dict):
+                                session['medico_id'] = medico.get('id')
+                            else:
+                                session['medico_id'] = medico[0]
+                except Exception as e:
+                    logger.error(f"Erro ao buscar medico_id: {e}")
+            
+            # Se for enfermeira/enfermeiro, garantir que tem enfermeiro_id
+            if user_type in ['enfermeira', 'enfermeiro'] and not session.get('enfermeiro_id'):
+                try:
+                    user_id = session.get('user_id')
+                    if user_id:
+                        enfermeiro = execute_query("""
+                            SELECT id FROM enfermeiros WHERE usuario_id = %s
+                        """, (user_id,), fetch=True, one=True)
+                        
+                        if enfermeiro:
+                            if isinstance(enfermeiro, dict):
+                                session['enfermeiro_id'] = enfermeiro.get('id')
+                            else:
+                                session['enfermeiro_id'] = enfermeiro[0]
+                except Exception as e:
+                    logger.error(f"Erro ao buscar enfermeiro_id: {e}")
             
             return f(*args, **kwargs)
         return decorated_function
@@ -117,7 +170,8 @@ def init_medico_base(mysql):
                         'status': decode_value(medico_result.get('status')) or 'ativo',
                         'nome': decode_value(nome),
                         'email': decode_value(email),
-                        'telefone': decode_value(telefone)
+                        'telefone': decode_value(telefone),
+                        'tipo': 'medico'
                     }
                 else:
                     info = {
@@ -128,7 +182,8 @@ def init_medico_base(mysql):
                         'status': decode_value(medico_result[4]) if len(medico_result) > 4 else 'ativo',
                         'nome': decode_value(nome),
                         'email': decode_value(email),
-                        'telefone': decode_value(telefone)
+                        'telefone': decode_value(telefone),
+                        'tipo': 'medico'
                     }
             else:
                 # Médico não encontrado na tabela medicos - retorna apenas dados do usuário
@@ -140,7 +195,8 @@ def init_medico_base(mysql):
                     'status': 'ativo',
                     'nome': decode_value(nome),
                     'email': decode_value(email),
-                    'telefone': decode_value(telefone)
+                    'telefone': decode_value(telefone),
+                    'tipo': 'medico'
                 }
             
             # Atualizar sessão
@@ -155,6 +211,117 @@ def init_medico_base(mysql):
         except Exception as e:
             logger.error(f"Erro ao obter info médico: {e}")
             logger.error(traceback.format_exc())
+            return None
+    
+    # ========== OBTER INFO ENFERMEIRA ==========
+    def obter_info_enfermeiro():
+        """Obtém informações do enfermeiro/enfermeira logado"""
+        try:
+            user_id = session.get('user_id')
+            if not user_id:
+                logger.error("Nenhum user_id na sessão")
+                return None
+            
+            user_type = session.get('user_type')
+            if user_type not in ['enfermeira', 'enfermeiro']:
+                logger.warning(f"Usuário {user_id} não é enfermeiro (tipo: {user_type})")
+                return None
+            
+            # Buscar usuário
+            usuario_result = execute_query("""
+                SELECT tipo, nome, email, telefone FROM usuarios WHERE id = %s AND ativo = 1
+            """, (user_id,), fetch=True, one=True)
+            
+            if not usuario_result:
+                logger.error(f"Usuário não encontrado: {user_id}")
+                return None
+            
+            # Extrair dados do usuário
+            if isinstance(usuario_result, dict):
+                nome = usuario_result.get('nome')
+                email = usuario_result.get('email')
+                telefone = usuario_result.get('telefone')
+            else:
+                nome = usuario_result[1] if len(usuario_result) > 1 else None
+                email = usuario_result[2] if len(usuario_result) > 2 else None
+                telefone = usuario_result[3] if len(usuario_result) > 3 else ''
+            
+            # Buscar dados do enfermeiro
+            enfermeiro_result = execute_query("""
+                SELECT e.id, e.usuario_id, e.registro_profissional, e.especialidade, e.status
+                FROM enfermeiros e
+                WHERE e.usuario_id = %s
+            """, (user_id,), fetch=True, one=True)
+            
+            def decode_value(val):
+                if val is None:
+                    return ''
+                if isinstance(val, bytes):
+                    return val.decode('utf-8', errors='ignore')
+                return str(val) if val else ''
+            
+            if enfermeiro_result:
+                if isinstance(enfermeiro_result, dict):
+                    info = {
+                        'id': enfermeiro_result.get('id'),
+                        'usuario_id': enfermeiro_result.get('usuario_id'),
+                        'registro_profissional': decode_value(enfermeiro_result.get('registro_profissional')) or "COREN não informado",
+                        'especialidade': decode_value(enfermeiro_result.get('especialidade')) or "Enfermagem Geral",
+                        'status': decode_value(enfermeiro_result.get('status')) or 'ativo',
+                        'nome': decode_value(nome),
+                        'email': decode_value(email),
+                        'telefone': decode_value(telefone),
+                        'tipo': 'enfermeiro'
+                    }
+                else:
+                    info = {
+                        'id': enfermeiro_result[0] if len(enfermeiro_result) > 0 else None,
+                        'usuario_id': enfermeiro_result[1] if len(enfermeiro_result) > 1 else user_id,
+                        'registro_profissional': decode_value(enfermeiro_result[2]) if len(enfermeiro_result) > 2 else "COREN não informado",
+                        'especialidade': decode_value(enfermeiro_result[3]) if len(enfermeiro_result) > 3 else "Enfermagem Geral",
+                        'status': decode_value(enfermeiro_result[4]) if len(enfermeiro_result) > 4 else 'ativo',
+                        'nome': decode_value(nome),
+                        'email': decode_value(email),
+                        'telefone': decode_value(telefone),
+                        'tipo': 'enfermeiro'
+                    }
+            else:
+                info = {
+                    'id': None,
+                    'usuario_id': user_id,
+                    'registro_profissional': "COREN não informado",
+                    'especialidade': "Enfermagem Geral",
+                    'status': 'ativo',
+                    'nome': decode_value(nome),
+                    'email': decode_value(email),
+                    'telefone': decode_value(telefone),
+                    'tipo': 'enfermeiro'
+                }
+            
+            # Atualizar sessão
+            if info.get('id'):
+                session['enfermeiro_id'] = info['id']
+            session['enfermeiro_nome'] = info['nome']
+            session['enfermeiro_registro'] = info['registro_profissional']
+            
+            logger.info(f"Info enfermeiro obtida: {info['nome']} (ID: {info.get('id', 'N/A')})")
+            return info
+            
+        except Exception as e:
+            logger.error(f"Erro ao obter info enfermeiro: {e}")
+            logger.error(traceback.format_exc())
+            return None
+    
+    # ========== OBTER PROFISSIONAL ATUAL ==========
+    def obter_profissional_atual():
+        """Obtém informações do profissional de saúde atual (médico ou enfermeiro)"""
+        user_type = session.get('user_type')
+        
+        if user_type == 'medico':
+            return obter_info_medico()
+        elif user_type in ['enfermeira', 'enfermeiro']:
+            return obter_info_enfermeiro()
+        else:
             return None
     
     # ========== OBTER CONTADORES ==========
@@ -190,7 +357,6 @@ def init_medico_base(mysql):
                 if not result:
                     return 0
                 if isinstance(result, dict):
-                    # Tenta encontrar o valor na primeira chave
                     if result:
                         first_key = list(result.keys())[0]
                         return result.get(first_key, 0)
@@ -214,7 +380,10 @@ def init_medico_base(mysql):
     
     return {
         'medico_required': medico_required,
+        'profissional_saude_required': profissional_saude_required,  # NOVO! Para médicos e enfermeiras
         'obter_info_medico': obter_info_medico,
+        'obter_info_enfermeiro': obter_info_enfermeiro,  # NOVO!
+        'obter_profissional_atual': obter_profissional_atual,  # NOVO!
         'obter_contadores': obter_contadores,
         'execute_query': execute_query,
         'formatar_data': formatar_data,
