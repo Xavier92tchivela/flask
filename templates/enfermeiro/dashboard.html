@@ -1,120 +1,277 @@
-<!-- templates/enfermeiro/dashboard.html -->
-{% extends "base_enfermeiro.html" %}
+{% extends "base.html" %}
 
-{% block title %}Dashboard - Enfermeiro{% endblock %}
+{% block title %}Dashboard - Enfermeiro | DOCTORIA{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Dashboard específico do enfermeiro */
+    .stat-card {
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        transition: transform 0.3s, box-shadow 0.3s;
+        cursor: pointer;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+    
+    .border-left-primary { border-left: 4px solid #4e73df !important; }
+    .border-left-warning { border-left: 4px solid #f6c23e !important; }
+    .border-left-danger { border-left: 4px solid #e74a3b !important; }
+    .border-left-success { border-left: 4px solid #1cc88a !important; }
+    .border-left-info { border-left: 4px solid #36b9cc !important; }
+    
+    .stat-icon {
+        font-size: 2rem;
+        opacity: 0.3;
+        position: absolute;
+        right: 1rem;
+        bottom: 1rem;
+    }
+    
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        line-height: 1.2;
+    }
+    
+    .stat-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Timeline de consultas */
+    .timeline-item {
+        background: white;
+        border-left: 4px solid #0d6efd;
+        margin-bottom: 1rem;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    
+    .timeline-item:hover {
+        transform: translateX(5px);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .timeline-time {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #0d6efd;
+    }
+    
+    /* Badges de status */
+    .badge-status {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    /* Actions buttons */
+    .action-btn {
+        transition: all 0.3s;
+        border-radius: 10px;
+    }
+    
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #d1d3e2;
+        margin-bottom: 1rem;
+    }
+    
+    /* Animações */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in-up {
+        animation: fadeInUp 0.5s ease-out;
+    }
+    
+    /* Progresso */
+    .progress {
+        height: 0.5rem;
+        border-radius: 10px;
+        margin: 0.5rem 0;
+    }
+    
+    /* Responsividade */
+    @media (max-width: 768px) {
+        .stat-value {
+            font-size: 1.3rem;
+        }
+        
+        .stat-icon {
+            font-size: 1.5rem;
+        }
+        
+        .stat-card {
+            margin-bottom: 0.8rem;
+        }
+        
+        .timeline-time {
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Toast notifications */
+    .toast-container {
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        z-index: 1060;
+    }
+    
+    /* Loading skeleton */
+    .skeleton {
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+    }
+    
+    @keyframes loading {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid px-3 px-md-4">
     <div class="row">
         <div class="col-12">
             <!-- Header -->
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                 <div>
-                    <h2 class="h5 mb-1">
-                        <i class="fas fa-user-nurse text-primary me-2"></i>
-                        Dashboard - {{ session.get('user_name', 'Enfermeiro') }}
+                    <h2 class="h4 mb-1">
+                        <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                        Dashboard - Enfermagem
                     </h2>
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-primary">COREN: {{ session.get('enfermeiro_coren', 'Não informado') }}</span>
-                        <small class="text-muted" id="currentTime"></small>
-                    </div>
+                    <p class="text-muted mb-0 small">
+                        <i class="fas fa-calendar-alt me-1"></i>
+                        {{ hoje.strftime('%A, %d de %B de %Y') if hoje else now.strftime('%d/%m/%Y') }}
+                    </p>
                 </div>
                 <div class="mt-2 mt-md-0">
-                    <a href="{{ url_for('agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-calendar-plus me-1"></i> Nova Consulta
-                    </a>
-                    <button class="btn btn-outline-primary btn-sm ms-1" onclick="refreshDashboard()">
-                        <i class="fas fa-sync-alt"></i>
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
+                        <i class="fas fa-sync-alt me-1"></i> Atualizar
                     </button>
                 </div>
             </div>
             
-            <!-- Cards de Estatísticas -->
-            <div class="row g-2 mb-3">
-                <div class="col-6 col-sm-3">
+            <!-- Stats Cards Row 1 -->
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-3">
                     <div class="card stat-card border-left-primary h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-primary">CONSULTAS HOJE</div>
-                                    <div class="stat-value" id="statConsultasHoje">{{ total_consultas_hoje|default(0) }}</div>
-                                </div>
-                                <i class="fas fa-calendar-check stat-icon text-primary"></i>
+                        <div class="card-body position-relative">
+                            <div class="stat-label text-primary mb-1">CONSULTAS HOJE</div>
+                            <div class="stat-value mb-2" id="statConsultasHoje">
+                                {{ total_consultas_hoje|default(0) }}
                             </div>
-                            <small class="text-muted">Agendadas</small>
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-check me-1"></i>Agendadas
+                            </small>
+                            <i class="fas fa-calendar-check stat-icon text-primary"></i>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-6 col-sm-3">
+                <div class="col-6 col-md-3">
                     <div class="card stat-card border-left-warning h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
-                                    <div class="stat-value" id="statTriagensPendentes">{{ pacientes_aguardando|default(0) }}</div>
-                                </div>
-                                <i class="fas fa-stethoscope stat-icon text-warning"></i>
+                        <div class="card-body position-relative">
+                            <div class="stat-label text-warning mb-1">TRIAGENS PENDENTES</div>
+                            <div class="stat-value mb-2" id="statTriagensPendentes">
+                                {{ pacientes_aguardando|default(0) }}
                             </div>
-                            <small class="text-muted">Aguardando</small>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>Aguardando
+                            </small>
+                            <i class="fas fa-stethoscope stat-icon text-warning"></i>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-6 col-sm-3">
+                <div class="col-6 col-md-3">
                     <div class="card stat-card border-left-danger h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-danger">PACIENTES INTERNADOS</div>
-                                    <div class="stat-value" id="statInternados">{{ pacientes_internados|default(0) }}</div>
-                                </div>
-                                <i class="fas fa-procedures stat-icon text-danger"></i>
+                        <div class="card-body position-relative">
+                            <div class="stat-label text-danger mb-1">PACIENTES INTERNADOS</div>
+                            <div class="stat-value mb-2" id="statInternados">
+                                {{ pacientes_internados|default(0) }}
                             </div>
-                            <small class="text-muted">Internados</small>
+                            <small class="text-muted">
+                                <i class="fas fa-procedures me-1"></i>Ativos
+                            </small>
+                            <i class="fas fa-procedures stat-icon text-danger"></i>
                         </div>
                     </div>
                 </div>
                 
-                <div class="col-6 col-sm-3">
+                <div class="col-6 col-md-3">
                     <div class="card stat-card border-left-success h-100">
-                        <div class="card-body p-2 p-md-3">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <div class="stat-label text-success">AFERIÇÕES HOJE</div>
-                                    <div class="stat-value" id="statAfericoesHoje">{{ total_afericoes_hoje|default(0) }}</div>
-                                </div>
-                                <i class="fas fa-heartbeat stat-icon text-success"></i>
+                        <div class="card-body position-relative">
+                            <div class="stat-label text-success mb-1">AFERIÇÕES HOJE</div>
+                            <div class="stat-value mb-2" id="statAfericoesHoje">
+                                {{ total_afericoes_hoje|default(0) }}
                             </div>
-                            <small class="text-muted">Registros</small>
+                            <small class="text-muted">
+                                <i class="fas fa-heartbeat me-1"></i>Registros
+                            </small>
+                            <i class="fas fa-heartbeat stat-icon text-success"></i>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Alertas de Triagem Pendente -->
+            <!-- Alertas importantes -->
             {% if pacientes_aguardando|default(0) > 0 %}
-            <div class="alert alert-warning alert-dismissible fade show py-2 mb-3" role="alert">
+            <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div>
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
                     </div>
-                    <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
-                        <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
+                    <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
+                        <i class="fas fa-arrow-right me-1"></i> Ir para Triagem
                     </a>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             {% endif %}
             
-            <!-- Lista de Consultas -->
-            <div class="card mb-3">
-                <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0 fw-bold text-primary">
-                        <i class="fas fa-calendar-alt me-2"></i> Consultas de Hoje
-                    </h6>
-                    <span class="badge bg-primary">{{ consultas_hoje|length if consultas_hoje else 0 }}</span>
+            <!-- Consultas do Dia -->
+            <div class="card mb-4">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-alt text-primary me-2"></i>
+                            Consultas de Hoje
+                        </h5>
+                        <span class="badge bg-primary">{{ consultas_hoje|length if consultas_hoje else 0 }}</span>
+                    </div>
                 </div>
                 <div class="card-body p-0">
                     {% if consultas_hoje and consultas_hoje|length > 0 %}
@@ -122,28 +279,37 @@
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
+                                    <th class="px-3 py-2">Horário</th>
                                     <th class="px-3 py-2">Paciente</th>
                                     <th class="px-3 py-2">Médico</th>
-                                    <th class="px-3 py-2">Horário</th>
                                     <th class="px-3 py-2">Status</th>
                                     <th class="px-3 py-2 text-end">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for consulta in consultas_hoje %}
-                                <tr class="align-middle">
-                                    <td class="px-3 py-2">{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</td>
-                                    <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
-                                    <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
+                                <tr>
                                     <td class="px-3 py-2">
-                                        <span class="badge bg-{{ 'primary' if consulta.status == 'agendada' else 'success' if consulta.status == 'realizada' else 'danger' if consulta.status == 'cancelada' else 'secondary' }}">
-                                            {{ consulta.status|capitalize if consulta.status else 'Agendada' }}
+                                        <span class="fw-semibold">{{ consulta.hora if consulta.hora else '--:--' }}</span>
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar-paciente me-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                {{ ((consulta.paciente_nome if consulta.paciente_nome else 'P')|first|upper) }}
+                                            </div>
+                                            <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
+                                    <td class="px-3 py-2">
+                                        <span class="badge bg-{{ 'primary' if consulta.status == 'agendada' else 'success' if consulta.status == 'realizada' else 'danger' }}">
+                                            {{ (consulta.status|capitalize) if consulta.status else 'Agendada' }}
                                         </span>
                                     </td>
                                     <td class="px-3 py-2 text-end">
                                         <div class="btn-group btn-group-sm">
                                             {% if consulta.status == 'agendada' %}
-                                            <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                            <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                                class="btn btn-warning" title="Realizar Triagem">
                                                 <i class="fas fa-stethoscope"></i>
                                             </a>
@@ -160,108 +326,153 @@
                         </table>
                     </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-calendar-alt fa-2x text-muted mb-2"></i>
-                        <p class="text-muted mb-0">Nenhuma consulta agendada para hoje</p>
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-alt"></i>
+                        <h5 class="text-gray-800">Nenhuma consulta hoje</h5>
+                        <p class="text-gray-600 mb-0">Não há consultas agendadas para hoje.</p>
                     </div>
                     {% endif %}
                 </div>
             </div>
             
+            <!-- Ações Rápidas -->
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-white py-3">
+                            <h5 class="mb-0">
+                                <i class="fas fa-bolt text-primary me-2"></i>
+                                Ações Rápidas
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-6 col-md-3">
+                                    <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
+                                       class="btn btn-warning w-100 py-3 action-btn">
+                                        <i class="fas fa-stethoscope fa-2x mb-2"></i>
+                                        <div class="fw-bold">Triagem</div>
+                                        <small>{{ pacientes_aguardando|default(0) }} pendente(s)</small>
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
+                                       class="btn btn-info w-100 py-3 action-btn">
+                                        <i class="fas fa-heartbeat fa-2x mb-2"></i>
+                                        <div class="fw-bold">Sinais Vitais</div>
+                                        <small>Registrar aferições</small>
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <a href="/enfermeiro/internados" 
+                                       class="btn btn-danger w-100 py-3 action-btn">
+                                        <i class="fas fa-procedures fa-2x mb-2"></i>
+                                        <div class="fw-bold">Internados</div>
+                                        <small>{{ pacientes_internados|default(0) }} paciente(s)</small>
+                                    </a>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <a href="/enfermeiro/medicamentos" 
+                                       class="btn btn-success w-100 py-3 action-btn">
+                                        <i class="fas fa-capsules fa-2x mb-2"></i>
+                                        <div class="fw-bold">Medicamentos</div>
+                                        <small>Administrar</small>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Footer -->
-            <footer class="mt-3 text-center text-muted">
-                <hr class="my-2">
+            <footer class="mt-4 text-center text-muted">
+                <hr>
                 <p class="small mb-0">
-                    <i class="fas fa-heart text-danger"></i> DoctorIA - Enfermagem 
-                    &copy; 2024 | <span id="lastUpdate"></span>
+                    <i class="fas fa-heart text-danger"></i> DOCTORIA - Sistema de Enfermagem
+                    &copy; {{ now.year if now else '2024' }} | <span id="lastUpdate"></span>
                 </p>
             </footer>
         </div>
     </div>
 </div>
 
-<style>
-    .stat-card {
-        transition: transform 0.2s;
-        border-radius: 0.5rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0,0,0,0.075);
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
-    }
-    .border-left-primary { border-left: 3px solid #4e73df !important; }
-    .border-left-warning { border-left: 3px solid #f6c23e !important; }
-    .border-left-danger { border-left: 3px solid #e74a3b !important; }
-    .border-left-success { border-left: 3px solid #1cc88a !important; }
-    .stat-label {
-        font-size: 0.65rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-    .stat-icon {
-        font-size: 1.5rem;
-        opacity: 0.3;
-    }
-</style>
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
+    // Update current time and last update
     function updateCurrentTime() {
         const now = new Date();
-        const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const dateStr = now.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-        
-        const currentTimeEl = document.getElementById('currentTime');
-        if (currentTimeEl) currentTimeEl.textContent = `${dateStr} ${timeStr}`;
-        
         const lastUpdateEl = document.getElementById('lastUpdate');
         if (lastUpdateEl) {
-            lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR');
         }
     }
     
+    // Refresh dashboard via API
     async function refreshDashboard() {
         try {
-            const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
-            if (refreshBtn) {
-                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                refreshBtn.disabled = true;
-            }
-            
-            const response = await fetch('/dashboard/api/contadores');
+            const response = await fetch('/enfermeiro/api/contadores');
             const data = await response.json();
             
             if (data && !data.error) {
-                if (data.consultas_hoje !== undefined)
+                if (data.consultas_hoje !== undefined) {
                     document.getElementById('statConsultasHoje').textContent = data.consultas_hoje;
-                if (data.triagens_pendentes !== undefined)
+                }
+                if (data.triagens_pendentes !== undefined) {
                     document.getElementById('statTriagensPendentes').textContent = data.triagens_pendentes;
-                if (data.internados !== undefined)
+                }
+                if (data.internados !== undefined) {
                     document.getElementById('statInternados').textContent = data.internados;
-                if (data.afericoes_hoje !== undefined)
+                }
+                if (data.afericoes_hoje !== undefined) {
                     document.getElementById('statAfericoesHoje').textContent = data.afericoes_hoje;
+                }
+                showToast('success', 'Dashboard atualizado!');
             }
         } catch (error) {
-            console.error('Error:', error);
-        } finally {
-            const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
-            if (refreshBtn) {
-                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                refreshBtn.disabled = false;
-            }
+            console.error('Error refreshing dashboard:', error);
+            showToast('error', 'Erro ao atualizar dados');
         }
     }
     
+    // Show toast notification
+    function showToast(type, message) {
+        let toastContainer = document.getElementById('toastContainer');
+        const toastId = 'toast-' + Date.now();
+        const bgColor = type === 'success' ? 'bg-success' : 'bg-danger';
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        
+        const toastHtml = `
+            <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 mb-2" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-${icon} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const toastEl = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+        toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+    }
+    
+    // Initialize
     document.addEventListener('DOMContentLoaded', function() {
         updateCurrentTime();
         setInterval(updateCurrentTime, 60000);
         setInterval(refreshDashboard, 60000);
+        
+        // Animate stat cards on load
+        document.querySelectorAll('.stat-card').forEach((card, index) => {
+            card.style.animation = `fadeInUp 0.5s ease-out ${index * 0.1}s both`;
+        });
     });
 </script>
 {% endblock %}
