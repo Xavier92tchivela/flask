@@ -696,7 +696,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner">
             <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('dashboard.index') }}">
+            <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
                 <i class="fas fa-user-nurse"></i>
                 <span>Enfermagem</span>
             </a>
@@ -722,7 +722,7 @@
             <!-- Navigation -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('dashboard.index') }}">
+                    <a class="nav-link active" href="{{ url_for('dashboard') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
@@ -769,7 +769,7 @@
                 <div>
                     <h1 class="h5 h3-md mb-1 text-gray-800">
                         <i class="fas fa-tachometer-alt text-primary me-2"></i>
-                        Dashboard
+                        Dashboard - Enfermagem
                     </h1>
                     <p class="text-muted mb-0 small">
                         Bem-vindo, 
@@ -1249,23 +1249,28 @@
             };
             
             const timeStr = now.toLocaleDateString('pt-BR', options);
-            document.getElementById('currentTime').textContent = timeStr;
-            document.getElementById('currentTimeMobile').textContent = timeStr;
+            const currentTimeEl = document.getElementById('currentTime');
+            const currentTimeMobileEl = document.getElementById('currentTimeMobile');
+            if (currentTimeEl) currentTimeEl.textContent = timeStr;
+            if (currentTimeMobileEl) currentTimeMobileEl.textContent = timeStr;
             
             // Update last update time
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('lastUpdate').textContent = 
-                'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            if (lastUpdateEl) {
+                lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
+            }
             
             // Update week information
             const weekNumber = getWeekNumber(now);
-            document.getElementById('currentWeek').textContent = `Semana ${weekNumber}`;
+            const currentWeekEl = document.getElementById('currentWeek');
+            if (currentWeekEl) currentWeekEl.textContent = `Semana ${weekNumber}`;
             
             // Update today date
             const hoje = new Date();
             const dateOptions = { day: '2-digit', month: '2-digit' };
-            document.getElementById('todayDate').textContent = 
-                hoje.toLocaleDateString('pt-BR', dateOptions);
+            const todayDateEl = document.getElementById('todayDate');
+            if (todayDateEl) todayDateEl.textContent = hoje.toLocaleDateString('pt-BR', dateOptions);
         }
         
         // Get week number
@@ -1290,19 +1295,23 @@
                 const data = await response.json();
                 
                 if (data && !data.error) {
-                    // Update basic stats
                     if (data.consultas_hoje !== undefined) {
-                        document.getElementById('statConsultasHoje').textContent = data.consultas_hoje;
+                        const statConsultasHoje = document.getElementById('statConsultasHoje');
+                        if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
                     }
                     if (data.triagens_pendentes !== undefined) {
-                        document.getElementById('statTriagensPendentes').textContent = data.triagens_pendentes;
-                        document.getElementById('triagensPendentesCount').textContent = data.triagens_pendentes;
+                        const statTriagensPendentes = document.getElementById('statTriagensPendentes');
+                        const triagensPendentesCount = document.getElementById('triagensPendentesCount');
+                        if (statTriagensPendentes) statTriagensPendentes.textContent = data.triagens_pendentes;
+                        if (triagensPendentesCount) triagensPendentesCount.textContent = data.triagens_pendentes;
                     }
                     if (data.internados !== undefined) {
-                        document.getElementById('statInternados').textContent = data.internados;
+                        const statInternados = document.getElementById('statInternados');
+                        if (statInternados) statInternados.textContent = data.internados;
                     }
                     if (data.afericoes_hoje !== undefined) {
-                        document.getElementById('statAfericoesHoje').textContent = data.afericoes_hoje;
+                        const statAfericoesHoje = document.getElementById('statAfericoesHoje');
+                        if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
                     }
                     
                     showToast('success', 'Dashboard atualizado!');
@@ -1352,16 +1361,19 @@
         }
         
         // Toggle sidebar
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
-        });
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('show');
+            });
+        }
         
         // Close sidebar when clicking outside
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
             
-            if (!sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
+            if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
                 sidebar.classList.remove('show');
             }
         });
@@ -1370,8 +1382,6 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateCurrentTime();
             setInterval(updateCurrentTime, 60000);
-            
-            // Auto-refresh every 60 seconds
             setInterval(refreshDashboard, 60000);
             
             // Initialize tooltips
@@ -1381,7 +1391,7 @@
             });
             
             // Add touch feedback
-            document.querySelectorAll('.stat-card, .action-btn').forEach(el => {
+            document.querySelectorAll('.stat-card, .action-btn, .btn').forEach(el => {
                 el.addEventListener('touchstart', function() {
                     this.style.transform = 'scale(0.98)';
                 });
