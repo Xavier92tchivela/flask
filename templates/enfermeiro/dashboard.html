@@ -696,7 +696,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner">
             <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('enfermeiro.dashboard.index') }}">
+            <a class="sidebar-brand" href="{{ url_for('dashboard.index') }}">
                 <i class="fas fa-user-nurse"></i>
                 <span>Enfermagem</span>
             </a>
@@ -717,28 +717,24 @@
                     <i class="fas fa-id-card me-1"></i> 
                     COREn: {% if session.get('enfermeiro_coren') %}{{ session.get('enfermeiro_coren') }}{% else %}Não informado{% endif %}
                 </p>
-                <p class="mb-0 small">
-                    <i class="fas fa-building me-1"></i> 
-                    {% if session.get('enfermeiro_setor') %}{{ session.get('enfermeiro_setor') }}{% else %}Enfermagem Geral{% endif %}
-                </p>
             </div>
             
             <!-- Navigation -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('enfermeiro.dashboard.index') }}">
+                    <a class="nav-link active" href="{{ url_for('dashboard.index') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}">
+                    <a class="nav-link" href="{{ url_for('triagem.listar_consultas_triagem') }}">
                         <i class="fas fa-stethoscope"></i>
                         Triagem
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}">
+                    <a class="nav-link" href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}">
                         <i class="fas fa-heartbeat"></i>
                         Sinais Vitais
                     </a>
@@ -773,7 +769,7 @@
                 <div>
                     <h1 class="h5 h3-md mb-1 text-gray-800">
                         <i class="fas fa-tachometer-alt text-primary me-2"></i>
-                        Dashboard - Enfermagem
+                        Dashboard
                     </h1>
                     <p class="text-muted mb-0 small">
                         Bem-vindo, 
@@ -789,7 +785,7 @@
                     <small class="text-primary d-none d-md-block" id="currentTime"></small>
                 </div>
                 <div class="btn-group w-100 w-md-auto">
-                    <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-primary btn-sm">
+                    <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-primary btn-sm">
                         <i class="fas fa-stethoscope me-2"></i> Triagem
                     </a>
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
@@ -1050,7 +1046,7 @@
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
                         </div>
-                        <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
+                        <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
                             <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
                         </a>
                     </div>
@@ -1072,7 +1068,7 @@
                             <span class="badge bg-primary" id="consultasCount">
                                 {{ consultas_hoje|length if consultas_hoje else 0 }}
                             </span>
-                            <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-sm btn-outline-primary">
                                 Ver Todos
                             </a>
                         </div>
@@ -1102,7 +1098,7 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="btn-group btn-group-sm">
                                         {% if consulta.status == 'agendada' %}
-                                        <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                        <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                            class="btn btn-warning">
                                             <i class="fas fa-stethoscope"></i> Triagem
                                         </a>
@@ -1148,7 +1144,7 @@
                                         <td class="px-3 py-2 text-end">
                                             <div class="btn-group btn-group-sm">
                                                 {% if consulta.status == 'agendada' %}
-                                                <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                                <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                                    class="btn btn-warning"
                                                    title="Realizar Triagem">
                                                     <i class="fas fa-stethoscope"></i>
@@ -1192,7 +1188,7 @@
                     <div class="card-body p-2">
                         <div class="row g-2">
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
+                                <a href="{{ url_for('triagem.listar_consultas_triagem') }}" 
                                    class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Triagem</span>
@@ -1208,7 +1204,7 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
+                                <a href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}" 
                                    class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Sinais</span>
@@ -1253,28 +1249,23 @@
             };
             
             const timeStr = now.toLocaleDateString('pt-BR', options);
-            const currentTimeEl = document.getElementById('currentTime');
-            const currentTimeMobileEl = document.getElementById('currentTimeMobile');
-            if (currentTimeEl) currentTimeEl.textContent = timeStr;
-            if (currentTimeMobileEl) currentTimeMobileEl.textContent = timeStr;
+            document.getElementById('currentTime').textContent = timeStr;
+            document.getElementById('currentTimeMobile').textContent = timeStr;
             
             // Update last update time
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            const lastUpdateEl = document.getElementById('lastUpdate');
-            if (lastUpdateEl) {
-                lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
-            }
+            document.getElementById('lastUpdate').textContent = 
+                'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
             
             // Update week information
             const weekNumber = getWeekNumber(now);
-            const currentWeekEl = document.getElementById('currentWeek');
-            if (currentWeekEl) currentWeekEl.textContent = `Semana ${weekNumber}`;
+            document.getElementById('currentWeek').textContent = `Semana ${weekNumber}`;
             
             // Update today date
             const hoje = new Date();
             const dateOptions = { day: '2-digit', month: '2-digit' };
-            const todayDateEl = document.getElementById('todayDate');
-            if (todayDateEl) todayDateEl.textContent = hoje.toLocaleDateString('pt-BR', dateOptions);
+            document.getElementById('todayDate').textContent = 
+                hoje.toLocaleDateString('pt-BR', dateOptions);
         }
         
         // Get week number
@@ -1295,28 +1286,23 @@
                     refreshBtn.disabled = true;
                 }
                 
-                const response = await fetch('/enfermeiro/api/contadores');
+                const response = await fetch('/dashboard/api/contadores');
                 const data = await response.json();
                 
                 if (data && !data.error) {
                     // Update basic stats
                     if (data.consultas_hoje !== undefined) {
-                        const statConsultasHoje = document.getElementById('statConsultasHoje');
-                        if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
+                        document.getElementById('statConsultasHoje').textContent = data.consultas_hoje;
                     }
                     if (data.triagens_pendentes !== undefined) {
-                        const statTriagensPendentes = document.getElementById('statTriagensPendentes');
-                        const triagensPendentesCount = document.getElementById('triagensPendentesCount');
-                        if (statTriagensPendentes) statTriagensPendentes.textContent = data.triagens_pendentes;
-                        if (triagensPendentesCount) triagensPendentesCount.textContent = data.triagens_pendentes;
+                        document.getElementById('statTriagensPendentes').textContent = data.triagens_pendentes;
+                        document.getElementById('triagensPendentesCount').textContent = data.triagens_pendentes;
                     }
                     if (data.internados !== undefined) {
-                        const statInternados = document.getElementById('statInternados');
-                        if (statInternados) statInternados.textContent = data.internados;
+                        document.getElementById('statInternados').textContent = data.internados;
                     }
                     if (data.afericoes_hoje !== undefined) {
-                        const statAfericoesHoje = document.getElementById('statAfericoesHoje');
-                        if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
+                        document.getElementById('statAfericoesHoje').textContent = data.afericoes_hoje;
                     }
                     
                     showToast('success', 'Dashboard atualizado!');
@@ -1366,19 +1352,16 @@
         }
         
         // Toggle sidebar
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', function() {
-                document.getElementById('sidebar').classList.toggle('show');
-            });
-        }
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
         
         // Close sidebar when clicking outside
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
             
-            if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
+            if (!sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
                 sidebar.classList.remove('show');
             }
         });
@@ -1398,7 +1381,7 @@
             });
             
             // Add touch feedback
-            document.querySelectorAll('.stat-card, .action-btn, .btn').forEach(el => {
+            document.querySelectorAll('.stat-card, .action-btn').forEach(el => {
                 el.addEventListener('touchstart', function() {
                     this.style.transform = 'scale(0.98)';
                 });
