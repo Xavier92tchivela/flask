@@ -750,7 +750,7 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('enfermeiro.medicamentos.listar_medicamentos') }}">
+                    <a class="nav-link" href="{{ url_for('enfermeiro.medicamentos.administrar_medicamento') }}">
                         <i class="fas fa-capsules"></i>
                         Medicamentos
                     </a>
@@ -1111,7 +1111,7 @@
                                             <i class="fas fa-stethoscope"></i> Triagem
                                         </a>
                                         {% endif %}
-                                        <a href="{{ url_for('enfermeiro.consulta.detalhes', consulta_id=consulta.id) }}" 
+                                        <a href="/enfermeiro/consulta/{{ consulta.id }}" 
                                            class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
@@ -1158,7 +1158,7 @@
                                                     <i class="fas fa-stethoscope"></i>
                                                 </a>
                                                 {% endif %}
-                                                <a href="{{ url_for('enfermeiro.consulta.detalhes', consulta_id=consulta.id) }}" 
+                                                <a href="/enfermeiro/consulta/{{ consulta.id }}" 
                                                    class="btn btn-outline-primary"
                                                    title="Ver Detalhes">
                                                     <i class="fas fa-eye"></i>
@@ -1220,7 +1220,7 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('enfermeiro.medicamentos.listar_medicamentos') }}" 
+                                <a href="{{ url_for('enfermeiro.medicamentos.administrar_medicamento') }}" 
                                    class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-capsules fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Medicamentos</span>
