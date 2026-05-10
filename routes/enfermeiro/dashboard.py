@@ -19,8 +19,13 @@ def enfermeiro_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
+            # Para APIs, retornar JSON em vez de redirecionar
+            if request.path.startswith('/dashboard/api/'):
+                return jsonify({'error': 'Não autorizado', 'authenticated': False}), 401
             return render_template('login.html', error='Faça login para continuar')
         if session.get('user_type') != 'enfermeiro':
+            if request.path.startswith('/dashboard/api/'):
+                return jsonify({'error': 'Acesso restrito a enfermeiros'}), 403
             return render_template('error.html', error='Acesso restrito a enfermeiros'), 403
         return f(*args, **kwargs)
     return decorated_function
@@ -69,7 +74,7 @@ def index():
         hoje_inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
         hoje_fim = hoje_inicio + timedelta(days=1)
         
-        # Buscar consultas de hoje - CORRIGIDO: removido m.nome que não existe
+        # Buscar consultas de hoje
         consultas_hoje = execute_query("""
             SELECT 
                 c.id,
@@ -99,7 +104,7 @@ def index():
             ORDER BY c.data_hora ASC
         """, (hoje_inicio, hoje_fim), fetch=True)
         
-        # Buscar pacientes internados - CORRIGIDO: removido campo numero_prontuario se não existir
+        # Buscar pacientes internados
         internados_lista = execute_query("""
             SELECT 
                 i.id,
@@ -134,7 +139,7 @@ def index():
             else:
                 internado['idade'] = None
         
-        # Buscar últimas aferições - CORRIGIDO: usar consulta_paciente_id se existir, ou outra coluna
+        # Buscar últimas aferições - CORRIGIDO: usar consulta_id em vez de paciente_id
         ultimas_afericoes = execute_query("""
             SELECT 
                 sv.id,
@@ -146,7 +151,8 @@ def index():
                 sv.glicemia,
                 COALESCE(u.nome, 'Paciente') as paciente_nome
             FROM sinais_vitais sv
-            LEFT JOIN pacientes p ON sv.paciente_id = p.id
+            LEFT JOIN consultas c ON sv.consulta_id = c.id
+            LEFT JOIN pacientes p ON c.paciente_id = p.id
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             ORDER BY sv.data_afericao DESC
             LIMIT 10
@@ -224,7 +230,7 @@ def index():
 
 
 # ============================================================
-# API ENDPOINTS
+# API ENDPOINTS - CORRIGIDOS
 # ============================================================
 
 @dashboard_bp.route('/api/contadores')
@@ -262,6 +268,7 @@ def api_contadores():
         """, fetch=True, one=True)
         
         return jsonify({
+            'success': True,
             'consultas_hoje': consultas_hoje['total'] if consultas_hoje else 0,
             'triagens_pendentes': triagens_pendentes['total'] if triagens_pendentes else 0,
             'internados': internados['total'] if internados else 0,
@@ -271,9 +278,10 @@ def api_contadores():
     except Exception as e:
         logger.error(f"Erro na API contadores: {e}")
         return jsonify({
+            'success': False,
+            'error': str(e),
             'consultas_hoje': 0,
             'triagens_pendentes': 0,
             'internados': 0,
-            'afericoes_hoje': 0,
-            'error': str(e)
-        }), 500
+            'afericoes_hoje': 0
+        }), 200  # Retornar 200 mesmo com erro para não quebrar o frontend
