@@ -1141,7 +1141,7 @@
                                                 <i class="fas fa-user-circle me-2 text-muted"></i>
                                                 <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
                                             </div>
-                                        </td>
+                                        </table>
                                         <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
                                         <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
                                         <td class="px-3 py-2">
@@ -1290,7 +1290,7 @@
             return weekNo;
         }
         
-        // Refresh Dashboard
+        // Refresh Dashboard - URL CORRIGIDA
         async function refreshDashboard() {
             try {
                 const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
@@ -1299,10 +1299,11 @@
                     refreshBtn.disabled = true;
                 }
                 
-                const response = await fetch('/enfermeiro/api/contadores');
+                // 🔧 CORREÇÃO: Usar o caminho correto da API do blueprint
+                const response = await fetch('/dashboard/api/contadores');
                 const data = await response.json();
                 
-                if (data && !data.error) {
+                if (data && data.success !== false) {
                     if (data.consultas_hoje !== undefined) {
                         const statConsultasHoje = document.getElementById('statConsultasHoje');
                         if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
@@ -1323,11 +1324,14 @@
                     }
                     
                     showToast('success', 'Dashboard atualizado!');
+                } else if (data && data.error) {
+                    console.error('API error:', data.error);
+                    showToast('error', 'Erro ao atualizar: ' + data.error);
                 }
                 
             } catch (error) {
                 console.error('Error refreshing dashboard:', error);
-                showToast('error', 'Erro ao atualizar');
+                showToast('error', 'Erro ao conectar com o servidor');
             } finally {
                 const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
                 if (refreshBtn) {
