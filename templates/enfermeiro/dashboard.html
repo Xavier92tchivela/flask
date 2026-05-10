@@ -146,16 +146,18 @@
         z-index: 1060;
     }
     
-    /* Loading skeleton */
-    .skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: loading 1.5s infinite;
-    }
-    
-    @keyframes loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
+    /* Avatar paciente */
+    .avatar-paciente {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 0.8rem;
     }
 </style>
 {% endblock %}
@@ -173,7 +175,13 @@
                     </h2>
                     <p class="text-muted mb-0 small">
                         <i class="fas fa-calendar-alt me-1"></i>
-                        {{ hoje.strftime('%A, %d de %B de %Y') if hoje else now.strftime('%d/%m/%Y') }}
+                        {% if hoje and hoje is string %}
+                            {{ hoje }}
+                        {% elif hoje and hoje.strftime %}
+                            {{ hoje.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            {{ now.strftime('%d/%m/%Y') if now else '' }}
+                        {% endif %}
                     </p>
                 </div>
                 <div class="mt-2 mt-md-0">
@@ -294,7 +302,7 @@
                                     </td>
                                     <td class="px-3 py-2">
                                         <div class="d-flex align-items-center">
-                                            <div class="avatar-paciente me-2" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                            <div class="avatar-paciente me-2">
                                                 {{ ((consulta.paciente_nome if consulta.paciente_nome else 'P')|first|upper) }}
                                             </div>
                                             <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
@@ -350,7 +358,7 @@
                                 <div class="col-6 col-md-3">
                                     <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
                                        class="btn btn-warning w-100 py-3 action-btn">
-                                        <i class="fas fa-stethoscope fa-2x mb-2"></i>
+                                        <i class="fas fa-stethoscope fa-2x mb-2 d-block"></i>
                                         <div class="fw-bold">Triagem</div>
                                         <small>{{ pacientes_aguardando|default(0) }} pendente(s)</small>
                                     </a>
@@ -358,7 +366,7 @@
                                 <div class="col-6 col-md-3">
                                     <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
                                        class="btn btn-info w-100 py-3 action-btn">
-                                        <i class="fas fa-heartbeat fa-2x mb-2"></i>
+                                        <i class="fas fa-heartbeat fa-2x mb-2 d-block"></i>
                                         <div class="fw-bold">Sinais Vitais</div>
                                         <small>Registrar aferições</small>
                                     </a>
@@ -366,7 +374,7 @@
                                 <div class="col-6 col-md-3">
                                     <a href="/enfermeiro/internados" 
                                        class="btn btn-danger w-100 py-3 action-btn">
-                                        <i class="fas fa-procedures fa-2x mb-2"></i>
+                                        <i class="fas fa-procedures fa-2x mb-2 d-block"></i>
                                         <div class="fw-bold">Internados</div>
                                         <small>{{ pacientes_internados|default(0) }} paciente(s)</small>
                                     </a>
@@ -374,7 +382,7 @@
                                 <div class="col-6 col-md-3">
                                     <a href="/enfermeiro/medicamentos" 
                                        class="btn btn-success w-100 py-3 action-btn">
-                                        <i class="fas fa-capsules fa-2x mb-2"></i>
+                                        <i class="fas fa-capsules fa-2x mb-2 d-block"></i>
                                         <div class="fw-bold">Medicamentos</div>
                                         <small>Administrar</small>
                                     </a>
@@ -390,7 +398,7 @@
                 <hr>
                 <p class="small mb-0">
                     <i class="fas fa-heart text-danger"></i> DOCTORIA - Sistema de Enfermagem
-                    &copy; {{ now.year if now else '2024' }} | <span id="lastUpdate"></span>
+                    &copy; 2024 | <span id="lastUpdate"></span>
                 </p>
             </footer>
         </div>
@@ -413,6 +421,12 @@
     // Refresh dashboard via API
     async function refreshDashboard() {
         try {
+            const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Atualizando...';
+                refreshBtn.disabled = true;
+            }
+            
             const response = await fetch('/enfermeiro/api/contadores');
             const data = await response.json();
             
@@ -434,6 +448,12 @@
         } catch (error) {
             console.error('Error refreshing dashboard:', error);
             showToast('error', 'Erro ao atualizar dados');
+        } finally {
+            const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
+            if (refreshBtn) {
+                refreshBtn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Atualizar';
+                refreshBtn.disabled = false;
+            }
         }
     }
     
@@ -445,7 +465,7 @@
         const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
         
         const toastHtml = `
-            <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 mb-2" role="alert">
+            <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0 mb-2" role="alert" data-bs-autohide="true" data-bs-delay="3000">
                 <div class="d-flex">
                     <div class="toast-body">
                         <i class="fas fa-${icon} me-2"></i>
@@ -458,7 +478,7 @@
         
         toastContainer.insertAdjacentHTML('beforeend', toastHtml);
         const toastEl = document.getElementById(toastId);
-        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        const toast = new bootstrap.Toast(toastEl);
         toast.show();
         toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
     }
@@ -468,11 +488,6 @@
         updateCurrentTime();
         setInterval(updateCurrentTime, 60000);
         setInterval(refreshDashboard, 60000);
-        
-        // Animate stat cards on load
-        document.querySelectorAll('.stat-card').forEach((card, index) => {
-            card.style.animation = `fadeInUp 0.5s ease-out ${index * 0.1}s both`;
-        });
     });
 </script>
 {% endblock %}
