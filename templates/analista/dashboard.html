@@ -1,10 +1,9 @@
-<!-- templates/analista/dashboard.html -->
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Dashboard - Analista</title>
+    <title>Dashboard - Enfermeiro</title>
     
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -697,9 +696,9 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner">
             <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('analista.dashboard') }}">
-                <i class="fas fa-microscope"></i>
-                <span>Análise Médica</span>
+            <a class="sidebar-brand" href="{{ url_for('enfermeiro.dashboard.index') }}">
+                <i class="fas fa-user-nurse"></i>
+                <span>Enfermagem</span>
             </a>
             
             <!-- User Info -->
@@ -708,56 +707,52 @@
                     <i class="fas fa-user-circle fa-2x"></i>
                 </div>
                 <h6 class="mb-1">
-                    {% if analista_info and analista_info.nome %}
-                        {% if analista_info.nome.__class__.__name__ == 'bytes' %}
-                            {{ analista_info.nome.decode('utf-8') }}
-                        {% else %}
-                            {{ analista_info.nome }}
-                        {% endif %}
-                    {% elif user and user.user_name %}
-                        {% if user.user_name.__class__.__name__ == 'bytes' %}
-                            {{ user.user_name.decode('utf-8') }}
-                        {% else %}
-                            {{ user.user_name }}
-                        {% endif %}
+                    {% if session.get('user_name') %}
+                        {{ session.get('user_name') }}
                     {% else %}
-                        Analista
+                        Enfermeiro
                     {% endif %}
                 </h6>
                 <p class="mb-1">
-                    <i class="fas fa-graduation-cap me-1"></i> 
-                    {% if analista_info and analista_info.especialidade %}
-                        {{ analista_info.especialidade }}
-                    {% else %}
-                        Analista Médico
-                    {% endif %}
+                    <i class="fas fa-id-card me-1"></i> 
+                    COREn: {% if session.get('enfermeiro_coren') %}{{ session.get('enfermeiro_coren') }}{% else %}Não informado{% endif %}
+                </p>
+                <p class="mb-0 small">
+                    <i class="fas fa-building me-1"></i> 
+                    {% if session.get('enfermeiro_setor') %}{{ session.get('enfermeiro_setor') }}{% else %}Enfermagem Geral{% endif %}
                 </p>
             </div>
             
             <!-- Navigation -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('analista.dashboard') }}">
+                    <a class="nav-link active" href="{{ url_for('enfermeiro.dashboard.index') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('analista.pedidos') }}">
-                        <i class="fas fa-file-medical"></i>
-                        Meus Pedidos
+                    <a class="nav-link" href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}">
+                        <i class="fas fa-stethoscope"></i>
+                        Triagem
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('analista.proximo_pedido') }}">
-                        <i class="fas fa-play-circle"></i>
-                        Próximo Pedido
+                    <a class="nav-link" href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}">
+                        <i class="fas fa-heartbeat"></i>
+                        Sinais Vitais
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('analista.minhas_analises') }}">
-                        <i class="fas fa-history"></i>
-                        Histórico
+                    <a class="nav-link" href="/enfermeiro/internados">
+                        <i class="fas fa-procedures"></i>
+                        Internados
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/enfermeiro/medicamentos">
+                        <i class="fas fa-capsules"></i>
+                        Medicamentos
                     </a>
                 </li>
                 <li class="nav-item">
@@ -778,25 +773,15 @@
                 <div>
                     <h1 class="h5 h3-md mb-1 text-gray-800">
                         <i class="fas fa-tachometer-alt text-primary me-2"></i>
-                        Dashboard
+                        Dashboard - Enfermagem
                     </h1>
                     <p class="text-muted mb-0 small">
                         Bem-vindo, 
                         <strong>
-                            {% if analista_info and analista_info.nome %}
-                                {% if analista_info.nome.__class__.__name__ == 'bytes' %}
-                                    {{ analista_info.nome.decode('utf-8') }}
-                                {% else %}
-                                    {{ analista_info.nome }}
-                                {% endif %}
-                            {% elif user and user.user_name %}
-                                {% if user.user_name.__class__.__name__ == 'bytes' %}
-                                    {{ user.user_name.decode('utf-8') }}
-                                {% else %}
-                                    {{ user.user_name }}
-                                {% endif %}
+                            {% if session.get('user_name') %}
+                                {{ session.get('user_name') }}
                             {% else %}
-                                Analista
+                                Enfermeiro
                             {% endif %}
                         </strong>
                     </p>
@@ -804,8 +789,8 @@
                     <small class="text-primary d-none d-md-block" id="currentTime"></small>
                 </div>
                 <div class="btn-group w-100 w-md-auto">
-                    <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-play me-2"></i> Próximo Pedido
+                    <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-stethoscope me-2"></i> Triagem
                     </a>
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
                         <i class="fas fa-sync-alt"></i>
@@ -820,66 +805,17 @@
                 <div class="card stat-card border-left-primary">
                     <div class="card-body">
                         <div class="value-container">
-                            <div class="stat-label text-primary">PENDENTES</div>
-                            <div class="stat-value" id="statPendentes">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.pendentes if estatisticas.pendentes is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
+                            <div class="stat-label text-primary">CONSULTAS HOJE</div>
+                            <div class="stat-value" id="statConsultasHoje">
+                                {{ total_consultas_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
-                                <i class="fas fa-clock text-warning me-1"></i>
-                                <span class="d-none d-md-inline">Aguardando análise</span>
-                                <span class="d-inline d-md-none">Aguardando</span>
+                                <i class="fas fa-calendar-check text-primary me-1"></i>
+                                <span class="d-none d-md-inline">Agendadas para hoje</span>
+                                <span class="d-inline d-md-none">Hoje</span>
                             </div>
                         </div>
-                        <i class="fas fa-clock stat-icon text-primary"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-xl-3 mb-2">
-                <div class="card stat-card border-left-info">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-info">EM ANÁLISE</div>
-                            <div class="stat-value" id="statEmAnalise">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.em_analise if estatisticas.em_analise is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-spinner text-info me-1"></i>
-                                <span class="d-none d-md-inline">Em andamento</span>
-                                <span class="d-inline d-md-none">Andamento</span>
-                            </div>
-                        </div>
-                        <i class="fas fa-search stat-icon text-info"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-xl-3 mb-2">
-                <div class="card stat-card border-left-success">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-success">CONCLUÍDOS</div>
-                            <div class="stat-value" id="statConcluidos">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.concluidos if estatisticas.concluidos is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-check-circle text-success me-1"></i>
-                                Finalizados
-                            </div>
-                        </div>
-                        <i class="fas fa-check-circle stat-icon text-success"></i>
+                        <i class="fas fa-calendar-check stat-icon text-primary"></i>
                     </div>
                 </div>
             </div>
@@ -888,20 +824,53 @@
                 <div class="card stat-card border-left-warning">
                     <div class="card-body">
                         <div class="value-container">
-                            <div class="stat-label text-warning">URGENTES</div>
-                            <div class="stat-value" id="statUrgentes">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.urgentes if estatisticas.urgentes is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
+                            <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
+                            <div class="stat-value" id="statTriagensPendentes">
+                                {{ pacientes_aguardando|default(0) }}
                             </div>
                             <div class="stat-description">
-                                <i class="fas fa-exclamation-triangle text-danger me-1"></i>
-                                Alta prioridade
+                                <i class="fas fa-clock text-warning me-1"></i>
+                                <span class="d-none d-md-inline">Aguardando triagem</span>
+                                <span class="d-inline d-md-none">Pendentes</span>
                             </div>
                         </div>
-                        <i class="fas fa-exclamation-triangle stat-icon text-warning"></i>
+                        <i class="fas fa-stethoscope stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-xl-3 mb-2">
+                <div class="card stat-card border-left-danger">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-danger">INTERNADOS</div>
+                            <div class="stat-value" id="statInternados">
+                                {{ pacientes_internados|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-procedures text-danger me-1"></i>
+                                Pacientes internados
+                            </div>
+                        </div>
+                        <i class="fas fa-procedures stat-icon text-danger"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-xl-3 mb-2">
+                <div class="card stat-card border-left-success">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-success">AFERIÇÕES HOJE</div>
+                            <div class="stat-value" id="statAfericoesHoje">
+                                {{ total_afericoes_hoje|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-heartbeat text-success me-1"></i>
+                                Sinais registrados
+                            </div>
+                        </div>
+                        <i class="fas fa-heartbeat stat-icon text-success"></i>
                     </div>
                 </div>
             </div>
@@ -913,20 +882,16 @@
                 <div class="card stat-card border-left-info">
                     <div class="card-body">
                         <div class="value-container">
-                            <div class="stat-label text-info">HOJE</div>
-                            <div class="stat-value" id="statHoje">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.hoje if estatisticas.hoje is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
+                            <div class="stat-label text-info">TRIAGENS HOJE</div>
+                            <div class="stat-value" id="statTriagensHoje">
+                                {{ triagens_realizadas_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
-                                <i class="fas fa-calendar-day text-info me-1"></i>
+                                <i class="fas fa-check-circle text-info me-1"></i>
                                 <span id="todayDate"></span>
                             </div>
                         </div>
-                        <i class="fas fa-sun stat-icon text-info"></i>
+                        <i class="fas fa-stethoscope stat-icon text-info"></i>
                     </div>
                 </div>
             </div>
@@ -935,20 +900,16 @@
                 <div class="card stat-card border-left-warning">
                     <div class="card-body">
                         <div class="value-container">
-                            <div class="stat-label text-warning">AMANHÃ</div>
-                            <div class="stat-value" id="statAmanha">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.amanha if estatisticas.amanha is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
+                            <div class="stat-label text-warning">CONSULTAS SEMANA</div>
+                            <div class="stat-value" id="statConsultasSemana">
+                                {{ consultas_semana|default(0) }}
                             </div>
                             <div class="stat-description">
-                                <i class="fas fa-calendar-alt text-warning me-1"></i>
-                                <span id="tomorrowDate"></span>
+                                <i class="fas fa-calendar-week text-warning me-1"></i>
+                                Esta semana
                             </div>
                         </div>
-                        <i class="fas fa-calendar-plus stat-icon text-warning"></i>
+                        <i class="fas fa-calendar-alt stat-icon text-warning"></i>
                     </div>
                 </div>
             </div>
@@ -957,20 +918,16 @@
                 <div class="card stat-card border-left-success">
                     <div class="card-body">
                         <div class="value-container">
-                            <div class="stat-label text-success">SEMANA</div>
-                            <div class="stat-value" id="statEstaSemana">
-                                {% if estatisticas and estatisticas is mapping %}
-                                    {{ estatisticas.esta_semana if estatisticas.esta_semana is defined else 0 }}
-                                {% else %}
-                                    0
-                                {% endif %}
+                            <div class="stat-label text-success">TAXA OCUPAÇÃO</div>
+                            <div class="stat-value" id="statTaxaOcupacao">
+                                {{ taxa_ocupacao|default(0) }}%
                             </div>
                             <div class="stat-description">
-                                <i class="fas fa-calendar-week text-success me-1"></i>
-                                Esta semana
+                                <i class="fas fa-hospital text-success me-1"></i>
+                                Leitos ocupados
                             </div>
                         </div>
-                        <i class="fas fa-calendar-check stat-icon text-success"></i>
+                        <i class="fas fa-chart-line stat-icon text-success"></i>
                     </div>
                 </div>
             </div>
@@ -994,56 +951,34 @@
                             <div class="col-6 col-md-3">
                                 <div class="performance-metric">
                                     <div class="metric-icon text-primary">
-                                        <i class="fas fa-tasks"></i>
+                                        <i class="fas fa-calendar-check"></i>
                                     </div>
-                                    <div class="metric-value" id="metricTotal">
-                                        {% if estatisticas and estatisticas is mapping %}
-                                            {{ (estatisticas.pendentes if estatisticas.pendentes is defined else 0) + 
-                                               (estatisticas.em_analise if estatisticas.em_analise is defined else 0) + 
-                                               (estatisticas.concluidos if estatisticas.concluidos is defined else 0) }}
-                                        {% else %}
-                                            0
-                                        {% endif %}
+                                    <div class="metric-value" id="metricTotalConsultas">
+                                        {{ total_consultas|default(0) }}
                                     </div>
-                                    <div class="metric-label">Total</div>
+                                    <div class="metric-label">Total Consultas</div>
                                 </div>
                             </div>
                             
                             <div class="col-6 col-md-3">
                                 <div class="performance-metric">
                                     <div class="metric-icon text-success">
-                                        <i class="fas fa-percentage"></i>
+                                        <i class="fas fa-stethoscope"></i>
                                     </div>
-                                    <div class="metric-value" id="metricTaxaConclusao">
-                                        {% if estatisticas and estatisticas is mapping %}
-                                            {% set total = (estatisticas.pendentes if estatisticas.pendentes is defined else 0) + 
-                                                          (estatisticas.em_analise if estatisticas.em_analise is defined else 0) + 
-                                                          (estatisticas.concluidos if estatisticas.concluidos is defined else 0) %}
-                                            {% set concluidos = estatisticas.concluidos if estatisticas.concluidos is defined else 0 %}
-                                            {% if total > 0 %}
-                                                {{ ((concluidos / total) * 100)|round(1) }}%
-                                            {% else %}
-                                                0%
-                                            {% endif %}
-                                        {% else %}
-                                            0%
-                                        {% endif %}
+                                    <div class="metric-value" id="metricTotalTriagens">
+                                        {{ total_triagens|default(0) }}
                                     </div>
-                                    <div class="metric-label">Taxa</div>
+                                    <div class="metric-label">Total Triagens</div>
                                 </div>
                             </div>
                             
                             <div class="col-6 col-md-3">
                                 <div class="performance-metric">
-                                    <div class="metric-icon text-warning">
-                                        <i class="fas fa-bolt"></i>
+                                    <div class="metric-icon text-info">
+                                        <i class="fas fa-heartbeat"></i>
                                     </div>
                                     <div class="metric-value" id="metricMediaDiaria">
-                                        {% if estatisticas and estatisticas.esta_semana is defined and estatisticas.esta_semana > 0 %}
-                                            {{ (estatisticas.esta_semana / 7)|round(1) }}
-                                        {% else %}
-                                            0.0
-                                        {% endif %}
+                                        {{ media_diaria|default(0) }}
                                     </div>
                                     <div class="metric-label">Média/dia</div>
                                 </div>
@@ -1051,24 +986,13 @@
                             
                             <div class="col-6 col-md-3">
                                 <div class="performance-metric">
-                                    <div class="metric-icon text-danger">
-                                        <i class="fas fa-fire"></i>
+                                    <div class="metric-icon text-warning">
+                                        <i class="fas fa-percentage"></i>
                                     </div>
-                                    <div class="metric-value" id="metricUrgenciaPercent">
-                                        {% if estatisticas and estatisticas is mapping %}
-                                            {% set total = (estatisticas.pendentes if estatisticas.pendentes is defined else 0) + 
-                                                          (estatisticas.em_analise if estatisticas.em_analise is defined else 0) %}
-                                            {% set urgentes = estatisticas.urgentes if estatisticas.urgentes is defined else 0 %}
-                                            {% if total > 0 %}
-                                                {{ ((urgentes / total) * 100)|round(1) }}%
-                                            {% else %}
-                                                0%
-                                            {% endif %}
-                                        {% else %}
-                                            0%
-                                        {% endif %}
+                                    <div class="metric-value" id="metricEficiencia">
+                                        {{ eficiencia|default(0) }}%
                                     </div>
-                                    <div class="metric-label">Urgências</div>
+                                    <div class="metric-label">Eficiência</div>
                                 </div>
                             </div>
                         </div>
@@ -1076,46 +1000,38 @@
                         <!-- Progress Bars -->
                         <div class="row mt-2 g-2">
                             <div class="col-md-6">
-                                <div class="progress-label">Progresso Semanal</div>
+                                <div class="progress-label">Meta Semanal de Consultas</div>
                                 <div class="progress">
                                     <div id="progressSemanal" class="progress-bar bg-success" role="progressbar" 
-                                         style="width: {% if estatisticas and estatisticas.esta_semana is defined and estatisticas.esta_semana > 0 %}{{ (estatisticas.esta_semana / 20 * 100)|min(100) }}{% else %}0{% endif %}%"
-                                         aria-valuenow="{% if estatisticas and estatisticas.esta_semana is defined %}{{ estatisticas.esta_semana }}{% else %}0{% endif %}" 
-                                         aria-valuemin="0" aria-valuemax="20">
+                                         style="width: {{ progresso_semanal|default(0) }}%"
+                                         aria-valuenow="{{ consultas_semana|default(0) }}" 
+                                         aria-valuemin="0" aria-valuemax="50">
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <small class="text-muted">0</small>
                                     <small class="progress-value" id="progressValueSemanal">
-                                        {% if estatisticas and estatisticas.esta_semana is defined %}
-                                            {{ estatisticas.esta_semana }}/20
-                                        {% else %}
-                                            0/20
-                                        {% endif %}
+                                        {{ consultas_semana|default(0) }}/50
                                     </small>
-                                    <small class="text-muted">20</small>
+                                    <small class="text-muted">50</small>
                                 </div>
                             </div>
                             
                             <div class="col-md-6">
-                                <div class="progress-label">Hoje</div>
+                                <div class="progress-label">Triagens Hoje</div>
                                 <div class="progress">
                                     <div id="progressHoje" class="progress-bar bg-info" role="progressbar" 
-                                         style="width: {% if estatisticas and estatisticas.hoje is defined and estatisticas.hoje > 0 %}{{ (estatisticas.hoje / 5 * 100)|min(100) }}{% else %}0{% endif %}%"
-                                         aria-valuenow="{% if estatisticas and estatisticas.hoje is defined %}{{ estatisticas.hoje }}{% else %}0{% endif %}" 
-                                         aria-valuemin="0" aria-valuemax="5">
+                                         style="width: {{ progresso_triagens|default(0) }}%"
+                                         aria-valuenow="{{ triagens_realizadas_hoje|default(0) }}" 
+                                         aria-valuemin="0" aria-valuemax="10">
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between">
                                     <small class="text-muted">0</small>
                                     <small class="progress-value" id="progressValueHoje">
-                                        {% if estatisticas and estatisticas.hoje is defined %}
-                                            {{ estatisticas.hoje }}/5
-                                        {% else %}
-                                            0/5
-                                        {% endif %}
+                                        {{ triagens_realizadas_hoje|default(0) }}/10
                                     </small>
-                                    <small class="text-muted">5</small>
+                                    <small class="text-muted">10</small>
                                 </div>
                             </div>
                         </div>
@@ -1124,84 +1040,78 @@
             </div>
         </div>
         
-        <!-- Recent Pedidos -->
+        <!-- Alertas de Triagem Pendente -->
+        {% if pacientes_aguardando|default(0) > 0 %}
+        <div class="row mt-3">
+            <div class="col-lg-12">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
+                        </div>
+                        <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
+                            <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
+                        </a>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Recent Consultas -->
         <div class="row mt-3">
             <div class="col-lg-12">
                 <div class="card">
                     <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
                         <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-file-medical me-2"></i> Pedidos Recentes
+                            <i class="fas fa-calendar-alt me-2"></i> Consultas Recentes
                         </h6>
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-primary" id="pedidosCount">
-                                {% if pedidos_atribuidos and pedidos_atribuidos|length > 0 %}
-                                    {{ pedidos_atribuidos|length }}
-                                {% else %}
-                                    0
-                                {% endif %}
+                            <span class="badge bg-primary" id="consultasCount">
+                                {{ consultas_hoje|length if consultas_hoje else 0 }}
                             </span>
-                            <a href="{{ url_for('analista.pedidos') }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-sm btn-outline-primary">
                                 Ver Todos
                             </a>
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        {% if pedidos_atribuidos and pedidos_atribuidos|length > 0 %}
+                        {% if consultas_hoje and consultas_hoje|length > 0 %}
                         <!-- Mobile View -->
                         <div class="d-block d-md-none">
-                            {% for pedido in pedidos_atribuidos %}
+                            {% for consulta in consultas_hoje %}
                             <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
-                                        <div class="fw-semibold">
-                                            {% if pedido.paciente_nome %}
-                                                {% if pedido.paciente_nome.__class__.__name__ == 'bytes' %}
-                                                    {{ pedido.paciente_nome.decode('utf-8') }}
-                                                {% else %}
-                                                    {{ pedido.paciente_nome }}
-                                                {% endif %}
-                                            {% else %}
-                                                N/A
-                                            {% endif %}
-                                        </div>
+                                        <div class="fw-semibold">{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</div>
+                                        <small class="text-muted d-block mt-1">{{ consulta.hora if consulta.hora else '' }}</small>
                                     </div>
                                     <div class="text-end">
-                                        {% if pedido.urgencia is defined %}
-                                            <span class="badge bg-{% if pedido.urgencia == 'urgente' %}danger{% elif pedido.urgencia == 'alta' %}warning{% elif pedido.urgencia == 'normal' %}info{% else %}secondary{% endif %} mb-1">
-                                                {{ pedido.urgencia|upper }}
-                                            </span>
-                                        {% endif %}
+                                        <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %} mb-1">
+                                            {{ consulta.status|upper if consulta.status else 'AGENDADA' }}
+                                        </span>
                                     </div>
                                 </div>
                                 
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">{{ pedido.tipo_exame if pedido.tipo_exame is defined else 'N/A' }}</small>
-                                    <small class="text-muted d-block">
-                                        <i class="fas fa-calendar me-1"></i> {{ pedido.data_solicitacao if pedido.data_solicitacao is defined else '' }}
-                                    </small>
+                                    <small class="text-muted d-block">Médico: {{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</small>
                                 </div>
                                 
                                 <div class="d-flex justify-content-between align-items-center">
-                                    <span class="badge bg-{% if pedido.status is defined %}{% if pedido.status == 'pendente' %}warning{% elif pedido.status == 'em_analise' %}info{% elif pedido.status == 'concluido' %}success{% else %}secondary{% endif %}{% else %}secondary{% endif %}">
-                                        {{ pedido.status if pedido.status is defined else 'N/A' }}
-                                    </span>
-                                    {% if pedido.id is defined %}
                                     <div class="btn-group btn-group-sm">
-                                        <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
-                                           class="btn btn-{% if pedido.status is defined and pedido.status == 'pendente' %}primary{% else %}outline-primary{% endif %}">
-                                            <i class="fas fa-{% if pedido.status is defined and pedido.status == 'pendente' %}play{% else %}search{% endif %}"></i>
+                                        {% if consulta.status == 'agendada' %}
+                                        <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                           class="btn btn-warning">
+                                            <i class="fas fa-stethoscope"></i> Triagem
                                         </a>
-                                        <a href="{{ url_for('analista.analise_manual', pedido_id=pedido.id) }}" 
-                                           class="btn btn-outline-warning"
-                                           title="Análise Manual">
-                                            <i class="fas fa-user-md"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-outline-info" 
-                                                onclick="viewPedidoDetails({{ pedido.id }})">
+                                        {% endif %}
+                                        <a href="/enfermeiro/consulta/{{ consulta.id }}" 
+                                           class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
-                                        </button>
+                                        </a>
                                     </div>
-                                    {% endif %}
                                 </div>
                             </div>
                             {% endfor %}
@@ -1213,92 +1123,43 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="px-3 py-2">Paciente</th>
-                                        <th class="px-3 py-2">Tipo de Exame</th>
-                                        <th class="px-3 py-2">Urgência</th>
+                                        <th class="px-3 py-2">Médico</th>
+                                        <th class="px-3 py-2">Horário</th>
                                         <th class="px-3 py-2">Status</th>
-                                        <th class="px-3 py-2">Data</th>
                                         <th class="px-3 py-2 text-end">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for pedido in pedidos_atribuidos %}
+                                    {% for consulta in consultas_hoje %}
                                     <tr class="align-middle">
                                         <td class="px-3 py-2">
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-user-circle me-2 text-muted"></i>
-                                                <span>
-                                                    {% if pedido.paciente_nome %}
-                                                        {% if pedido.paciente_nome.__class__.__name__ == 'bytes' %}
-                                                            {{ pedido.paciente_nome.decode('utf-8') }}
-                                                        {% else %}
-                                                            {{ pedido.paciente_nome }}
-                                                        {% endif %}
-                                                    {% else %}
-                                                        N/A
-                                                    {% endif %}
-                                                </span>
+                                                <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
                                             </div>
                                         </td>
+                                        <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
+                                        <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
                                         <td class="px-3 py-2">
-                                            <span class="badge bg-light text-dark">
-                                                {{ pedido.tipo_exame if pedido.tipo_exame is defined else 'N/A' }}
+                                            <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %}">
+                                                {{ consulta.status|capitalize if consulta.status else 'Agendada' }}
                                             </span>
                                         </td>
-                                        <td class="px-3 py-2">
-                                            {% if pedido.urgencia is defined %}
-                                                {% if pedido.urgencia == 'urgente' %}
-                                                <span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>URGENTE</span>
-                                                {% elif pedido.urgencia == 'alta' %}
-                                                <span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i>ALTA</span>
-                                                {% elif pedido.urgencia == 'normal' %}
-                                                <span class="badge bg-info"><i class="fas fa-info-circle me-1"></i>NORMAL</span>
-                                                {% else %}
-                                                <span class="badge bg-secondary">{{ pedido.urgencia|upper if pedido.urgencia else 'N/A' }}</span>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="badge bg-secondary">N/A</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            {% if pedido.status is defined %}
-                                                {% if pedido.status == 'pendente' %}
-                                                <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Pendente</span>
-                                                {% elif pedido.status == 'em_analise' %}
-                                                <span class="badge bg-info"><i class="fas fa-spinner me-1"></i>Em Análise</span>
-                                                {% elif pedido.status == 'concluido' %}
-                                                <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i>Concluído</span>
-                                                {% else %}
-                                                <span class="badge bg-secondary">{{ pedido.status }}</span>
-                                                {% endif %}
-                                            {% else %}
-                                                <span class="badge bg-secondary">N/A</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="px-3 py-2">
-                                            <small class="text-muted">
-                                                {{ pedido.data_solicitacao if pedido.data_solicitacao is defined else '' }}
-                                            </small>
-                                        </td>
                                         <td class="px-3 py-2 text-end">
-                                            {% if pedido.id is defined %}
                                             <div class="btn-group btn-group-sm">
-                                                <a href="{{ url_for('analista.analisar_pedido', pedido_id=pedido.id) }}" 
-                                                   class="btn btn-{% if pedido.status is defined and pedido.status == 'pendente' %}primary{% else %}outline-primary{% endif %}"
-                                                   title="{% if pedido.status is defined and pedido.status == 'pendente' %}Iniciar Análise{% else %}Ver Detalhes{% endif %}">
-                                                    <i class="fas fa-{% if pedido.status is defined and pedido.status == 'pendente' %}play{% else %}search{% endif %}"></i>
+                                                {% if consulta.status == 'agendada' %}
+                                                <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                                   class="btn btn-warning"
+                                                   title="Realizar Triagem">
+                                                    <i class="fas fa-stethoscope"></i>
                                                 </a>
-                                                <a href="{{ url_for('analista.analise_manual', pedido_id=pedido.id) }}" 
-                                                   class="btn btn-outline-warning"
-                                                   title="Análise Manual - Preencher resultados manualmente">
-                                                    <i class="fas fa-user-md"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-outline-info" 
-                                                        onclick="viewPedidoDetails({{ pedido.id }})"
-                                                        title="Ver detalhes">
+                                                {% endif %}
+                                                <a href="/enfermeiro/consulta/{{ consulta.id }}" 
+                                                   class="btn btn-outline-primary"
+                                                   title="Ver Detalhes">
                                                     <i class="fas fa-eye"></i>
-                                                </button>
+                                                </a>
                                             </div>
-                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -1308,13 +1169,10 @@
                         {% else %}
                         <div class="empty-state">
                             <div class="mb-3">
-                                <i class="fas fa-file-medical-alt"></i>
+                                <i class="fas fa-calendar-alt"></i>
                             </div>
-                            <h5 class="text-gray-800">Nenhum pedido atribuído</h5>
-                            <p class="text-gray-600">Você não tem pedidos de análise atribuídos no momento.</p>
-                            <a href="{{ url_for('analista.proximo_pedido') }}" class="btn btn-primary btn-sm mt-2">
-                                <i class="fas fa-play me-2"></i> Buscar Próximo Pedido
-                            </a>
+                            <h5 class="text-gray-800">Nenhuma consulta hoje</h5>
+                            <p class="text-gray-600">Não há consultas agendadas para hoje.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -1334,40 +1192,35 @@
                     <div class="card-body p-2">
                         <div class="row g-2">
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('analista.proximo_pedido') }}" 
-                                   class="btn btn-primary w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-play fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Próximo</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">Buscar próximo</small>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <a href="{{ url_for('analista.pedidos', status='pendente') }}" 
+                                <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
                                    class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-clock fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Pendentes</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1" id="pendentesCount">
-                                        {{ estatisticas.pendentes if estatisticas and estatisticas.pendentes is defined else 0 }}
-                                    </small>
+                                    <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Triagem</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1" id="triagensPendentesCount">{{ pacientes_aguardando|default(0) }}</small>
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('analista.minhas_analises') }}" 
+                                <a href="/enfermeiro/internados" 
+                                   class="btn btn-danger w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-procedures fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Internados</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">{{ pacientes_internados|default(0) }}</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
+                                   class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Sinais</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">Registrar</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="/enfermeiro/medicamentos" 
                                    class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-history fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Histórico</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">
-                                        {{ estatisticas.concluidos if estatisticas and estatisticas.concluidos is defined else 0 }}
-                                    </small>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <a href="{{ url_for('analista.analise_manual', pedido_id=0) }}" 
-                                   class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn"
-                                   onclick="event.preventDefault(); alert('Selecione um pedido na lista de pedidos para análise manual');">
-                                    <i class="fas fa-user-md fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Manual</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">Análise Manual</small>
+                                    <i class="fas fa-capsules fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Medicamentos</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">Administrar</small>
                                 </a>
                             </div>
                         </div>
@@ -1380,7 +1233,7 @@
         <footer class="mt-4 text-center text-muted">
             <hr>
             <p class="small mb-0">
-                <i class="fas fa-heart text-danger"></i> Sistema de Análise Médica 
+                <i class="fas fa-heart text-danger"></i> DOCTORIA - Enfermagem 
                 &copy; 2024 | <span id="lastUpdate"></span>
             </p>
         </footer>
@@ -1400,29 +1253,28 @@
             };
             
             const timeStr = now.toLocaleDateString('pt-BR', options);
-            document.getElementById('currentTime').textContent = timeStr;
-            document.getElementById('currentTimeMobile').textContent = timeStr;
+            const currentTimeEl = document.getElementById('currentTime');
+            const currentTimeMobileEl = document.getElementById('currentTimeMobile');
+            if (currentTimeEl) currentTimeEl.textContent = timeStr;
+            if (currentTimeMobileEl) currentTimeMobileEl.textContent = timeStr;
             
             // Update last update time
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('lastUpdate').textContent = 
-                'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            if (lastUpdateEl) {
+                lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
+            }
             
             // Update week information
             const weekNumber = getWeekNumber(now);
-            document.getElementById('currentWeek').textContent = `Semana ${weekNumber}`;
+            const currentWeekEl = document.getElementById('currentWeek');
+            if (currentWeekEl) currentWeekEl.textContent = `Semana ${weekNumber}`;
             
-            // Update today and tomorrow dates
+            // Update today date
             const hoje = new Date();
-            const amanha = new Date(hoje);
-            amanha.setDate(amanha.getDate() + 1);
-            
             const dateOptions = { day: '2-digit', month: '2-digit' };
-            
-            document.getElementById('todayDate').textContent = 
-                hoje.toLocaleDateString('pt-BR', dateOptions);
-            document.getElementById('tomorrowDate').textContent = 
-                amanha.toLocaleDateString('pt-BR', dateOptions);
+            const todayDateEl = document.getElementById('todayDate');
+            if (todayDateEl) todayDateEl.textContent = hoje.toLocaleDateString('pt-BR', dateOptions);
         }
         
         // Get week number
@@ -1438,86 +1290,33 @@
         async function refreshDashboard() {
             try {
                 const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
-                refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                refreshBtn.disabled = true;
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    refreshBtn.disabled = true;
+                }
                 
-                const response = await fetch('{{ url_for("analista.api_dashboard_stats") }}');
+                const response = await fetch('/enfermeiro/api/contadores');
                 const data = await response.json();
                 
                 if (data && !data.error) {
                     // Update basic stats
-                    if (data.pendentes !== undefined) {
-                        document.getElementById('statPendentes').textContent = data.pendentes;
-                        document.getElementById('pendentesCount').textContent = data.pendentes;
+                    if (data.consultas_hoje !== undefined) {
+                        const statConsultasHoje = document.getElementById('statConsultasHoje');
+                        if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
                     }
-                    if (data.em_analise !== undefined) {
-                        document.getElementById('statEmAnalise').textContent = data.em_analise;
+                    if (data.triagens_pendentes !== undefined) {
+                        const statTriagensPendentes = document.getElementById('statTriagensPendentes');
+                        const triagensPendentesCount = document.getElementById('triagensPendentesCount');
+                        if (statTriagensPendentes) statTriagensPendentes.textContent = data.triagens_pendentes;
+                        if (triagensPendentesCount) triagensPendentesCount.textContent = data.triagens_pendentes;
                     }
-                    if (data.concluidos !== undefined) {
-                        document.getElementById('statConcluidos').textContent = data.concluidos;
+                    if (data.internados !== undefined) {
+                        const statInternados = document.getElementById('statInternados');
+                        if (statInternados) statInternados.textContent = data.internados;
                     }
-                    if (data.urgentes !== undefined) {
-                        document.getElementById('statUrgentes').textContent = data.urgentes;
-                    }
-                    
-                    // Update time-based stats
-                    if (data.hoje !== undefined) {
-                        document.getElementById('statHoje').textContent = data.hoje;
-                        
-                        const progressHoje = document.getElementById('progressHoje');
-                        const progressValueHoje = document.getElementById('progressValueHoje');
-                        const progressPercent = Math.min((data.hoje / 5) * 100, 100);
-                        progressHoje.style.width = progressPercent + '%';
-                        progressHoje.setAttribute('aria-valuenow', data.hoje);
-                        progressValueHoje.textContent = data.hoje + '/5';
-                    }
-                    
-                    if (data.amanha !== undefined) {
-                        document.getElementById('statAmanha').textContent = data.amanha;
-                    }
-                    
-                    if (data.esta_semana !== undefined) {
-                        document.getElementById('statEstaSemana').textContent = data.esta_semana;
-                        
-                        const progressSemanal = document.getElementById('progressSemanal');
-                        const progressValueSemanal = document.getElementById('progressValueSemanal');
-                        const progressPercent = Math.min((data.esta_semana / 20) * 100, 100);
-                        progressSemanal.style.width = progressPercent + '%';
-                        progressSemanal.setAttribute('aria-valuenow', data.esta_semana);
-                        progressValueSemanal.textContent = data.esta_semana + '/20';
-                    }
-                    
-                    // Update metrics
-                    if (data.estatisticas) {
-                        const estatisticas = data.estatisticas;
-                        
-                        const total = (estatisticas.pendentes || 0) + 
-                                     (estatisticas.em_analise || 0) + 
-                                     (estatisticas.concluidos || 0);
-                        document.getElementById('metricTotal').textContent = total;
-                        
-                        if (total > 0) {
-                            const taxa = ((estatisticas.concluidos || 0) / total * 100).toFixed(1);
-                            document.getElementById('metricTaxaConclusao').textContent = taxa + '%';
-                        } else {
-                            document.getElementById('metricTaxaConclusao').textContent = '0%';
-                        }
-                        
-                        const media = ((estatisticas.esta_semana || 0) / 7).toFixed(1);
-                        document.getElementById('metricMediaDiaria').textContent = media;
-                        
-                        const totalAtivos = (estatisticas.pendentes || 0) + (estatisticas.em_analise || 0);
-                        if (totalAtivos > 0) {
-                            const urgenciaPercent = ((estatisticas.urgentes || 0) / totalAtivos * 100).toFixed(1);
-                            document.getElementById('metricUrgenciaPercent').textContent = urgenciaPercent + '%';
-                        } else {
-                            document.getElementById('metricUrgenciaPercent').textContent = '0%';
-                        }
-                    }
-                    
-                    if (data.pedidos_recentes) {
-                        document.getElementById('pedidosCount').textContent = 
-                            data.pedidos_recentes.length;
+                    if (data.afericoes_hoje !== undefined) {
+                        const statAfericoesHoje = document.getElementById('statAfericoesHoje');
+                        if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
                     }
                     
                     showToast('success', 'Dashboard atualizado!');
@@ -1528,14 +1327,11 @@
                 showToast('error', 'Erro ao atualizar');
             } finally {
                 const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
-                refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                refreshBtn.disabled = false;
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                    refreshBtn.disabled = false;
+                }
             }
-        }
-        
-        // View pedido details
-        function viewPedidoDetails(pedidoId) {
-            window.location.href = `/analista/analisar/${pedidoId}`;
         }
         
         // Show toast notification
@@ -1570,16 +1366,19 @@
         }
         
         // Toggle sidebar
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
-        });
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('show');
+            });
+        }
         
         // Close sidebar when clicking outside
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
             
-            if (!sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
+            if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
                 sidebar.classList.remove('show');
             }
         });
@@ -1599,7 +1398,7 @@
             });
             
             // Add touch feedback
-            document.querySelectorAll('.stat-card, .action-btn').forEach(el => {
+            document.querySelectorAll('.stat-card, .action-btn, .btn').forEach(el => {
                 el.addEventListener('touchstart', function() {
                     this.style.transform = 'scale(0.98)';
                 });
@@ -1611,4 +1410,4 @@
         });
     </script>
 </body>
-</html> 
+</html>
