@@ -18,15 +18,19 @@ def set_mysql(mysql_instance):
 def enfermeiro_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Verificar se é uma requisição de API
+        is_api = request.path.startswith('/dashboard/api/')
+        
         if 'user_id' not in session:
-            # Para APIs, retornar JSON em vez de redirecionar
-            if request.path.startswith('/dashboard/api/'):
+            if is_api:
                 return jsonify({'error': 'Não autorizado', 'authenticated': False}), 401
             return render_template('login.html', error='Faça login para continuar')
+        
         if session.get('user_type') != 'enfermeiro':
-            if request.path.startswith('/dashboard/api/'):
+            if is_api:
                 return jsonify({'error': 'Acesso restrito a enfermeiros'}), 403
             return render_template('error.html', error='Acesso restrito a enfermeiros'), 403
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -74,7 +78,7 @@ def index():
         hoje_inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
         hoje_fim = hoje_inicio + timedelta(days=1)
         
-        # Buscar consultas de hoje
+        # Buscar consultas de hoje - usando colunas corretas
         consultas_hoje = execute_query("""
             SELECT 
                 c.id,
@@ -94,7 +98,8 @@ def index():
                 c.id,
                 TIME(c.data_hora) as hora_chegada,
                 COALESCE(u.nome, 'Paciente') as paciente_nome,
-                c.status
+                c.status,
+                c.status_triagem
             FROM consultas c
             LEFT JOIN pacientes p ON c.paciente_id = p.id
             LEFT JOIN usuarios u ON p.usuario_id = u.id
@@ -121,7 +126,7 @@ def index():
             FROM internacoes i
             JOIN pacientes p ON i.paciente_id = p.id
             JOIN usuarios u ON p.usuario_id = u.id
-            JOIN leitos l ON i.leito_id = l.id
+            LEFT JOIN leitos l ON i.leito_id = l.id
             WHERE i.status = 'internado'
             ORDER BY i.data_internacao DESC
         """, fetch=True)
@@ -132,23 +137,30 @@ def index():
         # Calcular idade
         for internado in internados_lista:
             if internado and internado.get('data_nascimento'):
-                idade = hoje.year - internado['data_nascimento'].year
-                if (hoje.month, hoje.day) < (internado['data_nascimento'].month, internado['data_nascimento'].day):
+                if isinstance(internado['data_nascimento'], datetime):
+                    data_nasc = internado['data_nascimento'].date()
+                else:
+                    data_nasc = internado['data_nascimento']
+                idade = hoje.year - data_nasc.year
+                if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
                     idade -= 1
                 internado['idade'] = idade
             else:
                 internado['idade'] = None
         
-        # Buscar últimas aferições - CORRIGIDO: usar consulta_id em vez de paciente_id
+        # Buscar últimas aferições - CORRIGIDO: usando consulta_id para vincular ao paciente
         ultimas_afericoes = execute_query("""
             SELECT 
                 sv.id,
                 sv.data_afericao,
                 sv.pressao_arterial,
                 sv.frequencia_cardiaca,
+                sv.frequencia_respiratoria,
                 sv.temperatura,
                 sv.saturacao_oxigenio,
                 sv.glicemia,
+                sv.peso,
+                sv.observacoes,
                 COALESCE(u.nome, 'Paciente') as paciente_nome
             FROM sinais_vitais sv
             LEFT JOIN consultas c ON sv.consulta_id = c.id
@@ -230,7 +242,7 @@ def index():
 
 
 # ============================================================
-# API ENDPOINTS - CORRIGIDOS
+# API ENDPOINTS
 # ============================================================
 
 @dashboard_bp.route('/api/contadores')
@@ -284,4 +296,4 @@ def api_contadores():
             'triagens_pendentes': 0,
             'internados': 0,
             'afericoes_hoje': 0
-        }), 200  # Retornar 200 mesmo com erro para não quebrar o frontend
+        }), 200
