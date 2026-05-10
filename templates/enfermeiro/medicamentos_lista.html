@@ -1,337 +1,1414 @@
-{% extends "enfermeiro/base_enfermeiro.html" %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Dashboard - Enfermeiro</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --secondary-color: #858796;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --purple-color: #6f42c1;
+            --pink-color: #e83e8c;
+            --teal-color: #20c997;
+            --mobile-spacing: 12px;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fc;
+            overflow-x: hidden;
+            padding-bottom: 70px;
+        }
+        
+        /* SIDEBAR FIXED - MOBILE FIRST */
+        .sidebar {
+            background: linear-gradient(180deg, #4e73df 0%, #224abe 100%);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            overflow-y: auto;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        
+        @media (min-width: 769px) {
+            .sidebar {
+                transform: translateX(0);
+                width: 250px;
+            }
+        }
+        
+        .sidebar .sidebar-brand {
+            color: #fff;
+            font-weight: 800;
+            font-size: 1rem;
+            padding: 1rem;
+            text-align: center;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (min-width: 769px) {
+            .sidebar .sidebar-brand {
+                font-size: 1.2rem;
+                padding: 1.5rem 1rem;
+            }
+        }
+        
+        .sidebar .sidebar-brand i {
+            margin-right: 0.5rem;
+        }
+        
+        .sidebar .nav-item {
+            margin-bottom: 0.2rem;
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            white-space: nowrap;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar .nav-link {
+                min-height: 55px;
+                font-size: 1rem;
+            }
+        }
+        
+        .sidebar .nav-link:hover {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-left: 3px solid #fff;
+        }
+        
+        .sidebar .nav-link.active {
+            color: #fff;
+            background-color: rgba(255, 255, 255, 0.15);
+            border-left: 3px solid #fff;
+        }
+        
+        .sidebar .nav-link i {
+            width: 25px;
+            text-align: center;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+        
+        /* MAIN CONTENT - MOBILE FIRST */
+        .main-content {
+            min-height: 100vh;
+            padding: 60px 12px 20px 12px;
+            transition: margin-left 0.3s ease-in-out;
+        }
+        
+        @media (min-width: 769px) {
+            .main-content {
+                margin-left: 250px;
+                padding: 20px;
+            }
+        }
+        
+        /* TOGGLE BUTTON - MOBILE */
+        #sidebarToggle {
+            display: flex;
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 1050;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        @media (min-width: 769px) {
+            #sidebarToggle {
+                display: none;
+            }
+        }
+        
+        /* PAGE HEADER - MOBILE FIRST */
+        .page-header {
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            margin-bottom: 1.5rem;
+        }
+        
+        .page-header h1 {
+            font-size: 1.2rem;
+        }
+        
+        .page-header p {
+            font-size: 0.85rem;
+        }
+        
+        @media (min-width: 769px) {
+            .page-header {
+                padding: 1.5rem;
+            }
+            
+            .page-header h1 {
+                font-size: 1.75rem;
+            }
+            
+            .page-header p {
+                font-size: 1rem;
+            }
+        }
+        
+        /* STAT CARDS - MOBILE FIRST */
+        .stat-card {
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+            height: 110px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        @media (min-width: 769px) {
+            .stat-card {
+                height: 140px;
+                margin-bottom: 1.5rem;
+            }
+        }
+        
+        .stat-card .card-body {
+            padding: 0.8rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .stat-card .value-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .stat-card .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+            min-height: 36px;
+        }
+        
+        @media (min-width: 769px) {
+            .stat-card .stat-value {
+                font-size: 2rem;
+            }
+        }
+        
+        .stat-card .stat-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-card .stat-description {
+            font-size: 0.65rem;
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            margin-top: auto;
+        }
+        
+        .stat-card .stat-icon {
+            font-size: 2rem;
+            opacity: 0.2;
+            position: absolute;
+            right: 0.5rem;
+            bottom: 0.5rem;
+        }
+        
+        @media (min-width: 769px) {
+            .stat-card .stat-icon {
+                font-size: 2.5rem;
+                right: 1rem;
+                bottom: 1rem;
+            }
+        }
+        
+        /* PERFORMANCE METRICS - MOBILE FIRST */
+        .performance-metric {
+            text-align: center;
+            padding: 0.75rem;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.1rem;
+        }
+        
+        .metric-label {
+            font-size: 0.7rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+            opacity: 0.8;
+        }
+        
+        @media (min-width: 769px) {
+            .performance-metric {
+                padding: 1rem;
+            }
+            
+            .metric-value {
+                font-size: 2rem;
+            }
+            
+            .metric-label {
+                font-size: 0.8rem;
+            }
+            
+            .metric-icon {
+                font-size: 2rem;
+            }
+        }
+        
+        /* USER INFO */
+        .user-info {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 0.75rem;
+            margin: 0.75rem;
+            color: white;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-info h6 {
+            font-size: 0.9rem;
+            margin: 0.5rem 0 0.25rem;
+        }
+        
+        .user-info p {
+            font-size: 0.75rem;
+            margin-bottom: 0;
+        }
+        
+        @media (min-width: 769px) {
+            .user-info {
+                padding: 1rem;
+                margin: 1rem;
+            }
+            
+            .user-info h6 {
+                font-size: 1rem;
+            }
+            
+            .user-info p {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* TABLE RESPONSIVE */
+        .table-responsive {
+            margin: 0 -0.5rem;
+            width: calc(100% + 1rem);
+        }
+        
+        .table {
+            font-size: 0.8rem;
+        }
+        
+        .table th,
+        .table td {
+            padding: 0.5rem;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .table th,
+            .table td {
+                padding: 0.4rem;
+                font-size: 0.75rem;
+            }
+        }
+        
+        /* ACTION BUTTONS */
+        .action-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+            min-height: 90px;
+        }
+        
+        @media (max-width: 768px) {
+            .action-btn {
+                min-height: 80px;
+                padding: 0.5rem;
+            }
+            
+            .action-btn i {
+                font-size: 1.2rem;
+            }
+            
+            .action-btn span {
+                font-size: 0.8rem;
+            }
+            
+            .action-btn small {
+                font-size: 0.65rem;
+            }
+        }
+        
+        /* DATE BADGE */
+        .date-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (min-width: 769px) {
+            .date-badge {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* PROGRESS BAR */
+        .progress {
+            height: 0.5rem;
+            border-radius: 10px;
+            margin: 0.3rem 0;
+        }
+        
+        .progress-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 0.2rem;
+        }
+        
+        .progress-value {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #4e73df;
+        }
+        
+        @media (min-width: 769px) {
+            .progress {
+                height: 0.8rem;
+            }
+            
+            .progress-label {
+                font-size: 0.75rem;
+            }
+            
+            .progress-value {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* BADGES */
+        .badge {
+            font-size: 0.65rem;
+            padding: 0.3rem 0.5rem;
+        }
+        
+        @media (min-width: 769px) {
+            .badge {
+                font-size: 0.75rem;
+                padding: 0.35rem 0.65rem;
+            }
+        }
+        
+        /* ANIMATIONS */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .animate-fade-in-up {
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        .animate-fade-in-up-delay-1 {
+            animation: fadeInUp 0.5s ease-out 0.1s both;
+        }
+        
+        .animate-fade-in-up-delay-2 {
+            animation: fadeInUp 0.5s ease-out 0.2s both;
+        }
+        
+        /* TOAST */
+        .toast-container {
+            position: fixed;
+            top: 70px;
+            right: 10px;
+            left: 10px;
+            z-index: 1060;
+            pointer-events: none;
+        }
+        
+        .toast {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 0.5rem;
+            pointer-events: auto;
+        }
+        
+        @media (min-width: 576px) {
+            .toast-container {
+                left: auto;
+                right: 10px;
+                width: 300px;
+            }
+        }
+        
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            color: #d1d3e2;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h5 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .empty-state p {
+            font-size: 0.8rem;
+        }
+        
+        @media (min-width: 769px) {
+            .empty-state {
+                padding: 3rem;
+            }
+            
+            .empty-state i {
+                font-size: 4rem;
+            }
+            
+            .empty-state h5 {
+                font-size: 1.25rem;
+            }
+            
+            .empty-state p {
+                font-size: 0.9rem;
+            }
+        }
+        
+        /* FOOTER */
+        footer {
+            margin-top: 2rem;
+            padding: 1rem 0;
+        }
+        
+        footer p {
+            font-size: 0.7rem;
+        }
+        
+        @media (min-width: 769px) {
+            footer p {
+                font-size: 0.8rem;
+            }
+        }
+        
+        /* CARD HEADER */
+        .card-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        .card-header h6 {
+            font-size: 0.9rem;
+        }
+        
+        @media (min-width: 769px) {
+            .card-header {
+                padding: 1rem 1.25rem;
+            }
+            
+            .card-header h6 {
+                font-size: 1rem;
+            }
+        }
+        
+        /* GRID GAPS */
+        .row {
+            margin-right: -5px;
+            margin-left: -5px;
+        }
+        
+        .col-6,
+        .col-md-3,
+        .col-md-4,
+        .col-md-6,
+        .col-lg-12 {
+            padding-right: 5px;
+            padding-left: 5px;
+        }
+        
+        @media (min-width: 769px) {
+            .row {
+                margin-right: -10px;
+                margin-left: -10px;
+            }
+            
+            .col-6,
+            .col-md-3,
+            .col-md-4,
+            .col-md-6,
+            .col-lg-12 {
+                padding-right: 10px;
+                padding-left: 10px;
+            }
+        }
+        
+        /* TOUCH IMPROVEMENTS */
+        @media (max-width: 768px) {
+            .btn,
+            .nav-link,
+            .list-group-item,
+            .dropdown-item {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+            
+            .btn:active {
+                transform: scale(0.98);
+            }
+            
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+        }
+        
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 2px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #224abe;
+        }
+        
+        /* BUTTON GROUP */
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+        }
+        
+        /* TEXT COLORS */
+        .text-primary { color: var(--primary-color) !important; }
+        .text-success { color: var(--success-color) !important; }
+        .text-info { color: var(--info-color) !important; }
+        .text-warning { color: var(--warning-color) !important; }
+        .text-danger { color: var(--danger-color) !important; }
+        
+        /* BORDER COLORS */
+        .border-left-primary { border-left-color: var(--primary-color) !important; }
+        .border-left-success { border-left-color: var(--success-color) !important; }
+        .border-left-info { border-left-color: var(--info-color) !important; }
+        .border-left-warning { border-left-color: var(--warning-color) !important; }
+        .border-left-danger { border-left-color: var(--danger-color) !important; }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
-{% block title %}Medicamentos - {{ internacao.paciente_nome }}{% endblock %}
-
-{% block content %}
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <nav aria-label="breadcrumb" class="mb-4">
-                <ol class="breadcrumb bg-light p-2 rounded">
-                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.dashboard.index') }}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.listar_internados') }}">Internados</a></li>
-                    <li class="breadcrumb-item"><a href="{{ url_for('enfermeiro.internados.detalhes_internacao', internacao_id=internacao.id) }}">{{ internacao.paciente_nome }}</a></li>
-                    <li class="breadcrumb-item active">Medicamentos</li>
-                </ol>
-            </nav>
-        </div>
-    </div>
-
-    <div class="row">
-        <div class="col-lg-10 mx-auto">
-            <!-- Card do Paciente -->
-            <div class="card shadow mb-4">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-user-injured me-2"></i>
-                        {{ internacao.paciente_nome }}
-                        <span class="badge bg-light text-primary ms-2">Prontuário: {{ internacao.prontuario }}</span>
-                    </h5>
+    <!-- Sidebar Toggle Button -->
+    <button id="sidebarToggle" class="d-md-none">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-inner">
+            <!-- Brand -->
+            <a class="sidebar-brand" href="/enfermeiro/dashboard/">
+                <i class="fas fa-user-nurse"></i>
+                <span>Enfermagem</span>
+            </a>
+            
+            <!-- User Info -->
+            <div class="user-info">
+                <div class="avatar-container">
+                    <i class="fas fa-user-circle fa-2x"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <small class="text-muted">Idade</small>
-                            <div>{{ internacao.idade }} anos</div>
-                        </div>
-                        <div class="col-md-4">
-                            <small class="text-muted">Data Internação</small>
-                            <div>
-                                {# CORREÇÃO: Verificar se data_internacao é datetime #}
-                                {% if internacao.data_internacao %}
-                                    {% if internacao.data_internacao is string %}
-                                        {{ internacao.data_internacao }}
-                                    {% elif internacao.data_internacao is not none %}
-                                        {{ internacao.data_internacao.strftime('%d/%m/%Y %H:%M') }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
+                <h6 class="mb-1">
+                    {% if session.get('user_name') %}
+                        {% if session.get('user_name').__class__.__name__ == 'bytes' %}
+                            {{ session.get('user_name').decode('utf-8') }}
+                        {% else %}
+                            {{ session.get('user_name') }}
+                        {% endif %}
+                    {% else %}
+                        Enfermeiro
+                    {% endif %}
+                </h6>
+                <p class="mb-1">
+                    <i class="fas fa-id-card me-1"></i> 
+                    COREn: {% if session.get('enfermeiro_coren') %}{{ session.get('enfermeiro_coren') }}{% else %}Não informado{% endif %}
+                </p>
+            </div>
+            
+            <!-- Navigation -->
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="/enfermeiro/dashboard/">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/enfermeiro/triagem/consultas">
+                        <i class="fas fa-stethoscope"></i>
+                        Triagem
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/enfermeiro/sinais-vitais/">
+                        <i class="fas fa-heartbeat"></i>
+                        Sinais Vitais
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/enfermeiro/internados/">
+                        <i class="fas fa-procedures"></i>
+                        Internados
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/enfermeiro/medicamentos/">
+                        <i class="fas fa-capsules"></i>
+                        Medicamentos
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('auth.logout') }}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Header -->
+        <div class="page-header animate-fade-in-up">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                <div>
+                    <h1 class="h5 h3-md mb-1 text-gray-800">
+                        <i class="fas fa-tachometer-alt text-primary me-2"></i>
+                        Dashboard - Enfermagem
+                    </h1>
+                    <p class="text-muted mb-0 small">
+                        Bem-vindo, 
+                        <strong>
+                            {% if session.get('user_name') %}
+                                {% if session.get('user_name').__class__.__name__ == 'bytes' %}
+                                    {{ session.get('user_name').decode('utf-8') }}
                                 {% else %}
-                                    -
+                                    {{ session.get('user_name') }}
                                 {% endif %}
+                            {% else %}
+                                Enfermeiro
+                            {% endif %}
+                        </strong>
+                    </p>
+                    <small class="text-primary d-block d-md-none mt-1" id="currentTimeMobile"></small>
+                    <small class="text-primary d-none d-md-block" id="currentTime"></small>
+                </div>
+                <div class="btn-group w-100 w-md-auto">
+                    <a href="/enfermeiro/triagem/consultas" class="btn btn-primary btn-sm">
+                        <i class="fas fa-stethoscope me-2"></i> Triagem
+                    </a>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards - Primeira Linha -->
+        <div class="row animate-fade-in-up" style="animation-delay: 0.1s;">
+            <div class="col-6 col-xl-3 mb-2">
+                <div class="card stat-card border-left-primary">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-primary">CONSULTAS HOJE</div>
+                            <div class="stat-value" id="statConsultasHoje">
+                                {{ total_consultas_hoje|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-calendar-check text-primary me-1"></i>
+                                <span class="d-none d-md-inline">Agendadas para hoje</span>
+                                <span class="d-inline d-md-none">Hoje</span>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <small class="text-muted">Leito</small>
-                            <div>{{ internacao.leito or 'Não informado' }}</div>
+                        <i class="fas fa-calendar-check stat-icon text-primary"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-xl-3 mb-2">
+                <div class="card stat-card border-left-warning">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
+                            <div class="stat-value" id="statTriagensPendentes">
+                                {{ pacientes_aguardando|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-clock text-warning me-1"></i>
+                                <span class="d-none d-md-inline">Aguardando triagem</span>
+                                <span class="d-inline d-md-none">Pendentes</span>
+                            </div>
+                        </div>
+                        <i class="fas fa-stethoscope stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-xl-3 mb-2">
+                <div class="card stat-card border-left-danger">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-danger">INTERNADOS</div>
+                            <div class="stat-value" id="statInternados">
+                                {{ pacientes_internados|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-procedures text-danger me-1"></i>
+                                Pacientes internados
+                            </div>
+                        </div>
+                        <i class="fas fa-procedures stat-icon text-danger"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-xl-3 mb-2">
+                <div class="card stat-card border-left-success">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-success">AFERIÇÕES HOJE</div>
+                            <div class="stat-value" id="statAfericoesHoje">
+                                {{ total_afericoes_hoje|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-heartbeat text-success me-1"></i>
+                                Sinais registrados
+                            </div>
+                        </div>
+                        <i class="fas fa-heartbeat stat-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Statistics Cards - Segunda Linha -->
+        <div class="row animate-fade-in-up-delay-1">
+            <div class="col-6 col-md-4 mb-2">
+                <div class="card stat-card border-left-info">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-info">TRIAGENS HOJE</div>
+                            <div class="stat-value" id="statTriagensHoje">
+                                {{ triagens_realizadas_hoje|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-check-circle text-info me-1"></i>
+                                <span id="todayDate"></span>
+                            </div>
+                        </div>
+                        <i class="fas fa-stethoscope stat-icon text-info"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 mb-2">
+                <div class="card stat-card border-left-warning">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-warning">CONSULTAS SEMANA</div>
+                            <div class="stat-value" id="statConsultasSemana">
+                                {{ consultas_semana|default(0) }}
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-calendar-week text-warning me-1"></i>
+                                Esta semana
+                            </div>
+                        </div>
+                        <i class="fas fa-calendar-alt stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-6 col-md-4 mb-2">
+                <div class="card stat-card border-left-success">
+                    <div class="card-body">
+                        <div class="value-container">
+                            <div class="stat-label text-success">TAXA OCUPAÇÃO</div>
+                            <div class="stat-value" id="statTaxaOcupacao">
+                                {{ taxa_ocupacao|default(0) }}%
+                            </div>
+                            <div class="stat-description">
+                                <i class="fas fa-hospital text-success me-1"></i>
+                                Leitos ocupados
+                            </div>
+                        </div>
+                        <i class="fas fa-chart-line stat-icon text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="row animate-fade-in-up-delay-2">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-chart-line me-2"></i> Performance
+                        </h6>
+                        <div class="date-badge">
+                            <i class="fas fa-calendar me-1"></i>
+                            <span id="currentWeek"></span>
+                        </div>
+                    </div>
+                    <div class="card-body p-2 p-md-3">
+                        <div class="row g-2">
+                            <div class="col-6 col-md-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon text-primary">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                    <div class="metric-value" id="metricTotalConsultas">
+                                        {{ total_consultas|default(0) }}
+                                    </div>
+                                    <div class="metric-label">Total Consultas</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-6 col-md-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon text-success">
+                                        <i class="fas fa-stethoscope"></i>
+                                    </div>
+                                    <div class="metric-value" id="metricTotalTriagens">
+                                        {{ total_triagens|default(0) }}
+                                    </div>
+                                    <div class="metric-label">Total Triagens</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-6 col-md-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon text-info">
+                                        <i class="fas fa-heartbeat"></i>
+                                    </div>
+                                    <div class="metric-value" id="metricMediaDiaria">
+                                        {{ media_diaria|default(0) }}
+                                    </div>
+                                    <div class="metric-label">Média/dia</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-6 col-md-3">
+                                <div class="performance-metric">
+                                    <div class="metric-icon text-warning">
+                                        <i class="fas fa-percentage"></i>
+                                    </div>
+                                    <div class="metric-value" id="metricEficiencia">
+                                        {{ eficiencia|default(0) }}%
+                                    </div>
+                                    <div class="metric-label">Eficiência</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress Bars -->
+                        <div class="row mt-2 g-2">
+                            <div class="col-md-6">
+                                <div class="progress-label">Meta Semanal de Consultas</div>
+                                <div class="progress">
+                                    <div id="progressSemanal" class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {{ progresso_semanal|default(0) }}%"
+                                         aria-valuenow="{{ consultas_semana|default(0) }}" 
+                                         aria-valuemin="0" aria-valuemax="50">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">0</small>
+                                    <small class="progress-value" id="progressValueSemanal">
+                                        {{ consultas_semana|default(0) }}/50
+                                    </small>
+                                    <small class="text-muted">50</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="progress-label">Triagens Hoje</div>
+                                <div class="progress">
+                                    <div id="progressHoje" class="progress-bar bg-info" role="progressbar" 
+                                         style="width: {{ progresso_triagens|default(0) }}%"
+                                         aria-valuenow="{{ triagens_realizadas_hoje|default(0) }}" 
+                                         aria-valuemin="0" aria-valuemax="10">
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">0</small>
+                                    <small class="progress-value" id="progressValueHoje">
+                                        {{ triagens_realizadas_hoje|default(0) }}/10
+                                    </small>
+                                    <small class="text-muted">10</small>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Cards de Estatísticas -->
-            <div class="row mb-4">
-                <div class="col-md-3">
-                    <div class="card bg-success text-white">
-                        <div class="card-body text-center">
-                            <h3>{{ total_ativos }}</h3>
-                            <small>Medicamentos Ativos</small>
+        </div>
+        
+        <!-- Alertas de Triagem Pendente -->
+        {% if pacientes_aguardando|default(0) > 0 %}
+        <div class="row mt-3">
+            <div class="col-lg-12">
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <div>
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-warning text-dark">
-                        <div class="card-body text-center">
-                            <h3>{{ total_suspensos }}</h3>
-                            <small>Suspensos</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-secondary text-white">
-                        <div class="card-body text-center">
-                            <h3>{{ total_finalizados }}</h3>
-                            <small>Finalizados</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card bg-info text-white">
-                        <div class="card-body text-center">
-                            <h3>{{ administracoes_hoje }}</h3>
-                            <small>Adm. Hoje</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Lista de Medicamentos -->
-            <div class="card shadow">
-                <div class="card-header bg-success text-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-capsules me-2"></i>
-                            Prescrições Médicas
-                        </h5>
-                        <a href="{{ url_for('enfermeiro.medicamentos.historico_administracoes', internacao_id=internacao.id) }}" 
-                           class="btn btn-sm btn-light">
-                            <i class="fas fa-history me-1"></i> Histórico
+                        <a href="/enfermeiro/triagem/consultas" class="btn btn-warning btn-sm">
+                            <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
                         </a>
                     </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                <div class="card-body">
-                    {% if medicamentos %}
-                        <div class="accordion" id="accordionMedicamentos">
-                            {% for med in medicamentos %}
-                            <div class="accordion-item mb-2 border rounded">
-                                <div class="accordion-header" id="heading{{ med.id }}">
-                                    <div class="d-flex justify-content-between align-items-center p-3 bg-light">
-                                        <div class="flex-grow-1">
-                                            <div class="d-flex align-items-center">
-                                                <strong class="fs-5">{{ med.medicamento }}</strong>
-                                                <span class="badge bg-{{ 'success' if med.status == 'ativa' else 'secondary' if med.status == 'finalizada' else 'warning' }} ms-2">
-                                                    {{ med.status|upper }}
-                                                </span>
-                                            </div>
-                                            <div class="row mt-2 small">
-                                                <div class="col-md-3">
-                                                    <i class="fas fa-chart-line"></i> {{ med.dosagem }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <i class="fas fa-syringe"></i> {{ med.via }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <i class="fas fa-clock"></i> {{ med.frequencia }}
-                                                </div>
-                                                <div class="col-md-3">
-                                                    <i class="fas fa-user-md"></i> {{ med.medico_nome }}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" 
-                                                    data-bs-target="#collapse{{ med.id }}" aria-expanded="false">
-                                                <i class="fas fa-chevron-down"></i>
-                                            </button>
-                                        </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Recent Consultas -->
+        <div class="row mt-3">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-calendar-alt me-2"></i> Consultas Recentes
+                        </h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-primary" id="consultasCount">
+                                {{ consultas_hoje|length if consultas_hoje else 0 }}
+                            </span>
+                            <a href="/enfermeiro/triagem/consultas" class="btn btn-sm btn-outline-primary">
+                                Ver Todos
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        {% if consultas_hoje and consultas_hoje|length > 0 %}
+                        <!-- Mobile View -->
+                        <div class="d-block d-md-none">
+                            {% for consulta in consultas_hoje %}
+                            <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <div class="fw-semibold">{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</div>
+                                        <small class="text-muted d-block mt-1">{{ consulta.hora if consulta.hora else '' }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %} mb-1">
+                                            {{ consulta.status|upper if consulta.status else 'AGENDADA' }}
+                                        </span>
                                     </div>
                                 </div>
                                 
-                                <div id="collapse{{ med.id }}" class="accordion-collapse collapse" data-bs-parent="#accordionMedicamentos">
-                                    <div class="accordion-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <h6><i class="fas fa-calendar-alt me-2"></i>Período</h6>
-                                                <p>{{ med.data_inicio }} até {{ med.data_fim }}</p>
-                                                {% if med.horario_inicio and med.horario_fim %}
-                                                <p><strong>Horário:</strong> {{ med.horario_inicio }} - {{ med.horario_fim }}</p>
-                                                {% endif %}
-                                            </div>
-                                            <div class="col-md-6">
-                                                <h6><i class="fas fa-star me-2"></i>Próximos Horários</h6>
-                                                {% if med.proximos_horarios %}
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        {% for horario in med.proximos_horarios %}
-                                                        <span class="badge bg-info">{{ horario }}</span>
-                                                        {% endfor %}
-                                                    </div>
-                                                    <div class="mt-2">
-                                                        <button class="btn btn-sm btn-success" onclick="administrarMedicamento({{ med.id }}, '{{ med.medicamento }}', '{{ med.dosagem }}')">
-                                                            <i class="fas fa-check-circle me-1"></i> Administrar Agora
-                                                        </button>
-                                                    </div>
-                                                {% else %}
-                                                    <span class="text-muted">Nenhum horário pendente</span>
-                                                {% endif %}
-                                            </div>
-                                        </div>
-                                        
-                                        {% if med.observacoes %}
-                                        <div class="mt-3">
-                                            <h6><i class="fas fa-comment me-2"></i>Observações</h6>
-                                            <p class="text-muted">{{ med.observacoes }}</p>
-                                        </div>
+                                <div class="mb-2">
+                                    <small class="text-muted d-block">Médico: {{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</small>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="btn-group btn-group-sm">
+                                        {% if consulta.status == 'agendada' %}
+                                        <a href="/enfermeiro/triagem/realizar/{{ consulta.id }}" 
+                                           class="btn btn-warning">
+                                            <i class="fas fa-stethoscope"></i> Triagem
+                                        </a>
                                         {% endif %}
-                                        
-                                        <div class="mt-3">
-                                            <h6><i class="fas fa-history me-2"></i>Histórico de Administração</h6>
-                                            <div class="table-responsive">
-                                                <table class="table table-sm">
-                                                    <thead>
-                                                        <tr>
-                                                            <th>Data/Hora</th>
-                                                            <th>Status</th>
-                                                            <th>Observações</th>
-                                                        </thead>
-                                                    <tbody>
-                                                        {% for adm in med.administracoes[:5] %}
-                                                        <tr class="{% if adm.administrado %}table-success{% else %}table-warning{% endif %}">
-                                                            <td>
-                                                                {# CORREÇÃO: Verificar se data_hora é datetime #}
-                                                                {% if adm.data_hora %}
-                                                                    {% if adm.data_hora is string %}
-                                                                        {{ adm.data_hora }}
-                                                                    {% elif adm.data_hora is not none %}
-                                                                        {{ adm.data_hora.strftime('%d/%m/%Y %H:%M') }}
-                                                                    {% else %}
-                                                                        -
-                                                                    {% endif %}
-                                                                {% else %}
-                                                                    -
-                                                                {% endif %}
-                                                            </td>
-                                                            <td>
-                                                                {% if adm.administrado %}
-                                                                    <span class="badge bg-success">Administrado</span>
-                                                                {% else %}
-                                                                    <span class="badge bg-warning">Pendente</span>
-                                                                {% endif %}
-                                                            </td>
-                                                            <td>{{ adm.observacoes or '-' }}</td>
-                                                        </tr>
-                                                        {% else %}
-                                                        <tr>
-                                                            <td colspan="3" class="text-center text-muted">Nenhuma administração registrada</td>
-                                                        </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
+                                        <a href="/enfermeiro/consulta/{{ consulta.id }}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
                                     </div>
                                 </div>
                             </div>
                             {% endfor %}
                         </div>
-                    {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-capsules fa-4x text-muted mb-3"></i>
-                            <h5 class="text-muted">Nenhum medicamento prescrito</h5>
-                            <p class="text-muted">Aguardando prescrição médica</p>
+                        
+                        <!-- Desktop View -->
+                        <div class="table-responsive d-none d-md-block">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="px-3 py-2">Paciente</th>
+                                        <th class="px-3 py-2">Médico</th>
+                                        <th class="px-3 py-2">Horário</th>
+                                        <th class="px-3 py-2">Status</th>
+                                        <th class="px-3 py-2 text-end">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for consulta in consultas_hoje %}
+                                    <tr class="align-middle">
+                                        <td class="px-3 py-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-user-circle me-2 text-muted"></i>
+                                                <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
+                                        <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
+                                        <td class="px-3 py-2">
+                                            <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %}">
+                                                {{ consulta.status|capitalize if consulta.status else 'Agendada' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-3 py-2 text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                {% if consulta.status == 'agendada' %}
+                                                <a href="/enfermeiro/triagem/realizar/{{ consulta.id }}" 
+                                                   class="btn btn-warning"
+                                                   title="Realizar Triagem">
+                                                    <i class="fas fa-stethoscope"></i>
+                                                </a>
+                                                {% endif %}
+                                                <a href="/enfermeiro/consulta/{{ consulta.id }}" 
+                                                   class="btn btn-outline-primary"
+                                                   title="Ver Detalhes">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
-                    {% endif %}
+                        {% else %}
+                        <div class="empty-state">
+                            <div class="mb-3">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <h5 class="text-gray-800">Nenhuma consulta hoje</h5>
+                            <p class="text-gray-600">Não há consultas agendadas para hoje.</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- Modal para Administrar Medicamento -->
-<div class="modal fade" id="modalAdministrar" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-check-circle me-2"></i> Administrar Medicamento
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <p>Confirmar administração de:</p>
-                <div class="alert alert-info">
-                    <strong id="medicamentoNome"></strong>
-                    <br>
-                    <small id="medicamentoDosagem"></small>
+        
+        <!-- Quick Actions -->
+        <div class="row mt-3">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-bolt me-2"></i> Ações Rápidas
+                        </h6>
+                    </div>
+                    <div class="card-body p-2">
+                        <div class="row g-2">
+                            <div class="col-6 col-md-3">
+                                <a href="/enfermeiro/triagem/consultas" 
+                                   class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Triagem</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1" id="triagensPendentesCount">{{ pacientes_aguardando|default(0) }}</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="/enfermeiro/internados/" 
+                                   class="btn btn-danger w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-procedures fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Internados</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">{{ pacientes_internados|default(0) }}</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="/enfermeiro/sinais-vitais/" 
+                                   class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Sinais</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">Registrar</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="/enfermeiro/medicamentos/" 
+                                   class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-capsules fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Medicamentos</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">Administrar</small>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Horário de Administração</label>
-                    <input type="datetime-local" class="form-control" id="horarioAdministracao">
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Observações (opcional)</label>
-                    <textarea class="form-control" id="observacoesAdm" rows="2" placeholder="Ex: Paciente apresentou reação..."></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btnConfirmarAdm">
-                    <i class="fas fa-check-circle me-1"></i> Confirmar Administração
-                </button>
             </div>
         </div>
+        
+        <!-- Footer -->
+        <footer class="mt-4 text-center text-muted">
+            <hr>
+            <p class="small mb-0">
+                <i class="fas fa-heart text-danger"></i> DOCTORIA - Enfermagem 
+                &copy; 2024 | <span id="lastUpdate"></span>
+            </p>
+        </footer>
     </div>
-</div>
-
-<script>
-    let medicamentoIdAtual = null;
-
-    function administrarMedicamento(id, nome, dosagem) {
-        medicamentoIdAtual = id;
-        document.getElementById('medicamentoNome').textContent = nome;
-        document.getElementById('medicamentoDosagem').textContent = dosagem;
-        
-        // Preencher horário atual
-        const agora = new Date();
-        const ano = agora.getFullYear();
-        const mes = String(agora.getMonth() + 1).padStart(2, '0');
-        const dia = String(agora.getDate()).padStart(2, '0');
-        const hora = String(agora.getHours()).padStart(2, '0');
-        const minuto = String(agora.getMinutes()).padStart(2, '0');
-        document.getElementById('horarioAdministracao').value = `${ano}-${mes}-${dia}T${hora}:${minuto}`;
-        
-        const modal = new bootstrap.Modal(document.getElementById('modalAdministrar'));
-        modal.show();
-    }
-
-    document.getElementById('btnConfirmarAdm').addEventListener('click', function() {
-        if (!medicamentoIdAtual) return;
-        
-        const horario = document.getElementById('horarioAdministracao').value;
-        const observacoes = document.getElementById('observacoesAdm').value;
-        
-        fetch(`/enfermeiro/medicamentos/administrar/${medicamentoIdAtual}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                horario: horario,
-                observacoes: observacoes
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('modalAdministrar')).hide();
-                location.reload();
-            } else {
-                alert('Erro: ' + data.error);
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Update Current Time
+        function updateCurrentTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'short', 
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            
+            const timeStr = now.toLocaleDateString('pt-BR', options);
+            const currentTimeEl = document.getElementById('currentTime');
+            const currentTimeMobileEl = document.getElementById('currentTimeMobile');
+            if (currentTimeEl) currentTimeEl.textContent = timeStr;
+            if (currentTimeMobileEl) currentTimeMobileEl.textContent = timeStr;
+            
+            // Update last update time
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            if (lastUpdateEl) {
+                lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
             }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao processar solicitação');
+            
+            // Update week information
+            const weekNumber = getWeekNumber(now);
+            const currentWeekEl = document.getElementById('currentWeek');
+            if (currentWeekEl) currentWeekEl.textContent = `Semana ${weekNumber}`;
+            
+            // Update today date
+            const hoje = new Date();
+            const dateOptions = { day: '2-digit', month: '2-digit' };
+            const todayDateEl = document.getElementById('todayDate');
+            if (todayDateEl) todayDateEl.textContent = hoje.toLocaleDateString('pt-BR', dateOptions);
+        }
+        
+        // Get week number
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            return weekNo;
+        }
+        
+        // Refresh Dashboard
+        async function refreshDashboard() {
+            try {
+                const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                    refreshBtn.disabled = true;
+                }
+                
+                const response = await fetch('/enfermeiro/api/contadores');
+                const data = await response.json();
+                
+                if (data && !data.error) {
+                    if (data.consultas_hoje !== undefined) {
+                        const statConsultasHoje = document.getElementById('statConsultasHoje');
+                        if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
+                    }
+                    if (data.triagens_pendentes !== undefined) {
+                        const statTriagensPendentes = document.getElementById('statTriagensPendentes');
+                        const triagensPendentesCount = document.getElementById('triagensPendentesCount');
+                        if (statTriagensPendentes) statTriagensPendentes.textContent = data.triagens_pendentes;
+                        if (triagensPendentesCount) triagensPendentesCount.textContent = data.triagens_pendentes;
+                    }
+                    if (data.internados !== undefined) {
+                        const statInternados = document.getElementById('statInternados');
+                        if (statInternados) statInternados.textContent = data.internados;
+                    }
+                    if (data.afericoes_hoje !== undefined) {
+                        const statAfericoesHoje = document.getElementById('statAfericoesHoje');
+                        if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
+                    }
+                    
+                    showToast('success', 'Dashboard atualizado!');
+                }
+                
+            } catch (error) {
+                console.error('Error refreshing dashboard:', error);
+                showToast('error', 'Erro ao atualizar');
+            } finally {
+                const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
+                if (refreshBtn) {
+                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
+                    refreshBtn.disabled = false;
+                }
+            }
+        }
+        
+        // Show toast notification
+        function showToast(type, message) {
+            let toastContainer = document.getElementById('toastContainer');
+            
+            const toastId = 'toast-' + Date.now();
+            const bgColor = type === 'success' ? 'bg-success' : 'bg-danger';
+            const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+            
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-${icon} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastEl = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+            
+            toastEl.addEventListener('hidden.bs.toast', function () {
+                toastEl.remove();
+            });
+        }
+        
+        // Toggle sidebar
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('show');
+            });
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.getElementById('sidebarToggle');
+            
+            if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+            }
         });
-    });
-</script>
-{% endblock %}
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 60000);
+            setInterval(refreshDashboard, 60000);
+            
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Add touch feedback
+            document.querySelectorAll('.stat-card, .action-btn, .btn').forEach(el => {
+                el.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                el.addEventListener('touchend', function() {
+                    this.style.transform = '';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
