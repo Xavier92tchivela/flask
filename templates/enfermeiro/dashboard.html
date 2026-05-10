@@ -697,7 +697,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner">
             <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('enfermeiro.dashboard.index') }}">
+            <a class="sidebar-brand" href="{{ url_for('dashboard.index') }}">
                 <i class="fas fa-user-nurse"></i>
                 <span>Enfermagem</span>
             </a>
@@ -708,9 +708,7 @@
                     <i class="fas fa-user-circle fa-2x"></i>
                 </div>
                 <h6 class="mb-1">
-                    {% if enfermeiro_info and enfermeiro_info.nome %}
-                        {{ enfermeiro_info.nome }}
-                    {% elif session.get('user_name') %}
+                    {% if session.get('user_name') %}
                         {{ session.get('user_name') }}
                     {% else %}
                         Enfermeiro
@@ -718,30 +716,30 @@
                 </h6>
                 <p class="mb-1">
                     <i class="fas fa-id-card me-1"></i> 
-                    COREn: {% if enfermeiro_info and enfermeiro_info.coren %}{{ enfermeiro_info.coren }}{% elif session.get('enfermeiro_coren') %}{{ session.get('enfermeiro_coren') }}{% else %}Não informado{% endif %}
+                    COREn: {% if session.get('enfermeiro_coren') %}{{ session.get('enfermeiro_coren') }}{% else %}Não informado{% endif %}
                 </p>
                 <p class="mb-0 small">
                     <i class="fas fa-building me-1"></i> 
-                    {% if enfermeiro_info and enfermeiro_info.setor %}{{ enfermeiro_info.setor }}{% else %}Enfermagem Geral{% endif %}
+                    {% if session.get('enfermeiro_setor') %}{{ session.get('enfermeiro_setor') }}{% else %}Enfermagem Geral{% endif %}
                 </p>
             </div>
             
             <!-- Navigation -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('enfermeiro.dashboard.index') }}">
+                    <a class="nav-link active" href="{{ url_for('dashboard.index') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}">
+                    <a class="nav-link" href="{{ url_for('triagem.listar_consultas_triagem') }}">
                         <i class="fas fa-stethoscope"></i>
                         Triagem
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}">
+                    <a class="nav-link" href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}">
                         <i class="fas fa-heartbeat"></i>
                         Sinais Vitais
                     </a>
@@ -781,9 +779,7 @@
                     <p class="text-muted mb-0 small">
                         Bem-vindo, 
                         <strong>
-                            {% if enfermeiro_info and enfermeiro_info.nome %}
-                                {{ enfermeiro_info.nome }}
-                            {% elif session.get('user_name') %}
+                            {% if session.get('user_name') %}
                                 {{ session.get('user_name') }}
                             {% else %}
                                 Enfermeiro
@@ -794,7 +790,7 @@
                     <small class="text-primary d-none d-md-block" id="currentTime"></small>
                 </div>
                 <div class="btn-group w-100 w-md-auto">
-                    <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm">
+                    <a href="{{ url_for('agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm">
                         <i class="fas fa-calendar-plus me-2"></i> Nova Consulta
                     </a>
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
@@ -812,7 +808,7 @@
                         <div class="value-container">
                             <div class="stat-label text-primary">CONSULTAS HOJE</div>
                             <div class="stat-value" id="statConsultasHoje">
-                                {{ consultas_hoje|default(0)|length if consultas_hoje is iterable else consultas_hoje|default(0) }}
+                                {{ total_consultas_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-calendar-check text-primary me-1"></i>
@@ -831,7 +827,7 @@
                         <div class="value-container">
                             <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
                             <div class="stat-value" id="statTriagensPendentes">
-                                {{ triagens_pendentes|default(0)|length if triagens_pendentes is iterable else triagens_pendentes|default(0) }}
+                                {{ pacientes_aguardando|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-clock text-warning me-1"></i>
@@ -850,7 +846,7 @@
                         <div class="value-container">
                             <div class="stat-label text-danger">INTERNADOS</div>
                             <div class="stat-value" id="statInternados">
-                                {{ internados_hoje|default(0)|length if internados_hoje is iterable else internados_hoje|default(0) }}
+                                {{ pacientes_internados|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-procedures text-danger me-1"></i>
@@ -868,7 +864,7 @@
                         <div class="value-container">
                             <div class="stat-label text-success">AFERIÇÕES HOJE</div>
                             <div class="stat-value" id="statAfericoesHoje">
-                                {{ afericoes_hoje|default(0)|length if afericoes_hoje is iterable else afericoes_hoje|default(0) }}
+                                {{ total_afericoes_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-heartbeat text-success me-1"></i>
@@ -1046,17 +1042,16 @@
         </div>
         
         <!-- Alertas de Triagem Pendente -->
-        {% set qtde_triagens = triagens_pendentes|default(0)|length if triagens_pendentes is iterable else triagens_pendentes|default(0) %}
-        {% if qtde_triagens > 0 %}
+        {% if pacientes_aguardando|default(0) > 0 %}
         <div class="row mt-3 animate-fade-in-up-delay-1">
             <div class="col-lg-12">
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div>
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>{{ qtde_triagens }}</strong> paciente(s) aguardando triagem
+                            <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
                         </div>
-                        <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
+                        <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
                             <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
                         </a>
                     </div>
@@ -1076,42 +1071,39 @@
                         </h6>
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-primary" id="consultasCount">
-                                {{ consultas_recentes|length if consultas_recentes else 0 }}
+                                {{ consultas_hoje|length if consultas_hoje else 0 }}
                             </span>
-                            <a href="{{ url_for('enfermeiro.agendamento.listar_agendamentos') }}" class="btn btn-sm btn-outline-primary">
+                            <a href="#" class="btn btn-sm btn-outline-primary">
                                 Ver Todos
                             </a>
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        {% if consultas_recentes and consultas_recentes|length > 0 %}
+                        {% if consultas_hoje and consultas_hoje|length > 0 %}
                         <!-- Mobile View -->
                         <div class="d-block d-md-none">
-                            {% for consulta in consultas_recentes %}
+                            {% for consulta in consultas_hoje %}
                             <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
-                                        <div class="fw-semibold">{{ consulta.paciente_nome }}</div>
-                                        <small class="text-muted d-block mt-1">{{ consulta.horario }}</small>
+                                        <div class="fw-semibold">{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</div>
+                                        <small class="text-muted d-block mt-1">{{ consulta.hora if consulta.hora else '' }}</small>
                                     </div>
                                     <div class="text-end">
                                         <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %} mb-1">
-                                            {{ consulta.status|upper }}
+                                            {{ (consulta.status|upper) if consulta.status else 'AGENDADA' }}
                                         </span>
                                     </div>
                                 </div>
                                 
                                 <div class="mb-2">
-                                    <small class="text-muted d-block">{{ consulta.especialidade }}</small>
-                                    <small class="text-muted d-block">
-                                        <i class="fas fa-calendar me-1"></i> {{ consulta.data }}
-                                    </small>
+                                    <small class="text-muted d-block">Médico: {{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</small>
                                 </div>
                                 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="btn-group btn-group-sm">
                                         {% if consulta.status == 'agendada' %}
-                                        <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                        <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                            class="btn btn-warning">
                                             <i class="fas fa-stethoscope"></i> Triagem
                                         </a>
@@ -1132,36 +1124,32 @@
                                 <thead class="table-light">
                                     <tr>
                                         <th class="px-3 py-2">Paciente</th>
-                                        <th class="px-3 py-2">Especialidade</th>
-                                        <th class="px-3 py-2">Data</th>
+                                        <th class="px-3 py-2">Médico</th>
                                         <th class="px-3 py-2">Horário</th>
                                         <th class="px-3 py-2">Status</th>
                                         <th class="px-3 py-2 text-end">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for consulta in consultas_recentes %}
+                                    {% for consulta in consultas_hoje %}
                                     <tr class="align-middle">
                                         <td class="px-3 py-2">
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-user-circle me-2 text-muted"></i>
-                                                <span>{{ consulta.paciente_nome }}</span>
+                                                <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
                                             </div>
                                         </td>
-                                        <td class="px-3 py-2">
-                                            <span class="badge bg-light text-dark">{{ consulta.especialidade }}</span>
-                                        </td>
-                                        <td class="px-3 py-2">{{ consulta.data }}</td>
-                                        <td class="px-3 py-2">{{ consulta.horario }}</td>
+                                        <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
+                                        <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
                                         <td class="px-3 py-2">
                                             <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %}">
-                                                {{ consulta.status|capitalize }}
+                                                {{ (consulta.status|capitalize) if consulta.status else 'Agendada' }}
                                             </span>
                                         </td>
                                         <td class="px-3 py-2 text-end">
                                             <div class="btn-group btn-group-sm">
                                                 {% if consulta.status == 'agendada' %}
-                                                <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                                <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                                    class="btn btn-warning"
                                                    title="Realizar Triagem">
                                                     <i class="fas fa-stethoscope"></i>
@@ -1184,11 +1172,8 @@
                             <div class="mb-3">
                                 <i class="fas fa-calendar-alt"></i>
                             </div>
-                            <h5 class="text-gray-800">Nenhuma consulta recente</h5>
+                            <h5 class="text-gray-800">Nenhuma consulta hoje</h5>
                             <p class="text-gray-600">Não há consultas agendadas para hoje.</p>
-                            <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm mt-2">
-                                <i class="fas fa-calendar-plus me-2"></i> Agendar Consulta
-                            </a>
                         </div>
                         {% endif %}
                     </div>
@@ -1208,11 +1193,11 @@
                     <div class="card-body p-2">
                         <div class="row g-2">
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
+                                <a href="{{ url_for('triagem.listar_consultas_triagem') }}" 
                                    class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Triagem</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1" id="triagensPendentesCount">{{ qtde_triagens }}</small>
+                                    <small class="text-dark d-none d-md-block mt-1" id="triagensPendentesCount">{{ pacientes_aguardando|default(0) }}</small>
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
@@ -1220,11 +1205,11 @@
                                    class="btn btn-danger w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-procedures fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Internados</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">{{ internados_hoje|default(0)|length if internados_hoje is iterable else internados_hoje|default(0) }}</small>
+                                    <small class="text-white-50 d-none d-md-block mt-1">{{ pacientes_internados|default(0) }}</small>
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
+                                <a href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}" 
                                    class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Sinais</span>
@@ -1311,7 +1296,7 @@
                     refreshBtn.disabled = true;
                 }
                 
-                const response = await fetch('/enfermeiro/api/contadores');
+                const response = await fetch('/dashboard/api/contadores');
                 const data = await response.json();
                 
                 if (data && !data.error) {
@@ -1333,63 +1318,6 @@
                     if (data.afericoes_hoje !== undefined) {
                         const statAfericoesHoje = document.getElementById('statAfericoesHoje');
                         if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
-                    }
-                    if (data.triagens_hoje !== undefined) {
-                        const statTriagensHoje = document.getElementById('statTriagensHoje');
-                        if (statTriagensHoje) statTriagensHoje.textContent = data.triagens_hoje;
-                        
-                        const progressHoje = document.getElementById('progressHoje');
-                        const progressValueHoje = document.getElementById('progressValueHoje');
-                        const progressPercent = Math.min((data.triagens_hoje / 10) * 100, 100);
-                        if (progressHoje) {
-                            progressHoje.style.width = progressPercent + '%';
-                            progressHoje.setAttribute('aria-valuenow', data.triagens_hoje);
-                        }
-                        if (progressValueHoje) {
-                            progressValueHoje.textContent = data.triagens_hoje + '/10';
-                        }
-                    }
-                    if (data.consultas_semana !== undefined) {
-                        const statConsultasSemana = document.getElementById('statConsultasSemana');
-                        if (statConsultasSemana) statConsultasSemana.textContent = data.consultas_semana;
-                        
-                        const progressSemanal = document.getElementById('progressSemanal');
-                        const progressValueSemanal = document.getElementById('progressValueSemanal');
-                        const progressPercent = Math.min((data.consultas_semana / 50) * 100, 100);
-                        if (progressSemanal) {
-                            progressSemanal.style.width = progressPercent + '%';
-                            progressSemanal.setAttribute('aria-valuenow', data.consultas_semana);
-                        }
-                        if (progressValueSemanal) {
-                            progressValueSemanal.textContent = data.consultas_semana + '/50';
-                        }
-                    }
-                    if (data.taxa_ocupacao !== undefined) {
-                        const statTaxaOcupacao = document.getElementById('statTaxaOcupacao');
-                        if (statTaxaOcupacao) statTaxaOcupacao.textContent = data.taxa_ocupacao + '%';
-                    }
-                    
-                    // Update metrics
-                    if (data.total_consultas !== undefined) {
-                        const metricTotalConsultas = document.getElementById('metricTotalConsultas');
-                        if (metricTotalConsultas) metricTotalConsultas.textContent = data.total_consultas;
-                    }
-                    if (data.total_triagens !== undefined) {
-                        const metricTotalTriagens = document.getElementById('metricTotalTriagens');
-                        if (metricTotalTriagens) metricTotalTriagens.textContent = data.total_triagens;
-                    }
-                    if (data.media_diaria !== undefined) {
-                        const metricMediaDiaria = document.getElementById('metricMediaDiaria');
-                        if (metricMediaDiaria) metricMediaDiaria.textContent = data.media_diaria;
-                    }
-                    if (data.eficiencia !== undefined) {
-                        const metricEficiencia = document.getElementById('metricEficiencia');
-                        if (metricEficiencia) metricEficiencia.textContent = data.eficiencia + '%';
-                    }
-                    
-                    if (data.consultas_recentes) {
-                        const consultasCount = document.getElementById('consultasCount');
-                        if (consultasCount) consultasCount.textContent = data.consultas_recentes.length;
                     }
                     
                     showToast('success', 'Dashboard atualizado!');
