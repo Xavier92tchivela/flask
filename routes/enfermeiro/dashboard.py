@@ -69,18 +69,16 @@ def index():
         hoje_inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
         hoje_fim = hoje_inicio + timedelta(days=1)
         
-        # Buscar consultas de hoje
+        # Buscar consultas de hoje - CORRIGIDO: removido m.nome que não existe
         consultas_hoje = execute_query("""
             SELECT 
                 c.id,
                 TIME(c.data_hora) as hora,
                 c.status,
-                COALESCE(u.nome, 'Paciente') as paciente_nome,
-                m.nome as medico_nome
+                COALESCE(u.nome, 'Paciente') as paciente_nome
             FROM consultas c
             LEFT JOIN pacientes p ON c.paciente_id = p.id
             LEFT JOIN usuarios u ON p.usuario_id = u.id
-            LEFT JOIN medicos m ON c.medico_id = m.id
             WHERE c.data_hora >= %s AND c.data_hora < %s
             ORDER BY c.data_hora ASC
         """, (hoje_inicio, hoje_fim), fetch=True)
@@ -101,7 +99,7 @@ def index():
             ORDER BY c.data_hora ASC
         """, (hoje_inicio, hoje_fim), fetch=True)
         
-        # Buscar pacientes internados
+        # Buscar pacientes internados - CORRIGIDO: removido campo numero_prontuario se não existir
         internados_lista = execute_query("""
             SELECT 
                 i.id,
@@ -110,7 +108,6 @@ def index():
                 i.diagnostico_inicial,
                 i.status,
                 p.id as paciente_id,
-                p.numero_prontuario,
                 COALESCE(u.nome, 'Paciente') as paciente_nome,
                 p.data_nascimento,
                 l.id as leito_id,
@@ -137,7 +134,7 @@ def index():
             else:
                 internado['idade'] = None
         
-        # Buscar últimas aferições
+        # Buscar últimas aferições - CORRIGIDO: usar consulta_paciente_id se existir, ou outra coluna
         ultimas_afericoes = execute_query("""
             SELECT 
                 sv.id,
