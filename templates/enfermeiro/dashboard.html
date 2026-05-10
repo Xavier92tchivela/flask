@@ -697,7 +697,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner">
             <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('enfermeiro.dashboard') }}">
+            <a class="sidebar-brand" href="{{ url_for('enfermeiro.dashboard.index') }}">
                 <i class="fas fa-user-nurse"></i>
                 <span>Enfermagem</span>
             </a>
@@ -729,7 +729,7 @@
             <!-- Navigation -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('enfermeiro.dashboard') }}">
+                    <a class="nav-link active" href="{{ url_for('enfermeiro.dashboard.index') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
@@ -812,7 +812,7 @@
                         <div class="value-container">
                             <div class="stat-label text-primary">CONSULTAS HOJE</div>
                             <div class="stat-value" id="statConsultasHoje">
-                                {{ consultas_hoje|default(0) }}
+                                {{ consultas_hoje|default(0)|length if consultas_hoje is iterable else consultas_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-calendar-check text-primary me-1"></i>
@@ -831,7 +831,7 @@
                         <div class="value-container">
                             <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
                             <div class="stat-value" id="statTriagensPendentes">
-                                {{ triagens_pendentes|default(0) }}
+                                {{ triagens_pendentes|default(0)|length if triagens_pendentes is iterable else triagens_pendentes|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-clock text-warning me-1"></i>
@@ -850,7 +850,7 @@
                         <div class="value-container">
                             <div class="stat-label text-danger">INTERNADOS</div>
                             <div class="stat-value" id="statInternados">
-                                {{ internados_hoje|default(0) }}
+                                {{ internados_hoje|default(0)|length if internados_hoje is iterable else internados_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-procedures text-danger me-1"></i>
@@ -868,7 +868,7 @@
                         <div class="value-container">
                             <div class="stat-label text-success">AFERIÇÕES HOJE</div>
                             <div class="stat-value" id="statAfericoesHoje">
-                                {{ afericoes_hoje|default(0) }}
+                                {{ afericoes_hoje|default(0)|length if afericoes_hoje is iterable else afericoes_hoje|default(0) }}
                             </div>
                             <div class="stat-description">
                                 <i class="fas fa-heartbeat text-success me-1"></i>
@@ -1046,14 +1046,15 @@
         </div>
         
         <!-- Alertas de Triagem Pendente -->
-        {% if triagens_pendentes|default(0) > 0 %}
+        {% set qtde_triagens = triagens_pendentes|default(0)|length if triagens_pendentes is iterable else triagens_pendentes|default(0) %}
+        {% if qtde_triagens > 0 %}
         <div class="row mt-3 animate-fade-in-up-delay-1">
             <div class="col-lg-12">
                 <div class="alert alert-warning alert-dismissible fade show" role="alert">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                         <div>
                             <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>{{ triagens_pendentes|default(0) }}</strong> paciente(s) aguardando triagem
+                            <strong>{{ qtde_triagens }}</strong> paciente(s) aguardando triagem
                         </div>
                         <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
                             <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
@@ -1172,7 +1173,7 @@
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                             </div>
-                                         </td>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -1211,7 +1212,7 @@
                                    class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Triagem</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1" id="triagensPendentesCount">{{ triagens_pendentes|default(0) }}</small>
+                                    <small class="text-white-50 d-none d-md-block mt-1" id="triagensPendentesCount">{{ qtde_triagens }}</small>
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
@@ -1219,7 +1220,7 @@
                                    class="btn btn-danger w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-procedures fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Internados</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">{{ internados_hoje|default(0) }}</small>
+                                    <small class="text-white-50 d-none d-md-block mt-1">{{ internados_hoje|default(0)|length if internados_hoje is iterable else internados_hoje|default(0) }}</small>
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
@@ -1268,22 +1269,28 @@
             };
             
             const timeStr = now.toLocaleDateString('pt-BR', options);
-            document.getElementById('currentTime').textContent = timeStr;
-            document.getElementById('currentTimeMobile').textContent = timeStr;
+            const currentTimeEl = document.getElementById('currentTime');
+            const currentTimeMobileEl = document.getElementById('currentTimeMobile');
+            if (currentTimeEl) currentTimeEl.textContent = timeStr;
+            if (currentTimeMobileEl) currentTimeMobileEl.textContent = timeStr;
             
             // Update last update time
             const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            document.getElementById('lastUpdate').textContent = 
-                'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
+            const lastUpdateEl = document.getElementById('lastUpdate');
+            if (lastUpdateEl) {
+                lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
+            }
             
             // Update week information
             const weekNumber = getWeekNumber(now);
-            document.getElementById('currentWeek').textContent = `Semana ${weekNumber}`;
+            const currentWeekEl = document.getElementById('currentWeek');
+            if (currentWeekEl) currentWeekEl.textContent = `Semana ${weekNumber}`;
             
             // Update today date
             const today = new Date();
             const dateOptions = { day: '2-digit', month: '2-digit' };
-            document.getElementById('todayDate').textContent = today.toLocaleDateString('pt-BR', dateOptions);
+            const todayDateEl = document.getElementById('todayDate');
+            if (todayDateEl) todayDateEl.textContent = today.toLocaleDateString('pt-BR', dateOptions);
         }
         
         // Get week number
@@ -1304,26 +1311,32 @@
                     refreshBtn.disabled = true;
                 }
                 
-                const response = await fetch('{{ url_for("enfermeiro.api_contadores") }}');
+                const response = await fetch('/enfermeiro/api/contadores');
                 const data = await response.json();
                 
                 if (data && !data.error) {
                     // Update basic stats
                     if (data.consultas_hoje !== undefined) {
-                        document.getElementById('statConsultasHoje').textContent = data.consultas_hoje;
+                        const statConsultasHoje = document.getElementById('statConsultasHoje');
+                        if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
                     }
                     if (data.triagens_pendentes !== undefined) {
-                        document.getElementById('statTriagensPendentes').textContent = data.triagens_pendentes;
-                        document.getElementById('triagensPendentesCount').textContent = data.triagens_pendentes;
+                        const statTriagensPendentes = document.getElementById('statTriagensPendentes');
+                        const triagensPendentesCount = document.getElementById('triagensPendentesCount');
+                        if (statTriagensPendentes) statTriagensPendentes.textContent = data.triagens_pendentes;
+                        if (triagensPendentesCount) triagensPendentesCount.textContent = data.triagens_pendentes;
                     }
                     if (data.internados !== undefined) {
-                        document.getElementById('statInternados').textContent = data.internados;
+                        const statInternados = document.getElementById('statInternados');
+                        if (statInternados) statInternados.textContent = data.internados;
                     }
                     if (data.afericoes_hoje !== undefined) {
-                        document.getElementById('statAfericoesHoje').textContent = data.afericoes_hoje;
+                        const statAfericoesHoje = document.getElementById('statAfericoesHoje');
+                        if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
                     }
                     if (data.triagens_hoje !== undefined) {
-                        document.getElementById('statTriagensHoje').textContent = data.triagens_hoje;
+                        const statTriagensHoje = document.getElementById('statTriagensHoje');
+                        if (statTriagensHoje) statTriagensHoje.textContent = data.triagens_hoje;
                         
                         const progressHoje = document.getElementById('progressHoje');
                         const progressValueHoje = document.getElementById('progressValueHoje');
@@ -1337,7 +1350,8 @@
                         }
                     }
                     if (data.consultas_semana !== undefined) {
-                        document.getElementById('statConsultasSemana').textContent = data.consultas_semana;
+                        const statConsultasSemana = document.getElementById('statConsultasSemana');
+                        if (statConsultasSemana) statConsultasSemana.textContent = data.consultas_semana;
                         
                         const progressSemanal = document.getElementById('progressSemanal');
                         const progressValueSemanal = document.getElementById('progressValueSemanal');
@@ -1351,25 +1365,31 @@
                         }
                     }
                     if (data.taxa_ocupacao !== undefined) {
-                        document.getElementById('statTaxaOcupacao').textContent = data.taxa_ocupacao + '%';
+                        const statTaxaOcupacao = document.getElementById('statTaxaOcupacao');
+                        if (statTaxaOcupacao) statTaxaOcupacao.textContent = data.taxa_ocupacao + '%';
                     }
                     
                     // Update metrics
                     if (data.total_consultas !== undefined) {
-                        document.getElementById('metricTotalConsultas').textContent = data.total_consultas;
+                        const metricTotalConsultas = document.getElementById('metricTotalConsultas');
+                        if (metricTotalConsultas) metricTotalConsultas.textContent = data.total_consultas;
                     }
                     if (data.total_triagens !== undefined) {
-                        document.getElementById('metricTotalTriagens').textContent = data.total_triagens;
+                        const metricTotalTriagens = document.getElementById('metricTotalTriagens');
+                        if (metricTotalTriagens) metricTotalTriagens.textContent = data.total_triagens;
                     }
                     if (data.media_diaria !== undefined) {
-                        document.getElementById('metricMediaDiaria').textContent = data.media_diaria;
+                        const metricMediaDiaria = document.getElementById('metricMediaDiaria');
+                        if (metricMediaDiaria) metricMediaDiaria.textContent = data.media_diaria;
                     }
                     if (data.eficiencia !== undefined) {
-                        document.getElementById('metricEficiencia').textContent = data.eficiencia + '%';
+                        const metricEficiencia = document.getElementById('metricEficiencia');
+                        if (metricEficiencia) metricEficiencia.textContent = data.eficiencia + '%';
                     }
                     
                     if (data.consultas_recentes) {
-                        document.getElementById('consultasCount').textContent = data.consultas_recentes.length;
+                        const consultasCount = document.getElementById('consultasCount');
+                        if (consultasCount) consultasCount.textContent = data.consultas_recentes.length;
                     }
                     
                     showToast('success', 'Dashboard atualizado!');
@@ -1419,16 +1439,19 @@
         }
         
         // Toggle sidebar
-        document.getElementById('sidebarToggle').addEventListener('click', function() {
-            document.getElementById('sidebar').classList.toggle('show');
-        });
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('show');
+            });
+        }
         
         // Close sidebar when clicking outside
         document.addEventListener('click', function(event) {
             const sidebar = document.getElementById('sidebar');
             const toggle = document.getElementById('sidebarToggle');
             
-            if (!sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
+            if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
                 sidebar.classList.remove('show');
             }
         });
