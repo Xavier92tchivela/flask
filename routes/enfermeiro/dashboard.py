@@ -1,1414 +1,282 @@
-<!-- templates/enfermeiro/dashboard.html -->
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>Dashboard - Enfermeiro</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
-    <style>
-        :root {
-            --primary-color: #4e73df;
-            --secondary-color: #858796;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --purple-color: #6f42c1;
-            --pink-color: #e83e8c;
-            --teal-color: #20c997;
-            --mobile-spacing: 12px;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fc;
-            overflow-x: hidden;
-            padding-bottom: 70px;
-        }
-        
-        /* SIDEBAR FIXED - MOBILE FIRST */
-        .sidebar {
-            background: linear-gradient(180deg, #4e73df 0%, #224abe 100%);
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 280px;
-            z-index: 1000;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            overflow-y: auto;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-        }
-        
-        .sidebar.show {
-            transform: translateX(0);
-        }
-        
-        @media (min-width: 769px) {
-            .sidebar {
-                transform: translateX(0);
-                width: 250px;
-            }
-        }
-        
-        .sidebar .sidebar-brand {
-            color: #fff;
-            font-weight: 800;
-            font-size: 1rem;
-            padding: 1rem;
-            text-align: center;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        @media (min-width: 769px) {
-            .sidebar .sidebar-brand {
-                font-size: 1.2rem;
-                padding: 1.5rem 1rem;
-            }
-        }
-        
-        .sidebar .sidebar-brand i {
-            margin-right: 0.5rem;
-        }
-        
-        .sidebar .nav-item {
-            margin-bottom: 0.2rem;
-        }
-        
-        .sidebar .nav-link {
-            color: rgba(255, 255, 255, 0.8);
-            padding: 0.75rem 1rem;
-            transition: all 0.3s;
-            border-left: 3px solid transparent;
-            white-space: nowrap;
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-        }
-        
-        @media (max-width: 768px) {
-            .sidebar .nav-link {
-                min-height: 55px;
-                font-size: 1rem;
-            }
-        }
-        
-        .sidebar .nav-link:hover {
-            color: #fff;
-            background-color: rgba(255, 255, 255, 0.1);
-            border-left: 3px solid #fff;
-        }
-        
-        .sidebar .nav-link.active {
-            color: #fff;
-            background-color: rgba(255, 255, 255, 0.15);
-            border-left: 3px solid #fff;
-        }
-        
-        .sidebar .nav-link i {
-            width: 25px;
-            text-align: center;
-            margin-right: 0.75rem;
-            font-size: 1.1rem;
-        }
-        
-        /* MAIN CONTENT - MOBILE FIRST */
-        .main-content {
-            min-height: 100vh;
-            padding: 60px 12px 20px 12px;
-            transition: margin-left 0.3s ease-in-out;
-        }
-        
-        @media (min-width: 769px) {
-            .main-content {
-                margin-left: 250px;
-                padding: 20px;
-            }
-        }
-        
-        /* TOGGLE BUTTON - MOBILE */
-        #sidebarToggle {
-            display: flex;
-            position: fixed;
-            top: 12px;
-            left: 12px;
-            z-index: 1050;
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-        }
-        
-        @media (min-width: 769px) {
-            #sidebarToggle {
-                display: none;
-            }
-        }
-        
-        /* PAGE HEADER - MOBILE FIRST */
-        .page-header {
-            background: white;
-            padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
-            margin-bottom: 1.5rem;
-        }
-        
-        .page-header h1 {
-            font-size: 1.2rem;
-        }
-        
-        .page-header p {
-            font-size: 0.85rem;
-        }
-        
-        @media (min-width: 769px) {
-            .page-header {
-                padding: 1.5rem;
-            }
-            
-            .page-header h1 {
-                font-size: 1.75rem;
-            }
-            
-            .page-header p {
-                font-size: 1rem;
-            }
-        }
-        
-        /* STAT CARDS - MOBILE FIRST */
-        .stat-card {
-            border-left: 4px solid;
-            transition: all 0.3s ease;
-            height: 110px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        @media (min-width: 769px) {
-            .stat-card {
-                height: 140px;
-                margin-bottom: 1.5rem;
-            }
-        }
-        
-        .stat-card .card-body {
-            padding: 0.8rem;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .stat-card .value-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-        
-        .stat-card .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 0.25rem;
-            min-height: 36px;
-        }
-        
-        @media (min-width: 769px) {
-            .stat-card .stat-value {
-                font-size: 2rem;
-            }
-        }
-        
-        .stat-card .stat-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.25rem;
-        }
-        
-        .stat-card .stat-description {
-            font-size: 0.65rem;
-            color: #6c757d;
-            display: flex;
-            align-items: center;
-            margin-top: auto;
-        }
-        
-        .stat-card .stat-icon {
-            font-size: 2rem;
-            opacity: 0.2;
-            position: absolute;
-            right: 0.5rem;
-            bottom: 0.5rem;
-        }
-        
-        @media (min-width: 769px) {
-            .stat-card .stat-icon {
-                font-size: 2.5rem;
-                right: 1rem;
-                bottom: 1rem;
-            }
-        }
-        
-        /* PERFORMANCE METRICS - MOBILE FIRST */
-        .performance-metric {
-            text-align: center;
-            padding: 0.75rem;
-        }
-        
-        .metric-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 0.1rem;
-        }
-        
-        .metric-label {
-            font-size: 0.7rem;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .metric-icon {
-            font-size: 1.5rem;
-            margin-bottom: 0.25rem;
-            opacity: 0.8;
-        }
-        
-        @media (min-width: 769px) {
-            .performance-metric {
-                padding: 1rem;
-            }
-            
-            .metric-value {
-                font-size: 2rem;
-            }
-            
-            .metric-label {
-                font-size: 0.8rem;
-            }
-            
-            .metric-icon {
-                font-size: 2rem;
-            }
-        }
-        
-        /* USER INFO */
-        .user-info {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 0.75rem;
-            margin: 0.75rem;
-            color: white;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .user-info h6 {
-            font-size: 0.9rem;
-            margin: 0.5rem 0 0.25rem;
-        }
-        
-        .user-info p {
-            font-size: 0.75rem;
-            margin-bottom: 0;
-        }
-        
-        @media (min-width: 769px) {
-            .user-info {
-                padding: 1rem;
-                margin: 1rem;
-            }
-            
-            .user-info h6 {
-                font-size: 1rem;
-            }
-            
-            .user-info p {
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* TABLE RESPONSIVE */
-        .table-responsive {
-            margin: 0 -0.5rem;
-            width: calc(100% + 1rem);
-        }
-        
-        .table {
-            font-size: 0.8rem;
-        }
-        
-        .table th,
-        .table td {
-            padding: 0.5rem;
-            white-space: nowrap;
-        }
-        
-        @media (max-width: 768px) {
-            .table th,
-            .table td {
-                padding: 0.4rem;
-                font-size: 0.75rem;
-            }
-        }
-        
-        /* ACTION BUTTONS */
-        .action-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            transition: all 0.3s ease;
-            min-height: 90px;
-        }
-        
-        @media (max-width: 768px) {
-            .action-btn {
-                min-height: 80px;
-                padding: 0.5rem;
-            }
-            
-            .action-btn i {
-                font-size: 1.2rem;
-            }
-            
-            .action-btn span {
-                font-size: 0.8rem;
-            }
-            
-            .action-btn small {
-                font-size: 0.65rem;
-            }
-        }
-        
-        /* DATE BADGE */
-        .date-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-bottom: 0.5rem;
-        }
-        
-        @media (min-width: 769px) {
-            .date-badge {
-                padding: 0.5rem 1rem;
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* PROGRESS BAR */
-        .progress {
-            height: 0.5rem;
-            border-radius: 10px;
-            margin: 0.3rem 0;
-        }
-        
-        .progress-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            color: #6c757d;
-            margin-bottom: 0.2rem;
-        }
-        
-        .progress-value {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: #4e73df;
-        }
-        
-        @media (min-width: 769px) {
-            .progress {
-                height: 0.8rem;
-            }
-            
-            .progress-label {
-                font-size: 0.75rem;
-            }
-            
-            .progress-value {
-                font-size: 0.85rem;
-            }
-        }
-        
-        /* BADGES */
-        .badge {
-            font-size: 0.65rem;
-            padding: 0.3rem 0.5rem;
-        }
-        
-        @media (min-width: 769px) {
-            .badge {
-                font-size: 0.75rem;
-                padding: 0.35rem 0.65rem;
-            }
-        }
-        
-        /* ANIMATIONS */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .animate-fade-in-up {
-            animation: fadeInUp 0.5s ease-out;
-        }
-        
-        .animate-fade-in-up-delay-1 {
-            animation: fadeInUp 0.5s ease-out 0.1s both;
-        }
-        
-        .animate-fade-in-up-delay-2 {
-            animation: fadeInUp 0.5s ease-out 0.2s both;
-        }
-        
-        /* TOAST */
-        .toast-container {
-            position: fixed;
-            top: 70px;
-            right: 10px;
-            left: 10px;
-            z-index: 1060;
-            pointer-events: none;
-        }
-        
-        .toast {
-            width: 100%;
-            max-width: 100%;
-            margin-bottom: 0.5rem;
-            pointer-events: auto;
-        }
-        
-        @media (min-width: 576px) {
-            .toast-container {
-                left: auto;
-                right: 10px;
-                width: 300px;
-            }
-        }
-        
-        /* EMPTY STATE */
-        .empty-state {
-            text-align: center;
-            padding: 2rem 1rem;
-        }
-        
-        .empty-state i {
-            font-size: 3rem;
-            color: #d1d3e2;
-            margin-bottom: 1rem;
-        }
-        
-        .empty-state h5 {
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        .empty-state p {
-            font-size: 0.8rem;
-        }
-        
-        @media (min-width: 769px) {
-            .empty-state {
-                padding: 3rem;
-            }
-            
-            .empty-state i {
-                font-size: 4rem;
-            }
-            
-            .empty-state h5 {
-                font-size: 1.25rem;
-            }
-            
-            .empty-state p {
-                font-size: 0.9rem;
-            }
-        }
-        
-        /* FOOTER */
-        footer {
-            margin-top: 2rem;
-            padding: 1rem 0;
-        }
-        
-        footer p {
-            font-size: 0.7rem;
-        }
-        
-        @media (min-width: 769px) {
-            footer p {
-                font-size: 0.8rem;
-            }
-        }
-        
-        /* CARD HEADER */
-        .card-header {
-            padding: 0.75rem 1rem;
-        }
-        
-        .card-header h6 {
-            font-size: 0.9rem;
-        }
-        
-        @media (min-width: 769px) {
-            .card-header {
-                padding: 1rem 1.25rem;
-            }
-            
-            .card-header h6 {
-                font-size: 1rem;
-            }
-        }
-        
-        /* GRID GAPS */
-        .row {
-            margin-right: -5px;
-            margin-left: -5px;
-        }
-        
-        .col-6,
-        .col-md-3,
-        .col-md-4,
-        .col-md-6,
-        .col-lg-12 {
-            padding-right: 5px;
-            padding-left: 5px;
-        }
-        
-        @media (min-width: 769px) {
-            .row {
-                margin-right: -10px;
-                margin-left: -10px;
-            }
-            
-            .col-6,
-            .col-md-3,
-            .col-md-4,
-            .col-md-6,
-            .col-lg-12 {
-                padding-right: 10px;
-                padding-left: 10px;
-            }
-        }
-        
-        /* TOUCH IMPROVEMENTS */
-        @media (max-width: 768px) {
-            .btn,
-            .nav-link,
-            .list-group-item,
-            .dropdown-item {
-                min-height: 44px;
-                display: flex;
-                align-items: center;
-            }
-            
-            .btn:active {
-                transform: scale(0.98);
-            }
-            
-            * {
-                -webkit-tap-highlight-color: transparent;
-            }
-        }
-        
-        /* SCROLLBAR */
-        ::-webkit-scrollbar {
-            width: 4px;
-            height: 4px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 2px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #224abe;
-        }
-        
-        /* BUTTON GROUP */
-        .btn-group-sm > .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.7rem;
-        }
-        
-        /* TEXT COLORS */
-        .text-primary { color: var(--primary-color) !important; }
-        .text-success { color: var(--success-color) !important; }
-        .text-info { color: var(--info-color) !important; }
-        .text-warning { color: var(--warning-color) !important; }
-        .text-danger { color: var(--danger-color) !important; }
-        
-        /* BORDER COLORS */
-        .border-left-primary { border-left-color: var(--primary-color) !important; }
-        .border-left-success { border-left-color: var(--success-color) !important; }
-        .border-left-info { border-left-color: var(--info-color) !important; }
-        .border-left-warning { border-left-color: var(--warning-color) !important; }
-        .border-left-danger { border-left-color: var(--danger-color) !important; }
-    </style>
-</head>
-<body>
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
+# routes/enfermeiro/dashboard.py
+from flask import Blueprint, render_template, session, request, jsonify
+from datetime import datetime, timedelta
+import logging
+from functools import wraps
 
-    <!-- Sidebar Toggle Button -->
-    <button id="sidebarToggle" class="d-md-none">
-        <i class="fas fa-bars"></i>
-    </button>
-    
-    <!-- Sidebar -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-inner">
-            <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('dashboard.index') }}">
-                <i class="fas fa-user-nurse"></i>
-                <span>Enfermagem</span>
-            </a>
+logger = logging.getLogger(__name__)
+
+# Criar o blueprint
+dashboard_bp = Blueprint('dashboard', __name__, url_prefix='/dashboard')
+
+_mysql = None
+
+def set_mysql(mysql_instance):
+    global _mysql
+    _mysql = mysql_instance
+
+def enfermeiro_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return render_template('login.html', error='Faça login para continuar')
+        if session.get('user_type') != 'enfermeiro':
+            return render_template('error.html', error='Acesso restrito a enfermeiros'), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+def execute_query(query, params=None, fetch=False, one=False, commit=False):
+    """Executa queries no banco de dados"""
+    try:
+        if _mysql is None:
+            logger.error("MySQL não inicializado")
+            return None if fetch else False
             
-            <!-- User Info -->
-            <div class="user-info">
-                <div class="avatar-container">
-                    <i class="fas fa-user-circle fa-2x"></i>
-                </div>
-                <h6 class="mb-1">
-                    {% if session.get('user_name') %}
-                        {{ session.get('user_name') }}
-                    {% else %}
-                        Enfermeiro
-                    {% endif %}
-                </h6>
-                <p class="mb-1">
-                    <i class="fas fa-id-card me-1"></i> 
-                    COREn: {% if session.get('enfermeiro_coren') %}{{ session.get('enfermeiro_coren') }}{% else %}Não informado{% endif %}
-                </p>
-                <p class="mb-0 small">
-                    <i class="fas fa-building me-1"></i> 
-                    {% if session.get('enfermeiro_setor') %}{{ session.get('enfermeiro_setor') }}{% else %}Enfermagem Geral{% endif %}
-                </p>
-            </div>
-            
-            <!-- Navigation -->
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('dashboard.index') }}">
-                        <i class="fas fa-tachometer-alt"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('triagem.listar_consultas_triagem') }}">
-                        <i class="fas fa-stethoscope"></i>
-                        Triagem
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}">
-                        <i class="fas fa-heartbeat"></i>
-                        Sinais Vitais
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/enfermeiro/internados">
-                        <i class="fas fa-procedures"></i>
-                        Internados
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/enfermeiro/medicamentos">
-                        <i class="fas fa-capsules"></i>
-                        Medicamentos
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('auth.logout') }}">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Sair
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-    
-    <!-- Main Content -->
-    <div class="main-content" id="mainContent">
-        <!-- Header -->
-        <div class="page-header animate-fade-in-up">
-            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                <div>
-                    <h1 class="h5 h3-md mb-1 text-gray-800">
-                        <i class="fas fa-tachometer-alt text-primary me-2"></i>
-                        Dashboard - Enfermagem
-                    </h1>
-                    <p class="text-muted mb-0 small">
-                        Bem-vindo, 
-                        <strong>
-                            {% if session.get('user_name') %}
-                                {{ session.get('user_name') }}
-                            {% else %}
-                                Enfermeiro
-                            {% endif %}
-                        </strong>
-                    </p>
-                    <small class="text-primary d-block d-md-none mt-1" id="currentTimeMobile"></small>
-                    <small class="text-primary d-none d-md-block" id="currentTime"></small>
-                </div>
-                <div class="btn-group w-100 w-md-auto">
-                    <a href="{{ url_for('agendamento.novo_agendamento') }}" class="btn btn-primary btn-sm">
-                        <i class="fas fa-calendar-plus me-2"></i> Nova Consulta
-                    </a>
-                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
+        cur = _mysql.connection.cursor()
         
-        <!-- Statistics Cards - Primeira Linha -->
-        <div class="row animate-fade-in-up" style="animation-delay: 0.1s;">
-            <div class="col-6 col-xl-3 mb-2">
-                <div class="card stat-card border-left-primary">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-primary">CONSULTAS HOJE</div>
-                            <div class="stat-value" id="statConsultasHoje">
-                                {{ total_consultas_hoje|default(0) }}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-calendar-check text-primary me-1"></i>
-                                <span class="d-none d-md-inline">Agendadas para hoje</span>
-                                <span class="d-inline d-md-none">Hoje</span>
-                            </div>
-                        </div>
-                        <i class="fas fa-calendar-check stat-icon text-primary"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-xl-3 mb-2">
-                <div class="card stat-card border-left-warning">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-warning">TRIAGENS PENDENTES</div>
-                            <div class="stat-value" id="statTriagensPendentes">
-                                {{ pacientes_aguardando|default(0) }}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-clock text-warning me-1"></i>
-                                <span class="d-none d-md-inline">Aguardando triagem</span>
-                                <span class="d-inline d-md-none">Pendentes</span>
-                            </div>
-                        </div>
-                        <i class="fas fa-stethoscope stat-icon text-warning"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-xl-3 mb-2">
-                <div class="card stat-card border-left-danger">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-danger">INTERNADOS</div>
-                            <div class="stat-value" id="statInternados">
-                                {{ pacientes_internados|default(0) }}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-procedures text-danger me-1"></i>
-                                Pacientes internados
-                            </div>
-                        </div>
-                        <i class="fas fa-procedures stat-icon text-danger"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-xl-3 mb-2">
-                <div class="card stat-card border-left-success">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-success">AFERIÇÕES HOJE</div>
-                            <div class="stat-value" id="statAfericoesHoje">
-                                {{ total_afericoes_hoje|default(0) }}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-heartbeat text-success me-1"></i>
-                                Sinais registrados
-                            </div>
-                        </div>
-                        <i class="fas fa-heartbeat stat-icon text-success"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+        if params:
+            cur.execute(query, params)
+        else:
+            cur.execute(query)
         
-        <!-- Statistics Cards - Segunda Linha -->
-        <div class="row animate-fade-in-up-delay-1">
-            <div class="col-6 col-md-4 mb-2">
-                <div class="card stat-card border-left-info">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-info">TRIAGENS HOJE</div>
-                            <div class="stat-value" id="statTriagensHoje">
-                                {{ triagens_hoje|default(0) }}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-check-circle text-info me-1"></i>
-                                <span id="todayDate"></span>
-                            </div>
-                        </div>
-                        <i class="fas fa-stethoscope stat-icon text-info"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-md-4 mb-2">
-                <div class="card stat-card border-left-warning">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-warning">CONSULTAS SEMANA</div>
-                            <div class="stat-value" id="statConsultasSemana">
-                                {{ consultas_semana|default(0) }}
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-calendar-week text-warning me-1"></i>
-                                Esta semana
-                            </div>
-                        </div>
-                        <i class="fas fa-calendar-alt stat-icon text-warning"></i>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-6 col-md-4 mb-2">
-                <div class="card stat-card border-left-success">
-                    <div class="card-body">
-                        <div class="value-container">
-                            <div class="stat-label text-success">TAXA OCUPAÇÃO</div>
-                            <div class="stat-value" id="statTaxaOcupacao">
-                                {{ taxa_ocupacao|default(0) }}%
-                            </div>
-                            <div class="stat-description">
-                                <i class="fas fa-hospital text-success me-1"></i>
-                                Leitos ocupados
-                            </div>
-                        </div>
-                        <i class="fas fa-chart-line stat-icon text-success"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
+        if fetch:
+            if one:
+                result = cur.fetchone()
+            else:
+                result = cur.fetchall()
+            cur.close()
+            return result
         
-        <!-- Performance Metrics -->
-        <div class="row animate-fade-in-up-delay-2">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-chart-line me-2"></i> Performance
-                        </h6>
-                        <div class="date-badge">
-                            <i class="fas fa-calendar me-1"></i>
-                            <span id="currentWeek"></span>
-                        </div>
-                    </div>
-                    <div class="card-body p-2 p-md-3">
-                        <div class="row g-2">
-                            <div class="col-6 col-md-3">
-                                <div class="performance-metric">
-                                    <div class="metric-icon text-primary">
-                                        <i class="fas fa-calendar-check"></i>
-                                    </div>
-                                    <div class="metric-value" id="metricTotalConsultas">
-                                        {{ total_consultas|default(0) }}
-                                    </div>
-                                    <div class="metric-label">Total Consultas</div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-6 col-md-3">
-                                <div class="performance-metric">
-                                    <div class="metric-icon text-success">
-                                        <i class="fas fa-stethoscope"></i>
-                                    </div>
-                                    <div class="metric-value" id="metricTotalTriagens">
-                                        {{ total_triagens|default(0) }}
-                                    </div>
-                                    <div class="metric-label">Total Triagens</div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-6 col-md-3">
-                                <div class="performance-metric">
-                                    <div class="metric-icon text-info">
-                                        <i class="fas fa-heartbeat"></i>
-                                    </div>
-                                    <div class="metric-value" id="metricMediaDiaria">
-                                        {{ media_diaria|default(0) }}
-                                    </div>
-                                    <div class="metric-label">Média/dia</div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-6 col-md-3">
-                                <div class="performance-metric">
-                                    <div class="metric-icon text-warning">
-                                        <i class="fas fa-percentage"></i>
-                                    </div>
-                                    <div class="metric-value" id="metricEficiencia">
-                                        {{ eficiencia|default(0) }}%
-                                    </div>
-                                    <div class="metric-label">Eficiência</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Progress Bars -->
-                        <div class="row mt-2 g-2">
-                            <div class="col-md-6">
-                                <div class="progress-label">Meta Semanal de Consultas</div>
-                                <div class="progress">
-                                    <div id="progressSemanal" class="progress-bar bg-success" role="progressbar" 
-                                         style="width: {{ progresso_semanal|default(0) }}%"
-                                         aria-valuenow="{{ consultas_semana|default(0) }}" 
-                                         aria-valuemin="0" aria-valuemax="50">
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <small class="text-muted">0</small>
-                                    <small class="progress-value" id="progressValueSemanal">
-                                        {{ consultas_semana|default(0) }}/50
-                                    </small>
-                                    <small class="text-muted">50</small>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="progress-label">Triagens Hoje</div>
-                                <div class="progress">
-                                    <div id="progressHoje" class="progress-bar bg-info" role="progressbar" 
-                                         style="width: {{ progresso_triagens|default(0) }}%"
-                                         aria-valuenow="{{ triagens_hoje|default(0) }}" 
-                                         aria-valuemin="0" aria-valuemax="10">
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between">
-                                    <small class="text-muted">0</small>
-                                    <small class="progress-value" id="progressValueHoje">
-                                        {{ triagens_hoje|default(0) }}/10
-                                    </small>
-                                    <small class="text-muted">10</small>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        if commit:
+            _mysql.connection.commit()
         
-        <!-- Alertas de Triagem Pendente -->
-        {% if pacientes_aguardando|default(0) > 0 %}
-        <div class="row mt-3 animate-fade-in-up-delay-1">
-            <div class="col-lg-12">
-                <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <div>
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
-                        </div>
-                        <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
-                            <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
-                        </a>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            </div>
-        </div>
-        {% endif %}
+        cur.close()
+        return True if commit else None
         
-        <!-- Recent Consultas -->
-        <div class="row mt-3">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-header d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-calendar-alt me-2"></i> Consultas Recentes
-                        </h6>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-primary" id="consultasCount">
-                                {{ consultas_hoje|length if consultas_hoje else 0 }}
-                            </span>
-                            <a href="#" class="btn btn-sm btn-outline-primary">
-                                Ver Todos
-                            </a>
-                        </div>
-                    </div>
-                    <div class="card-body p-0">
-                        {% if consultas_hoje and consultas_hoje|length > 0 %}
-                        <!-- Mobile View -->
-                        <div class="d-block d-md-none">
-                            {% for consulta in consultas_hoje %}
-                            <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <div class="fw-semibold">{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</div>
-                                        <small class="text-muted d-block mt-1">{{ consulta.hora if consulta.hora else '' }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %} mb-1">
-                                            {{ (consulta.status|upper) if consulta.status else 'AGENDADA' }}
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-2">
-                                    <small class="text-muted d-block">Médico: {{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</small>
-                                </div>
-                                
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="btn-group btn-group-sm">
-                                        {% if consulta.status == 'agendada' %}
-                                        <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
-                                           class="btn btn-warning">
-                                            <i class="fas fa-stethoscope"></i> Triagem
-                                        </a>
-                                        {% endif %}
-                                        <a href="/enfermeiro/consulta/{{ consulta.id }}" 
-                                           class="btn btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        
-                        <!-- Desktop View -->
-                        <div class="table-responsive d-none d-md-block">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th class="px-3 py-2">Paciente</th>
-                                        <th class="px-3 py-2">Médico</th>
-                                        <th class="px-3 py-2">Horário</th>
-                                        <th class="px-3 py-2">Status</th>
-                                        <th class="px-3 py-2 text-end">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for consulta in consultas_hoje %}
-                                    <tr class="align-middle">
-                                        <td class="px-3 py-2">
-                                            <div class="d-flex align-items-center">
-                                                <i class="fas fa-user-circle me-2 text-muted"></i>
-                                                <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
-                                            </div>
-                                        </td>
-                                        <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
-                                        <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
-                                        <td class="px-3 py-2">
-                                            <span class="badge bg-{% if consulta.status == 'agendada' %}primary{% elif consulta.status == 'realizada' %}success{% elif consulta.status == 'cancelada' %}danger{% else %}secondary{% endif %}">
-                                                {{ (consulta.status|capitalize) if consulta.status else 'Agendada' }}
-                                            </span>
-                                        </td>
-                                        <td class="px-3 py-2 text-end">
-                                            <div class="btn-group btn-group-sm">
-                                                {% if consulta.status == 'agendada' %}
-                                                <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
-                                                   class="btn btn-warning"
-                                                   title="Realizar Triagem">
-                                                    <i class="fas fa-stethoscope"></i>
-                                                </a>
-                                                {% endif %}
-                                                <a href="/enfermeiro/consulta/{{ consulta.id }}" 
-                                                   class="btn btn-outline-primary"
-                                                   title="Ver Detalhes">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                        {% else %}
-                        <div class="empty-state">
-                            <div class="mb-3">
-                                <i class="fas fa-calendar-alt"></i>
-                            </div>
-                            <h5 class="text-gray-800">Nenhuma consulta hoje</h5>
-                            <p class="text-gray-600">Não há consultas agendadas para hoje.</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
+    except Exception as e:
+        logger.error(f"Database error: {e}")
+        if commit and _mysql:
+            _mysql.connection.rollback()
+        return None if fetch else False
+
+
+@dashboard_bp.route('/')
+@enfermeiro_required
+def index():
+    """Dashboard principal do enfermeiro"""
+    try:
+        hoje = datetime.now()
+        hoje_inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
+        hoje_fim = hoje_inicio + timedelta(days=1)
         
-        <!-- Quick Actions -->
-        <div class="row mt-3">
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-header">
-                        <h6 class="m-0 font-weight-bold text-primary">
-                            <i class="fas fa-bolt me-2"></i> Ações Rápidas
-                        </h6>
-                    </div>
-                    <div class="card-body p-2">
-                        <div class="row g-2">
-                            <div class="col-6 col-md-3">
-                                <a href="{{ url_for('triagem.listar_consultas_triagem') }}" 
-                                   class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Triagem</span>
-                                    <small class="text-dark d-none d-md-block mt-1" id="triagensPendentesCount">{{ pacientes_aguardando|default(0) }}</small>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <a href="/enfermeiro/internados" 
-                                   class="btn btn-danger w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-procedures fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Internados</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">{{ pacientes_internados|default(0) }}</small>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <a href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}" 
-                                   class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Sinais</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">Registrar</small>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <a href="/enfermeiro/medicamentos" 
-                                   class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-capsules fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Medicamentos</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">Administrar</small>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        # Buscar consultas de hoje
+        consultas_hoje = execute_query("""
+            SELECT 
+                c.id,
+                TIME(c.data_hora) as hora,
+                c.status,
+                COALESCE(u.nome, 'Paciente') as paciente_nome,
+                m.nome as medico_nome
+            FROM consultas c
+            LEFT JOIN pacientes p ON c.paciente_id = p.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            LEFT JOIN medicos m ON c.medico_id = m.id
+            WHERE c.data_hora >= %s AND c.data_hora < %s
+            ORDER BY c.data_hora ASC
+        """, (hoje_inicio, hoje_fim), fetch=True)
         
-        <!-- Footer -->
-        <footer class="mt-4 text-center text-muted">
-            <hr>
-            <p class="small mb-0">
-                <i class="fas fa-heart text-danger"></i> DoctorIA - Enfermagem 
-                &copy; 2024 | <span id="lastUpdate"></span>
-            </p>
-        </footer>
-    </div>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Update Current Time
-        function updateCurrentTime() {
-            const now = new Date();
-            const options = { 
-                weekday: 'short', 
-                hour: '2-digit',
-                minute: '2-digit'
-            };
-            
-            const timeStr = now.toLocaleDateString('pt-BR', options);
-            const currentTimeEl = document.getElementById('currentTime');
-            const currentTimeMobileEl = document.getElementById('currentTimeMobile');
-            if (currentTimeEl) currentTimeEl.textContent = timeStr;
-            if (currentTimeMobileEl) currentTimeMobileEl.textContent = timeStr;
-            
-            // Update last update time
-            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
-            const lastUpdateEl = document.getElementById('lastUpdate');
-            if (lastUpdateEl) {
-                lastUpdateEl.textContent = 'Atualizado: ' + now.toLocaleTimeString('pt-BR', timeOptions);
-            }
-            
-            // Update week information
-            const weekNumber = getWeekNumber(now);
-            const currentWeekEl = document.getElementById('currentWeek');
-            if (currentWeekEl) currentWeekEl.textContent = `Semana ${weekNumber}`;
-            
-            // Update today date
-            const today = new Date();
-            const dateOptions = { day: '2-digit', month: '2-digit' };
-            const todayDateEl = document.getElementById('todayDate');
-            if (todayDateEl) todayDateEl.textContent = today.toLocaleDateString('pt-BR', dateOptions);
-        }
+        # Buscar triagens pendentes
+        triagens_pendentes = execute_query("""
+            SELECT 
+                c.id,
+                TIME(c.data_hora) as hora_chegada,
+                COALESCE(u.nome, 'Paciente') as paciente_nome,
+                c.status
+            FROM consultas c
+            LEFT JOIN pacientes p ON c.paciente_id = p.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE c.data_hora >= %s AND c.data_hora < %s
+            AND (c.status_triagem IS NULL OR c.status_triagem = 'pendente')
+            AND c.status != 'cancelada'
+            ORDER BY c.data_hora ASC
+        """, (hoje_inicio, hoje_fim), fetch=True)
         
-        // Get week number
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-            return weekNo;
-        }
+        # Buscar pacientes internados
+        internados_lista = execute_query("""
+            SELECT 
+                i.id,
+                i.data_internacao,
+                i.tipo_internacao,
+                i.diagnostico_inicial,
+                i.status,
+                p.id as paciente_id,
+                p.numero_prontuario,
+                COALESCE(u.nome, 'Paciente') as paciente_nome,
+                p.data_nascimento,
+                l.id as leito_id,
+                l.numero as leito_numero,
+                l.tipo as leito_tipo
+            FROM internacoes i
+            JOIN pacientes p ON i.paciente_id = p.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            JOIN leitos l ON i.leito_id = l.id
+            WHERE i.status = 'internado'
+            ORDER BY i.data_internacao DESC
+        """, fetch=True)
         
-        // Refresh Dashboard
-        async function refreshDashboard() {
-            try {
-                const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    refreshBtn.disabled = true;
-                }
-                
-                const response = await fetch('/dashboard/api/contadores');
-                const data = await response.json();
-                
-                if (data && !data.error) {
-                    // Update basic stats
-                    if (data.consultas_hoje !== undefined) {
-                        const statConsultasHoje = document.getElementById('statConsultasHoje');
-                        if (statConsultasHoje) statConsultasHoje.textContent = data.consultas_hoje;
-                    }
-                    if (data.triagens_pendentes !== undefined) {
-                        const statTriagensPendentes = document.getElementById('statTriagensPendentes');
-                        const triagensPendentesCount = document.getElementById('triagensPendentesCount');
-                        if (statTriagensPendentes) statTriagensPendentes.textContent = data.triagens_pendentes;
-                        if (triagensPendentesCount) triagensPendentesCount.textContent = data.triagens_pendentes;
-                    }
-                    if (data.internados !== undefined) {
-                        const statInternados = document.getElementById('statInternados');
-                        if (statInternados) statInternados.textContent = data.internados;
-                    }
-                    if (data.afericoes_hoje !== undefined) {
-                        const statAfericoesHoje = document.getElementById('statAfericoesHoje');
-                        if (statAfericoesHoje) statAfericoesHoje.textContent = data.afericoes_hoje;
-                    }
-                    
-                    showToast('success', 'Dashboard atualizado!');
-                }
-                
-            } catch (error) {
-                console.error('Error refreshing dashboard:', error);
-                showToast('error', 'Erro ao atualizar');
-            } finally {
-                const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
-                if (refreshBtn) {
-                    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                    refreshBtn.disabled = false;
-                }
-            }
-        }
+        if internados_lista is None:
+            internados_lista = []
         
-        // Show toast notification
-        function showToast(type, message) {
-            let toastContainer = document.getElementById('toastContainer');
-            
-            const toastId = 'toast-' + Date.now();
-            const bgColor = type === 'success' ? 'bg-success' : 'bg-danger';
-            const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
-            
-            const toastHtml = `
-                <div id="${toastId}" class="toast align-items-center text-white ${bgColor} border-0" role="alert">
-                    <div class="d-flex">
-                        <div class="toast-body">
-                            <i class="fas fa-${icon} me-2"></i>
-                            ${message}
-                        </div>
-                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-                    </div>
-                </div>
-            `;
-            
-            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-            
-            const toastEl = document.getElementById(toastId);
-            const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
-            toast.show();
-            
-            toastEl.addEventListener('hidden.bs.toast', function () {
-                toastEl.remove();
-            });
-        }
+        # Calcular idade
+        for internado in internados_lista:
+            if internado and internado.get('data_nascimento'):
+                idade = hoje.year - internado['data_nascimento'].year
+                if (hoje.month, hoje.day) < (internado['data_nascimento'].month, internado['data_nascimento'].day):
+                    idade -= 1
+                internado['idade'] = idade
+            else:
+                internado['idade'] = None
         
-        // Toggle sidebar
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        if (sidebarToggle) {
-            sidebarToggle.addEventListener('click', function() {
-                document.getElementById('sidebar').classList.toggle('show');
-            });
-        }
+        # Buscar últimas aferições
+        ultimas_afericoes = execute_query("""
+            SELECT 
+                sv.id,
+                sv.data_afericao,
+                sv.pressao_arterial,
+                sv.frequencia_cardiaca,
+                sv.temperatura,
+                sv.saturacao_oxigenio,
+                sv.glicemia,
+                COALESCE(u.nome, 'Paciente') as paciente_nome
+            FROM sinais_vitais sv
+            LEFT JOIN pacientes p ON sv.paciente_id = p.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            ORDER BY sv.data_afericao DESC
+            LIMIT 10
+        """, fetch=True)
         
-        // Close sidebar when clicking outside
-        document.addEventListener('click', function(event) {
-            const sidebar = document.getElementById('sidebar');
-            const toggle = document.getElementById('sidebarToggle');
-            
-            if (sidebar && toggle && !sidebar.contains(event.target) && !toggle.contains(event.target) && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-            }
-        });
+        if ultimas_afericoes is None:
+            ultimas_afericoes = []
         
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCurrentTime();
-            setInterval(updateCurrentTime, 60000);
-            
-            // Auto-refresh every 60 seconds
-            setInterval(refreshDashboard, 60000);
-            
-            // Initialize tooltips
-            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[title]'));
-            tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl);
-            });
-            
-            // Add touch feedback
-            document.querySelectorAll('.stat-card, .action-btn, .btn').forEach(el => {
-                el.addEventListener('touchstart', function() {
-                    this.style.transform = 'scale(0.98)';
-                });
-                
-                el.addEventListener('touchend', function() {
-                    this.style.transform = '';
-                });
-            });
-        });
-    </script>
-</body>
-</html>
+        # Contadores
+        total_afericoes_hoje = execute_query("""
+            SELECT COUNT(*) as total
+            FROM sinais_vitais
+            WHERE DATE(data_afericao) = CURDATE()
+        """, fetch=True, one=True)
+        
+        total_consultas_hoje = execute_query("""
+            SELECT COUNT(*) as total
+            FROM consultas
+            WHERE data_hora >= %s AND data_hora < %s
+        """, (hoje_inicio, hoje_fim), fetch=True, one=True)
+        
+        pacientes_internados = len(internados_lista) if internados_lista else 0
+        pacientes_aguardando = len(triagens_pendentes) if triagens_pendentes else 0
+        
+        return render_template('enfermeiro/dashboard.html',
+            hoje=hoje.strftime('%Y-%m-%d'),
+            data_selecionada=hoje.strftime('%Y-%m-%d'),
+            consultas_data=consultas_hoje if consultas_hoje else [],
+            consultas_hoje=consultas_hoje if consultas_hoje else [],
+            triagens_pendentes=triagens_pendentes if triagens_pendentes else [],
+            internados_hoje=internados_lista if internados_lista else [],
+            ultimas_afericoes=ultimas_afericoes if ultimas_afericoes else [],
+            total_afericoes_hoje=total_afericoes_hoje['total'] if total_afericoes_hoje else 0,
+            total_consultas_hoje=total_consultas_hoje['total'] if total_consultas_hoje else 0,
+            pacientes_internados=pacientes_internados,
+            pacientes_aguardando=pacientes_aguardando,
+            total_consultas=total_consultas_hoje['total'] if total_consultas_hoje else 0,
+            triagens_hoje=0,
+            consultas_semana=0,
+            taxa_ocupacao=0,
+            total_triagens=0,
+            media_diaria=0,
+            eficiencia=0,
+            progresso_semanal=0,
+            progresso_triagens=0
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro no dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template('enfermeiro/dashboard.html',
+            error=str(e),
+            hoje=datetime.now().strftime('%Y-%m-%d'),
+            data_selecionada=datetime.now().strftime('%Y-%m-%d'),
+            consultas_data=[],
+            consultas_hoje=[],
+            triagens_pendentes=[],
+            internados_hoje=[],
+            ultimas_afericoes=[],
+            total_afericoes_hoje=0,
+            total_consultas_hoje=0,
+            pacientes_internados=0,
+            pacientes_aguardando=0,
+            total_consultas=0,
+            triagens_hoje=0,
+            consultas_semana=0,
+            taxa_ocupacao=0,
+            total_triagens=0,
+            media_diaria=0,
+            eficiencia=0,
+            progresso_semanal=0,
+            progresso_triagens=0
+        )
+
+
+# ============================================================
+# API ENDPOINTS
+# ============================================================
+
+@dashboard_bp.route('/api/contadores')
+@enfermeiro_required
+def api_contadores():
+    """API para contadores do dashboard"""
+    try:
+        hoje_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        hoje_fim = hoje_inicio + timedelta(days=1)
+        
+        consultas_hoje = execute_query("""
+            SELECT COUNT(*) as total
+            FROM consultas
+            WHERE data_hora >= %s AND data_hora < %s
+        """, (hoje_inicio, hoje_fim), fetch=True, one=True)
+        
+        triagens_pendentes = execute_query("""
+            SELECT COUNT(*) as total
+            FROM consultas c
+            WHERE c.data_hora >= %s AND c.data_hora < %s
+            AND (c.status_triagem IS NULL OR c.status_triagem = 'pendente')
+            AND c.status != 'cancelada'
+        """, (hoje_inicio, hoje_fim), fetch=True, one=True)
+        
+        internados = execute_query("""
+            SELECT COUNT(*) as total
+            FROM internacoes
+            WHERE status = 'internado'
+        """, fetch=True, one=True)
+        
+        afericoes_hoje = execute_query("""
+            SELECT COUNT(*) as total
+            FROM sinais_vitais
+            WHERE DATE(data_afericao) = CURDATE()
+        """, fetch=True, one=True)
+        
+        return jsonify({
+            'consultas_hoje': consultas_hoje['total'] if consultas_hoje else 0,
+            'triagens_pendentes': triagens_pendentes['total'] if triagens_pendentes else 0,
+            'internados': internados['total'] if internados else 0,
+            'afericoes_hoje': afericoes_hoje['total'] if afericoes_hoje else 0
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro na API contadores: {e}")
+        return jsonify({
+            'consultas_hoje': 0,
+            'triagens_pendentes': 0,
+            'internados': 0,
+            'afericoes_hoje': 0,
+            'error': str(e)
+        }), 500
