@@ -696,7 +696,7 @@
     <nav class="sidebar" id="sidebar">
         <div class="sidebar-inner">
             <!-- Brand -->
-            <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
+            <a class="sidebar-brand" href="{{ url_for('enfermeiro.dashboard.dashboard') }}">
                 <i class="fas fa-user-nurse"></i>
                 <span>Enfermagem</span>
             </a>
@@ -708,7 +708,11 @@
                 </div>
                 <h6 class="mb-1">
                     {% if session.get('user_name') %}
-                        {{ session.get('user_name') }}
+                        {% if session.get('user_name').__class__.__name__ == 'bytes' %}
+                            {{ session.get('user_name').decode('utf-8') }}
+                        {% else %}
+                            {{ session.get('user_name') }}
+                        {% endif %}
                     {% else %}
                         Enfermeiro
                     {% endif %}
@@ -722,31 +726,31 @@
             <!-- Navigation -->
             <ul class="nav flex-column">
                 <li class="nav-item">
-                    <a class="nav-link active" href="{{ url_for('dashboard') }}">
+                    <a class="nav-link active" href="{{ url_for('enfermeiro.dashboard.dashboard') }}">
                         <i class="fas fa-tachometer-alt"></i>
                         Dashboard
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('triagem.listar_consultas_triagem') }}">
+                    <a class="nav-link" href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}">
                         <i class="fas fa-stethoscope"></i>
                         Triagem
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}">
+                    <a class="nav-link" href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}">
                         <i class="fas fa-heartbeat"></i>
                         Sinais Vitais
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/enfermeiro/internados">
+                    <a class="nav-link" href="{{ url_for('enfermeiro.internados.listar_internados') }}">
                         <i class="fas fa-procedures"></i>
                         Internados
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/enfermeiro/medicamentos">
+                    <a class="nav-link" href="{{ url_for('enfermeiro.medicamentos.listar_medicamentos') }}">
                         <i class="fas fa-capsules"></i>
                         Medicamentos
                     </a>
@@ -775,7 +779,11 @@
                         Bem-vindo, 
                         <strong>
                             {% if session.get('user_name') %}
-                                {{ session.get('user_name') }}
+                                {% if session.get('user_name').__class__.__name__ == 'bytes' %}
+                                    {{ session.get('user_name').decode('utf-8') }}
+                                {% else %}
+                                    {{ session.get('user_name') }}
+                                {% endif %}
                             {% else %}
                                 Enfermeiro
                             {% endif %}
@@ -785,7 +793,7 @@
                     <small class="text-primary d-none d-md-block" id="currentTime"></small>
                 </div>
                 <div class="btn-group w-100 w-md-auto">
-                    <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-primary btn-sm">
+                    <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-primary btn-sm">
                         <i class="fas fa-stethoscope me-2"></i> Triagem
                     </a>
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()">
@@ -1046,7 +1054,7 @@
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             <strong>{{ pacientes_aguardando|default(0) }}</strong> paciente(s) aguardando triagem
                         </div>
-                        <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
+                        <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-warning btn-sm">
                             <i class="fas fa-arrow-right me-1"></i> Fazer Triagem
                         </a>
                     </div>
@@ -1068,7 +1076,7 @@
                             <span class="badge bg-primary" id="consultasCount">
                                 {{ consultas_hoje|length if consultas_hoje else 0 }}
                             </span>
-                            <a href="{{ url_for('triagem.listar_consultas_triagem') }}" class="btn btn-sm btn-outline-primary">
+                            <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-sm btn-outline-primary">
                                 Ver Todos
                             </a>
                         </div>
@@ -1098,12 +1106,12 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="btn-group btn-group-sm">
                                         {% if consulta.status == 'agendada' %}
-                                        <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                        <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                            class="btn btn-warning">
                                             <i class="fas fa-stethoscope"></i> Triagem
                                         </a>
                                         {% endif %}
-                                        <a href="/enfermeiro/consulta/{{ consulta.id }}" 
+                                        <a href="{{ url_for('enfermeiro.consulta.detalhes', consulta_id=consulta.id) }}" 
                                            class="btn btn-outline-primary">
                                             <i class="fas fa-eye"></i>
                                         </a>
@@ -1144,13 +1152,13 @@
                                         <td class="px-3 py-2 text-end">
                                             <div class="btn-group btn-group-sm">
                                                 {% if consulta.status == 'agendada' %}
-                                                <a href="{{ url_for('triagem.realizar_triagem', consulta_id=consulta.id) }}" 
+                                                <a href="{{ url_for('enfermeiro.triagem.realizar_triagem', consulta_id=consulta.id) }}" 
                                                    class="btn btn-warning"
                                                    title="Realizar Triagem">
                                                     <i class="fas fa-stethoscope"></i>
                                                 </a>
                                                 {% endif %}
-                                                <a href="/enfermeiro/consulta/{{ consulta.id }}" 
+                                                <a href="{{ url_for('enfermeiro.consulta.detalhes', consulta_id=consulta.id) }}" 
                                                    class="btn btn-outline-primary"
                                                    title="Ver Detalhes">
                                                     <i class="fas fa-eye"></i>
@@ -1188,7 +1196,7 @@
                     <div class="card-body p-2">
                         <div class="row g-2">
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('triagem.listar_consultas_triagem') }}" 
+                                <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
                                    class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Triagem</span>
@@ -1196,7 +1204,7 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="/enfermeiro/internados" 
+                                <a href="{{ url_for('enfermeiro.internados.listar_internados') }}" 
                                    class="btn btn-danger w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-procedures fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Internados</span>
@@ -1204,7 +1212,7 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('sinais_vitais.listar_sinais_vitais') }}" 
+                                <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" 
                                    class="btn btn-info w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Sinais</span>
@@ -1212,7 +1220,7 @@
                                 </a>
                             </div>
                             <div class="col-6 col-md-3">
-                                <a href="/enfermeiro/medicamentos" 
+                                <a href="{{ url_for('enfermeiro.medicamentos.listar_medicamentos') }}" 
                                    class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-capsules fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Medicamentos</span>
@@ -1291,7 +1299,7 @@
                     refreshBtn.disabled = true;
                 }
                 
-                const response = await fetch('/dashboard/api/contadores');
+                const response = await fetch('/enfermeiro/api/contadores');
                 const data = await response.json();
                 
                 if (data && !data.error) {
