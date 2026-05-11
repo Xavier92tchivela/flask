@@ -82,49 +82,38 @@
         font-weight: 500;
     }
     
-    .badge-realizada { background: #d1e7dd; color: #0f5132; }
-    .badge-agendada { background: #cfe2ff; color: #084298; }
-    .badge-cancelada { background: #f8d7da; color: #842029; }
-    
-    .detail-card {
+    .vital-card {
         background: #f8f9fc;
         border-radius: 10px;
-        padding: 1rem;
-        margin-top: 0.5rem;
-    }
-    
-    .diagnostico-card {
-        border-left: 4px solid #28a745;
-        background: #f8f9fc;
         padding: 0.8rem;
         margin-top: 0.5rem;
-        border-radius: 8px;
     }
     
-    .receita-card {
-        border-left: 4px solid #17a2b8;
-        background: #f8f9fc;
-        padding: 0.8rem;
-        margin-top: 0.5rem;
-        border-radius: 8px;
-    }
-    
-    .vital-signs {
+    .vital-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.8rem;
         margin-top: 0.5rem;
     }
     
     .vital-item {
-        background: #e9ecef;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        text-align: center;
+        min-width: 80px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }
     
-    .vital-item i {
-        margin-right: 0.3rem;
+    .vital-item .value {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #4e73df;
+    }
+    
+    .vital-item .label {
+        font-size: 0.7rem;
+        color: #6c757d;
     }
     
     .btn-outline-historic {
@@ -145,6 +134,14 @@
         .stats-number {
             font-size: 1.5rem;
         }
+        
+        .vital-item {
+            min-width: 70px;
+        }
+        
+        .vital-item .value {
+            font-size: 1rem;
+        }
     }
     
     @media print {
@@ -159,7 +156,7 @@
 <div class="container-fluid px-3 px-md-4">
     <div class="row">
         <div class="col-12">
-            <!-- Breadcrumb -->
+            <!-- Breadcrumb - CORRIGIDO -->
             <nav aria-label="breadcrumb" class="mb-3">
                 <ol class="breadcrumb bg-transparent p-0">
                     <li class="breadcrumb-item">
@@ -168,7 +165,7 @@
                         </a>
                     </li>
                     <li class="breadcrumb-item">
-                        <a href="{{ url_for('enfermeiro.historico.listar_pacientes') }}">
+                        <a href="{{ url_for('enfermeiro.historico.historico_pacientes') }}">
                             <i class="fas fa-history me-1"></i> Histórico
                         </a>
                     </li>
@@ -213,97 +210,126 @@
             <div class="row mb-4 g-3">
                 <div class="col-6 col-md-3">
                     <div class="stats-card">
-                        <div class="stats-number">{{ total_consultas }}</div>
-                        <div class="stats-label">Total de Consultas</div>
+                        <div class="stats-number">{{ afericoes|length }}</div>
+                        <div class="stats-label">Total de Aferições</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="stats-card">
-                        <div class="stats-number">{{ total_triagens }}</div>
-                        <div class="stats-label">Triagens Realizadas</div>
+                        <div class="stats-number">{{ afericoes|selectattr('pressao_arterial')|list|length }}</div>
+                        <div class="stats-label">Registros de PA</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="stats-card">
-                        <div class="stats-number">{{ total_sinais }}</div>
-                        <div class="stats-label">Aferições de Sinais</div>
+                        <div class="stats-number">{{ afericoes|selectattr('glicemia')|list|length }}</div>
+                        <div class="stats-label">Medições de Glicemia</div>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
                     <div class="stats-card">
-                        <div class="stats-number">{{ total_diagnosticos }}</div>
-                        <div class="stats-label">Diagnósticos</div>
+                        <div class="stats-number">{{ afericoes|selectattr('peso')|list|length }}</div>
+                        <div class="stats-label">Registros de Peso</div>
                     </div>
                 </div>
             </div>
             
-            <!-- Timeline de Consultas -->
+            <!-- Timeline de Aferições -->
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-white py-3">
                     <h5 class="mb-0">
-                        <i class="fas fa-timeline text-primary me-2"></i>
-                        Linha do Tempo - Histórico Médico
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        Histórico de Sinais Vitais
                     </h5>
                 </div>
                 <div class="card-body p-3">
-                    {% if consultas and consultas|length > 0 %}
-                        {% for consulta in consultas %}
-                        <div class="timeline-item" id="consulta-{{ consulta.id }}">
+                    {% if afericoes and afericoes|length > 0 %}
+                        {% for afericao in afericoes %}
+                        <div class="timeline-item" id="afericao-{{ afericao.id }}">
                             <div class="timeline-date">
                                 <i class="fas fa-calendar me-1"></i>
-                                {% if consulta.data_hora %}
-                                    {% if consulta.data_hora.__class__.__name__ == 'datetime' %}
-                                        {{ consulta.data_hora.strftime('%d/%m/%Y às %H:%M') }}
+                                {% if afericao.data_afericao %}
+                                    {% if afericao.data_afericao.__class__.__name__ == 'datetime' %}
+                                        {{ afericao.data_afericao.strftime('%d/%m/%Y às %H:%M') }}
                                     {% else %}
-                                        {{ consulta.data_hora }}
+                                        {{ afericao.data_afericao }}
                                     {% endif %}
                                 {% endif %}
-                                <span class="badge-status badge-{{ consulta.status if consulta.status else 'agendada' }} ms-2">
-                                    {{ (consulta.status|capitalize) if consulta.status else 'Agendada' }}
-                                </span>
+                                <span class="badge bg-secondary ms-2">Consulta #{{ afericao.consulta_id }}</span>
                             </div>
                             
                             <div class="timeline-title">
                                 <i class="fas fa-stethoscope text-primary me-2"></i>
-                                Consulta com Dr(a). {{ consulta.medico_nome }}
-                                {% if consulta.medico_especialidade %}
-                                    <small class="text-muted">({{ consulta.medico_especialidade }})</small>
+                                Aferição de Sinais Vitais
+                            </div>
+                            
+                            <div class="vital-grid">
+                                {% if afericao.pressao_arterial %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.pressao_arterial }}</div>
+                                    <div class="label">Pressão Arterial</div>
+                                    {% if classificar_pressao %}
+                                        {% set classificacao = classificar_pressao(afericao.pressao_arterial) %}
+                                        {% if classificacao %}
+                                        <small class="text-{{ classificacao.class }}">{{ classificacao.text }}</small>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                
+                                {% if afericao.frequencia_cardiaca %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.frequencia_cardiaca }} <small>bpm</small></div>
+                                    <div class="label">Frequência Cardíaca</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if afericao.frequencia_respiratoria %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.frequencia_respiratoria }} <small>rpm</small></div>
+                                    <div class="label">Frequência Respiratória</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if afericao.temperatura %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.temperatura }} <small>°C</small></div>
+                                    <div class="label">Temperatura</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if afericao.saturacao_oxigenio %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.saturacao_oxigenio }} <small>%</small></div>
+                                    <div class="label">Sat. Oxigênio</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if afericao.glicemia %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.glicemia }} <small>mg/dL</small></div>
+                                    <div class="label">Glicemia</div>
+                                </div>
+                                {% endif %}
+                                
+                                {% if afericao.peso %}
+                                <div class="vital-item">
+                                    <div class="value">{{ afericao.peso }} <small>kg</small></div>
+                                    <div class="label">Peso</div>
+                                </div>
                                 {% endif %}
                             </div>
                             
-                            {% if consulta.sintomas %}
-                            <div class="mb-2">
-                                <strong><i class="fas fa-thermometer-half me-1"></i> Sintomas:</strong>
-                                <p class="small text-muted mb-0">{{ consulta.sintomas }}</p>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Diagnóstico -->
-                            {% if consulta.diagnostico_final or consulta.diagnostico_preliminar %}
-                            <div class="diagnostico-card">
-                                <strong><i class="fas fa-stethoscope text-success me-1"></i> Diagnóstico:</strong>
-                                <p class="mb-0 small">
-                                    {{ consulta.diagnostico_final or consulta.diagnostico_preliminar }}
-                                </p>
-                            </div>
-                            {% endif %}
-                            
-                            <!-- Receita -->
-                            {% if consulta.prescricao %}
-                            <div class="receita-card">
-                                <strong><i class="fas fa-prescription text-info me-1"></i> Prescrição:</strong>
-                                <p class="mb-0 small" style="white-space: pre-wrap;">{{ consulta.prescricao }}</p>
-                                {% if consulta.recomendacoes %}
-                                <hr class="my-2">
-                                <strong><i class="fas fa-heartbeat me-1"></i> Recomendações:</strong>
-                                <p class="mb-0 small">{{ consulta.recomendacoes }}</p>
-                                {% endif %}
+                            {% if afericao.observacoes %}
+                            <div class="vital-card mt-2">
+                                <strong><i class="fas fa-comment me-1"></i> Observações:</strong>
+                                <p class="mb-0 small mt-1">{{ afericao.observacoes }}</p>
                             </div>
                             {% endif %}
                             
                             <!-- Botão Ver Detalhes da Consulta -->
                             <div class="mt-2">
-                                <a href="/consulta/{{ consulta.id }}" 
+                                <a href="/consulta/{{ afericao.consulta_id }}" 
                                    class="btn btn-sm btn-outline-primary btn-outline-historic"
                                    target="_blank">
                                     <i class="fas fa-external-link-alt me-1"></i> Ver Detalhes da Consulta
@@ -313,133 +339,24 @@
                         {% endfor %}
                     {% else %}
                         <div class="text-center py-5">
-                            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
-                            <h6 class="text-muted">Nenhuma consulta registrada</h6>
-                            <p class="small text-muted">Este paciente ainda não possui consultas.</p>
+                            <i class="fas fa-heartbeat fa-4x text-muted mb-3"></i>
+                            <h6 class="text-muted">Nenhuma aferição registrada</h6>
+                            <p class="small text-muted">Este paciente ainda não possui registros de sinais vitais.</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
-            
-            <!-- Histórico de Triagens -->
-            {% if triagens and triagens|length > 0 %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-stethoscope text-warning me-2"></i>
-                        Histórico de Triagens
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Status Triagem</th>
-                                    <th>Sintomas</th>
-                                    <th>Observações</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for triagem in triagens %}
-                                <tr>
-                                    <td>
-                                        {% if triagem.data_hora %}
-                                            {% if triagem.data_hora.__class__.__name__ == 'datetime' %}
-                                                {{ triagem.data_hora.strftime('%d/%m/%Y %H:%M') }}
-                                            {% else %}
-                                                {{ triagem.data_hora }}
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ 'success' if triagem.status_triagem == 'realizada' else 'warning' }}">
-                                            {{ (triagem.status_triagem|capitalize) if triagem.status_triagem else 'Pendente' }}
-                                        </span>
-                                    </td>
-                                    <td>{{ triagem.sintomas|truncate(50) or '-' }}</td>
-                                    <td>{{ triagem.observacoes|truncate(50) or '-' }}</td>
-                                    <td>
-                                        <a href="/consulta/{{ triagem.id }}" class="btn btn-sm btn-outline-primary" target="_blank">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-            
-            <!-- Histórico de Sinais Vitais -->
-            {% if sinais_vitais and sinais_vitais|length > 0 %}
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white py-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-heartbeat text-danger me-2"></i>
-                        Histórico de Sinais Vitais
-                    </h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Data/Hora</th>
-                                    <th>Pressão</th>
-                                    <th>FC</th>
-                                    <th>FR</th>
-                                    <th>Temperatura</th>
-                                    <th>SpO₂</th>
-                                    <th>Glicemia</th>
-                                    <th>Peso</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for sinal in sinais_vitais %}
-                                <tr>
-                                    <td>
-                                        {% if sinal.data_afericao %}
-                                            {% if sinal.data_afericao.__class__.__name__ == 'datetime' %}
-                                                {{ sinal.data_afericao.strftime('%d/%m/%Y %H:%M') }}
-                                            {% else %}
-                                                {{ sinal.data_afericao }}
-                                            {% endif %}
-                                        {% endif %}
-                                    </td>
-                                    <td><strong>{{ sinal.pressao_arterial or '-' }}</strong></td>
-                                    <td>{{ sinal.frequencia_cardiaca or '-' }}</td>
-                                    <td>{{ sinal.frequencia_respiratoria or '-' }}</td>
-                                    <td>{{ sinal.temperatura or '-' }}°C</td>
-                                    <td>{{ sinal.saturacao_oxigenio or '-' }}%</td>
-                                    <td>{{ sinal.glicemia or '-' }}</td>
-                                    <td>{{ sinal.peso or '-' }}kg</td>
-                                    <td>
-                                        <a href="/enfermeiro/sinais-vitais/{{ sinal.id }}" class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
             
             <!-- Botões de Ação -->
             <div class="d-flex justify-content-center gap-3 mt-4 mb-5 no-print">
                 <button onclick="window.print()" class="btn btn-primary">
                     <i class="fas fa-print me-2"></i> Imprimir Histórico
                 </button>
-                <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-2"></i> Voltar ao Dashboard
+                <a href="{{ url_for('enfermeiro.historico.historico_pacientes') }}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Voltar
+                </a>
+                <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-home me-2"></i> Dashboard
                 </a>
             </div>
         </div>
