@@ -1,0 +1,13 @@
+# Criar um favicon simples usando Python
+from PIL import Image, ImageDraw
+
+# Criar uma imagem 32x32
+img = Image.new('RGB', (32, 32), color='#4e73df')
+draw = ImageDraw.Draw(img)
+
+# Desenhar um coração ou "D"
+draw.rectangle([0, 0, 32, 32], fill='#4e73df')
+draw.text((8, 8), "D", fill='white')
+
+# Salvar como favicon.ico
+img.save('static/images/favicon.ico', format='ICO')
