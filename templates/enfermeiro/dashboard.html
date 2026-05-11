@@ -793,9 +793,6 @@
                     <small class="text-primary d-none d-md-block" id="currentTime"></small>
                 </div>
                 <div class="btn-group w-100 w-md-auto">
-                    <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" class="btn btn-success btn-sm">
-                        <i class="fas fa-calendar-plus me-2"></i> Agendar Consulta
-                    </a>
                     <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" class="btn btn-primary btn-sm">
                         <i class="fas fa-stethoscope me-2"></i> Triagem
                     </a>
@@ -1219,14 +1216,6 @@
                     <div class="card-body p-2">
                         <div class="row g-2">
                             <div class="col-6 col-md-3">
-                                <a href="{{ url_for('enfermeiro.agendamento.novo_agendamento') }}" 
-                                   class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
-                                    <i class="fas fa-calendar-plus fa-1x fa-2x-md mb-1"></i>
-                                    <span class="fw-bold small">Agendar</span>
-                                    <small class="text-white-50 d-none d-md-block mt-1">Nova Consulta</small>
-                                </a>
-                            </div>
-                            <div class="col-6 col-md-3">
                                 <a href="{{ url_for('enfermeiro.triagem.listar_consultas_triagem') }}" 
                                    class="btn btn-warning w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
                                     <i class="fas fa-stethoscope fa-1x fa-2x-md mb-1"></i>
@@ -1248,6 +1237,14 @@
                                     <i class="fas fa-heartbeat fa-1x fa-2x-md mb-1"></i>
                                     <span class="fw-bold small">Sinais</span>
                                     <small class="text-white-50 d-none d-md-block mt-1">Registrar</small>
+                                </a>
+                            </div>
+                            <div class="col-6 col-md-3">
+                                <a href="{{ url_for('enfermeiro.internados.listar_internados') }}" 
+                                   class="btn btn-success w-100 h-100 p-2 p-md-3 d-flex flex-column align-items-center justify-content-center action-btn">
+                                    <i class="fas fa-capsules fa-1x fa-2x-md mb-1"></i>
+                                    <span class="fw-bold small">Medicamentos</span>
+                                    <small class="text-white-50 d-none d-md-block mt-1">Selecionar paciente</small>
                                 </a>
                             </div>
                         </div>
@@ -1313,7 +1310,7 @@
             return weekNo;
         }
         
-        // Refresh Dashboard - URL CORRIGIDA para /enfermeiro/api/contadores
+        // Refresh Dashboard - URL CORRIGIDA
         async function refreshDashboard() {
             try {
                 const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
@@ -1322,8 +1319,8 @@
                     refreshBtn.disabled = true;
                 }
                 
-                // 🔧 CORREÇÃO: Usar o caminho correto da API (rota do blueprint enfermeiro)
-                const response = await fetch('/enfermeiro/api/contadores');
+                // 🔧 CORREÇÃO: Usar o caminho correto da API do blueprint
+                const response = await fetch('/dashboard/api/contadores');
                 const data = await response.json();
                 
                 if (data && data.success !== false) {
