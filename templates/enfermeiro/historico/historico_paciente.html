@@ -184,7 +184,7 @@
                             {{ paciente.nome }}
                         </h2>
                         <p class="mb-0 opacity-75">
-                            <i class="fas fa-id-card me-1"></i> Prontuário: {{ paciente.prontuario or 'N/A' }}
+                            <i class="fas fa-id-card me-1"></i> {{ paciente.prontuario or 'N/A' }}
                             <span class="mx-2">|</span>
                             <i class="fas fa-birthday-cake me-1"></i> 
                             {{ paciente.idade or 'N/I' }} anos
@@ -329,7 +329,7 @@
                             
                             <!-- Botão Ver Detalhes da Consulta -->
                             <div class="mt-2">
-                                <a href="/consulta/{{ afericao.consulta_id }}" 
+                                <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=afericao.consulta_id) }}" 
                                    class="btn btn-sm btn-outline-primary btn-outline-historic"
                                    target="_blank">
                                     <i class="fas fa-external-link-alt me-1"></i> Ver Detalhes da Consulta
@@ -365,7 +365,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Tooltips
         var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
         tooltipTriggerList.map(function (tooltipTriggerEl) {
             return new bootstrap.Tooltip(tooltipTriggerEl);
