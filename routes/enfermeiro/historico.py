@@ -1,8 +1,8 @@
 # routes/enfermeiro/historico.py
-
 from flask import Blueprint, render_template, flash, redirect, url_for, session
 from .utils import execute_query, enfermeiro_required, classificar_pressao, decode_bytes
 import logging
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ def historico_paciente_detalhes(paciente_id):
         flash('Paciente não encontrado.', 'danger')
         return redirect(url_for('enfermeiro.historico.historico_pacientes'))
     
-    # Histórico de aferições
+    # Buscar histórico de aferições
     afericoes = execute_query("""
         SELECT 
             sv.id, 
@@ -124,6 +124,17 @@ def historico_paciente_detalhes(paciente_id):
             'consulta_id': a.get('consulta_id')
         })
     
+    # Calcular idade
+    idade = None
+    if paciente.get('data_nascimento'):
+        hoje = datetime.now().date()
+        data_nasc = paciente['data_nascimento']
+        if isinstance(data_nasc, datetime):
+            data_nasc = data_nasc.date()
+        idade = hoje.year - data_nasc.year
+        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+            idade -= 1
+    
     return render_template('enfermeiro/historico/paciente_detalhes.html',
         paciente={
             'id': paciente.get('id'),
@@ -132,7 +143,8 @@ def historico_paciente_detalhes(paciente_id):
             'telefone': decode_bytes(paciente.get('telefone')),
             'data_nascimento': paciente.get('data_nascimento'),
             'genero': decode_bytes(paciente.get('genero')),
-            'endereco': decode_bytes(paciente.get('endereco'))
+            'endereco': decode_bytes(paciente.get('endereco')),
+            'idade': idade
         },
         afericoes=afericoes_lista,
         classificar_pressao=classificar_pressao)
