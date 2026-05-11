@@ -496,6 +496,13 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
         
+        # ===================== ROTA: HISTÓRICO DO PACIENTE (REDIRECIONA PARA ENFERMEIRO) =====================
+        @medico_bp.route('/paciente/<int:paciente_id>/historico')
+        @profissional_saude_required
+        def historico_paciente(paciente_id):
+            """Redireciona para o histórico do paciente (sistema de enfermagem)"""
+            return redirect(url_for('enfermeiro.historico.historico_paciente', paciente_id=paciente_id))
+        
         # ===================== LISTA DE MÓDULOS EXISTENTES =====================
         modules = [
             init_medico_dashboard(base),
@@ -549,7 +556,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
-            output += "</table><br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
+            output += "\\弥<br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
             return output
         
         logger.info("Blueprint médico inicializado com sucesso!")
