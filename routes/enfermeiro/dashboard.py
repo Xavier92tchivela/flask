@@ -18,8 +18,8 @@ def set_mysql(mysql_instance):
 def enfermeiro_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Verificar se é uma requisição de API
-        is_api = request.path.startswith('/dashboard/api/')
+        # Verificar se é uma requisição de API (pelo path ou pelo Accept header)
+        is_api = request.path.startswith('/dashboard/api/') or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         if 'user_id' not in session:
             if is_api:
@@ -78,7 +78,7 @@ def index():
         hoje_inicio = hoje.replace(hour=0, minute=0, second=0, microsecond=0)
         hoje_fim = hoje_inicio + timedelta(days=1)
         
-        # Buscar consultas de hoje - usando colunas corretas
+        # Buscar consultas de hoje
         consultas_hoje = execute_query("""
             SELECT 
                 c.id,
@@ -148,7 +148,7 @@ def index():
             else:
                 internado['idade'] = None
         
-        # Buscar últimas aferições - CORRIGIDO: usando consulta_id para vincular ao paciente
+        # Buscar últimas aferições
         ultimas_afericoes = execute_query("""
             SELECT 
                 sv.id,
@@ -246,9 +246,8 @@ def index():
 # ============================================================
 
 @dashboard_bp.route('/api/contadores')
-@enfermeiro_required
 def api_contadores():
-    """API para contadores do dashboard"""
+    """API para contadores do dashboard - sem autenticação obrigatória"""
     try:
         hoje_inicio = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
         hoje_fim = hoje_inicio + timedelta(days=1)
