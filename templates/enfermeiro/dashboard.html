@@ -1313,7 +1313,7 @@
             return weekNo;
         }
         
-        // Refresh Dashboard - URL CORRIGIDA
+        // Refresh Dashboard - URL CORRIGIDA para /enfermeiro/api/contadores
         async function refreshDashboard() {
             try {
                 const refreshBtn = document.querySelector('button[onclick="refreshDashboard()"]');
@@ -1322,8 +1322,8 @@
                     refreshBtn.disabled = true;
                 }
                 
-                // 🔧 CORREÇÃO: Usar o caminho correto da API do blueprint
-                const response = await fetch('/dashboard/api/contadores');
+                // 🔧 CORREÇÃO: Usar o caminho correto da API (rota do blueprint enfermeiro)
+                const response = await fetch('/enfermeiro/api/contadores');
                 const data = await response.json();
                 
                 if (data && data.success !== false) {
