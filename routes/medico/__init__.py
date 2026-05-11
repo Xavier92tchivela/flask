@@ -188,7 +188,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 consulta_id = data.get('consulta_id')
                 diagnostico = data.get('diagnostico', '')
-                observacoes = data.get('observacoes_gerais', '')
+                observacoes = data.get('observacoes_geralis', '')
                 receita_texto = data.get('receita_texto', '')
                 
                 user_type = session.get('user_type')
@@ -501,7 +501,8 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         @profissional_saude_required
         def historico_paciente(paciente_id):
             """Redireciona para o histórico do paciente (sistema de enfermagem)"""
-            return redirect(url_for('enfermeiro.historico.historico_paciente', paciente_id=paciente_id))
+            # Usando URL direta para evitar erros de endpoint
+            return redirect(f'/enfermeiro/historico/paciente/{paciente_id}')
         
         # ===================== LISTA DE MÓDULOS EXISTENTES =====================
         modules = [
@@ -552,7 +553,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "<table><th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
+            output += "<table><th>Endpoint</th><th>URL</th><th>Métodos</th><tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
