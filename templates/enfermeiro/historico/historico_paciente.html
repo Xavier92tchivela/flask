@@ -52,6 +52,7 @@
                         {% else %}{{ paciente.genero or 'Não informado' }}
                         {% endif %}
                     </p>
+                    <p><strong><i class="fas fa-calendar me-2"></i>Idade:</strong> {{ paciente.idade or 'Não informado' }} anos</p>
                 </div>
             </div>
             {% if paciente.endereco %}
@@ -150,12 +151,12 @@
                                     <span class="badge bg-secondary">-</span>
                                 {% endif %}
                             </td>
-                            <td class="align-middle">{{ afericao.frequencia_cardiaca or '-' }}</td>
-                            <td class="align-middle">{{ afericao.frequencia_respiratoria or '-' }}</td>
+                            <td class="align-middle">{{ afericao.frequencia_cardiaca or '-' }} bpm</td>
+                            <td class="align-middle">{{ afericao.frequencia_respiratoria or '-' }} rpm</td>
                             <td class="align-middle">{{ afericao.temperatura or '-' }}°C</td>
                             <td class="align-middle">{{ afericao.saturacao_oxigenio or '-' }}%</td>
-                            <td class="align-middle">{{ afericao.glicemia or '-' }}</td>
-                            <td class="align-middle">{{ afericao.peso or '-' }}kg</td>
+                            <td class="align-middle">{{ afericao.glicemia or '-' }} mg/dL</td>
+                            <td class="align-middle">{{ afericao.peso or '-' }} kg</td>
                             <td class="align-middle">
                                 <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=afericao.consulta_id) }}" 
                                    class="btn btn-sm btn-outline-primary"
