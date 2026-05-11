@@ -85,6 +85,51 @@ def historico_paciente_detalhes(paciente_id):
         flash('Paciente não encontrado.', 'danger')
         return redirect(url_for('enfermeiro.historico.historico_pacientes'))
     
+    # Buscar histórico de consultas com diagnósticos e receitas
+    consultas = execute_query("""
+        SELECT 
+            c.id,
+            c.data_hora,
+            c.status,
+            c.sintomas,
+            c.observacoes,
+            d.diagnostico_final,
+            d.diagnostico_preliminar,
+            r.prescricao,
+            r.recomendacoes,
+            r.diagnostico as diagnostico_receita,
+            m.u_nome as medico_nome,
+            m.especialidade as medico_especialidade
+        FROM consultas c
+        LEFT JOIN diagnostico d ON c.id = d.consulta_id
+        LEFT JOIN receita r ON c.id = r.consulta_id
+        LEFT JOIN (
+            SELECT m.id, u.nome as u_nome, m.especialidade
+            FROM medicos m
+            JOIN usuarios u ON m.usuario_id = u.id
+        ) m ON c.medico_id = m.id
+        WHERE c.paciente_id = %s
+        ORDER BY c.data_hora DESC
+    """, (paciente_id,), fetch=True) or []
+    
+    # Converter consultas para lista de dicionários
+    consultas_lista = []
+    for cons in consultas:
+        consultas_lista.append({
+            'id': cons.get('id'),
+            'data_hora': cons.get('data_hora'),
+            'status': decode_bytes(cons.get('status')),
+            'sintomas': decode_bytes(cons.get('sintomas')),
+            'observacoes': decode_bytes(cons.get('observacoes')),
+            'diagnostico_final': decode_bytes(cons.get('diagnostico_final')),
+            'diagnostico_preliminar': decode_bytes(cons.get('diagnostico_preliminar')),
+            'diagnostico_receita': decode_bytes(cons.get('diagnostico_receita')),
+            'prescricao': decode_bytes(cons.get('prescricao')),
+            'recomendacoes': decode_bytes(cons.get('recomendacoes')),
+            'medico_nome': decode_bytes(cons.get('medico_nome')),
+            'medico_especialidade': decode_bytes(cons.get('medico_especialidade'))
+        })
+    
     # Buscar histórico de aferições
     afericoes = execute_query("""
         SELECT 
@@ -98,7 +143,6 @@ def historico_paciente_detalhes(paciente_id):
             sv.peso,
             sv.data_afericao, 
             sv.observacoes,
-            c.data_hora as data_consulta, 
             c.id as consulta_id
         FROM sinais_vitais sv
         JOIN consultas c ON sv.consulta_id = c.id
@@ -120,7 +164,6 @@ def historico_paciente_detalhes(paciente_id):
             'peso': a.get('peso'),
             'data_afericao': a.get('data_afericao'),
             'observacoes': decode_bytes(a.get('observacoes')),
-            'data_consulta': a.get('data_consulta'),
             'consulta_id': a.get('consulta_id')
         })
     
@@ -135,6 +178,12 @@ def historico_paciente_detalhes(paciente_id):
         if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
             idade -= 1
     
+    # Estatísticas
+    total_consultas = len(consultas_lista)
+    total_afericoes = len(afericoes_lista)
+    total_receitas = sum(1 for c in consultas_lista if c.get('prescricao'))
+    total_diagnosticos = sum(1 for c in consultas_lista if c.get('diagnostico_final') or c.get('diagnostico_preliminar'))
+    
     return render_template('enfermeiro/historico/paciente_detalhes.html',
         paciente={
             'id': paciente.get('id'),
@@ -146,5 +195,10 @@ def historico_paciente_detalhes(paciente_id):
             'endereco': decode_bytes(paciente.get('endereco')),
             'idade': idade
         },
+        consultas=consultas_lista,
         afericoes=afericoes_lista,
+        total_consultas=total_consultas,
+        total_afericoes=total_afericoes,
+        total_receitas=total_receitas,
+        total_diagnosticos=total_diagnosticos,
         classificar_pressao=classificar_pressao)
