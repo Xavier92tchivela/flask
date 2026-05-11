@@ -12,12 +12,6 @@ Receita Médica #{{ receita.id }}
 </h2>
 
 <div>
-<a href="{{ url_for('paciente.historico_consultas') }}" 
-   class="btn btn-info btn-sm me-2"
-   title="Ver todo o histórico de consultas">
-    <i class="fas fa-history me-1"></i> Ver Histórico
-</a>
-
 {% if receita.pdf_gerado %}
 <a href="{{ url_for('paciente.download_receita_pdf', receita_id=receita.id) }}" class="btn btn-success btn-sm">
 <i class="fas fa-download"></i> Download
@@ -342,4 +336,4 @@ display:none;
 }
 </style>
 
-{% endblock %}
+{% endblock %} 
