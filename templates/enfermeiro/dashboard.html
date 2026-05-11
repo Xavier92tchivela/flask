@@ -1089,7 +1089,17 @@
                             <div class="border-bottom p-3 {% if loop.first %}border-top{% endif %}">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <div>
-                                        <div class="fw-semibold">{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</div>
+                                        <div class="fw-semibold">
+                                            {% if consulta.paciente_nome %}
+                                                {% if consulta.paciente_nome.__class__.__name__ == 'bytes' %}
+                                                    {{ consulta.paciente_nome.decode('utf-8') }}
+                                                {% else %}
+                                                    {{ consulta.paciente_nome }}
+                                                {% endif %}
+                                            {% else %}
+                                                Paciente
+                                            {% endif %}
+                                        </div>
                                         <small class="text-muted d-block mt-1">{{ consulta.hora if consulta.hora else '' }}</small>
                                     </div>
                                     <div class="text-end">
@@ -1139,9 +1149,19 @@
                                         <td class="px-3 py-2">
                                             <div class="d-flex align-items-center">
                                                 <i class="fas fa-user-circle me-2 text-muted"></i>
-                                                <span>{{ consulta.paciente_nome if consulta.paciente_nome else 'Paciente' }}</span>
+                                                <span>
+                                                    {% if consulta.paciente_nome %}
+                                                        {% if consulta.paciente_nome.__class__.__name__ == 'bytes' %}
+                                                            {{ consulta.paciente_nome.decode('utf-8') }}
+                                                        {% else %}
+                                                            {{ consulta.paciente_nome }}
+                                                        {% endif %}
+                                                    {% else %}
+                                                        Paciente
+                                                    {% endif %}
+                                                </span>
                                             </div>
-                                        </table>
+                                        </td>
                                         <td class="px-3 py-2">{{ consulta.medico_nome if consulta.medico_nome else 'Não informado' }}</td>
                                         <td class="px-3 py-2">{{ consulta.hora if consulta.hora else '' }}</td>
                                         <td class="px-3 py-2">
