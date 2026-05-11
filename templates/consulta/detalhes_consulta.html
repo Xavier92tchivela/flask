@@ -1,4 +1,3 @@
-<!-- templates/consulta/detalhes_consulta.html -->
 {% extends "base.html" %}
 
 {% block title %}Detalhes da Consulta #{{ consulta.id }}{% endblock %}
@@ -33,6 +32,17 @@
                 </div>
                 
                 <div class="card-body p-2 p-md-4">
+                    <!-- Botão Ver Histórico do Paciente -->
+                    <div class="d-grid gap-2 mb-3 mb-md-4">
+                        <a href="{{ url_for('medico.historico_paciente', paciente_id=consulta.paciente_id) }}" 
+                           class="btn btn-info btn-lg py-2 py-md-3 shadow-sm"
+                           style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); border: none;">
+                            <i class="fas fa-history me-2 fa-lg"></i> 
+                            <span class="fw-bold">VER HISTÓRICO DO PACIENTE</span>
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+
                     <!-- Informações do Paciente e Médico -->
                     <div class="row g-2 g-md-4 mb-3 mb-md-4">
                         <div class="col-12 col-md-6">
@@ -184,7 +194,7 @@
 
                     <!-- ===== BOTÃO PARA SINAIS VITAIS ===== -->
                     <div class="d-grid gap-2 mb-3">
-                        <button type="button" class="btn btn-danger btn-lg py-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#sinaisVitaisModal">
+                        <button type="button" class="btn btn-danger btn-lg py-2 py-md-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#sinaisVitaisModal">
                             <i class="fas fa-heartbeat me-2 fa-lg"></i> 
                             <span class="fw-bold">REGISTRAR SINAIS VITAIS</span>
                             <i class="fas fa-arrow-right ms-2"></i>
@@ -455,7 +465,7 @@
     </div>
 </div>
 
-<!-- Modal de Sinais Vitais -->
+<!-- Modal de Sinais Vitais - RESPONSIVO PARA TELEFONE -->
 <div class="modal fade" id="sinaisVitaisModal" tabindex="-1" aria-labelledby="sinaisVitaisModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
         <div class="modal-content border-0 shadow-lg">
@@ -469,69 +479,80 @@
             <form id="formSinaisVitais">
                 <input type="hidden" name="consulta_id" value="{{ consulta.id }}">
                 
-                <div class="modal-body p-4">
+                <div class="modal-body p-3 p-md-4">
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-heart-pulse text-danger me-1"></i>Pressão Arterial
                             </label>
                             <input type="text" class="form-control" name="pressao_arterial" 
-                                   placeholder="120 x 80">
+                                   placeholder="Ex: 120 x 80" style="font-size: 16px;">
                             <small class="text-muted">Formato: 120 x 80</small>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-heart text-danger me-1"></i>Frequência Cardíaca
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" name="frequencia_cardiaca" 
-                                       placeholder="78" min="0" max="300">
+                                       placeholder="78" min="0" max="300" style="font-size: 16px;">
                                 <span class="input-group-text">bpm</span>
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-lungs text-primary me-1"></i>Frequência Respiratória
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" name="frequencia_respiratoria" 
-                                       placeholder="16" min="0" max="100">
+                                       placeholder="16" min="0" max="100" style="font-size: 16px;">
                                 <span class="input-group-text">rpm</span>
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-thermometer-half text-warning me-1"></i>Temperatura
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" name="temperatura" 
-                                       placeholder="36.5" step="0.1" min="30" max="45">
+                                       placeholder="36.5" step="0.1" min="30" max="45" style="font-size: 16px;">
                                 <span class="input-group-text">°C</span>
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-wind text-info me-1"></i>Saturação de Oxigênio
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" name="saturacao_oxigenio" 
-                                       placeholder="98" min="0" max="100">
+                                       placeholder="98" min="0" max="100" style="font-size: 16px;">
                                 <span class="input-group-text">%</span>
                             </div>
                         </div>
                         
-                      
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
+                            <label class="form-label fw-bold">
+                                <i class="fas fa-tint text-purple me-1"></i>Glicemia
+                            </label>
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="glicemia" 
+                                       placeholder="90" min="0" max="600" step="1" style="font-size: 16px;">
+                                <span class="input-group-text">mg/dL</span>
+                            </div>
+                            <small class="text-muted">Em jejum: 70-99 mg/dL | Pós-prandial: &lt;140 mg/dL</small>
+                        </div>
+                        
+                        <div class="col-12 col-sm-6">
                             <label class="form-label fw-bold">
                                 <i class="fas fa-weight-scale text-secondary me-1"></i>Peso
                             </label>
                             <div class="input-group">
                                 <input type="number" class="form-control" name="peso" 
-                                       placeholder="70" step="0.1" min="0" max="300">
+                                       placeholder="70" step="0.1" min="0" max="300" style="font-size: 16px;">
                                 <span class="input-group-text">kg</span>
                             </div>
                             <small class="text-muted">Importante para cálculo de dosagens</small>
@@ -541,16 +562,16 @@
                             <label class="form-label fw-bold">
                                 <i class="fas fa-comment text-secondary me-1"></i>Observações
                             </label>
-                            <textarea class="form-control" name="observacoes" rows="2"></textarea>
+                            <textarea class="form-control" name="observacoes" rows="3" style="font-size: 16px;" placeholder="Observações importantes sobre os sinais vitais..."></textarea>
                         </div>
                     </div>
                 </div>
                 
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <div class="modal-footer bg-light p-3 flex-column flex-sm-row">
+                    <button type="button" class="btn btn-secondary w-100 w-sm-auto mb-2 mb-sm-0" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>Cancelar
                     </button>
-                    <button type="button" class="btn btn-danger" id="btnSalvarSinais">
+                    <button type="button" class="btn btn-danger w-100 w-sm-auto" id="btnSalvarSinais">
                         <i class="fas fa-save me-1"></i>Salvar Sinais Vitais
                     </button>
                 </div>
@@ -593,6 +614,25 @@
     .badge { font-size: 0.7rem; }
     .btn-sm { font-size: 0.8rem; }
     .small { font-size: 0.75rem; }
+    .modal-body { padding: 1rem !important; }
+    .modal-footer .btn { width: 100%; margin-bottom: 0.5rem; }
+    .modal-footer .btn:last-child { margin-bottom: 0; }
+}
+@media (max-width: 576px) {
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+    .container-fluid {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    .btn-lg {
+        font-size: 0.9rem;
+        padding: 10px 12px;
+    }
+    .info-icon {
+        width: 18px !important;
+    }
 }
 .btn:active {
     transform: scale(0.98);
@@ -608,6 +648,9 @@
     background: linear-gradient(135deg, #1e7e34 0%, #155d27 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 15px rgba(40, 167, 69, 0.3);
+}
+input, select, textarea {
+    font-size: 16px !important; /* Evita zoom automático no iOS */
 }
 </style>
 
