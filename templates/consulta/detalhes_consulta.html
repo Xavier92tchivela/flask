@@ -32,9 +32,9 @@
                 </div>
                 
                 <div class="card-body p-2 p-md-4">
-                    <!-- Botão Ver Histórico do Paciente - CORRIGIDO -->
+                    <!-- Botão Ver Histórico do Paciente - URL CORRETA -->
                     <div class="d-grid gap-2 mb-3 mb-md-4">
-                        <a href="/enfermeiro/historico/paciente/{{ consulta.paciente_id }}" 
+                        <a href="{{ url_for('enfermeiro.historico.historico_paciente_detalhes', paciente_id=consulta.paciente_id) }}" 
                            class="btn btn-info btn-lg py-2 py-md-3 shadow-sm"
                            style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); border: none;">
                             <i class="fas fa-history me-2 fa-lg"></i> 
