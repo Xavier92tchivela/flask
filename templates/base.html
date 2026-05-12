@@ -374,23 +374,34 @@
 
     <!-- Main Content - Responsivo -->
     <main class="container my-3 my-md-4">
-        <!-- Flash Messages - Responsivos com correção para bytes -->
+        <!-- Flash Messages - COM FILTRO PARA REMOVER MENSAGENS INDESEJADAS -->
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
+                    {% set mensagem_texto = '' %}
+                    {% if message.__class__.__name__ == 'bytes' %}
+                        {% set mensagem_texto = message.decode('utf-8') %}
+                    {% else %}
+                        {% set mensagem_texto = message|string %}
+                    {% endif %}
+                    
+                    {# FILTRO: Remove mensagens "Registro nao encontrado" #}
+                    {% set ignorar = false %}
+                    {% if 'Registro nao encontrado' in mensagem_texto or 'Registro não encontrado' in mensagem_texto or 'Nenhum registro' in mensagem_texto %}
+                        {% set ignorar = true %}
+                    {% endif %}
+                    
+                    {% if not ignorar and mensagem_texto and mensagem_texto != 'None' %}
                     <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
                         <div class="d-flex align-items-center">
                             <i class="fas fa-{% if category == 'success' %}check-circle{% elif category == 'danger' %}exclamation-circle{% elif category == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
                             <div class="flex-grow-1">
-                                {% if message.__class__.__name__ == 'bytes' %}
-                                    {{ message.decode('utf-8') }}
-                                {% else %}
-                                    {{ message }}
-                                {% endif %}
+                                {{ mensagem_texto }}
                             </div>
                             <button type="button" class="btn-close ms-2" data-bs-dismiss="alert" aria-label="Close"></button>
                         </div>
                     </div>
+                    {% endif %}
                 {% endfor %}
             {% endif %}
         {% endwith %}
