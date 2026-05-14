@@ -17,6 +17,17 @@ def set_mysql(mysql_instance):
     from .utils import set_mysql as set_utils_mysql
     set_utils_mysql(mysql_instance)
 
+# Decorator que permite tanto enfermeiro quanto médico
+def enfermeiro_ou_medico_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if session.get('perfil') not in ['enfermeiro', 'medico']:
+            flash('Acesso não autorizado.', 'danger')
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 @sinais_vitais_bp.route('/')
 @enfermeiro_required
@@ -86,18 +97,15 @@ def listar_sinais_vitais():
     
     # Formatar datas para exibição
     for sv in sinais_vitais:
-        # Formatar data de aferição
         if sv.get('data_afericao'):
             if isinstance(sv['data_afericao'], datetime):
                 sv['data_afericao_formatada'] = sv['data_afericao'].strftime('%d/%m/%Y %H:%M')
             else:
                 sv['data_afericao_formatada'] = str(sv['data_afericao'])
         
-        # Formatar data de nascimento
         if sv.get('data_nascimento'):
             if isinstance(sv['data_nascimento'], (date, datetime)):
                 sv['data_nascimento_formatada'] = sv['data_nascimento'].strftime('%d/%m/%Y')
-                # Calcular idade
                 hoje = date.today()
                 nascimento = sv['data_nascimento']
                 if isinstance(nascimento, datetime):
@@ -109,7 +117,6 @@ def listar_sinais_vitais():
             else:
                 sv['data_nascimento_formatada'] = str(sv['data_nascimento'])
         
-        # Formatar data da consulta
         if sv.get('data_hora_consulta'):
             if isinstance(sv['data_hora_consulta'], datetime):
                 sv['data_consulta_formatada'] = sv['data_hora_consulta'].strftime('%d/%m/%Y')
@@ -131,10 +138,18 @@ def listar_sinais_vitais():
 
 
 @sinais_vitais_bp.route('/registrar', methods=['GET', 'POST'])
-@enfermeiro_required
-def registrar_sinais_vitais():
-    """Registra novos sinais vitais"""
+@sinais_vitais_bp.route('/registrar/<int:consulta_id>', methods=['GET', 'POST'])
+@enfermeiro_ou_medico_required
+def registrar_sinais_vitais(consulta_id=None):
+    """Registra novos sinais vitais (enfermeiro ou médico)"""
+    usuario_id = session.get('user_id')
+    perfil = session.get('perfil')
     enfermeiro_id = session.get('enfermeiro_id')
+    medico_id = session.get('medico_id')
+    
+    # Para médico, usar o ID do médico
+    if perfil == 'medico' and not enfermeiro_id:
+        enfermeiro_id = medico_id  # Fallback: usar medico_id como enfermeiro_id
     
     if request.method == 'POST':
         consulta_id = request.form.get('consulta_id')
@@ -153,14 +168,12 @@ def registrar_sinais_vitais():
         
         # Validar pressão arterial
         if pressao:
-            # Substituir / por x para padronizar
             pressao = pressao.replace('/', 'x')
             if not re.match(r'^\d{2,3}x\d{2,3}$', pressao):
                 flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
                 return redirect(url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta_id))
         
         try:
-            # Inserir sinais vitais
             result = execute_query("""
                 INSERT INTO sinais_vitais (
                     consulta_id, enfermeiro_id, pressao_arterial,
@@ -170,7 +183,6 @@ def registrar_sinais_vitais():
             """, (consulta_id, enfermeiro_id, pressao, fc, fr, temp, sat, glicemia, peso, observacoes))
             
             if result:
-                # Atualizar status da consulta
                 execute_query("""
                     UPDATE consultas 
                     SET status_triagem = 'REALIZADA', 
@@ -180,7 +192,12 @@ def registrar_sinais_vitais():
                 """, (enfermeiro_id, consulta_id))
                 
                 flash('Sinais vitais registrados com sucesso!', 'success')
-                logger.info(f"Sinais vitais registrados para consulta {consulta_id} pelo enfermeiro {enfermeiro_id}")
+                logger.info(f"Sinais vitais registrados para consulta {consulta_id} por {perfil} {usuario_id}")
+                
+                # Redirecionar de volta para a página de detalhes da consulta se veio do médico
+                origem = request.args.get('origem') or request.form.get('origem')
+                if origem == 'medico':
+                    return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id))
             else:
                 flash('Erro ao registrar sinais vitais.', 'danger')
                 
@@ -188,13 +205,68 @@ def registrar_sinais_vitais():
             logger.error(f"Erro ao registrar sinais vitais: {e}")
             flash(f'Erro ao registrar sinais vitais: {str(e)}', 'danger')
         
+        # Redirecionar padrão
+        if perfil == 'medico':
+            return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id))
         return redirect(url_for('enfermeiro.sinais_vitais.listar_sinais_vitais'))
     
     # GET - Mostrar formulário
-    consulta_id = request.args.get('consulta_id')
+    if consulta_id:
+        # Buscar consulta específica
+        consulta_raw = execute_query("""
+            SELECT 
+                c.id, 
+                u.nome as paciente_nome, 
+                p.id as paciente_id,
+                p.data_nascimento,
+                p.genero,
+                c.data_hora,
+                c.status,
+                c.status_triagem,
+                c.medico_id
+            FROM consultas c
+            JOIN pacientes p ON c.paciente_id = p.id
+            JOIN usuarios u ON p.usuario_id = u.id
+            WHERE c.id = %s
+        """, (consulta_id,), fetch=True, one=True)
+        
+        if not consulta_raw:
+            flash('Consulta não encontrada.', 'danger')
+            if perfil == 'medico':
+                return redirect(url_for('medico.dashboard'))
+            return redirect(url_for('enfermeiro.dashboard.index'))
+        
+        # Para médico, verificar se a consulta é dele
+        if perfil == 'medico' and consulta_raw.get('medico_id') != medico_id:
+            flash('Você não tem permissão para registrar sinais vitais nesta consulta.', 'danger')
+            return redirect(url_for('medico.dashboard'))
+        
+        consulta = dict(consulta_raw)
+        
+        # Formatar data
+        if consulta.get('data_hora'):
+            if isinstance(consulta['data_hora'], datetime):
+                consulta['data_consulta'] = consulta['data_hora'].strftime('%d/%m/%Y')
+                consulta['hora_consulta'] = consulta['data_hora'].strftime('%H:%M')
+        
+        if consulta.get('data_nascimento'):
+            if isinstance(consulta['data_nascimento'], (date, datetime)):
+                nascimento = consulta['data_nascimento']
+                if isinstance(nascimento, datetime):
+                    nascimento = nascimento.date()
+                hoje = date.today()
+                idade = hoje.year - nascimento.year
+                if (hoje.month, hoje.day) < (nascimento.month, nascimento.day):
+                    idade -= 1
+                consulta['idade'] = idade
+        
+        return render_template('enfermeiro/sinais_vitais/registrar.html',
+            consulta_especifica=consulta,
+            consulta_selecionada=consulta,
+            perfil=perfil)
     
-    # BUSCAR TODAS AS CONSULTAS - INCLUINDO REALIZADAS
-    consultas_pendentes = execute_query("""
+    # Sem consulta_id específico - mostrar lista de consultas
+    consultas = execute_query("""
         SELECT 
             c.id, 
             u.nome as paciente_nome, 
@@ -208,148 +280,45 @@ def registrar_sinais_vitais():
         JOIN pacientes p ON c.paciente_id = p.id
         JOIN usuarios u ON p.usuario_id = u.id
         WHERE c.status IN ('agendada', 'confirmada', 'AGENDADA', 'CONFIRMADA', 'Aguardando', 'Pendente', 'realizada', 'REALIZADA')
-        ORDER BY 
-            c.data_hora DESC
+        ORDER BY c.data_hora DESC
         LIMIT 200
     """, fetch=True) or []
     
-    # Se não encontrou, busca todas exceto canceladas
-    if len(consultas_pendentes) == 0:
-        consultas_pendentes = execute_query("""
-            SELECT 
-                c.id, 
-                u.nome as paciente_nome, 
-                p.id as paciente_id,
-                p.data_nascimento,
-                p.genero,
-                c.data_hora,
-                c.status,
-                c.status_triagem
-            FROM consultas c
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios u ON p.usuario_id = u.id
-            WHERE c.status NOT IN ('cancelada', 'CANCELADA')
-            ORDER BY c.data_hora DESC
-            LIMIT 200
-        """, fetch=True) or []
-    
-    # FORMATAR MANUALMENTE OS DADOS PARA EXIBIÇÃO
     consultas_formatadas = []
-    for c in consultas_pendentes:
+    for c in consultas:
         consulta_dict = dict(c)
         
-        # Formatar data de nascimento e calcular idade
         if consulta_dict.get('data_nascimento'):
             if isinstance(consulta_dict['data_nascimento'], (date, datetime)):
                 nascimento = consulta_dict['data_nascimento']
                 if isinstance(nascimento, datetime):
                     nascimento = nascimento.date()
-                consulta_dict['data_nascimento_formatada'] = nascimento.strftime('%d/%m/%Y')
-                
-                # Calcular idade
                 hoje = date.today()
                 idade = hoje.year - nascimento.year
                 if (hoje.month, hoje.day) < (nascimento.month, nascimento.day):
                     idade -= 1
                 consulta_dict['idade'] = idade
-            else:
-                consulta_dict['data_nascimento_formatada'] = str(consulta_dict['data_nascimento'])
         
-        # Formatar data e hora da consulta
         if consulta_dict.get('data_hora'):
             if isinstance(consulta_dict['data_hora'], datetime):
                 consulta_dict['data_consulta'] = consulta_dict['data_hora'].strftime('%d/%m/%Y')
                 consulta_dict['hora_consulta'] = consulta_dict['data_hora'].strftime('%H:%M')
-                consulta_dict['data_hora_completa'] = consulta_dict['data_hora'].strftime('%d/%m/%Y %H:%M')
-            else:
-                consulta_dict['data_consulta'] = str(consulta_dict['data_hora'])
-                consulta_dict['hora_consulta'] = ''
-                consulta_dict['data_hora_completa'] = str(consulta_dict['data_hora'])
-        
-        # Definir situação da triagem
-        if consulta_dict.get('status_triagem') == 'REALIZADA':
-            consulta_dict['situacao_triagem'] = 'Triagem Realizada'
-            consulta_dict['situacao_cor'] = 'warning'
-        else:
-            consulta_dict['situacao_triagem'] = 'Aguardando Triagem'
-            consulta_dict['situacao_cor'] = 'success'
         
         consultas_formatadas.append(consulta_dict)
     
-    # Log para debug
-    logger.info(f"Consultas encontradas: {len(consultas_formatadas)}")
-    for c in consultas_formatadas:
-        logger.info(f"Consulta ID: {c['id']}, Paciente: {c['paciente_nome']}, "
-                   f"Data: {c.get('data_consulta', 'N/A')} às {c.get('hora_consulta', 'N/A')}, "
-                   f"Status: {c['status']}, Triagem: {c['status_triagem']}")
-    
-    # Separar consultas por situação
-    consultas_sem_triagem = [c for c in consultas_formatadas if c['status_triagem'] != 'REALIZADA']
-    consultas_com_triagem = [c for c in consultas_formatadas if c['status_triagem'] == 'REALIZADA']
-    
-    # Log específico para a consulta do Angelo (ID 50)
-    consulta_angelo = next((c for c in consultas_formatadas if c['id'] == 50), None)
-    if consulta_angelo:
-        logger.info(f"CONSULTA DO ANGELO ENCONTRADA: ID={consulta_angelo['id']}, "
-                   f"Paciente={consulta_angelo['paciente_nome']}, "
-                   f"Data={consulta_angelo.get('data_consulta')} {consulta_angelo.get('hora_consulta')}, "
-                   f"Status={consulta_angelo['status']}, Triagem={consulta_angelo['status_triagem']}")
-    else:
-        logger.info("CONSULTA DO ANGELO NÃO ENCONTRADA (ID 50)")
-    
-    # Se uma consulta específica foi solicitada, buscar seus dados
-    consulta_selecionada = None
-    if consulta_id:
-        consulta_selecionada_raw = execute_query("""
-            SELECT 
-                c.id,
-                u.nome as paciente_nome,
-                p.id as paciente_id,
-                p.data_nascimento,
-                p.genero,
-                c.data_hora,
-                c.status,
-                c.status_triagem
-            FROM consultas c
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios u ON p.usuario_id = u.id
-            WHERE c.id = %s
-        """, (consulta_id,), fetch=True, one=True)
-        
-        if consulta_selecionada_raw:
-            consulta_selecionada = dict(consulta_selecionada_raw)
-            
-            # Formatar data de nascimento
-            if consulta_selecionada.get('data_nascimento'):
-                if isinstance(consulta_selecionada['data_nascimento'], (date, datetime)):
-                    nascimento = consulta_selecionada['data_nascimento']
-                    if isinstance(nascimento, datetime):
-                        nascimento = nascimento.date()
-                    consulta_selecionada['data_nascimento_formatada'] = nascimento.strftime('%d/%m/%Y')
-                    
-                    # Calcular idade
-                    hoje = date.today()
-                    idade = hoje.year - nascimento.year
-                    if (hoje.month, hoje.day) < (nascimento.month, nascimento.day):
-                        idade -= 1
-                    consulta_selecionada['idade'] = idade
-            
-            # Formatar data da consulta
-            if consulta_selecionada.get('data_hora'):
-                if isinstance(consulta_selecionada['data_hora'], datetime):
-                    consulta_selecionada['data_consulta'] = consulta_selecionada['data_hora'].strftime('%d/%m/%Y')
-                    consulta_selecionada['hora_consulta'] = consulta_selecionada['data_hora'].strftime('%H:%M')
-                    consulta_selecionada['data_hora_completa'] = consulta_selecionada['data_hora'].strftime('%d/%m/%Y %H:%M')
+    consultas_sem_triagem = [c for c in consultas_formatadas if c.get('status_triagem') != 'REALIZADA']
+    consultas_com_triagem = [c for c in consultas_formatadas if c.get('status_triagem') == 'REALIZADA']
     
     return render_template('enfermeiro/sinais_vitais/registrar.html',
         consultas_pendentes=consultas_formatadas,
         consultas_sem_triagem=consultas_sem_triagem,
         consultas_com_triagem=consultas_com_triagem,
-        consulta_selecionada=consulta_selecionada)
+        consulta_selecionada=None,
+        perfil=perfil)
 
 
 @sinais_vitais_bp.route('/<int:vital_id>')
-@enfermeiro_required
+@enfermeiro_ou_medico_required
 def detalhes_sinais_vitais(vital_id):
     """Mostra detalhes de um registro de sinais vitais"""
     vital = execute_query("""
@@ -373,7 +342,6 @@ def detalhes_sinais_vitais(vital_id):
         flash('Registro não encontrado.', 'danger')
         return redirect(url_for('enfermeiro.sinais_vitais.listar_sinais_vitais'))
     
-    # Formatar datas
     if vital.get('data_afericao'):
         if isinstance(vital['data_afericao'], datetime):
             vital['data_afericao_formatada'] = vital['data_afericao'].strftime('%d/%m/%Y %H:%M')
@@ -383,7 +351,6 @@ def detalhes_sinais_vitais(vital_id):
             vital['data_consulta_formatada'] = vital['data_hora_consulta'].strftime('%d/%m/%Y')
             vital['hora_consulta_formatada'] = vital['data_hora_consulta'].strftime('%H:%M')
     
-    # Calcular idade
     if vital.get('data_nascimento'):
         if isinstance(vital['data_nascimento'], (date, datetime)):
             nascimento = vital['data_nascimento']
@@ -403,10 +370,11 @@ def detalhes_sinais_vitais(vital_id):
         formatar_data_hora=formatar_data_hora)
 
 
+# As demais rotas (editar, excluir, etc) permanecem apenas para enfermeiros
 @sinais_vitais_bp.route('/<int:vital_id>/editar', methods=['GET', 'POST'])
 @enfermeiro_required
 def editar_sinais_vitais(vital_id):
-    """Edita um registro de sinais vitais"""
+    """Edita um registro de sinais vitais (apenas enfermeiro)"""
     enfermeiro_id = session.get('enfermeiro_id')
     
     if request.method == 'POST':
@@ -419,7 +387,6 @@ def editar_sinais_vitais(vital_id):
         peso = request.form.get('peso') or None
         observacoes = request.form.get('observacoes')
         
-        # Validar pressão arterial
         if pressao:
             pressao = pressao.replace('/', 'x')
             if not re.match(r'^\d{2,3}x\d{2,3}$', pressao):
@@ -446,7 +413,6 @@ def editar_sinais_vitais(vital_id):
         
         return redirect(url_for('enfermeiro.sinais_vitais.detalhes_sinais_vitais', vital_id=vital_id))
     
-    # GET - Buscar dados do registro
     vital = execute_query("""
         SELECT 
             sv.*,
@@ -465,7 +431,6 @@ def editar_sinais_vitais(vital_id):
         flash('Registro não encontrado ou você não tem permissão para editá-lo.', 'danger')
         return redirect(url_for('enfermeiro.sinais_vitais.listar_sinais_vitais'))
     
-    # Formatar datas
     if vital.get('data_afericao'):
         if isinstance(vital['data_afericao'], datetime):
             vital['data_afericao_formatada'] = vital['data_afericao'].strftime('%d/%m/%Y %H:%M')
@@ -480,11 +445,10 @@ def editar_sinais_vitais(vital_id):
 @sinais_vitais_bp.route('/<int:vital_id>/excluir', methods=['POST'])
 @enfermeiro_required
 def excluir_sinais_vitais(vital_id):
-    """Exclui um registro de sinais vitais"""
+    """Exclui um registro de sinais vitais (apenas enfermeiro)"""
     enfermeiro_id = session.get('enfermeiro_id')
     
     try:
-        # Primeiro, obter o consulta_id para poder reverter o status da consulta
         registro = execute_query("""
             SELECT consulta_id FROM sinais_vitais 
             WHERE id = %s AND enfermeiro_id = %s
@@ -493,20 +457,17 @@ def excluir_sinais_vitais(vital_id):
         if registro:
             consulta_id = registro['consulta_id']
             
-            # Excluir o registro
             execute_query("""
                 DELETE FROM sinais_vitais 
                 WHERE id = %s AND enfermeiro_id = %s
             """, (vital_id, enfermeiro_id))
             
-            # Verificar se ainda existem outros registros para esta consulta
             outros_registros = execute_query("""
                 SELECT id FROM sinais_vitais 
                 WHERE consulta_id = %s
             """, (consulta_id,), fetch=True)
             
             if not outros_registros:
-                # Se não houver mais registros, atualizar o status da consulta
                 execute_query("""
                     UPDATE consultas 
                     SET status_triagem = NULL,
@@ -528,11 +489,10 @@ def excluir_sinais_vitais(vital_id):
 @sinais_vitais_bp.route('/excluir-por-consulta/<int:consulta_id>', methods=['POST'])
 @enfermeiro_required
 def excluir_sinais_vitais_por_consulta(consulta_id):
-    """Exclui todos os sinais vitais de uma consulta específica"""
+    """Exclui todos os sinais vitais de uma consulta específica (apenas enfermeiro)"""
     enfermeiro_id = session.get('enfermeiro_id')
     
     try:
-        # Verificar se existem registros
         registros = execute_query("""
             SELECT id, pressao_arterial, data_afericao 
             FROM sinais_vitais 
@@ -542,13 +502,11 @@ def excluir_sinais_vitais_por_consulta(consulta_id):
         if registros:
             logger.info(f"Encontrados {len(registros)} registros para consulta {consulta_id}")
             
-            # Excluir os registros
             execute_query("""
                 DELETE FROM sinais_vitais 
                 WHERE consulta_id = %s
             """, (consulta_id,))
             
-            # Atualizar status da consulta
             execute_query("""
                 UPDATE consultas 
                 SET status_triagem = NULL,
@@ -560,7 +518,6 @@ def excluir_sinais_vitais_por_consulta(consulta_id):
             logger.info(f"Sinais vitais da consulta {consulta_id} excluídos pelo enfermeiro {enfermeiro_id}")
         else:
             flash(f'Nenhum registro de sinais vitais encontrado para a consulta {consulta_id}.', 'warning')
-            logger.info(f"Nenhum registro encontrado para consulta {consulta_id}")
             
     except Exception as e:
         logger.error(f"Erro ao excluir sinais vitais: {e}")
@@ -574,13 +531,11 @@ def excluir_sinais_vitais_por_consulta(consulta_id):
 def testar_exclusao(consulta_id):
     """Rota de teste para verificar e excluir sinais vitais"""
     try:
-        # Verificar registros
         registros = execute_query("""
             SELECT * FROM sinais_vitais WHERE consulta_id = %s
         """, (consulta_id,), fetch=True)
         
         if registros:
-            # Criar uma representação HTML simples dos registros
             registros_html = "<br>".join([str(r) for r in registros])
             
             return f"""
@@ -656,25 +611,21 @@ def diagnostico():
     html = "<h1>DIAGNÓSTICO DO BANCO DE DADOS</h1>"
     
     try:
-        # 1. Verificar conexão
         if sinais_vitais_bp.mysql:
             html += "<p style='color:green'> Conexão com MySQL OK</p>"
         else:
             html += "<p style='color:red'> Sem conexão com MySQL</p>"
         
-        # 2. Verificar tabela sinais_vitais
         tabela = execute_query("SHOW TABLES LIKE 'sinais_vitais'", fetch=True)
         if tabela:
             html += "<p style='color:green'>Tabela 'sinais_vitais' existe</p>"
         else:
             html += "<p style='color:red'> Tabela 'sinais_vitais' NÃO existe</p>"
         
-        # 3. Contar registros em sinais_vitais
         total = execute_query("SELECT COUNT(*) as total FROM sinais_vitais", fetch=True, one=True)
         if total:
             html += f"<p> Total de registros em sinais_vitais: <strong>{total['total']}</strong></p>"
         
-        # 4. Verificar consulta 50
         consulta_50 = execute_query("SELECT * FROM consultas WHERE id = 50", fetch=True, one=True)
         if consulta_50:
             html += "<p style='color:green'> Consulta ID 50 encontrada</p>"
@@ -684,7 +635,6 @@ def diagnostico():
         else:
             html += "<p style='color:red'> Consulta ID 50 NÃO encontrada</p>"
         
-        # 5. Verificar sinais vitais da consulta 50
         sinais_50 = execute_query("SELECT * FROM sinais_vitais WHERE consulta_id = 50", fetch=True)
         if sinais_50:
             html += f"<p>🔍 Encontrados {len(sinais_50)} registros para consulta 50:</p><pre>"
@@ -694,7 +644,6 @@ def diagnostico():
         else:
             html += "<p>📭 Nenhum sinal vital encontrado para consulta 50</p>"
         
-        # 6. Teste de INSERT
         html += "<h2>Teste de INSERT</h2>"
         try:
             test_insert = execute_query("""
@@ -720,11 +669,9 @@ def diagnostico():
 
 
 @sinais_vitais_bp.route('/paciente/<int:paciente_id>')
-@enfermeiro_required
+@enfermeiro_ou_medico_required
 def historico_paciente(paciente_id):
     """Mostra histórico de sinais vitais de um paciente"""
-    enfermeiro_id = session.get('enfermeiro_id')
-    
     historico = execute_query("""
         SELECT 
             sv.*,
@@ -741,7 +688,6 @@ def historico_paciente(paciente_id):
         ORDER BY sv.data_afericao DESC
     """, (paciente_id,), fetch=True) or []
     
-    # Formatar datas
     for item in historico:
         if item.get('data_afericao'):
             if isinstance(item['data_afericao'], datetime):
