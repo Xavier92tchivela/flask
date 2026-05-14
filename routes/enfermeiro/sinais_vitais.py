@@ -3,10 +3,12 @@ from datetime import date, datetime
 from .utils import execute_query, enfermeiro_required, classificar_pressao, formatar_data, formatar_data_hora
 import logging
 import re
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
-sinais_vitais_bp = Blueprint('sinais_vitais', __name__, url_prefix='/sinais-vitais')
+# IMPORTANTE: O prefixo deve ser /enfermeiro/sinais-vitais
+sinais_vitais_bp = Blueprint('sinais_vitais', __name__, url_prefix='/enfermeiro/sinais-vitais')
 
 # Atributo para armazenar a conexão MySQL
 sinais_vitais_bp.mysql = None
@@ -17,15 +19,29 @@ def set_mysql(mysql_instance):
     from .utils import set_mysql as set_utils_mysql
     set_utils_mysql(mysql_instance)
 
-# Decorator que permite tanto enfermeiro quanto médico
+
 def enfermeiro_ou_medico_required(f):
-    from functools import wraps
+    """Decorator que permite acesso para enfermeiros e médicos"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if session.get('perfil') not in ['enfermeiro', 'medico']:
-            flash('Acesso não autorizado.', 'danger')
+        user_id = session.get('user_id')
+        perfil = session.get('perfil')
+        
+        logger.info(f"Verificando acesso: user_id={user_id}, perfil={perfil}")
+        
+        if not user_id:
+            logger.warning("Usuário não autenticado - redirecionando para login")
+            flash('Você precisa estar logado para acessar esta página.', 'danger')
             return redirect(url_for('auth.login'))
-        return f(*args, **kwargs)
+        
+        # Verificar perfil (case insensitive)
+        if perfil and perfil.lower() in ['enfermeiro', 'medico']:
+            logger.info(f"Acesso autorizado para {perfil}")
+            return f(*args, **kwargs)
+        
+        logger.warning(f"Perfil não autorizado: {perfil}")
+        flash('Acesso não autorizado. Apenas enfermeiros e médicos podem acessar.', 'danger')
+        return redirect(url_for('auth.login'))
     return decorated_function
 
 
@@ -39,7 +55,6 @@ def listar_sinais_vitais():
     per_page = 20
     offset = (page - 1) * per_page
     
-    # Filtros
     paciente = request.args.get('paciente', '')
     data_inicio = request.args.get('data_inicio', '')
     data_fim = request.args.get('data_fim', '')
@@ -95,7 +110,6 @@ def listar_sinais_vitais():
     
     sinais_vitais = execute_query(query, params_extended, fetch=True) or []
     
-    # Formatar datas para exibição
     for sv in sinais_vitais:
         if sv.get('data_afericao'):
             if isinstance(sv['data_afericao'], datetime):
@@ -147,12 +161,16 @@ def registrar_sinais_vitais(consulta_id=None):
     enfermeiro_id = session.get('enfermeiro_id')
     medico_id = session.get('medico_id')
     
-    # Para médico, usar o ID do médico
-    if perfil == 'medico' and not enfermeiro_id:
-        enfermeiro_id = medico_id  # Fallback: usar medico_id como enfermeiro_id
+    logger.info(f"Registrar SV - consulta_id={consulta_id}, perfil={perfil}, user_id={usuario_id}")
+    
+    # Responsável pelo registro (enfermeiro ou médico)
+    responsavel_id = enfermeiro_id if enfermeiro_id else medico_id
     
     if request.method == 'POST':
-        consulta_id = request.form.get('consulta_id')
+        consulta_id_post = request.form.get('consulta_id')
+        if not consulta_id_post and consulta_id:
+            consulta_id_post = consulta_id
+        
         pressao = request.form.get('pressao_arterial')
         fc = request.form.get('frequencia_cardiaca') or None
         fr = request.form.get('frequencia_respiratoria') or None
@@ -162,16 +180,15 @@ def registrar_sinais_vitais(consulta_id=None):
         peso = request.form.get('peso') or None
         observacoes = request.form.get('observacoes')
         
-        if not consulta_id:
+        if not consulta_id_post:
             flash('Selecione um paciente.', 'danger')
             return redirect(url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais'))
         
-        # Validar pressão arterial
         if pressao:
             pressao = pressao.replace('/', 'x')
             if not re.match(r'^\d{2,3}x\d{2,3}$', pressao):
                 flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
-                return redirect(url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta_id))
+                return redirect(url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta_id_post))
         
         try:
             result = execute_query("""
@@ -180,7 +197,7 @@ def registrar_sinais_vitais(consulta_id=None):
                     frequencia_cardiaca, frequencia_respiratoria, temperatura,
                     saturacao_oxigenio, glicemia, peso, data_afericao, observacoes
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)
-            """, (consulta_id, enfermeiro_id, pressao, fc, fr, temp, sat, glicemia, peso, observacoes))
+            """, (consulta_id_post, responsavel_id, pressao, fc, fr, temp, sat, glicemia, peso, observacoes))
             
             if result:
                 execute_query("""
@@ -189,15 +206,14 @@ def registrar_sinais_vitais(consulta_id=None):
                         enfermeiro_id = %s,
                         data_triagem = NOW()
                     WHERE id = %s
-                """, (enfermeiro_id, consulta_id))
+                """, (responsavel_id, consulta_id_post))
                 
                 flash('Sinais vitais registrados com sucesso!', 'success')
-                logger.info(f"Sinais vitais registrados para consulta {consulta_id} por {perfil} {usuario_id}")
+                logger.info(f"Sinais vitais registrados para consulta {consulta_id_post} por {perfil} {usuario_id}")
                 
-                # Redirecionar de volta para a página de detalhes da consulta se veio do médico
                 origem = request.args.get('origem') or request.form.get('origem')
-                if origem == 'medico':
-                    return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id))
+                if origem == 'medico' or perfil == 'medico':
+                    return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id_post))
             else:
                 flash('Erro ao registrar sinais vitais.', 'danger')
                 
@@ -205,14 +221,12 @@ def registrar_sinais_vitais(consulta_id=None):
             logger.error(f"Erro ao registrar sinais vitais: {e}")
             flash(f'Erro ao registrar sinais vitais: {str(e)}', 'danger')
         
-        # Redirecionar padrão
         if perfil == 'medico':
-            return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id))
+            return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id_post))
         return redirect(url_for('enfermeiro.sinais_vitais.listar_sinais_vitais'))
     
     # GET - Mostrar formulário
     if consulta_id:
-        # Buscar consulta específica
         consulta_raw = execute_query("""
             SELECT 
                 c.id, 
@@ -236,14 +250,12 @@ def registrar_sinais_vitais(consulta_id=None):
                 return redirect(url_for('medico.dashboard'))
             return redirect(url_for('enfermeiro.dashboard.index'))
         
-        # Para médico, verificar se a consulta é dele
         if perfil == 'medico' and consulta_raw.get('medico_id') != medico_id:
             flash('Você não tem permissão para registrar sinais vitais nesta consulta.', 'danger')
             return redirect(url_for('medico.dashboard'))
         
         consulta = dict(consulta_raw)
         
-        # Formatar data
         if consulta.get('data_hora'):
             if isinstance(consulta['data_hora'], datetime):
                 consulta['data_consulta'] = consulta['data_hora'].strftime('%d/%m/%Y')
@@ -263,9 +275,10 @@ def registrar_sinais_vitais(consulta_id=None):
         return render_template('enfermeiro/sinais_vitais/registrar.html',
             consulta_especifica=consulta,
             consulta_selecionada=consulta,
-            perfil=perfil)
+            perfil=perfil,
+            origem=request.args.get('origem', ''))
     
-    # Sem consulta_id específico - mostrar lista de consultas
+    # Sem consulta_id - mostrar lista
     consultas = execute_query("""
         SELECT 
             c.id, 
@@ -314,7 +327,8 @@ def registrar_sinais_vitais(consulta_id=None):
         consultas_sem_triagem=consultas_sem_triagem,
         consultas_com_triagem=consultas_com_triagem,
         consulta_selecionada=None,
-        perfil=perfil)
+        perfil=perfil,
+        origem=request.args.get('origem', ''))
 
 
 @sinais_vitais_bp.route('/<int:vital_id>')
@@ -330,7 +344,8 @@ def detalhes_sinais_vitais(vital_id):
             p.genero,
             c.data_hora as data_hora_consulta,
             c.status,
-            c.status_triagem
+            c.status_triagem,
+            sv.enfermeiro_id as responsavel_id
         FROM sinais_vitais sv
         JOIN consultas c ON sv.consulta_id = c.id
         JOIN pacientes p ON c.paciente_id = p.id
@@ -370,7 +385,6 @@ def detalhes_sinais_vitais(vital_id):
         formatar_data_hora=formatar_data_hora)
 
 
-# As demais rotas (editar, excluir, etc) permanecem apenas para enfermeiros
 @sinais_vitais_bp.route('/<int:vital_id>/editar', methods=['GET', 'POST'])
 @enfermeiro_required
 def editar_sinais_vitais(vital_id):
@@ -561,10 +575,10 @@ def testar_exclusao(consulta_id):
             <body>
                 <h2>Registros encontrados para consulta {consulta_id}:</h2>
                 <pre>{registros_html}</pre>
-                <form method="POST" action="/sinais-vitais/excluir-por-consulta/{consulta_id}">
+                <form method="POST" action="{url_for('enfermeiro.sinais_vitais.excluir_sinais_vitais_por_consulta', consulta_id=consulta_id)}">
                     <button type="submit">EXCLUIR AGORA</button>
                 </form>
-                <p><a href="/sinais-vitais">Voltar para lista</a></p>
+                <p><a href="{url_for('enfermeiro.sinais_vitais.listar_sinais_vitais')}">Voltar para lista</a></p>
             </body>
             </html>
             """
@@ -580,7 +594,7 @@ def testar_exclusao(consulta_id):
             </head>
             <body>
                 <h2>Nenhum registro encontrado para consulta {consulta_id}</h2>
-                <p><a href="/sinais-vitais">Voltar para lista</a></p>
+                <p><a href="{url_for('enfermeiro.sinais_vitais.listar_sinais_vitais')}">Voltar para lista</a></p>
             </body>
             </html>
             """
@@ -597,7 +611,7 @@ def testar_exclusao(consulta_id):
         </head>
         <body>
             <h2>Erro: {e}</h2>
-            <p><a href="/sinais-vitais">Voltar para lista</a></p>
+            <p><a href="{url_for('enfermeiro.sinais_vitais.listar_sinais_vitais')}">Voltar para lista</a></p>
         </body>
         </html>
         """
@@ -612,58 +626,24 @@ def diagnostico():
     
     try:
         if sinais_vitais_bp.mysql:
-            html += "<p style='color:green'> Conexão com MySQL OK</p>"
+            html += "<p style='color:green'>✅ Conexão com MySQL OK</p>"
         else:
-            html += "<p style='color:red'> Sem conexão com MySQL</p>"
+            html += "<p style='color:red'>❌ Sem conexão com MySQL</p>"
         
         tabela = execute_query("SHOW TABLES LIKE 'sinais_vitais'", fetch=True)
         if tabela:
-            html += "<p style='color:green'>Tabela 'sinais_vitais' existe</p>"
+            html += "<p style='color:green'>✅ Tabela 'sinais_vitais' existe</p>"
         else:
-            html += "<p style='color:red'> Tabela 'sinais_vitais' NÃO existe</p>"
+            html += "<p style='color:red'>❌ Tabela 'sinais_vitais' NÃO existe</p>"
         
         total = execute_query("SELECT COUNT(*) as total FROM sinais_vitais", fetch=True, one=True)
         if total:
-            html += f"<p> Total de registros em sinais_vitais: <strong>{total['total']}</strong></p>"
+            html += f"<p>📊 Total de registros em sinais_vitais: <strong>{total['total']}</strong></p>"
         
-        consulta_50 = execute_query("SELECT * FROM consultas WHERE id = 50", fetch=True, one=True)
-        if consulta_50:
-            html += "<p style='color:green'> Consulta ID 50 encontrada</p>"
-            html += f"<pre>Paciente: {consulta_50.get('paciente_id')}</pre>"
-            html += f"<pre>Status: {consulta_50.get('status')}</pre>"
-            html += f"<pre>Triagem: {consulta_50.get('status_triagem')}</pre>"
-        else:
-            html += "<p style='color:red'> Consulta ID 50 NÃO encontrada</p>"
-        
-        sinais_50 = execute_query("SELECT * FROM sinais_vitais WHERE consulta_id = 50", fetch=True)
-        if sinais_50:
-            html += f"<p>🔍 Encontrados {len(sinais_50)} registros para consulta 50:</p><pre>"
-            for s in sinais_50:
-                html += f"{s}\n"
-            html += "</pre>"
-        else:
-            html += "<p>📭 Nenhum sinal vital encontrado para consulta 50</p>"
-        
-        html += "<h2>Teste de INSERT</h2>"
-        try:
-            test_insert = execute_query("""
-                INSERT INTO sinais_vitais (
-                    consulta_id, enfermeiro_id, pressao_arterial, 
-                    frequencia_cardiaca, data_afericao
-                ) VALUES (%s, %s, %s, %s, NOW())
-            """, (1, enfermeiro_id, '120x80', 70))
-            
-            if test_insert:
-                html += "<p style='color:green'>✅ INSERT de teste funcionou!</p>"
-            else:
-                html += "<p style='color:red'>❌ INSERT de teste falhou</p>"
-        except Exception as e:
-            html += f"<p style='color:red'>❌ Erro no INSERT: {e}</p>"
-        
-        html += '<br><a href="/sinais-vitais">Voltar para lista</a>'
+        html += '<br><a href="' + url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') + '">Voltar para lista</a>'
         
     except Exception as e:
-        html += f"<p style='color:red'>Erro geral: {e}</p>"
+        html += f"<p style='color:red'>❌ Erro geral: {e}</p>"
     
     return html
 
