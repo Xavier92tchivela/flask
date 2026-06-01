@@ -83,20 +83,6 @@ def create_consulta_blueprint(mysql):
         except:
             return None
     
-    def obter_enfermeiro_id():
-        if session.get('user_type') not in ['enfermeiro', 'enfermeira']:
-            return None
-        try:
-            enfermeiro = execute_query(
-                "SELECT id FROM enfermeiros WHERE usuario_id = %s",
-                (session['user_id'],), fetch=True, one=True
-            )
-            if enfermeiro:
-                return enfermeiro[0] if isinstance(enfermeiro, (tuple, list)) else enfermeiro.get('id')
-            return None
-        except:
-            return None
-    
     def processar_sintomas(sintomas_raw):
         if not sintomas_raw:
             return []
@@ -146,6 +132,38 @@ def create_consulta_blueprint(mysql):
         except Exception as e:
             logger.error(f"Erro ao obter sinais vitais: {e}")
             return []
+    
+    # ========== ROTA DE PONTE PARA SINAIS VITAIS (MÉDICO) ==========
+    @consulta_bp.route('/<int:consulta_id>/sinais-vitais/registrar')
+    def medico_registrar_sinais_vitais(consulta_id):
+        """Rota para médico registrar sinais vitais - Redireciona para o formulário do enfermeiro"""
+        if 'user_id' not in session:
+            flash('Faça login para continuar.', 'warning')
+            return redirect(url_for('auth.login'))
+        
+        if session.get('user_type') != 'medico':
+            flash('Acesso restrito a médicos.', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        # Verificar se o médico tem permissão para esta consulta
+        medico_id = obter_medico_id()
+        consulta = execute_query(
+            "SELECT id, medico_id FROM consultas WHERE id = %s",
+            (consulta_id,), fetch=True, one=True
+        )
+        
+        if not consulta:
+            flash('Consulta não encontrada.', 'danger')
+            return redirect(url_for('medico.consultas'))
+        
+        consulta_medico_id = consulta[1] if isinstance(consulta, (tuple, list)) else consulta.get('medico_id')
+        if int(consulta_medico_id) != int(medico_id):
+            flash('Você não tem permissão para esta consulta.', 'danger')
+            return redirect(url_for('medico.consultas'))
+        
+        # Redireciona para a rota de sinais vitais do enfermeiro
+        return redirect(url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', 
+                               consulta_id=consulta_id, origem='medico'))
     
     # ========== ROTA PRINCIPAL ==========
     @consulta_bp.route('/<int:consulta_id>')
@@ -312,92 +330,6 @@ def create_consulta_blueprint(mysql):
             traceback.print_exc()
             flash('Erro ao carregar consulta.', 'danger')
             return redirect(url_for('medico.consultas'))
-    
-    # ========== ROTA PARA REGISTRAR SINAIS VITAIS (FORMULÁRIO) ==========
-    @consulta_bp.route('/<int:consulta_id>/sinais-vitais')
-    def form_sinais_vitais(consulta_id):
-        """Formulário para registrar sinais vitais"""
-        if 'user_id' not in session:
-            flash('Faça login para continuar.', 'warning')
-            return redirect(url_for('auth.login'))
-        
-        usuario_tipo = session.get('user_type')
-        if usuario_tipo not in ['medico', 'enfermeiro', 'enfermeira']:
-            flash('Acesso restrito a profissionais de saúde.', 'danger')
-            return redirect(url_for('dashboard'))
-        
-        # Buscar dados da consulta
-        consulta = execute_query("""
-            SELECT c.id, c.paciente_id, p_u.nome as paciente_nome
-            FROM consultas c
-            JOIN pacientes p ON c.paciente_id = p.id
-            JOIN usuarios p_u ON p.usuario_id = p_u.id
-            WHERE c.id = %s
-        """, (consulta_id,), fetch=True, one=True)
-        
-        if not consulta:
-            flash('Consulta não encontrada.', 'danger')
-            return redirect(url_for('medico.consultas'))
-        
-        # Converter para dict
-        if isinstance(consulta, (tuple, list)):
-            consulta_dict = {
-                'id': consulta[0],
-                'paciente_id': consulta[1],
-                'paciente_nome': str(consulta[2]) if len(consulta) > 2 else ''
-            }
-        else:
-            consulta_dict = consulta
-        
-        return render_template('consulta/sinais_vitais_form.html',
-                             consulta=consulta_dict,
-                             consulta_id=consulta_id)
-    
-    # ========== ROTA PARA SALVAR SINAIS VITAIS ==========
-    @consulta_bp.route('/<int:consulta_id>/sinais-vitais/salvar', methods=['POST'])
-    def salvar_sinais_vitais(consulta_id):
-        """Salvar sinais vitais"""
-        if 'user_id' not in session:
-            flash('Não autorizado.', 'danger')
-            return redirect(url_for('auth.login'))
-        
-        try:
-            # Pegar dados do formulário
-            pressao_arterial = request.form.get('pressao_arterial')
-            frequencia_cardiaca = request.form.get('frequencia_cardiaca')
-            frequencia_respiratoria = request.form.get('frequencia_respiratoria')
-            temperatura = request.form.get('temperatura')
-            saturacao_oxigenio = request.form.get('saturacao_oxigenio')
-            glicemia = request.form.get('glicemia')
-            peso = request.form.get('peso')
-            observacoes = request.form.get('observacoes', '')
-            
-            # Converter valores vazios para None
-            pressao_arterial = pressao_arterial if pressao_arterial else None
-            frequencia_cardiaca = frequencia_cardiaca if frequencia_cardiaca else None
-            frequencia_respiratoria = frequencia_respiratoria if frequencia_respiratoria else None
-            temperatura = temperatura if temperatura else None
-            saturacao_oxigenio = saturacao_oxigenio if saturacao_oxigenio else None
-            glicemia = glicemia if glicemia else None
-            peso = peso if peso else None
-            
-            # Inserir no banco
-            execute_query("""
-                INSERT INTO sinais_vitais 
-                (consulta_id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria, 
-                 temperatura, saturacao_oxigenio, glicemia, peso, observacoes, data_afericao)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
-            """, (consulta_id, pressao_arterial, frequencia_cardiaca, 
-                  frequencia_respiratoria, temperatura, saturacao_oxigenio, 
-                  glicemia, peso, observacoes))
-            
-            flash('Sinais vitais registrados com sucesso!', 'success')
-            return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
-            
-        except Exception as e:
-            logger.error(f"Erro ao salvar sinais vitais: {e}")
-            flash('Erro ao registrar sinais vitais.', 'danger')
-            return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
     
     # ========== ROTA PARA CONFIRMAR CONSULTA ==========
     @consulta_bp.route('/<int:consulta_id>/confirmar', methods=['POST'])
