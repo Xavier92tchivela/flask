@@ -1,3 +1,4 @@
+# routes/medico/medico_consultas.py
 from datetime import datetime, timedelta
 from flask import render_template, request, flash, redirect, url_for, session
 import traceback
@@ -30,46 +31,28 @@ def init_medico_consultas(base):
                 return str(valor)
         return str(valor) if valor else ''
     
-    def consulta_para_dict(consulta):
-        """
-        Converte consulta (dict ou tuple) para dicionário padronizado
+    def converter_toda_lista(consultas_lista):
+        """Converte todos os campos da lista de consultas para string"""
+        if not consultas_lista:
+            return []
         
-        Suporta:
-        - Dicionário: {'id': 1, 'paciente_nome': 'João', ...}
-        - Tupla: (id, paciente_nome, data_nascimento, genero, telefone, email, data_hora, status, observacoes, sintomas)
-        """
-        # Se for dicionário, usa diretamente
-        if isinstance(consulta, dict):
-            return {
-                'id': consulta.get('id'),
-                'paciente_nome': converter_bytes_para_string(consulta.get('paciente_nome', '')),
-                'data_nascimento': consulta.get('data_nascimento'),
-                'genero': consulta.get('genero'),
-                'telefone': converter_bytes_para_string(consulta.get('telefone', '')),
-                'email': converter_bytes_para_string(consulta.get('email', '')),
-                'data_hora': consulta.get('data_hora'),
-                'status': consulta.get('status'),
-                'observacoes': converter_bytes_para_string(consulta.get('observacoes', '')),
-                'sintomas': converter_bytes_para_string(consulta.get('sintomas', ''))
-            }
+        resultado = []
+        for consulta in consultas_lista:
+            nova_consulta = {}
+            for chave, valor in consulta.items():
+                if isinstance(valor, bytes):
+                    nova_consulta[chave] = converter_bytes_para_string(valor)
+                elif isinstance(valor, list):
+                    # Se for lista, converte cada item
+                    nova_consulta[chave] = [converter_bytes_para_string(item) if isinstance(item, bytes) else item for item in valor]
+                elif isinstance(valor, dict):
+                    # Se for dicionário, converte recursivamente
+                    nova_consulta[chave] = {k: converter_bytes_para_string(v) if isinstance(v, bytes) else v for k, v in valor.items()}
+                else:
+                    nova_consulta[chave] = valor
+            resultado.append(nova_consulta)
         
-        # Se for tupla, acessa por índice
-        if isinstance(consulta, (tuple, list)):
-            return {
-                'id': consulta[0] if len(consulta) > 0 else None,
-                'paciente_nome': converter_bytes_para_string(consulta[1]) if len(consulta) > 1 else '',
-                'data_nascimento': consulta[2] if len(consulta) > 2 else None,
-                'genero': consulta[3] if len(consulta) > 3 else None,
-                'telefone': converter_bytes_para_string(consulta[4]) if len(consulta) > 4 else '',
-                'email': converter_bytes_para_string(consulta[5]) if len(consulta) > 5 else '',
-                'data_hora': consulta[6] if len(consulta) > 6 else None,
-                'status': consulta[7] if len(consulta) > 7 else None,
-                'observacoes': converter_bytes_para_string(consulta[8]) if len(consulta) > 8 else '',
-                'sintomas': converter_bytes_para_string(consulta[9]) if len(consulta) > 9 else ''
-            }
-        
-        # Fallback: retorna vazio
-        return {}
+        return resultado
     
     @medico_required
     def consultas():
@@ -95,8 +78,6 @@ def init_medico_consultas(base):
             mes = request.args.get('mes', '')
             ano = request.args.get('ano', datetime.now().strftime('%Y'))
             data_especifica = request.args.get('data', '')
-            data_inicio = request.args.get('data_inicio', '')
-            data_fim = request.args.get('data_fim', '')
             
             # Construir query base
             query = """
@@ -124,38 +105,20 @@ def init_medico_consultas(base):
                 params.append(status)
             
             if dia_semana:
-                dias_map = {
-                    'Segunda': 'Monday', 'Segunda-feira': 'Monday',
-                    'Terça': 'Tuesday', 'Terça-feira': 'Tuesday',
-                    'Quarta': 'Wednesday', 'Quarta-feira': 'Wednesday',
-                    'Quinta': 'Thursday', 'Quinta-feira': 'Thursday',
-                    'Sexta': 'Friday', 'Sexta-feira': 'Friday',
-                    'Sábado': 'Saturday', 'Sabado': 'Saturday',
-                    'Domingo': 'Sunday'
-                }
-                dia_ingles = dias_map.get(dia_semana, dia_semana)
                 query += " AND DAYNAME(c.data_hora) = %s"
-                params.append(dia_ingles)
+                params.append(dia_semana)
             
-            if mes and mes.isdigit():
+            if mes:
                 query += " AND MONTH(c.data_hora) = %s"
-                params.append(int(mes))
+                params.append(mes)
             
-            if ano and ano.isdigit():
+            if ano:
                 query += " AND YEAR(c.data_hora) = %s"
-                params.append(int(ano))
+                params.append(ano)
             
             if data_especifica:
                 query += " AND DATE(c.data_hora) = %s"
                 params.append(data_especifica)
-            
-            if data_inicio:
-                query += " AND DATE(c.data_hora) >= %s"
-                params.append(data_inicio)
-            
-            if data_fim:
-                query += " AND DATE(c.data_hora) <= %s"
-                params.append(data_fim)
             
             if periodo:
                 hoje = datetime.now().date()
@@ -170,8 +133,9 @@ def init_medico_consultas(base):
                     params.extend([inicio_semana, fim_semana])
                 elif periodo == 'mes':
                     inicio_mes = hoje.replace(day=1)
-                    query += " AND DATE(c.data_hora) >= %s"
-                    params.append(inicio_mes)
+                    fim_mes = (inicio_mes + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+                    query += " AND DATE(c.data_hora) BETWEEN %s AND %s"
+                    params.extend([inicio_mes, fim_mes])
             
             if busca:
                 query += " AND u.nome LIKE %s"
@@ -182,7 +146,6 @@ def init_medico_consultas(base):
             # Executar query
             consultas_raw = execute_query(query, params, fetch=True) or []
             print(f"Total de consultas encontradas: {len(consultas_raw)}")
-            print(f"Tipo do primeiro resultado: {type(consultas_raw[0]) if consultas_raw else 'Nenhum'}")
             
             # Processar consultas
             consultas = []
@@ -192,47 +155,70 @@ def init_medico_consultas(base):
                 'Quinta': 0, 'Sexta': 0, 'Sábado': 0, 'Domingo': 0
             }
             
+            # Dicionários para nomes (para o template)
             meses_nomes = {
                 1: 'Janeiro', 2: 'Fevereiro', 3: 'Março', 4: 'Abril',
                 5: 'Maio', 6: 'Junho', 7: 'Julho', 8: 'Agosto',
                 9: 'Setembro', 10: 'Outubro', 11: 'Novembro', 12: 'Dezembro'
             }
             
-            datas_dict = {}
-            dias_map_pt = {
-                'Monday': 'Segunda', 'Tuesday': 'Terça', 'Wednesday': 'Quarta',
-                'Thursday': 'Quinta', 'Friday': 'Sexta', 'Saturday': 'Sábado',
+            dias_nomes = {
+                'Monday': 'Segunda-feira',
+                'Tuesday': 'Terça-feira',
+                'Wednesday': 'Quarta-feira',
+                'Thursday': 'Quinta-feira',
+                'Friday': 'Sexta-feira',
+                'Saturday': 'Sábado',
                 'Sunday': 'Domingo'
             }
-            status_class_map = {
-                'agendada': 'warning',
-                'realizada': 'success',
-                'cancelada': 'danger',
-                'confirmada': 'info',
-                'pendente': 'secondary'
+            
+            # Mapear dias da semana (abreviados)
+            dias_map = {
+                'Monday': 'Segunda',
+                'Tuesday': 'Terça',
+                'Wednesday': 'Quarta',
+                'Thursday': 'Quinta',
+                'Friday': 'Sexta',
+                'Saturday': 'Sábado',
+                'Sunday': 'Domingo'
             }
             
-            for c_raw in consultas_raw:
-                # Converter para dicionário padronizado
-                c = consulta_para_dict(c_raw)
+            # Mapear meses (abreviados)
+            meses_abreviados = {
+                1: 'Jan', 2: 'Fev', 3: 'Mar', 4: 'Abr',
+                5: 'Mai', 6: 'Jun', 7: 'Jul', 8: 'Ago',
+                9: 'Set', 10: 'Out', 11: 'Nov', 12: 'Dez'
+            }
+            
+            # Dicionário para coletar datas disponíveis
+            datas_dict = {}
+            
+            for c in consultas_raw:
+                # ===== CONVERSÃO DE BYTES =====
+                # Converter observacoes (campo 8)
+                observacoes = converter_bytes_para_string(c[8])
+                
+                # Converter sintomas (campo 9)
+                sintomas_raw = converter_bytes_para_string(c[9])
                 
                 # Calcular idade
                 idade = None
-                if c.get('data_nascimento'):
+                if c[2]:
                     try:
-                        data_nasc = c['data_nascimento']
-                        if isinstance(data_nasc, str):
-                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d')
+                        if isinstance(c[2], datetime):
+                            data_nasc = c[2]
+                        else:
+                            data_nasc = datetime.strptime(str(c[2]), '%Y-%m-%d')
                         idade = datetime.now().year - data_nasc.year
                         if datetime.now().month < data_nasc.month or (datetime.now().month == data_nasc.month and datetime.now().day < data_nasc.day):
                             idade -= 1
-                    except Exception as e:
-                        print(f"Erro ao calcular idade: {e}")
+                    except:
+                        idade = None
                 
-                # Processar sintomas
+                # Processar sintomas (agora é string)
                 sintomas_lista = []
-                if c.get('sintomas'):
-                    sintomas_lista = [s.strip() for s in c['sintomas'].split(',') if s.strip()]
+                if sintomas_raw:
+                    sintomas_lista = [s.strip() for s in sintomas_raw.split(',') if s.strip()]
                 
                 # Extrair informações da data
                 data_consulta_obj = None
@@ -243,71 +229,79 @@ def init_medico_consultas(base):
                 mes_consulta = None
                 ano_consulta = None
                 
-                if c.get('data_hora'):
+                if c[6]:
                     try:
-                        data_hora = c['data_hora']
-                        if isinstance(data_hora, str):
-                            data_consulta_obj = datetime.strptime(data_hora, '%Y-%m-%d %H:%M:%S')
-                        elif isinstance(data_hora, datetime):
-                            data_consulta_obj = data_hora
+                        if isinstance(c[6], datetime):
+                            data_consulta_obj = c[6]
+                        else:
+                            data_consulta_obj = datetime.strptime(str(c[6]), '%Y-%m-%d %H:%M:%S')
                         
-                        if data_consulta_obj:
-                            dia_semana_ingles = data_consulta_obj.strftime('%A')
-                            dia_semana_pt = dias_map_pt.get(dia_semana_ingles, '')
-                            hora_consulta = data_consulta_obj.strftime('%H:%M')
-                            data_consulta = data_consulta_obj.strftime('%d/%m/%Y')
-                            data_iso = data_consulta_obj.strftime('%Y-%m-%d')
-                            mes_consulta = data_consulta_obj.month
-                            ano_consulta = data_consulta_obj.year
+                        # Dia da semana
+                        dia_semana_ingles = data_consulta_obj.strftime('%A')
+                        dia_semana_pt = dias_map.get(dia_semana_ingles, '')
+                        
+                        # Hora
+                        hora_consulta = data_consulta_obj.strftime('%H:%M')
+                        
+                        # Data
+                        data_consulta = data_consulta_obj.strftime('%d/%m/%Y')
+                        data_iso = data_consulta_obj.strftime('%Y-%m-%d')
+                        
+                        # Mês e ano
+                        mes_consulta = data_consulta_obj.month
+                        ano_consulta = data_consulta_obj.year
+                        
+                        # Contagens
+                        if mes_consulta in meses_contagem:
+                            meses_contagem[mes_consulta] += 1
+                        if dia_semana_pt in dias_contagem:
+                            dias_contagem[dia_semana_pt] += 1
+                        
+                        # Coletar datas para o filtro
+                        if data_iso not in datas_dict:
+                            datas_dict[data_iso] = {
+                                'data_iso': data_iso,
+                                'data_br': data_consulta,
+                                'dia_semana': dia_semana_pt,
+                                'dia_semana_abreviado': dia_semana_pt[:3],
+                                'total': 0
+                            }
+                        datas_dict[data_iso]['total'] += 1
                             
-                            if mes_consulta in meses_contagem:
-                                meses_contagem[mes_consulta] += 1
-                            if dia_semana_pt in dias_contagem:
-                                dias_contagem[dia_semana_pt] += 1
-                            
-                            if data_iso not in datas_dict:
-                                datas_dict[data_iso] = {
-                                    'data_iso': data_iso,
-                                    'data_br': data_consulta,
-                                    'dia_semana': dia_semana_pt,
-                                    'dia_semana_abreviado': dia_semana_pt[:3] if dia_semana_pt else '',
-                                    'total': 0
-                                }
-                            datas_dict[data_iso]['total'] += 1
                     except Exception as e:
                         print(f"Erro ao processar data: {e}")
                 
-                # Determinar gênero
-                genero = c.get('genero', '')
-                if genero == 'M':
-                    genero_texto = 'Masculino'
-                elif genero == 'F':
-                    genero_texto = 'Feminino'
-                else:
-                    genero_texto = genero or 'Não informado'
-                
                 consultas.append({
-                    'id': c.get('id'),
-                    'paciente_nome': c.get('paciente_nome') or 'Nome não disponível',
+                    'id': c[0],
+                    'paciente_nome': c[1] or 'Nome não disponível',
                     'paciente_idade': f"{idade} anos" if idade else "Idade não informada",
-                    'paciente_genero': genero_texto,
-                    'paciente_telefone': c.get('telefone') or 'Não informado',
-                    'paciente_email': c.get('email') or 'Não informado',
-                    'data_hora': formatar_data(c.get('data_hora'), '%d/%m/%Y %H:%M') if c.get('data_hora') else 'Data não disponível',
+                    'paciente_genero': 'Masculino' if c[3] == 'M' else 'Feminino' if c[3] == 'F' else (c[3] or 'Não informado'),
+                    'paciente_telefone': c[4] or 'Não informado',
+                    'paciente_email': c[5] or 'Não informado',
+                    'data_hora': formatar_data(c[6], '%d/%m/%Y %H:%M') if c[6] else 'Data não disponível',
                     'data_consulta': data_consulta,
                     'hora_consulta': hora_consulta,
                     'dia_semana': dia_semana_pt,
                     'mes': mes_consulta,
                     'mes_nome': meses_nomes.get(mes_consulta, '') if mes_consulta else '',
+                    'mes_abreviado': meses_abreviados.get(mes_consulta, '') if mes_consulta else '',
                     'ano': ano_consulta,
-                    'status': c.get('status') or 'desconhecido',
-                    'observacoes': c.get('observacoes', ''),
+                    'status': c[7] or 'desconhecido',
+                    'observacoes': observacoes,
                     'sintomas_lista': sintomas_lista,
                     'tem_sintomas': len(sintomas_lista) > 0,
-                    'status_class': status_class_map.get(c.get('status'), 'secondary')
+                    'status_class': {
+                        'agendada': 'warning',
+                        'realizada': 'success',
+                        'cancelada': 'danger',
+                        'confirmada': 'info'
+                    }.get(c[7], 'secondary')
                 })
             
-            # Ordenar datas
+            # CONVERTER TODA A LISTA PARA GARANTIR QUE NÃO HAJA BYTES
+            consultas = converter_toda_lista(consultas)
+            
+            # Ordenar datas e pegar as mais recentes (últimas 7)
             datas_disponiveis = sorted(datas_dict.values(), key=lambda x: x['data_iso'], reverse=True)[:7]
             
             # Buscar anos disponíveis
@@ -318,21 +312,11 @@ def init_medico_consultas(base):
                 ORDER BY ano DESC
             """, (medico_id,), fetch=True) or []
             
-            anos_disponiveis = []
-            for a in anos_raw:
-                if isinstance(a, dict):
-                    ano_val = a.get('ano')
-                elif isinstance(a, (tuple, list)):
-                    ano_val = a[0] if a else None
-                else:
-                    ano_val = a
-                if ano_val:
-                    anos_disponiveis.append(ano_val)
-            
+            anos_disponiveis = [a[0] for a in anos_raw if a and a[0]]
             if not anos_disponiveis:
                 anos_disponiveis = [datetime.now().year]
             
-            # Processar filtros
+            # Processar filtros da URL
             mes_selecionado = None
             if mes and mes.isdigit():
                 mes_selecionado = int(mes)
@@ -342,6 +326,7 @@ def init_medico_consultas(base):
                 ano_selecionado = int(ano)
             
             print(f"Renderizando template com {len(consultas)} consultas")
+            print(f"Datas disponíveis: {len(datas_disponiveis)}")
             
             return render_template('medico/consultas.html',
                                  consultas=consultas,
@@ -349,6 +334,7 @@ def init_medico_consultas(base):
                                  total_consultas=len(consultas),
                                  meses_contagem=meses_contagem,
                                  meses_nomes=meses_nomes,
+                                 dias_nomes=dias_nomes,
                                  anos_disponiveis=anos_disponiveis,
                                  mes_selecionado=mes_selecionado,
                                  ano_selecionado=ano_selecionado,
