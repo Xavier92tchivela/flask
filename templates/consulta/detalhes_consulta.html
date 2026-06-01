@@ -27,8 +27,9 @@
                 </div>
                 
                 <div class="card-body p-2 p-md-4">
+                    <!-- ✅ CORRIGIDO: Link para Histórico do Paciente - AGORA ROTA DE MÉDICO -->
                     <div class="d-grid gap-2 mb-3 mb-md-4">
-                        <a href="{{ url_for('enfermeiro.historico.historico_paciente_detalhes', paciente_id=consulta.paciente_id) }}" 
+                        <a href="{{ url_for('medico.historico_paciente', paciente_id=consulta.paciente_id) }}" 
                            class="btn btn-info btn-lg py-2 py-md-3 shadow-sm" style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); border: none;">
                             <i class="fas fa-history me-2 fa-lg"></i> <span class="fw-bold">VER HISTÓRICO DO PACIENTE</span> <i class="fas fa-arrow-right ms-2"></i>
                         </a>
@@ -62,9 +63,11 @@
                         </div>
                     </div>
 
-                    <!-- BOTÃO PARA SINAIS VITAIS - REDIRECIONAMENTO -->
+                    <!-- ✅ CORRIGIDO: Botão para Sinais Vitais - AGORA ROTA DE MÉDICO (se existir) OU REMOVIDO -->
+                    <!-- Opção 1: Remover o botão completamente se médico não deve registrar sinais vitais -->
+                    <!-- Opção 2: Criar rota para médico registrar sinais vitais -->
                     <div class="d-grid gap-2 mb-3">
-                        <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta.id, origem='medico') }}" 
+                        <a href="{{ url_for('medico.registrar_sinais_vitais', consulta_id=consulta.id) }}" 
                            class="btn btn-danger btn-lg py-2 py-md-3 shadow-sm" style="background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%); border: none;">
                             <i class="fas fa-heartbeat me-2 fa-lg"></i> <span class="fw-bold">REGISTRAR SINAIS VITAIS</span> <i class="fas fa-arrow-right ms-2"></i>
                         </a>
