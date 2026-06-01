@@ -521,6 +521,7 @@ def create_consulta_blueprint(mysql):
                     c.sintomas,
                     c.diagnostico_texto,
                     c.diagnostico_ia,
+                    c.diagnostico_final,
                     c.resultado_exames,
                     DAYNAME(c.data_hora) as dia_semana,
                     DATE(c.data_hora) as data_consulta,
@@ -601,9 +602,10 @@ def create_consulta_blueprint(mysql):
                     'paciente_email': str(consulta.get('paciente_email', '')),
                     'sintomas_raw': str(consulta.get('sintomas', '')),
                     'sintomas_lista': processar_sintomas(consulta.get('sintomas', '')),
-                    'diagnostico_texto': str(consulta.get('diagnostico_texto', '')),
-                    'diagnostico_ia': str(consulta.get('diagnostico_ia', '')),
-                    'resultado_exames': str(consulta.get('resultado_exames', '')),
+                    'diagnostico_texto': str(consulta.get('diagnostico_texto', '')) if consulta.get('diagnostico_texto') else '',
+                    'diagnostico_ia': str(consulta.get('diagnostico_ia', '')) if consulta.get('diagnostico_ia') else '',
+                    'diagnostico_final': str(consulta.get('diagnostico_final', '')) if consulta.get('diagnostico_final') else '',
+                    'resultado_exames': str(consulta.get('resultado_exames', '')) if consulta.get('resultado_exames') else '',
                     'dia_semana': mapear_dia_semana(consulta.get('dia_semana', '')),
                     'data_consulta': consulta.get('data_consulta').strftime('%Y-%m-%d') if isinstance(consulta.get('data_consulta'), datetime) else str(consulta.get('data_consulta', '')),
                     'hora_consulta': str(consulta.get('hora_consulta', '')),
@@ -661,7 +663,7 @@ def create_consulta_blueprint(mysql):
                     sintomas_raw = str(consulta[18])
                 sintomas_lista = processar_sintomas(sintomas_raw)
                 
-                # Processar campos de diagnóstico (índices 20, 21, 22)
+                # Processar campos de diagnóstico
                 diagnostico_texto = ''
                 if num_fields > 20 and consulta[20]:
                     diagnostico_texto = str(consulta[20])
@@ -670,19 +672,23 @@ def create_consulta_blueprint(mysql):
                 if num_fields > 21 and consulta[21]:
                     diagnostico_ia = str(consulta[21])
                 
-                resultado_exames = ''
+                diagnostico_final = ''
                 if num_fields > 22 and consulta[22]:
-                    resultado_exames = str(consulta[22])
+                    diagnostico_final = str(consulta[22])
                 
-                # Processar dia da semana (índice 23)
-                dia_semana_pt = ''
+                resultado_exames = ''
                 if num_fields > 23 and consulta[23]:
-                    dia_semana_pt = mapear_dia_semana(consulta[23])
+                    resultado_exames = str(consulta[23])
                 
-                # Processar mês (índice 26)
+                # Processar dia da semana (índice 24)
+                dia_semana_pt = ''
+                if num_fields > 24 and consulta[24]:
+                    dia_semana_pt = mapear_dia_semana(consulta[24])
+                
+                # Processar mês (índice 27)
                 mes_num = None
-                if num_fields > 26 and consulta[26]:
-                    mes_num = consulta[26]
+                if num_fields > 27 and consulta[27]:
+                    mes_num = consulta[27]
                 mes_pt = mapear_mes(mes_num) if mes_num else ''
                 
                 # Converter data_hora
@@ -693,23 +699,23 @@ def create_consulta_blueprint(mysql):
                     except:
                         pass
                 
-                # Processar data_consulta (índice 24)
+                # Processar data_consulta (índice 25)
                 data_consulta_str = ''
-                if num_fields > 24 and consulta[24]:
-                    if isinstance(consulta[24], datetime):
-                        data_consulta_str = consulta[24].strftime('%Y-%m-%d')
-                    else:
-                        data_consulta_str = str(consulta[24])
-                
-                # Processar hora_consulta (índice 25)
-                hora_consulta_str = ''
                 if num_fields > 25 and consulta[25]:
-                    hora_consulta_str = str(consulta[25])
+                    if isinstance(consulta[25], datetime):
+                        data_consulta_str = consulta[25].strftime('%Y-%m-%d')
+                    else:
+                        data_consulta_str = str(consulta[25])
                 
-                # Processar ano (índice 27)
+                # Processar hora_consulta (índice 26)
+                hora_consulta_str = ''
+                if num_fields > 26 and consulta[26]:
+                    hora_consulta_str = str(consulta[26])
+                
+                # Processar ano (índice 28)
                 ano_val = None
-                if num_fields > 27 and consulta[27]:
-                    ano_val = consulta[27]
+                if num_fields > 28 and consulta[28]:
+                    ano_val = consulta[28]
                 
                 return {
                     'id': consulta[0] if num_fields > 0 else None,
@@ -736,6 +742,7 @@ def create_consulta_blueprint(mysql):
                     'sintomas_lista': sintomas_lista,
                     'diagnostico_texto': diagnostico_texto,
                     'diagnostico_ia': diagnostico_ia,
+                    'diagnostico_final': diagnostico_final,
                     'resultado_exames': resultado_exames,
                     'dia_semana': dia_semana_pt,
                     'data_consulta': data_consulta_str,
