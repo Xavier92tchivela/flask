@@ -1,4 +1,3 @@
-
 # routes/medico/base.py
 from flask import session, flash, redirect, url_for
 from datetime import datetime
@@ -380,10 +379,10 @@ def init_medico_base(mysql):
     
     return {
         'medico_required': medico_required,
-        'profissional_saude_required': profissional_saude_required,  # NOVO! Para médicos e enfermeiras
+        'profissional_saude_required': profissional_saude_required,
         'obter_info_medico': obter_info_medico,
-        'obter_info_enfermeiro': obter_info_enfermeiro,  # NOVO!
-        'obter_profissional_atual': obter_profissional_atual,  # NOVO!
+        'obter_info_enfermeiro': obter_info_enfermeiro,
+        'obter_profissional_atual': obter_profissional_atual,
         'obter_contadores': obter_contadores,
         'execute_query': execute_query,
         'formatar_data': formatar_data,
