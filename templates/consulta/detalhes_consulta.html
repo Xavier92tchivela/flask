@@ -37,7 +37,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- Botão para Registrar Sinais Vitais - Encaminha para enfermeiro -->
+                    <!-- Botão para Registrar Sinais Vitais -->
                     <div class="d-grid gap-2 mb-3">
                         <a href="{{ url_for('enfermeiro.internados.registrar_sinais_vitais', consulta_id=consulta.id, origem='medico') }}" 
                            class="btn btn-danger btn-lg py-2 py-md-3 shadow-sm" style="background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%); border: none;">
@@ -125,12 +125,31 @@
                     </div>
                     {% endif %}
 
-                    <!-- DIAGNÓSTICO -->
+                    <!-- DIAGNÓSTICO - CORRIGIDO -->
                     <div class="card border-0 bg-light mb-3 mb-md-4">
                         <div class="card-body p-2 p-md-3">
-                            <h6 class="text-success border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-stethoscope me-2"></i>Diagnóstico Final</h6>
-                            {% if consulta.diagnostico_final %}<div class="bg-white p-3 rounded-3 border-start border-4 border-success"><p class="mb-0" style="white-space:pre-wrap;">{{ consulta.diagnostico_final }}</p></div>
-                            {% else %}<div class="text-center py-4 py-md-5"><div class="mb-3"><i class="fas fa-stethoscope fa-3x text-muted"></i></div><h6 class="text-muted mb-2">Nenhum diagnóstico registrado</h6><p class="small text-muted mb-3">O diagnóstico será registrado após a análise</p></div>{% endif %}
+                            <h6 class="text-success border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-stethoscope me-2"></i>Diagnóstico</h6>
+                            
+                            {% if consulta.diagnostico_texto %}
+                            <div class="bg-white p-3 rounded-3 border-start border-4 border-success mb-3">
+                                <p class="mb-0" style="white-space:pre-wrap;">{{ consulta.diagnostico_texto }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if consulta.diagnostico_ia %}
+                            <div class="bg-white p-3 rounded-3 border-start border-4 border-info">
+                                <small class="text-info fw-bold"><i class="fas fa-robot me-1"></i> Diagnóstico por IA:</small>
+                                <p class="mb-0 mt-1" style="white-space:pre-wrap;">{{ consulta.diagnostico_ia }}</p>
+                            </div>
+                            {% endif %}
+                            
+                            {% if not consulta.diagnostico_texto and not consulta.diagnostico_ia %}
+                            <div class="text-center py-4 py-md-5">
+                                <div class="mb-3"><i class="fas fa-stethoscope fa-3x text-muted"></i></div>
+                                <h6 class="text-muted mb-2">Nenhum diagnóstico registrado</h6>
+                                <p class="small text-muted mb-3">O diagnóstico será registrado após a análise</p>
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
