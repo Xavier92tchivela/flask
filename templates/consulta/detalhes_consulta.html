@@ -1,25 +1,184 @@
 {% extends "base.html" %}
 
-{% block title %}Erro - DoctorIA{% endblock %}
+{% block title %}Detalhes da Consulta #{{ consulta.id }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 text-center">
-            <div class="mb-4">
-                <i class="fas fa-exclamation-triangle fa-5x text-warning"></i>
+<div class="container-fluid mt-2 mt-md-4 px-2 px-md-3">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb" class="mb-3 mb-md-4">
+                <ol class="breadcrumb bg-light p-2 p-md-3 rounded-3 shadow-sm">
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.dashboard') }}" class="text-decoration-none"><i class="fas fa-home me-1"></i><span class="d-none d-sm-inline">Dashboard</span></a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('medico.consultas') }}" class="text-decoration-none"><i class="fas fa-calendar-check me-1"></i><span class="d-none d-sm-inline">Consultas</span></a></li>
+                    <li class="breadcrumb-item active fw-bold"><span class="d-none d-sm-inline">Consulta </span>#{{ consulta.id }}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-lg-8">
+            <div class="card shadow-lg border-0 mb-3 mb-md-4">
+                <div class="card-header bg-gradient-primary text-white py-2 py-md-3 rounded-top-3">
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                        <h5 class="mb-2 mb-sm-0 fw-bold h6 h5-md"><i class="fas fa-calendar-check me-2"></i>Consulta #{{ consulta.id }}</h5>
+                        <span class="badge bg-{{ consulta.status_class }} fs-6 p-2 align-self-start align-self-sm-center">{{ consulta.status|upper }}</span>
+                    </div>
+                </div>
+                
+                <div class="card-body p-2 p-md-4">
+                    <!-- Link para Histórico do Paciente -->
+                    <div class="d-grid gap-2 mb-3 mb-md-4">
+                        {% if consulta.paciente_id %}
+                        <a href="{{ url_for('medico.historico_paciente', paciente_id=consulta.paciente_id) }}" 
+                           class="btn btn-info btn-lg py-2 py-md-3 shadow-sm" style="background: linear-gradient(135deg, #0dcaf0 0%, #0aa2c0 100%); border: none;">
+                            <i class="fas fa-history me-2 fa-lg"></i> <span class="fw-bold">VER HISTÓRICO DO PACIENTE</span> <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botão para Registrar Sinais Vitais - Encaminha para enfermeiro -->
+                    <div class="d-grid gap-2 mb-3">
+                        <a href="{{ url_for('enfermeiro.internados.registrar_sinais_vitais', consulta_id=consulta.id, origem='medico') }}" 
+                           class="btn btn-danger btn-lg py-2 py-md-3 shadow-sm" style="background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%); border: none;">
+                            <i class="fas fa-heartbeat me-2 fa-lg"></i> <span class="fw-bold">REGISTRAR SINAIS VITAIS</span> <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                    </div>
+
+                    <!-- Informações do Paciente e Médico -->
+                    <div class="row g-2 g-md-4 mb-3 mb-md-4">
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-user me-2"></i>Paciente</h6>
+                                    <div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-user-circle"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Nome</small><span class="small">{{ consulta.paciente_nome }}</span></div></div>
+                                    {% if consulta.paciente_idade %}<div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-calendar-alt"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Idade</small><span class="small">{{ consulta.paciente_idade }}</span></div></div>{% endif %}
+                                    <div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-venus-mars"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Gênero</small><span class="small">{{ consulta.genero or 'Não informado' }}</span></div></div>
+                                    <div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-phone-alt"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Telefone</small><span class="small">{{ consulta.paciente_telefone or 'Não informado' }}</span></div></div>
+                                    <div class="info-item d-flex"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-envelope"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Email</small><span class="small">{{ consulta.paciente_email|truncate(20) or 'Não informado' }}</span></div></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 col-md-6">
+                            <div class="card h-100 border-0 bg-light">
+                                <div class="card-body p-2 p-md-3">
+                                    <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-user-md me-2"></i>Médico</h6>
+                                    <div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-user-md"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Nome</small><span class="small">{{ consulta.medico_nome }}</span></div></div>
+                                    <div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-stethoscope"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Especialidade</small><span class="small">{{ consulta.especialidade }}</span></div></div>
+                                    <div class="info-item d-flex mb-2 mb-md-3"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-id-card"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">CRM</small><span class="small">{{ consulta.crm }}</span></div></div>
+                                    <div class="info-item d-flex"><div class="info-icon me-2 me-md-3 text-primary" style="width:20px"><i class="fas fa-envelope"></i></div><div class="info-content flex-grow-1"><small class="text-muted d-block">Email</small><span class="small">{{ consulta.medico_email }}</span></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SINAIS VITAIS REGISTRADOS -->
+                    {% if sinais_vitais and sinais_vitais|length > 0 %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-danger border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-heartbeat me-2"></i>Sinais Vitais - Registros</h6>
+                            {% set ultimo_sinal = sinais_vitais|first %}
+                            <div class="alert alert-info py-2 mb-3 small"><i class="fas fa-clock me-1"></i> Última aferição: {{ ultimo_sinal.data_afericao }}{% if ultimo_sinal.enfermeiro_nome and ultimo_sinal.enfermeiro_nome != 'Não informado' %} <span class="d-block d-sm-inline mt-1 mt-sm-0 ms-sm-3"><i class="fas fa-user-nurse me-1"></i> Enf. {{ ultimo_sinal.enfermeiro_nome }}</span>{% endif %}</div>
+                            <div class="row g-2">
+                                {% for sinal in sinais_vitais %}
+                                <div class="col-12 mb-3">
+                                    <div class="card border-start border-4 border-danger bg-white shadow-sm">
+                                        <div class="card-body p-3">
+                                            <div class="d-flex justify-content-between align-items-center mb-2"><small class="text-muted"><i class="far fa-clock me-1"></i>{{ sinal.data_afericao }}</small>{% if sinal.enfermeiro_nome and sinal.enfermeiro_nome != 'Não informado' %}<small class="text-muted"><i class="fas fa-user-nurse me-1"></i>{{ sinal.enfermeiro_nome }}</small>{% endif %}</div>
+                                            <div class="row g-2">
+                                                {% if sinal.pressao_arterial %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-heart text-danger mb-1"></i><small class="d-block text-muted">PA</small><strong class="small">{{ sinal.pressao_arterial }}</strong></div></div>{% endif %}
+                                                {% if sinal.frequencia_cardiaca %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-heartbeat text-danger mb-1"></i><small class="d-block text-muted">FC</small><strong class="small">{{ sinal.frequencia_cardiaca }} bpm</strong></div></div>{% endif %}
+                                                {% if sinal.frequencia_respiratoria %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-lungs text-primary mb-1"></i><small class="d-block text-muted">FR</small><strong class="small">{{ sinal.frequencia_respiratoria }} rpm</strong></div></div>{% endif %}
+                                                {% if sinal.temperatura %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-thermometer-half text-warning mb-1"></i><small class="d-block text-muted">Temp</small><strong class="small">{{ sinal.temperatura }} °C</strong></div></div>{% endif %}
+                                                {% if sinal.saturacao_oxigenio %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-wind text-info mb-1"></i><small class="d-block text-muted">SpO₂</small><strong class="small">{{ sinal.saturacao_oxigenio }}%</strong></div></div>{% endif %}
+                                                {% if sinal.glicemia %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-tint text-purple mb-1"></i><small class="d-block text-muted">Glicemia</small><strong class="small">{{ sinal.glicemia }} mg/dL</strong></div></div>{% endif %}
+                                                {% if sinal.peso %}<div class="col-6 col-md-4"><div class="text-center p-2 bg-light rounded-3"><i class="fas fa-weight-scale text-secondary mb-1"></i><small class="d-block text-muted">Peso</small><strong class="small">{{ sinal.peso }} kg</strong></div></div>{% endif %}
+                                            </div>
+                                            {% if sinal.observacoes %}<div class="mt-2 pt-2 border-top"><small class="text-muted"><i class="fas fa-comment me-1"></i>{{ sinal.observacoes }}</small></div>{% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- SINTOMAS -->
+                    {% if sintomas and sintomas|length > 0 %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-info border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-thermometer-half me-2"></i>Sintomas</h6>
+                            <div class="d-flex flex-wrap gap-1 gap-md-2">{% for sintoma in sintomas %}<span class="badge bg-info text-white p-2 p-md-3 m-1" style="font-size:0.85rem;border-radius:30px;"><i class="fas fa-check-circle me-1"></i>{{ sintoma }}</span>{% endfor %}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- OBSERVAÇÕES -->
+                    {% if consulta.observacoes %}
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-primary border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-sticky-note me-2"></i>Observações da Consulta</h6>
+                            <p class="mb-0 small">{{ consulta.observacoes }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- DIAGNÓSTICO -->
+                    <div class="card border-0 bg-light mb-3 mb-md-4">
+                        <div class="card-body p-2 p-md-3">
+                            <h6 class="text-success border-bottom pb-2 mb-2 mb-md-3 small fw-bold"><i class="fas fa-stethoscope me-2"></i>Diagnóstico Final</h6>
+                            {% if consulta.diagnostico_final %}<div class="bg-white p-3 rounded-3 border-start border-4 border-success"><p class="mb-0" style="white-space:pre-wrap;">{{ consulta.diagnostico_final }}</p></div>
+                            {% else %}<div class="text-center py-4 py-md-5"><div class="mb-3"><i class="fas fa-stethoscope fa-3x text-muted"></i></div><h6 class="text-muted mb-2">Nenhum diagnóstico registrado</h6><p class="small text-muted mb-3">O diagnóstico será registrado após a análise</p></div>{% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
-            <h1 class="display-4 mb-3">Ops! Algo deu errado</h1>
-            <p class="lead mb-4">{{ error|default('Ocorreu um erro inesperado.') }}</p>
-            <div class="d-flex gap-3 justify-content-center">
-                <a href="javascript:history.back()" class="btn btn-primary">
-                    <i class="fas fa-arrow-left me-2"></i>Voltar
-                </a>
-                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
-                    <i class="fas fa-home me-2"></i>Dashboard
-                </a>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="card shadow-lg border-0 mb-3 mb-md-4 sticky-lg-top" style="top:20px;z-index:1000;">
+                <div class="card-header bg-gradient-primary text-white py-2 py-md-3 rounded-top-3"><h6 class="mb-0 fw-bold small h6-md"><i class="fas fa-cog me-2"></i>Ações</h6></div>
+                <div class="card-body p-2 p-md-4">
+                    <div class="d-grid gap-2 gap-md-3">
+                        {% if consulta.status in ['confirmada', 'realizada'] %}
+                            {% if not internacao_existente %}
+                            <a href="{{ url_for('medico.consulta.internar_paciente', consulta_id=consulta.id) }}" class="btn btn-primary btn-sm btn-md py-2 py-md-3 mb-2" style="background:linear-gradient(135deg,#0d6efd 0%,#0a58ca 100%);border:none;font-weight:600;text-transform:uppercase;letter-spacing:.5px;"><i class="fas fa-procedures me-2 fa-lg"></i><span class="fw-bold">INTERNAR PACIENTE</span><i class="fas fa-arrow-right ms-2"></i></a>
+                            {% else %}<button type="button" class="btn btn-secondary btn-sm btn-md py-2 py-md-3 mb-2" disabled style="opacity:0.7;"><i class="fas fa-procedures me-2"></i>PACIENTE JÁ INTERNADO<i class="fas fa-check-circle ms-2"></i></button>{% endif %}
+                        {% endif %}
+                        <a href="/medico/consulta/{{ consulta.id }}/receita-digital" class="btn btn-success btn-sm btn-md py-2 py-md-3 mb-2"><i class="fas fa-prescription me-2 fa-lg"></i><span class="fw-bold">RECEITA DIGITAL</span><i class="fas fa-arrow-right ms-2"></i></a>
+                        <a href="{{ url_for('medico.consultas') }}" class="btn btn-outline-secondary btn-sm btn-md py-2 py-md-3"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-lg border-0 mt-3 mt-md-4">
+                <div class="card-header bg-gradient-secondary text-white py-2 py-md-3 rounded-top-3"><h6 class="mb-0 fw-bold small h6-md"><i class="fas fa-info-circle me-2"></i>Informações</h6></div>
+                <div class="card-body p-2 p-md-4">
+                    <div class="mb-2 mb-md-3 pb-2 border-bottom"><small class="text-muted d-block mb-1">Criado em</small><strong class="small"><i class="far fa-calendar-alt me-2 text-primary"></i>{{ agora }}</strong></div>
+                    <div class="mb-2 mb-md-3 pb-2 border-bottom"><small class="text-muted d-block mb-1">Endereço</small><strong class="small"><i class="fas fa-map-marker-alt me-2 text-danger"></i>{{ consulta.paciente_endereco|truncate(30) or 'Não informado' }}</strong></div>
+                    {% if internacao_existente %}<div class="mb-2 mb-md-3 pb-2 border-bottom"><small class="text-muted d-block mb-1">Status Internação</small><strong class="small text-success"><i class="fas fa-procedures me-2"></i>Paciente Internado</strong></div>{% endif %}
+                    {% if sinais_vitais %}<div class="mb-2 mb-md-3 pb-2 border-bottom"><small class="text-muted d-block mb-1">Sinais Vitais</small><strong class="small"><i class="fas fa-heartbeat me-2 text-danger"></i>{{ sinais_vitais|length }} aferição(ões)</strong></div>{% endif %}
+                    {% if sintomas %}<div class="mb-2 mb-md-3 pb-2 border-bottom"><small class="text-muted d-block mb-1">Total de Sintomas</small><strong class="small"><i class="fas fa-thermometer-half me-2 text-info"></i>{{ sintomas|length }} sintoma(s)</strong></div>{% endif %}
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+.bg-gradient-primary{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+.bg-gradient-secondary{background:linear-gradient(135deg,#6b7280 0%,#4b5563 100%);}
+.text-purple{color:#6f42c1 !important;}
+.info-item{transition:all 0.2s ease;}
+.info-item:hover{transform:translateX(3px);}
+.card{transition:transform 0.2s ease,box-shadow 0.2s ease;}
+@media(min-width:992px){.sticky-lg-top{position:sticky;top:20px;z-index:1000;}}
+@media(max-width:768px){.card-body{padding:.75rem !important;}.badge{font-size:.7rem;}.btn-sm{font-size:.8rem;}.small{font-size:.75rem;}}
+@media(max-width:576px){.container-fluid{padding-left:10px;padding-right:10px;}.btn-lg{font-size:.9rem;padding:10px 12px;}.info-icon{width:18px !important;}}
+.btn:active{transform:scale(0.98);}
+.btn-success{background:linear-gradient(135deg,#28a745 0%,#1e7e34 100%);border:none;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.btn-success:hover{background:linear-gradient(135deg,#1e7e34 0%,#155d27 100%);transform:translateY(-2px);box-shadow:0 8px 15px rgba(40,167,69,0.3);}
+</style>
 {% endblock %}
