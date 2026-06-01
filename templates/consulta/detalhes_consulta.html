@@ -52,6 +52,56 @@
             </div>
             {% endif %}
             
+            <!-- Sinais Vitais Registrados -->
+            {% if sinais_vitais and sinais_vitais|length > 0 %}
+            <div class="mt-3">
+                <h5><i class="fas fa-heartbeat text-danger me-2"></i>Sinais Vitais Registrados</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Pressão Arterial</th>
+                                <th>Frequência Cardíaca</th>
+                                <th>Frequência Respiratória</th>
+                                <th>Temperatura</th>
+                                <th>Saturação O₂</th>
+                                <th>Glicemia</th>
+                                <th>Peso</th>
+                                <th>Registrado por</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sinal in sinais_vitais %}
+                            <tr>
+                                <td><small>{{ sinal.data_afericao }}</small></td>
+                                <td>{{ sinal.pressao_arterial or '-' }}</td>
+                                <td>{{ sinal.frequencia_cardiaca or '-' }}</td>
+                                <td>{{ sinal.frequencia_respiratoria or '-' }}</td>
+                                <td>{{ sinal.temperatura or '-' }}</td>
+                                <td>{{ sinal.saturacao_oxigenio or '-' }}</td>
+                                <td>{{ sinal.glicemia or '-' }}</td>
+                                <td>{{ sinal.peso or '-' }}</td>
+                                <td><small>{{ sinal.profissional_nome or 'Sistema' }}</small></td>
+                            </tr>
+                            {% if sinal.observacoes %}
+                            <tr>
+                                <td colspan="9" class="bg-light">
+                                    <small><i class="fas fa-comment me-1"></i> <strong>Obs:</strong> {{ sinal.observacoes }}</small>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="mt-3 alert alert-secondary">
+                <i class="fas fa-info-circle me-2"></i> Nenhum sinal vital registrado para esta consulta.
+            </div>
+            {% endif %}
+            
             <!-- Botões de Ação -->
             <div class="mt-4">
                 <a href="{{ url_for('medico.consultas') }}" class="btn btn-secondary">
@@ -76,8 +126,10 @@
                     </button>
                     {% endif %}
                 {% endif %}
-                <a href="{{ url_for('enfermeiro.internados.registrar_sinais_vitais', consulta_id=consulta.id, origem='medico') }}" class="btn btn-danger">
-                    <i class="fas fa-heartbeat me-1"></i> Sinais Vitais
+                <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta.id, origem='medico') }}" 
+                   class="btn btn-danger"
+                   {% if not consulta.paciente_id %}disabled{% endif %}>
+                    <i class="fas fa-heartbeat me-1"></i> Registrar Sinais Vitais
                 </a>
             </div>
         </div>
