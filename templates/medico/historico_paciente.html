@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Histórico do Paciente - {{ paciente.nome }}{% endblock %}
+{% block title %}Histórico do Paciente - {{ paciente.nome | decode_bytes }}{% endblock %}
 
 {% block content %}
 <div class="container py-4">
@@ -22,14 +22,14 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-6">
-                    <p><strong>Nome:</strong> {{ paciente.nome }}</p>
+                    <p><strong>Nome:</strong> {{ paciente.nome | decode_bytes }}</p>
                     <p><strong>Idade:</strong> {{ idade }} anos</p>
-                    <p><strong>Gênero:</strong> {{ paciente.genero or 'Não informado' }}</p>
+                    <p><strong>Gênero:</strong> {{ paciente.genero | decode_bytes or 'Não informado' }}</p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Telefone:</strong> {{ paciente.telefone or 'Não informado' }}</p>
-                    <p><strong>Email:</strong> {{ paciente.email or 'Não informado' }}</p>
-                    <p><strong>Endereço:</strong> {{ paciente.endereco or 'Não informado' }}</p>
+                    <p><strong>Telefone:</strong> {{ paciente.telefone | decode_bytes or 'Não informado' }}</p>
+                    <p><strong>Email:</strong> {{ paciente.email | decode_bytes or 'Não informado' }}</p>
+                    <p><strong>Endereço:</strong> {{ paciente.endereco | decode_bytes or 'Não informado' }}</p>
                 </div>
             </div>
         </div>
@@ -57,8 +57,8 @@
                             {% for consulta in consultas %}
                             <tr>
                                 <td>{{ consulta.data_hora }}</td>
-                                <td>{{ consulta.medico_nome }}</td>
-                                <td>{{ consulta.especialidade }}</td>
+                                <td>{{ consulta.medico_nome | decode_bytes }}</td>
+                                <td>{{ consulta.especialidade | decode_bytes }}</td>
                                 <td><span class="badge bg-secondary">{{ consulta.status }}</span></td>
                                 <td>
                                     <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" 
@@ -91,7 +91,7 @@
                             <strong>Consulta #{{ consulta.id }} - {{ consulta.data_hora }}</strong>
                         </div>
                         <div class="card-body">
-                            <p><strong>Diagnóstico:</strong> {{ consulta.diagnostico_final }}</p>
+                            <p><strong>Diagnóstico:</strong> {{ consulta.diagnostico_final | decode_bytes }}</p>
                         </div>
                     </div>
                     {% endif %}
@@ -117,12 +117,12 @@
                     </div>
                     <div class="card-body">
                         {% if receita.diagnostico %}
-                        <p><strong>Diagnóstico:</strong> {{ receita.diagnostico }}</p>
+                        <p><strong>Diagnóstico:</strong> {{ receita.diagnostico | decode_bytes }}</p>
                         {% endif %}
                         <p><strong>Prescrição:</strong></p>
-                        <pre class="bg-light p-2 rounded" style="white-space: pre-wrap;">{{ receita.prescricao }}</pre>
+                        <pre class="bg-light p-2 rounded" style="white-space: pre-wrap;">{{ receita.prescricao | decode_bytes }}</pre>
                         {% if receita.recomendacoes %}
-                        <p><strong>Recomendações:</strong> {{ receita.recomendacoes }}</p>
+                        <p><strong>Recomendações:</strong> {{ receita.recomendacoes | decode_bytes }}</p>
                         {% endif %}
                     </div>
                 </div>
