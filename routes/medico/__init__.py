@@ -496,13 +496,111 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
         
-        # ===================== ROTA: HISTÓRICO DO PACIENTE (REDIRECIONA PARA ENFERMEIRO) =====================
-        @medico_bp.route('/paciente/<int:paciente_id>/historico')
+        # ===================== ROTA: HISTÓRICO DO PACIENTE (CORRIGIDA) =====================
+        @medico_bp.route('/historico/paciente/<int:paciente_id>')
         @profissional_saude_required
         def historico_paciente(paciente_id):
-            """Redireciona para o histórico do paciente (sistema de enfermagem)"""
-            # Usando URL direta para evitar erros de endpoint
-            return redirect(f'/enfermeiro/historico/paciente/{paciente_id}')
+            """Visualiza o histórico médico completo do paciente"""
+            try:
+                # Buscar informações do paciente
+                paciente_result = base['execute_query']("""
+                    SELECT p.id, p.data_nascimento, p.genero, p.telefone, p.endereco,
+                           u.nome, u.email
+                    FROM pacientes p
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE p.id = %s
+                """, (paciente_id,), fetch=True, one=True)
+                
+                if not paciente_result:
+                    flash('Paciente não encontrado.', 'danger')
+                    return redirect(url_for('medico.consultas'))
+                
+                # Converter paciente para dict
+                if isinstance(paciente_result, dict):
+                    paciente = paciente_result
+                else:
+                    paciente = {
+                        'id': paciente_result[0] if len(paciente_result) > 0 else None,
+                        'data_nascimento': paciente_result[1] if len(paciente_result) > 1 else None,
+                        'genero': paciente_result[2] if len(paciente_result) > 2 else '',
+                        'telefone': paciente_result[3] if len(paciente_result) > 3 else '',
+                        'endereco': paciente_result[4] if len(paciente_result) > 4 else '',
+                        'nome': paciente_result[5] if len(paciente_result) > 5 else '',
+                        'email': paciente_result[6] if len(paciente_result) > 6 else ''
+                    }
+                
+                # Calcular idade
+                from datetime import date
+                idade = None
+                data_nasc = paciente.get('data_nascimento')
+                if data_nasc:
+                    try:
+                        if isinstance(data_nasc, datetime):
+                            data_nasc = data_nasc.date()
+                        elif isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                        hoje = date.today()
+                        idade = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade -= 1
+                    except:
+                        pass
+                
+                # Buscar consultas do paciente
+                consultas = base['execute_query']("""
+                    SELECT c.id, c.data_hora, c.status, c.observacoes, c.sintomas,
+                           m_u.nome as medico_nome, m.especialidade
+                    FROM consultas c
+                    JOIN medicos m ON c.medico_id = m.id
+                    JOIN usuarios m_u ON m.usuario_id = m_u.id
+                    WHERE c.paciente_id = %s
+                    ORDER BY c.data_hora DESC
+                """, (paciente_id,), fetch=True) or []
+                
+                # Buscar receitas
+                receitas = base['execute_query']("""
+                    SELECT r.id, r.created_at, r.diagnostico, r.prescricao, r.recomendacoes
+                    FROM receita r
+                    JOIN consultas c ON r.consulta_id = c.id
+                    WHERE c.paciente_id = %s
+                    ORDER BY r.created_at DESC
+                """, (paciente_id,), fetch=True) or []
+                
+                # Buscar exames/pedidos
+                exames = base['execute_query']("""
+                    SELECT pa.id, pa.tipo_exame, pa.status, pa.data_solicitacao, 
+                           pa.resultado_analise, pa.diagnostico_analista
+                    FROM pedidos_analise pa
+                    JOIN consultas c ON pa.consulta_id = c.id
+                    WHERE c.paciente_id = %s
+                    ORDER BY pa.data_solicitacao DESC
+                """, (paciente_id,), fetch=True) or []
+                
+                # Buscar sinais vitais
+                sinais_vitais = base['execute_query']("""
+                    SELECT sv.pressao_arterial, sv.frequencia_cardiaca, sv.frequencia_respiratoria,
+                           sv.temperatura, sv.saturacao_oxigenio, sv.glicemia, sv.peso,
+                           sv.data_afericao, sv.observacoes, u.nome as enfermeiro_nome
+                    FROM sinais_vitais sv
+                    JOIN consultas c ON sv.consulta_id = c.id
+                    LEFT JOIN usuarios u ON sv.enfermeiro_id = u.id
+                    WHERE c.paciente_id = %s
+                    ORDER BY sv.data_afericao DESC
+                    LIMIT 20
+                """, (paciente_id,), fetch=True) or []
+                
+                return render_template('medico/historico_paciente.html',
+                                     paciente=paciente,
+                                     idade=idade,
+                                     consultas=consultas,
+                                     receitas=receitas,
+                                     exames=exames,
+                                     sinais_vitais=sinais_vitais)
+                                 
+            except Exception as e:
+                logger.error(f"Erro ao carregar histórico: {e}")
+                flash(f'Erro ao carregar histórico: {str(e)}', 'danger')
+                return redirect(url_for('medico.consultas'))
         
         # ===================== LISTA DE MÓDULOS EXISTENTES =====================
         modules = [
