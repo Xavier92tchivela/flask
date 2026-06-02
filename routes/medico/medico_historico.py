@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, flash, redirect, url_for
-from utils.database import execute_query
+from datetime import datetime, date
 
 def init_medico_historico(base):
     """Inicializa rotas de histórico do médico"""
@@ -25,13 +25,13 @@ def init_medico_historico(base):
                 return redirect(url_for('medico.consultas'))
             
             # Calcular idade
-            from datetime import date
             idade = None
-            if paciente.get('data_nascimento'):
+            data_nasc = paciente.get('data_nascimento') if isinstance(paciente, dict) else paciente[1] if len(paciente) > 1 else None
+            if data_nasc:
                 try:
-                    data_nasc = paciente['data_nascimento']
-                    if isinstance(data_nasc, str):
-                        from datetime import datetime
+                    if isinstance(data_nasc, datetime):
+                        data_nasc = data_nasc.date()
+                    elif isinstance(data_nasc, str):
                         data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
                     hoje = date.today()
                     idade = hoje.year - data_nasc.year
@@ -40,7 +40,19 @@ def init_medico_historico(base):
                 except:
                     pass
             
-            # Buscar consultas do paciente com este médico
+            # Converter paciente para dict se for tuple
+            if not isinstance(paciente, dict):
+                paciente = {
+                    'id': paciente[0] if len(paciente) > 0 else None,
+                    'data_nascimento': paciente[1] if len(paciente) > 1 else None,
+                    'genero': paciente[2] if len(paciente) > 2 else '',
+                    'telefone': paciente[3] if len(paciente) > 3 else '',
+                    'endereco': paciente[4] if len(paciente) > 4 else '',
+                    'nome': paciente[5] if len(paciente) > 5 else '',
+                    'email': paciente[6] if len(paciente) > 6 else ''
+                }
+            
+            # Buscar consultas do paciente
             consultas = execute_query("""
                 SELECT c.id, c.data_hora, c.status, c.observacoes, c.sintomas,
                        m_u.nome as medico_nome, m.especialidade
@@ -53,8 +65,7 @@ def init_medico_historico(base):
             
             # Buscar receitas
             receitas = execute_query("""
-                SELECT r.id, r.created_at, r.diagnostico, r.prescricao, r.recomendacoes,
-                       c.data_hora as consulta_data
+                SELECT r.id, r.created_at, r.diagnostico, r.prescricao, r.recomendacoes
                 FROM receita r
                 JOIN consultas c ON r.consulta_id = c.id
                 WHERE c.paciente_id = %s
@@ -64,8 +75,7 @@ def init_medico_historico(base):
             # Buscar exames/pedidos
             exames = execute_query("""
                 SELECT pa.id, pa.tipo_exame, pa.status, pa.data_solicitacao, 
-                       pa.resultado_analise, pa.diagnostico_analista, pa.data_conclusao,
-                       c.data_hora as consulta_data
+                       pa.resultado_analise, pa.diagnostico_analista
                 FROM pedidos_analise pa
                 JOIN consultas c ON pa.consulta_id = c.id
                 WHERE c.paciente_id = %s
@@ -82,6 +92,7 @@ def init_medico_historico(base):
                 LEFT JOIN usuarios u ON sv.enfermeiro_id = u.id
                 WHERE c.paciente_id = %s
                 ORDER BY sv.data_afericao DESC
+                LIMIT 20
             """, (paciente_id,), fetch=True) or []
             
             return render_template('medico/historico_paciente.html',
