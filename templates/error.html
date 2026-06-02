@@ -1,1 +1,26 @@
 
+{% extends "base.html" %}
+
+{% block title %}Erro - DoctorIA{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div class="mb-4">
+                <i class="fas fa-exclamation-triangle fa-5x text-warning"></i>
+            </div>
+            <h1 class="display-4 mb-3">Ops! Algo deu errado</h1>
+            <p class="lead mb-4">{{ error|default('Ocorreu um erro inesperado.') }}</p>
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="javascript:history.back()" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                </a>
+                <a href="{{ url_for('auth.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-home me-2"></i>Início
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %
