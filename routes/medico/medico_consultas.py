@@ -194,21 +194,22 @@ def init_medico_consultas(base):
             datas_dict = {}
             
             for c in consultas_raw:
-                # ===== CONVERSÃO DE BYTES =====
-                # Converter observacoes (campo 8)
-                observacoes = converter_bytes_para_string(c[8])
+                # ===== ACESSO CORRETO USANDO CHAVES DO DICIONÁRIO =====
+                # Converter observacoes (agora usa a chave 'observacoes')
+                observacoes = converter_bytes_para_string(c.get('observacoes', ''))
                 
-                # Converter sintomas (campo 9)
-                sintomas_raw = converter_bytes_para_string(c[9])
+                # Converter sintomas (agora usa a chave 'sintomas')
+                sintomas_raw = converter_bytes_para_string(c.get('sintomas', ''))
                 
-                # Calcular idade
+                # Calcular idade usando a chave 'data_nascimento' (índice 2 na query original)
+                data_nascimento = c.get('data_nascimento')
                 idade = None
-                if c[2]:
+                if data_nascimento:
                     try:
-                        if isinstance(c[2], datetime):
-                            data_nasc = c[2]
+                        if isinstance(data_nascimento, datetime):
+                            data_nasc = data_nascimento
                         else:
-                            data_nasc = datetime.strptime(str(c[2]), '%Y-%m-%d')
+                            data_nasc = datetime.strptime(str(data_nascimento), '%Y-%m-%d')
                         idade = datetime.now().year - data_nasc.year
                         if datetime.now().month < data_nasc.month or (datetime.now().month == data_nasc.month and datetime.now().day < data_nasc.day):
                             idade -= 1
@@ -220,7 +221,7 @@ def init_medico_consultas(base):
                 if sintomas_raw:
                     sintomas_lista = [s.strip() for s in sintomas_raw.split(',') if s.strip()]
                 
-                # Extrair informações da data
+                # Extrair informações da data usando a chave 'data_hora'
                 data_consulta_obj = None
                 dia_semana_pt = ''
                 hora_consulta = ''
@@ -229,12 +230,13 @@ def init_medico_consultas(base):
                 mes_consulta = None
                 ano_consulta = None
                 
-                if c[6]:
+                data_hora = c.get('data_hora')
+                if data_hora:
                     try:
-                        if isinstance(c[6], datetime):
-                            data_consulta_obj = c[6]
+                        if isinstance(data_hora, datetime):
+                            data_consulta_obj = data_hora
                         else:
-                            data_consulta_obj = datetime.strptime(str(c[6]), '%Y-%m-%d %H:%M:%S')
+                            data_consulta_obj = datetime.strptime(str(data_hora), '%Y-%m-%d %H:%M:%S')
                         
                         # Dia da semana
                         dia_semana_ingles = data_consulta_obj.strftime('%A')
@@ -271,14 +273,15 @@ def init_medico_consultas(base):
                     except Exception as e:
                         print(f"Erro ao processar data: {e}")
                 
+                # Construir dicionário da consulta usando as chaves corretas
                 consultas.append({
-                    'id': c[0],
-                    'paciente_nome': c[1] or 'Nome não disponível',
+                    'id': c.get('id'),
+                    'paciente_nome': c.get('paciente_nome') or 'Nome não disponível',
                     'paciente_idade': f"{idade} anos" if idade else "Idade não informada",
-                    'paciente_genero': 'Masculino' if c[3] == 'M' else 'Feminino' if c[3] == 'F' else (c[3] or 'Não informado'),
-                    'paciente_telefone': c[4] or 'Não informado',
-                    'paciente_email': c[5] or 'Não informado',
-                    'data_hora': formatar_data(c[6], '%d/%m/%Y %H:%M') if c[6] else 'Data não disponível',
+                    'paciente_genero': 'Masculino' if c.get('genero') == 'M' else 'Feminino' if c.get('genero') == 'F' else (c.get('genero') or 'Não informado'),
+                    'paciente_telefone': c.get('telefone') or 'Não informado',
+                    'paciente_email': c.get('email') or 'Não informado',
+                    'data_hora': formatar_data(data_hora, '%d/%m/%Y %H:%M') if data_hora else 'Data não disponível',
                     'data_consulta': data_consulta,
                     'hora_consulta': hora_consulta,
                     'dia_semana': dia_semana_pt,
@@ -286,7 +289,7 @@ def init_medico_consultas(base):
                     'mes_nome': meses_nomes.get(mes_consulta, '') if mes_consulta else '',
                     'mes_abreviado': meses_abreviados.get(mes_consulta, '') if mes_consulta else '',
                     'ano': ano_consulta,
-                    'status': c[7] or 'desconhecido',
+                    'status': c.get('status') or 'desconhecido',
                     'observacoes': observacoes,
                     'sintomas_lista': sintomas_lista,
                     'tem_sintomas': len(sintomas_lista) > 0,
@@ -295,7 +298,7 @@ def init_medico_consultas(base):
                         'realizada': 'success',
                         'cancelada': 'danger',
                         'confirmada': 'info'
-                    }.get(c[7], 'secondary')
+                    }.get(c.get('status'), 'secondary')
                 })
             
             # CONVERTER TODA A LISTA PARA GARANTIR QUE NÃO HAJA BYTES
@@ -312,7 +315,7 @@ def init_medico_consultas(base):
                 ORDER BY ano DESC
             """, (medico_id,), fetch=True) or []
             
-            anos_disponiveis = [a[0] for a in anos_raw if a and a[0]]
+            anos_disponiveis = [a.get('ano') if isinstance(a, dict) else a[0] for a in anos_raw if a]
             if not anos_disponiveis:
                 anos_disponiveis = [datetime.now().year]
             
