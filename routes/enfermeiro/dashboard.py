@@ -1,5 +1,5 @@
 # routes/enfermeiro/dashboard.py
-from flask import Blueprint, render_template, session, request, jsonify
+from flask import Blueprint, render_template, session, request, jsonify, redirect, url_for, flash
 from datetime import datetime, timedelta
 import logging
 from functools import wraps
@@ -18,18 +18,21 @@ def set_mysql(mysql_instance):
 def enfermeiro_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Verificar se é uma requisição de API (pelo path ou pelo Accept header)
+        # Verificar se é uma requisição de API
         is_api = request.path.startswith('/dashboard/api/') or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
         
         if 'user_id' not in session:
             if is_api:
                 return jsonify({'error': 'Não autorizado', 'authenticated': False}), 401
-            return render_template('login.html', error='Faça login para continuar')
+            flash('Faça login para continuar', 'danger')
+            return redirect(url_for('auth.login'))
         
-        if session.get('user_type') != 'enfermeiro':
+        user_type = session.get('user_type')
+        if user_type != 'enfermeiro':
             if is_api:
                 return jsonify({'error': 'Acesso restrito a enfermeiros'}), 403
-            return render_template('error.html', error='Acesso restrito a enfermeiros'), 403
+            flash('Acesso restrito a enfermeiros', 'danger')
+            return redirect(url_for('auth.index'))
         
         return f(*args, **kwargs)
     return decorated_function
