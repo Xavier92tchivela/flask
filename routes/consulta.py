@@ -727,20 +727,60 @@ def create_consulta_blueprint(mysql):
             else:
                 return redirect(url_for('auth.index'))
         
-        # Verificar permissão de acesso
+        # ========== DEBUG DE PERMISSÃO ==========
         usuario_tipo = session.get('user_type')
+        print(f"\n=== DEBUG PERMISSÃO ===")
+        print(f"Consulta ID: {consulta_id}")
+        print(f"Usuário tipo: {usuario_tipo}")
+        print(f"consulta.get('medico_id'): {consulta.get('medico_id')}")
+        print(f"consulta.get('paciente_id'): {consulta.get('paciente_id')}")
+        print(f"consulta.get('id'): {consulta.get('id')}")
+        
         tem_acesso = False
         
         if usuario_tipo == 'admin':
             tem_acesso = True
+            print("Admin - acesso concedido")
+            
         elif usuario_tipo == 'medico':
             medico_id = obter_medico_id()
-            tem_acesso = consulta['medico_id'] == medico_id
+            consulta_medico_id = consulta.get('medico_id')
+            print(f"medico_id logado: {medico_id}")
+            print(f"consulta_medico_id: {consulta_medico_id}")
+            print(f"Tipo medico_id: {type(medico_id)}")
+            print(f"Tipo consulta_medico_id: {type(consulta_medico_id)}")
+            
+            # Converter para int para comparação segura
+            if consulta_medico_id is not None and medico_id is not None:
+                try:
+                    if int(consulta_medico_id) == int(medico_id):
+                        tem_acesso = True
+                        print("Acesso concedido - médico responsável")
+                    else:
+                        print(f"Acesso negado - IDs diferentes")
+                except (ValueError, TypeError) as e:
+                    print(f"Erro na conversão: {e}")
+            else:
+                print(f"Acesso negado - IDs vazios: medico_id={medico_id}, consulta_medico_id={consulta_medico_id}")
+                
         elif usuario_tipo == 'paciente':
             paciente_id = obter_paciente_id()
-            tem_acesso = consulta['paciente_id'] == paciente_id
+            consulta_paciente_id = consulta.get('paciente_id')
+            print(f"paciente_id logado: {paciente_id}")
+            print(f"consulta_paciente_id: {consulta_paciente_id}")
+            
+            if consulta_paciente_id and paciente_id and int(consulta_paciente_id) == int(paciente_id):
+                tem_acesso = True
+                print("Acesso concedido - paciente dono da consulta")
+            else:
+                print("Acesso negado - paciente não é o dono")
+                
         elif usuario_tipo == 'enfermeiro':
             tem_acesso = True
+            print("Enfermeiro - acesso concedido")
+        
+        print(f"Resultado final - tem_acesso: {tem_acesso}")
+        print("=" * 30)
         
         if not tem_acesso:
             flash('Você não tem permissão para acessar esta consulta.', 'danger')
@@ -758,6 +798,14 @@ def create_consulta_blueprint(mysql):
         receitas = obter_receitas(consulta_id)
         sintomas = consulta.get('sintomas_lista', [])
         
+        # Buscar internação existente
+        internacao_existente = None
+        if consulta.get('paciente_id'):
+            internacao_existente = execute_query(
+                "SELECT id FROM internacoes_pacientes WHERE paciente_id = %s AND status = 'ativa'",
+                (consulta.get('paciente_id'),), fetch=True, one=True
+            )
+        
         # Log para debug
         logger.info(f"Consulta {consulta_id}: {len(sinais_vitais)} sinais vitais, diagnostico={diagnostico is not None}")
         if diagnostico:
@@ -770,6 +818,7 @@ def create_consulta_blueprint(mysql):
                              pedidos=pedidos,
                              receitas=receitas,
                              sintomas=sintomas,
+                             internacao_existente=internacao_existente,
                              usuario_tipo=usuario_tipo,
                              user=session,
                              agora=datetime.now().strftime('%d/%m/%Y %H:%M'))
