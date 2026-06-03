@@ -157,7 +157,7 @@ def listar_sinais_vitais():
 def registrar_sinais_vitais(consulta_id=None):
     """Registra novos sinais vitais (enfermeiro ou médico)"""
     usuario_id = session.get('user_id')
-    user_type = session.get('user_type')  # USAR user_type
+    user_type = session.get('user_type')
     enfermeiro_id = session.get('enfermeiro_id')
     medico_id = session.get('medico_id')
     
@@ -213,8 +213,9 @@ def registrar_sinais_vitais(consulta_id=None):
                 
                 origem = request.args.get('origem') or request.form.get('origem')
                 if origem == 'medico' or user_type == 'medico':
-                    # CORRIGIDO: usar a rota correta de detalhes da consulta
                     return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id_post))
+                else:
+                    return redirect(url_for('enfermeiro.sinais_vitais.listar_sinais_vitais'))
             else:
                 flash('Erro ao registrar sinais vitais.', 'danger')
                 
