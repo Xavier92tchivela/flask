@@ -1,4 +1,4 @@
-{% extends "enfermeiro/base_enfermeiro.html" %}
+{% extends "base.html" %}
 
 {% block title %}Registrar Sinais Vitais{% endblock %}
 
@@ -9,17 +9,16 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
                     <li class="breadcrumb-item">
+                        {% if session.get('user_type') == 'medico' %}
+                        <a href="{{ url_for('medico.dashboard') }}">
+                        {% else %}
                         <a href="{{ url_for('enfermeiro.dashboard.index') }}">
+                        {% endif %}
                             <i class="fas fa-home me-1"></i> Dashboard
                         </a>
                     </li>
-                    <li class="breadcrumb-item">
-                        <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}">
-                            <i class="fas fa-heartbeat me-1"></i> Sinais Vitais
-                        </a>
-                    </li>
                     <li class="breadcrumb-item active" aria-current="page">
-                        Registrar Aferição
+                        Registrar Sinais Vitais
                     </li>
                 </ol>
             </nav>
@@ -31,100 +30,26 @@
             <div class="card">
                 <div class="card-header bg-primary text-white">
                     <i class="fas fa-plus-circle me-2"></i>
-                    Formulário de Aferição
+                    Registrar Sinais Vitais - Consulta #{{ consulta_especifica.id if consulta_especifica else '...' }}
                 </div>
                 <div class="card-body">
-                    {% if consultas_pendentes %}
-                        <!-- Abas para separar consultas -->
-                        <ul class="nav nav-tabs mb-3" id="consultaTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="pendentes-tab" data-bs-toggle="tab" 
-                                        data-bs-target="#pendentes" type="button" role="tab">
-                                    <i class="fas fa-clock text-warning me-1"></i>
-                                    Aguardando Triagem 
-                                    <span class="badge bg-warning rounded-pill ms-1">{{ consultas_sem_triagem|length }}</span>
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="realizadas-tab" data-bs-toggle="tab" 
-                                        data-bs-target="#realizadas" type="button" role="tab">
-                                    <i class="fas fa-check-circle text-success me-1"></i>
-                                    Triagem Realizada
-                                    <span class="badge bg-success rounded-pill ms-1">{{ consultas_com_triagem|length }}</span>
-                                </button>
-                            </li>
-                        </ul>
-                        
-                        <form method="POST" id="formSinaisVitais">
-                            <!-- Aba de conteúdo -->
-                            <div class="tab-content" id="consultaTabContent">
-                                <!-- Aba de Consultas Pendentes (sem triagem) -->
-                                <div class="tab-pane fade show active" id="pendentes" role="tabpanel">
-                                    <div class="row mb-3">
-                                        <label class="col-sm-3 col-form-label fw-bold">
-                                            <i class="fas fa-user text-primary me-1"></i>
-                                            Paciente *
-                                        </label>
-                                        <div class="col-sm-9">
-                                            <select class="form-control form-select" name="consulta_id" required id="selectPaciente">
-                                                <option value="">Selecione um paciente...</option>
-                                                {% for consulta in consultas_sem_triagem %}
-                                                <option value="{{ consulta.id }}" 
-                                                        {% if consulta_selecionada and consulta_selecionada.id == consulta.id %}selected{% endif %}
-                                                        data-paciente="{{ consulta.paciente_nome }}">
-                                                    {{ consulta.paciente_nome }} - 
-                                                    <span class="text-primary">{{ consulta.data_consulta }} às {{ consulta.hora_consulta }}</span>
-                                                    {% if consulta.idade %} - {{ consulta.idade }} anos{% endif %}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Selecione o paciente que está aguardando triagem
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Aba de Consultas com Triagem Realizada -->
-                                <div class="tab-pane fade" id="realizadas" role="tabpanel">
-                                    <div class="row mb-3">
-                                        <label class="col-sm-3 col-form-label fw-bold">
-                                            <i class="fas fa-user text-primary me-1"></i>
-                                            Paciente *
-                                        </label>
-                                        <div class="col-sm-9">
-                                            <select class="form-control form-select" name="consulta_id" id="selectPacienteRealizadas">
-                                                <option value="">Selecione um paciente...</option>
-                                                {% for consulta in consultas_com_triagem %}
-                                                <option value="{{ consulta.id }}" 
-                                                        {% if consulta_selecionada and consulta_selecionada.id == consulta.id %}selected{% endif %}
-                                                        data-paciente="{{ consulta.paciente_nome }}">
-                                                    {{ consulta.paciente_nome }} - 
-                                                    <span class="text-success">{{ consulta.data_consulta }} às {{ consulta.hora_consulta }}</span>
-                                                    {% if consulta.idade %} - {{ consulta.idade }} anos{% endif %}
-                                                    <span class="badge bg-success ms-2">Triagem já realizada</span>
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                            <small class="text-muted">
-                                                <i class="fas fa-info-circle me-1"></i>
-                                                Pacientes que já realizaram triagem (pode registrar novamente se necessário)
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
+                    {% if consulta_especifica %}
+                        <!-- Formulário para consulta específica -->
+                        <form method="POST">
+                            <input type="hidden" name="consulta_id" value="{{ consulta_especifica.id }}">
+                            
+                            <div class="alert alert-info mb-3">
+                                <i class="fas fa-user me-2"></i>
+                                <strong>Paciente:</strong> {{ consulta_especifica.paciente_nome }}
+                                {% if consulta_especifica.idade %}
+                                - <strong>Idade:</strong> {{ consulta_especifica.idade }} anos
+                                {% endif %}
+                                <br>
+                                <i class="fas fa-calendar me-2"></i>
+                                <strong>Consulta:</strong> {{ consulta_especifica.data_consulta }} às {{ consulta_especifica.hora_consulta }}
                             </div>
                             
-                            <hr class="my-4">
-                            
-                            <!-- Informações da Consulta Selecionada -->
-                            <div id="infoConsulta" class="alert alert-info mb-3" style="display: none;">
-                                <i class="fas fa-calendar-alt me-2"></i>
-                                <span id="infoConsultaTexto"></span>
-                            </div>
-                            
-                            <!-- Sinais Vitais -->
+                            <!-- Campos de Sinais Vitais -->
                             <h5 class="mb-3">
                                 <i class="fas fa-heartbeat text-danger me-2"></i>
                                 Sinais Vitais
@@ -136,17 +61,9 @@
                                     Pressão Arterial *
                                 </label>
                                 <div class="col-sm-4">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" name="pressao_arterial" 
-                                               placeholder="120x80" pattern="[0-9]{2,3}x[0-9]{2,3}" 
-                                               title="Formato: sistólica x diastólica (ex: 120x80)" required
-                                               id="pressaoInput">
-                                        <span class="input-group-text">mmHg</span>
-                                    </div>
+                                    <input type="text" class="form-control" name="pressao_arterial" 
+                                           placeholder="120x80" required>
                                     <small class="text-muted">Formato: 120x80</small>
-                                </div>
-                                <div class="col-sm-5">
-                                    <div id="pressaoPreview" class="mt-2"></div>
                                 </div>
                             </div>
                             
@@ -156,15 +73,9 @@
                                     Frequência Cardíaca
                                 </label>
                                 <div class="col-sm-3">
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" name="frequencia_cardiaca" 
-                                               min="30" max="250" placeholder="bpm" id="fcInput">
-                                        <span class="input-group-text">bpm</span>
-                                    </div>
-                                    <small class="text-muted">30-250 bpm</small>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div id="fcPreview" class="mt-2"></div>
+                                    <input type="number" class="form-control" name="frequencia_cardiaca" 
+                                           min="30" max="250" placeholder="bpm">
+                                    <small class="text-muted">bpm</small>
                                 </div>
                             </div>
                             
@@ -174,15 +85,9 @@
                                     Frequência Respiratória
                                 </label>
                                 <div class="col-sm-3">
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" name="frequencia_respiratoria" 
-                                               min="8" max="40" placeholder="mpm" id="frInput">
-                                        <span class="input-group-text">mpm</span>
-                                    </div>
-                                    <small class="text-muted">8-40 mpm</small>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div id="frPreview" class="mt-2"></div>
+                                    <input type="number" class="form-control" name="frequencia_respiratoria" 
+                                           min="8" max="40" placeholder="mpm">
+                                    <small class="text-muted">mpm</small>
                                 </div>
                             </div>
                             
@@ -192,33 +97,21 @@
                                     Temperatura
                                 </label>
                                 <div class="col-sm-3">
-                                    <div class="input-group">
-                                        <input type="number" step="0.1" class="form-control" name="temperatura" 
-                                               min="30" max="45" placeholder="°C" id="tempInput">
-                                        <span class="input-group-text">°C</span>
-                                    </div>
-                                    <small class="text-muted">36-37.5 °C</small>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div id="tempPreview" class="mt-2"></div>
+                                    <input type="number" step="0.1" class="form-control" name="temperatura" 
+                                           min="30" max="45" placeholder="°C">
+                                    <small class="text-muted">°C</small>
                                 </div>
                             </div>
                             
                             <div class="row mb-3">
                                 <label class="col-sm-3 col-form-label">
                                     <i class="fas fa-wind text-primary me-1"></i>
-                                    Saturação O2
+                                    Saturação O₂
                                 </label>
                                 <div class="col-sm-3">
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" name="saturacao_oxigenio" 
-                                               min="50" max="100" placeholder="%" id="satInput">
-                                        <span class="input-group-text">%</span>
-                                    </div>
-                                    <small class="text-muted">≥ 95%</small>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div id="satPreview" class="mt-2"></div>
+                                    <input type="number" class="form-control" name="saturacao_oxigenio" 
+                                           min="50" max="100" placeholder="%">
+                                    <small class="text-muted">%</small>
                                 </div>
                             </div>
                             
@@ -228,15 +121,9 @@
                                     Glicemia
                                 </label>
                                 <div class="col-sm-3">
-                                    <div class="input-group">
-                                        <input type="number" class="form-control" name="glicemia" 
-                                               min="20" max="600" placeholder="mg/dL" id="glicemiaInput">
-                                        <span class="input-group-text">mg/dL</span>
-                                    </div>
-                                    <small class="text-muted">70-140 mg/dL</small>
-                                </div>
-                                <div class="col-sm-6">
-                                    <div id="glicemiaPreview" class="mt-2"></div>
+                                    <input type="number" class="form-control" name="glicemia" 
+                                           min="20" max="600" placeholder="mg/dL">
+                                    <small class="text-muted">mg/dL</small>
                                 </div>
                             </div>
                             
@@ -246,12 +133,9 @@
                                     Peso
                                 </label>
                                 <div class="col-sm-3">
-                                    <div class="input-group">
-                                        <input type="number" step="0.1" class="form-control" name="peso" 
-                                               min="1" max="300" placeholder="kg" id="pesoInput">
-                                        <span class="input-group-text">kg</span>
-                                    </div>
-                                    <small class="text-muted">1-300 kg</small>
+                                    <input type="number" step="0.1" class="form-control" name="peso" 
+                                           min="1" max="300" placeholder="kg">
+                                    <small class="text-muted">kg</small>
                                 </div>
                             </div>
                             
@@ -266,16 +150,16 @@
                                 </div>
                             </div>
                             
-                            <hr class="my-4">
+                            <hr>
                             
-                            <!-- Botões -->
                             <div class="row">
                                 <div class="col-sm-9 offset-sm-3">
-                                    <button type="submit" class="btn btn-primary btn-lg px-4" id="btnSubmit">
+                                    <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-save me-2"></i>
                                         Registrar Sinais Vitais
                                     </button>
-                                    <a href="{{ url_for('enfermeiro.sinais_vitais.listar_sinais_vitais') }}" class="btn btn-secondary btn-lg px-4 ms-2">
+                                    <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta_especifica.id) }}" 
+                                       class="btn btn-secondary ms-2">
                                         <i class="fas fa-times me-2"></i>
                                         Cancelar
                                     </a>
@@ -283,368 +167,91 @@
                             </div>
                         </form>
                     {% else %}
-                        <div class="text-center py-5">
-                            <i class="fas fa-calendar-times fa-4x text-muted mb-3"></i>
-                            <h4>Nenhuma consulta encontrada</h4>
-                            <p class="text-muted">
-                                Não há consultas agendadas ou confirmadas no momento.
-                            </p>
-                            <div class="mt-4">
-                                <a href="{{ url_for('enfermeiro.dashboard.index') }}" class="btn btn-primary">
-                                    <i class="fas fa-arrow-left me-1"></i>
-                                    Voltar ao Dashboard
-                                </a>
-                                <a href="{{ url_for('enfermeiro.agendamento.listar_agendamentos') }}" class="btn btn-outline-primary ms-2">
-                                    <i class="fas fa-calendar-plus me-1"></i>
-                                    Novo Agendamento
-                                </a>
+                        <!-- Lista de consultas -->
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">Selecione a Consulta</label>
+                                <select class="form-select" name="consulta_id" required>
+                                    <option value="">Selecione...</option>
+                                    {% for consulta in consultas_pendentes %}
+                                    <option value="{{ consulta.id }}">
+                                        {{ consulta.paciente_nome }} - {{ consulta.data_consulta }} às {{ consulta.hora_consulta }}
+                                        ({{ consulta.status }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
-                        </div>
+                            
+                            <!-- Campos de Sinais Vitais (mesmo acima) -->
+                            <h5 class="mb-3">Sinais Vitais</h5>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Pressão Arterial *</label>
+                                <input type="text" class="form-control" name="pressao_arterial" placeholder="120x80" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Frequência Cardíaca</label>
+                                <input type="number" class="form-control" name="frequencia_cardiaca" placeholder="bpm">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Frequência Respiratória</label>
+                                <input type="number" class="form-control" name="frequencia_respiratoria" placeholder="mpm">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Temperatura</label>
+                                <input type="number" step="0.1" class="form-control" name="temperatura" placeholder="°C">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Saturação O₂</label>
+                                <input type="number" class="form-control" name="saturacao_oxigenio" placeholder="%">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Glicemia</label>
+                                <input type="number" class="form-control" name="glicemia" placeholder="mg/dL">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Peso</label>
+                                <input type="number" step="0.1" class="form-control" name="peso" placeholder="kg">
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" name="observacoes" rows="3"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Registrar Sinais Vitais</button>
+                            <a href="{{ url_for('medico.consultas') }}" class="btn btn-secondary">Cancelar</a>
+                        </form>
                     {% endif %}
                 </div>
             </div>
         </div>
         
-        <!-- Sidebar com informações -->
+        <!-- Sidebar com instruções -->
         <div class="col-md-4">
-            <!-- Card de instruções -->
-            <div class="card mb-3">
+            <div class="card">
                 <div class="card-header bg-info text-white">
                     <i class="fas fa-info-circle me-2"></i>
-                    Instruções
+                    Valores de Referência
                 </div>
                 <div class="card-body">
-                    <h6 class="mb-3">Valores de Referência:</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2 p-2 bg-light rounded">
-                            <span class="badge bg-success me-2">Normal</span>
-                            <strong>Pressão:</strong> &lt; 120x80
-                        </li>
-                        <li class="mb-2 p-2 bg-light rounded">
-                            <span class="badge bg-warning me-2">Alterado</span>
-                            <strong>FC:</strong> 60-100 bpm
-                        </li>
-                        <li class="mb-2 p-2 bg-light rounded">
-                            <span class="badge bg-warning me-2">Alterado</span>
-                            <strong>FR:</strong> 12-20 mpm
-                        </li>
-                        <li class="mb-2 p-2 bg-light rounded">
-                            <span class="badge bg-warning me-2">Alterado</span>
-                            <strong>Temp:</strong> 36-37.5 °C
-                        </li>
-                        <li class="mb-2 p-2 bg-light rounded">
-                            <span class="badge bg-warning me-2">Alterado</span>
-                            <strong>Sat O2:</strong> ≥ 95%
-                        </li>
-                        <li class="mb-2 p-2 bg-light rounded">
-                            <span class="badge bg-warning me-2">Alterado</span>
-                            <strong>Glicemia:</strong> 70-140 mg/dL
-                        </li>
+                        <li><strong>Pressão:</strong> &lt; 120x80 mmHg</li>
+                        <li><strong>FC:</strong> 60-100 bpm</li>
+                        <li><strong>FR:</strong> 12-20 mpm</li>
+                        <li><strong>Temp:</strong> 36-37.5 °C</li>
+                        <li><strong>SpO₂:</strong> ≥ 95%</li>
+                        <li><strong>Glicemia:</strong> 70-140 mg/dL</li>
                     </ul>
-                </div>
-            </div>
-            
-            <!-- Card de alertas -->
-            <div class="card">
-                <div class="card-header bg-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    Atenção
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-success py-2 mb-2">
-                        <i class="fas fa-check-circle me-2"></i>
-                        Verifique se o paciente está calmo antes da aferição
-                    </div>
-                    <div class="alert alert-success py-2 mb-2">
-                        <i class="fas fa-check-circle me-2"></i>
-                        Use o equipamento adequado e calibrado
-                    </div>
-                    <div class="alert alert-success py-2 mb-2">
-                        <i class="fas fa-check-circle me-2"></i>
-                        Registre qualquer intercorrência nas observações
-                    </div>
-                    <div class="alert alert-danger py-2 mb-0">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Valores críticos devem ser comunicados imediatamente
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .breadcrumb {
-        background-color: transparent;
-        padding: 0;
-    }
-    .breadcrumb-item a {
-        color: var(--primary-color);
-        text-decoration: none;
-    }
-    .breadcrumb-item a:hover {
-        text-decoration: underline;
-    }
-    .input-group-text {
-        background-color: #f8f9fa;
-    }
-    .alert {
-        border-left: 4px solid;
-    }
-    .alert-success {
-        border-left-color: #198754;
-    }
-    .alert-danger {
-        border-left-color: #dc3545;
-    }
-    .badge {
-        font-size: 0.8rem;
-        padding: 0.4em 0.6em;
-    }
-    .nav-tabs .nav-link {
-        color: #495057;
-    }
-    .nav-tabs .nav-link.active {
-        font-weight: bold;
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    // Funções de validação e preview
-    function atualizarPreviewPressao() {
-        const pressao = document.getElementById('pressaoInput')?.value;
-        const preview = document.getElementById('pressaoPreview');
-        
-        if (!pressao || !preview) {
-            return;
-        }
-        
-        const partes = pressao.split('x');
-        if (partes.length !== 2) {
-            preview.innerHTML = '<span class="text-danger">Formato inválido. Use: 120x80</span>';
-            return;
-        }
-        
-        const sistolica = parseInt(partes[0]);
-        const diastolica = parseInt(partes[1]);
-        
-        if (isNaN(sistolica) || isNaN(diastolica)) {
-            preview.innerHTML = '<span class="text-danger">Valores devem ser números</span>';
-            return;
-        }
-        
-        if (sistolica < 120 && diastolica < 80) {
-            preview.innerHTML = '<span class="badge bg-success p-2">Normal</span>';
-        } else if (sistolica >= 140 || diastolica >= 90) {
-            preview.innerHTML = '<span class="badge bg-danger p-2">Hipertensão</span>';
-        } else {
-            preview.innerHTML = '<span class="badge bg-warning p-2">Pré-hipertensão</span>';
-        }
-    }
-
-    function atualizarPreviewFC() {
-        const fc = document.getElementById('fcInput')?.value;
-        const preview = document.getElementById('fcPreview');
-        
-        if (!fc || !preview) {
-            return;
-        }
-        
-        if (fc < 60 || fc > 100) {
-            preview.innerHTML = '<span class="badge bg-warning p-2">Fora do normal</span>';
-        } else {
-            preview.innerHTML = '<span class="badge bg-success p-2">Normal</span>';
-        }
-    }
-
-    function atualizarPreviewFR() {
-        const fr = document.getElementById('frInput')?.value;
-        const preview = document.getElementById('frPreview');
-        
-        if (!fr || !preview) {
-            return;
-        }
-        
-        if (fr < 12 || fr > 20) {
-            preview.innerHTML = '<span class="badge bg-warning p-2">Fora do normal</span>';
-        } else {
-            preview.innerHTML = '<span class="badge bg-success p-2">Normal</span>';
-        }
-    }
-
-    function atualizarPreviewTemp() {
-        const temp = document.getElementById('tempInput')?.value;
-        const preview = document.getElementById('tempPreview');
-        
-        if (!temp || !preview) {
-            return;
-        }
-        
-        if (temp < 36 || temp > 37.5) {
-            preview.innerHTML = '<span class="badge bg-warning p-2">Fora do normal</span>';
-        } else {
-            preview.innerHTML = '<span class="badge bg-success p-2">Normal</span>';
-        }
-    }
-
-    function atualizarPreviewSat() {
-        const sat = document.getElementById('satInput')?.value;
-        const preview = document.getElementById('satPreview');
-        
-        if (!sat || !preview) {
-            return;
-        }
-        
-        if (sat < 95) {
-            preview.innerHTML = '<span class="badge bg-warning p-2">Baixa saturação</span>';
-        } else {
-            preview.innerHTML = '<span class="badge bg-success p-2">Normal</span>';
-        }
-    }
-
-    function atualizarPreviewGlicemia() {
-        const glicemia = document.getElementById('glicemiaInput')?.value;
-        const preview = document.getElementById('glicemiaPreview');
-        
-        if (!glicemia || !preview) {
-            return;
-        }
-        
-        if (glicemia < 70 || glicemia > 140) {
-            preview.innerHTML = '<span class="badge bg-warning p-2">Fora do normal</span>';
-        } else {
-            preview.innerHTML = '<span class="badge bg-success p-2">Normal</span>';
-        }
-    }
-
-    // Sincronizar selects entre as abas
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectPendentes = document.getElementById('selectPaciente');
-        const selectRealizadas = document.getElementById('selectPacienteRealizadas');
-        const infoConsulta = document.getElementById('infoConsulta');
-        const infoTexto = document.getElementById('infoConsultaTexto');
-        
-        function atualizarInfoConsulta(select) {
-            if (select && select.value) {
-                const option = select.options[select.selectedIndex];
-                const texto = option.text;
-                infoTexto.innerText = 'Paciente selecionado: ' + texto;
-                infoConsulta.style.display = 'block';
-            } else {
-                infoConsulta.style.display = 'none';
-            }
-        }
-        
-        if (selectPendentes) {
-            selectPendentes.addEventListener('change', function() {
-                if (selectRealizadas) selectRealizadas.value = '';
-                atualizarInfoConsulta(this);
-            });
-        }
-        
-        if (selectRealizadas) {
-            selectRealizadas.addEventListener('change', function() {
-                if (selectPendentes) selectPendentes.value = '';
-                atualizarInfoConsulta(this);
-            });
-        }
-        
-        // Event listeners para preview em tempo real
-        if (document.getElementById('pressaoInput')) {
-            document.getElementById('pressaoInput').addEventListener('input', atualizarPreviewPressao);
-            document.getElementById('fcInput').addEventListener('input', atualizarPreviewFC);
-            document.getElementById('frInput').addEventListener('input', atualizarPreviewFR);
-            document.getElementById('tempInput').addEventListener('input', atualizarPreviewTemp);
-            document.getElementById('satInput').addEventListener('input', atualizarPreviewSat);
-            document.getElementById('glicemiaInput').addEventListener('input', atualizarPreviewGlicemia);
-            
-            // Inicializar previews
-            atualizarPreviewPressao();
-            atualizarPreviewFC();
-            atualizarPreviewFR();
-            atualizarPreviewTemp();
-            atualizarPreviewSat();
-            atualizarPreviewGlicemia();
-        }
-        
-        // Se houver uma consulta selecionada, mostrar info
-        {% if consulta_selecionada %}
-        setTimeout(function() {
-            infoTexto.innerText = 'Paciente: {{ consulta_selecionada.paciente_nome }} - Consulta: {{ consulta_selecionada.data_consulta }} às {{ consulta_selecionada.hora_consulta }}';
-            infoConsulta.style.display = 'block';
-        }, 500);
-        {% endif %}
-    });
-
-    // Validação do formulário antes de enviar
-    const form = document.getElementById('formSinaisVitais');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const selectPendentes = document.getElementById('selectPaciente');
-            const selectRealizadas = document.getElementById('selectPacienteRealizadas');
-            
-            if ((!selectPendentes || !selectPendentes.value) && (!selectRealizadas || !selectRealizadas.value)) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro de validação',
-                    text: 'Selecione um paciente para registrar os sinais vitais.'
-                });
-                return;
-            }
-            
-            const pressao = document.getElementById('pressaoInput').value;
-            const padrao = /^\d{2,3}x\d{2,3}$/;
-            
-            if (!padrao.test(pressao)) {
-                e.preventDefault();
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Erro de validação',
-                    text: 'Formato da pressão arterial inválido. Use o formato: 120x80'
-                });
-                return;
-            }
-            
-            // Verificar valores críticos
-            const fc = document.getElementById('fcInput').value;
-            const temp = document.getElementById('tempInput').value;
-            const sat = document.getElementById('satInput').value;
-            
-            let alertas = [];
-            
-            if (fc && (fc < 50 || fc > 120)) {
-                alertas.push('Frequência cardíaca crítica');
-            }
-            
-            if (temp && (temp < 35 || temp > 38.5)) {
-                alertas.push('Temperatura crítica');
-            }
-            
-            if (sat && sat < 90) {
-                alertas.push('Saturação crítica!');
-            }
-            
-            if (alertas.length > 0) {
-                if (!confirm('ATENÇÃO! ' + alertas.join(', ') + '. Deseja continuar mesmo assim?')) {
-                    e.preventDefault();
-                }
-            }
-        });
-    }
-
-    // Máscara para pressão arterial
-    const pressaoInput = document.getElementById('pressaoInput');
-    if (pressaoInput) {
-        pressaoInput.addEventListener('keyup', function(e) {
-            let value = this.value.replace(/[^\dx]/g, '');
-            if (value.length > 3 && !value.includes('x')) {
-                value = value.slice(0, 3) + 'x' + value.slice(3);
-            }
-            this.value = value;
-        });
-    }
-</script>
 {% endblock %}
