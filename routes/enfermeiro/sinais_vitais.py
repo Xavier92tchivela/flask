@@ -25,21 +25,21 @@ def enfermeiro_ou_medico_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user_id = session.get('user_id')
-        perfil = session.get('perfil')
+        user_type = session.get('user_type')  # USAR user_type em vez de perfil
         
-        logger.info(f"Verificando acesso: user_id={user_id}, perfil={perfil}")
+        logger.info(f"Verificando acesso: user_id={user_id}, user_type={user_type}")
         
         if not user_id:
             logger.warning("Usuário não autenticado - redirecionando para login")
             flash('Você precisa estar logado para acessar esta página.', 'danger')
             return redirect(url_for('auth.login'))
         
-        # Verificar perfil (case insensitive)
-        if perfil and perfil.lower() in ['enfermeiro', 'medico']:
-            logger.info(f"Acesso autorizado para {perfil}")
+        # Verificar user_type (mais confiável)
+        if user_type and user_type.lower() in ['enfermeiro', 'enfermeira', 'medico']:
+            logger.info(f"Acesso autorizado para {user_type}")
             return f(*args, **kwargs)
         
-        logger.warning(f"Perfil não autorizado: {perfil}")
+        logger.warning(f"Acesso negado: user_type={user_type}")
         flash('Acesso não autorizado. Apenas enfermeiros e médicos podem acessar.', 'danger')
         return redirect(url_for('auth.login'))
     return decorated_function
@@ -157,11 +157,11 @@ def listar_sinais_vitais():
 def registrar_sinais_vitais(consulta_id=None):
     """Registra novos sinais vitais (enfermeiro ou médico)"""
     usuario_id = session.get('user_id')
-    perfil = session.get('perfil')
+    user_type = session.get('user_type')  # USAR user_type
     enfermeiro_id = session.get('enfermeiro_id')
     medico_id = session.get('medico_id')
     
-    logger.info(f"Registrar SV - consulta_id={consulta_id}, perfil={perfil}, user_id={usuario_id}")
+    logger.info(f"Registrar SV - consulta_id={consulta_id}, user_type={user_type}, user_id={usuario_id}")
     
     # Responsável pelo registro (enfermeiro ou médico)
     responsavel_id = enfermeiro_id if enfermeiro_id else medico_id
@@ -209,11 +209,12 @@ def registrar_sinais_vitais(consulta_id=None):
                 """, (responsavel_id, consulta_id_post))
                 
                 flash('Sinais vitais registrados com sucesso!', 'success')
-                logger.info(f"Sinais vitais registrados para consulta {consulta_id_post} por {perfil} {usuario_id}")
+                logger.info(f"Sinais vitais registrados para consulta {consulta_id_post} por {user_type} {usuario_id}")
                 
                 origem = request.args.get('origem') or request.form.get('origem')
-                if origem == 'medico' or perfil == 'medico':
-                    return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id_post))
+                if origem == 'medico' or user_type == 'medico':
+                    # CORRIGIDO: usar a rota correta de detalhes da consulta
+                    return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id_post))
             else:
                 flash('Erro ao registrar sinais vitais.', 'danger')
                 
@@ -221,8 +222,8 @@ def registrar_sinais_vitais(consulta_id=None):
             logger.error(f"Erro ao registrar sinais vitais: {e}")
             flash(f'Erro ao registrar sinais vitais: {str(e)}', 'danger')
         
-        if perfil == 'medico':
-            return redirect(url_for('medico.consulta_detalhes', consulta_id=consulta_id_post))
+        if user_type == 'medico':
+            return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id_post))
         return redirect(url_for('enfermeiro.sinais_vitais.listar_sinais_vitais'))
     
     # GET - Mostrar formulário
@@ -246,11 +247,11 @@ def registrar_sinais_vitais(consulta_id=None):
         
         if not consulta_raw:
             flash('Consulta não encontrada.', 'danger')
-            if perfil == 'medico':
+            if user_type == 'medico':
                 return redirect(url_for('medico.dashboard'))
             return redirect(url_for('enfermeiro.dashboard.index'))
         
-        if perfil == 'medico' and consulta_raw.get('medico_id') != medico_id:
+        if user_type == 'medico' and consulta_raw.get('medico_id') != medico_id:
             flash('Você não tem permissão para registrar sinais vitais nesta consulta.', 'danger')
             return redirect(url_for('medico.dashboard'))
         
@@ -275,7 +276,7 @@ def registrar_sinais_vitais(consulta_id=None):
         return render_template('enfermeiro/sinais_vitais/registrar.html',
             consulta_especifica=consulta,
             consulta_selecionada=consulta,
-            perfil=perfil,
+            perfil=user_type,
             origem=request.args.get('origem', ''))
     
     # Sem consulta_id - mostrar lista
@@ -327,7 +328,7 @@ def registrar_sinais_vitais(consulta_id=None):
         consultas_sem_triagem=consultas_sem_triagem,
         consultas_com_triagem=consultas_com_triagem,
         consulta_selecionada=None,
-        perfil=perfil,
+        perfil=user_type,
         origem=request.args.get('origem', ''))
 
 
