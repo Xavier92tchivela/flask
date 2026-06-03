@@ -63,9 +63,9 @@
                         </div>
                     </div>
 
-                    <!-- Botão para Registrar Sinais Vitais -->
+                    <!-- Botão para Registrar Sinais Vitais - ROTA CORRIGIDA -->
                     <div class="d-grid gap-2 mb-3">
-                        <a href="{{ url_for('enfermeiro.sinais_vitais.registrar_sinais_vitais', consulta_id=consulta.id, origem='medico') }}" 
+                        <a href="/enfermeiro/sinais-vitais/registrar/{{ consulta.id }}?origem=medico" 
                            class="btn btn-danger btn-lg py-3 shadow-sm" style="background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%); border: none;">
                             <i class="fas fa-heartbeat me-2 fa-lg"></i> 
                             <span class="fw-bold">REGISTRAR SINAIS VITAIS</span>
