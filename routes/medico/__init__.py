@@ -13,7 +13,7 @@ from .medico_debug import init_medico_debug
 from .medico_receitas import init_medico_receitas
 from .medico_sinais_vitais import init_medico_sinais_vitais
 from .consulta import create_consulta_blueprint
-from datetime import datetime
+from datetime import datetime, date  # IMPORTANTE: Adicionar date aqui
 import json
 import re
 
@@ -513,7 +513,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
         
-        # ===================== ROTA: HISTÓRICO DO PACIENTE (CORRIGIDA) =====================
+        # ===================== ROTA: HISTÓRICO DO PACIENTE =====================
         @medico_bp.route('/historico/paciente/<int:paciente_id>')
         @profissional_saude_required
         def historico_paciente(paciente_id):
@@ -555,7 +555,6 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     }
                 
                 # Calcular idade
-                from datetime import date
                 idade = None
                 data_nasc = paciente.get('data_nascimento')
                 if data_nasc:
@@ -564,6 +563,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             data_nasc = data_nasc.date()
                         elif isinstance(data_nasc, str):
                             data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                        from datetime import date
                         hoje = date.today()
                         idade = hoje.year - data_nasc.year
                         if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
@@ -571,7 +571,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     except:
                         pass
                 
-                # Buscar consultas do paciente - INCLUINDO diagnostico_final e diagnostico_ia
+                # Buscar consultas do paciente
                 consultas_raw = base['execute_query']("""
                     SELECT c.id, DATE_FORMAT(c.data_hora, '%%d/%%m/%%Y %%H:%%i') as data_hora,
                            c.status, c.observacoes, c.sintomas,
