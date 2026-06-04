@@ -27,7 +27,7 @@
                 </div>
                 
                 <div class="card-body p-2 p-md-4">
-                    <!-- Link para Histórico do Paciente -->
+                    <!-- Botão Histórico do Paciente -->
                     <div class="d-grid gap-2 mb-3 mb-md-4">
                         {% if consulta.paciente_id %}
                         <a href="{{ url_for('medico.historico_paciente', paciente_id=consulta.paciente_id) }}" 
@@ -39,6 +39,16 @@
                             <i class="fas fa-exclamation-triangle me-2"></i> ID do paciente não disponível para visualizar histórico.
                         </div>
                         {% endif %}
+                    </div>
+
+                    <!-- Botão para Registrar Sinais Vitais -->
+                    <div class="d-grid gap-2 mb-3">
+                        <a href="{{ url_for('medico.registrar_sinais_vitais', consulta_id=consulta.id) }}" 
+                           class="btn btn-danger btn-lg py-3 shadow-sm" style="background: linear-gradient(135deg, #dc3545 0%, #bb2d3b 100%); border: none;">
+                            <i class="fas fa-heartbeat me-2 fa-lg"></i> 
+                            <span class="fw-bold">REGISTRAR SINAIS VITAIS</span>
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
                     </div>
 
                     <!-- Informações do Paciente e Médico -->
