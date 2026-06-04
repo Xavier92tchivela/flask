@@ -24,26 +24,26 @@ def init_medico_historico(base):
                 flash('Paciente não encontrado.', 'danger')
                 return redirect(url_for('medico.consultas'))
             
-            # Converter paciente usando tratamento seguro
+            # Converter paciente - FORÇANDO string com decode manual
             if isinstance(paciente_result, dict):
                 paciente = {
                     'id': paciente_result.get('id'),
                     'data_nascimento': paciente_result.get('data_nascimento'),
-                    'genero': str(paciente_result.get('genero', '')) if paciente_result.get('genero') else '',
-                    'telefone': str(paciente_result.get('telefone', '')) if paciente_result.get('telefone') else '',
-                    'endereco': str(paciente_result.get('endereco', '')) if paciente_result.get('endereco') else '',
-                    'nome': str(paciente_result.get('nome', '')) if paciente_result.get('nome') else '',
-                    'email': str(paciente_result.get('email', '')) if paciente_result.get('email') else ''
+                    'genero': _safe_str(paciente_result.get('genero')),
+                    'telefone': _safe_str(paciente_result.get('telefone')),
+                    'endereco': _safe_str(paciente_result.get('endereco')),
+                    'nome': _safe_str(paciente_result.get('nome')),
+                    'email': _safe_str(paciente_result.get('email'))
                 }
             else:
                 paciente = {
                     'id': paciente_result[0] if len(paciente_result) > 0 else None,
                     'data_nascimento': paciente_result[1] if len(paciente_result) > 1 else None,
-                    'genero': str(paciente_result[2]) if len(paciente_result) > 2 and paciente_result[2] else '',
-                    'telefone': str(paciente_result[3]) if len(paciente_result) > 3 and paciente_result[3] else '',
-                    'endereco': str(paciente_result[4]) if len(paciente_result) > 4 and paciente_result[4] else '',
-                    'nome': str(paciente_result[5]) if len(paciente_result) > 5 and paciente_result[5] else '',
-                    'email': str(paciente_result[6]) if len(paciente_result) > 6 and paciente_result[6] else ''
+                    'genero': _safe_str(paciente_result[2]) if len(paciente_result) > 2 else '',
+                    'telefone': _safe_str(paciente_result[3]) if len(paciente_result) > 3 else '',
+                    'endereco': _safe_str(paciente_result[4]) if len(paciente_result) > 4 else '',
+                    'nome': _safe_str(paciente_result[5]) if len(paciente_result) > 5 else '',
+                    'email': _safe_str(paciente_result[6]) if len(paciente_result) > 6 else ''
                 }
             
             # Calcular idade
@@ -62,7 +62,7 @@ def init_medico_historico(base):
                 except:
                     pass
             
-            # Buscar consultas do paciente
+            # Buscar consultas
             consultas_raw = execute_query("""
                 SELECT 
                     c.id, 
@@ -81,7 +81,6 @@ def init_medico_historico(base):
                 ORDER BY c.data_hora DESC
             """, (paciente_id,), fetch=True) or []
             
-            # Processar consultas
             consultas = []
             for row in consultas_raw:
                 if isinstance(row, dict):
@@ -125,7 +124,6 @@ def init_medico_historico(base):
                 ORDER BY r.created_at DESC
             """, (paciente_id,), fetch=True) or []
             
-            # Processar receitas
             receitas = []
             for row in receitas_raw:
                 if isinstance(row, dict):
@@ -164,7 +162,6 @@ def init_medico_historico(base):
                 ORDER BY pa.data_solicitacao DESC
             """, (paciente_id,), fetch=True) or []
             
-            # Processar exames
             exames = []
             for row in exames_raw:
                 if isinstance(row, dict):
@@ -186,70 +183,33 @@ def init_medico_historico(base):
                         'diagnostico_analista': row[5] if len(row) > 5 else ''
                     })
             
-            # Buscar sinais vitais
-            sinais_vitais_raw = execute_query("""
-                SELECT 
-                    sv.pressao_arterial,
-                    sv.frequencia_cardiaca,
-                    sv.frequencia_respiratoria,
-                    sv.temperatura,
-                    sv.saturacao_oxigenio,
-                    sv.glicemia,
-                    sv.peso,
-                    DATE_FORMAT(sv.data_afericao, '%%d/%%m/%%Y %%H:%%i') as data_afericao,
-                    sv.observacoes,
-                    u.nome as enfermeiro_nome
-                FROM sinais_vitais sv
-                JOIN consultas c ON sv.consulta_id = c.id
-                LEFT JOIN usuarios u ON sv.enfermeiro_id = u.id
-                WHERE c.paciente_id = %s
-                ORDER BY sv.data_afericao DESC
-                LIMIT 20
-            """, (paciente_id,), fetch=True) or []
-            
-            # Processar sinais vitais
-            sinais_vitais = []
-            for row in sinais_vitais_raw:
-                if isinstance(row, dict):
-                    sinais_vitais.append({
-                        'pressao_arterial': row.get('pressao_arterial', ''),
-                        'frequencia_cardiaca': row.get('frequencia_cardiaca', ''),
-                        'frequencia_respiratoria': row.get('frequencia_respiratoria', ''),
-                        'temperatura': row.get('temperatura', ''),
-                        'saturacao_oxigenio': row.get('saturacao_oxigenio', ''),
-                        'glicemia': row.get('glicemia', ''),
-                        'peso': row.get('peso', ''),
-                        'data_afericao': row.get('data_afericao', ''),
-                        'observacoes': row.get('observacoes', ''),
-                        'enfermeiro_nome': row.get('enfermeiro_nome', '')
-                    })
-                else:
-                    sinais_vitais.append({
-                        'pressao_arterial': row[0] if len(row) > 0 else '',
-                        'frequencia_cardiaca': row[1] if len(row) > 1 else '',
-                        'frequencia_respiratoria': row[2] if len(row) > 2 else '',
-                        'temperatura': row[3] if len(row) > 3 else '',
-                        'saturacao_oxigenio': row[4] if len(row) > 4 else '',
-                        'glicemia': row[5] if len(row) > 5 else '',
-                        'peso': row[6] if len(row) > 6 else '',
-                        'data_afericao': row[7] if len(row) > 7 else '',
-                        'observacoes': row[8] if len(row) > 8 else '',
-                        'enfermeiro_nome': row[9] if len(row) > 9 else ''
-                    })
-            
             return render_template('medico/historico_paciente.html',
                                  paciente=paciente,
                                  idade=idade,
                                  consultas=consultas,
                                  receitas=receitas,
                                  exames=exames,
-                                 sinais_vitais=sinais_vitais)
+                                 sinais_vitais=[])
                                  
         except Exception as e:
+            print(f"ERRO: {e}")
             import traceback
             traceback.print_exc()
             flash(f'Erro ao carregar histórico: {str(e)}', 'danger')
             return redirect(url_for('medico.consultas'))
+    
+    # Função auxiliar segura
+    def _safe_str(value):
+        if value is None:
+            return ''
+        if isinstance(value, bytes):
+            try:
+                return value.decode('utf-8')
+            except:
+                return str(value)
+        if isinstance(value, str):
+            return value
+        return str(value)
     
     return {
         'routes': [
