@@ -1,1 +1,147 @@
 
+{% extends "base.html" %}
+
+{% block title %}Registrar Sinais Vitais{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow">
+        <div class="card-header bg-danger text-white">
+            <h4><i class="fas fa-heartbeat me-2"></i> Registrar Sinais Vitais</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info mb-4">
+                <i class="fas fa-user-circle me-2"></i>
+                <strong>Paciente:</strong> {{ consulta.paciente_nome }}
+                {% if idade %}
+                | <strong>Idade:</strong> {{ idade }} anos
+                {% endif %}
+                {% if consulta.genero %}
+                | <strong>Gênero:</strong> {{ consulta.genero }}
+                {% endif %}
+                <br>
+                <i class="fas fa-calendar me-2"></i>
+                <strong>Consulta #{{ consulta.id }}</strong>
+            </div>
+            
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-heart-circle-exclamation text-danger me-1"></i>
+                            Pressão Arterial
+                        </label>
+                        <input type="text" name="pressao_arterial" class="form-control" 
+                               placeholder="Ex: 120/80 ou 120x80">
+                        <small class="text-muted">Formato: sistólica/diastólica (ex: 120/80)</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-heartbeat text-danger me-1"></i>
+                            Frequência Cardíaca
+                        </label>
+                        <input type="number" name="frequencia_cardiaca" class="form-control" 
+                               placeholder="bpm" min="30" max="250">
+                        <small class="text-muted">Normal: 60-100 bpm</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-lungs text-primary me-1"></i>
+                            Frequência Respiratória
+                        </label>
+                        <input type="number" name="frequencia_respiratoria" class="form-control" 
+                               placeholder="rpm" min="8" max="40">
+                        <small class="text-muted">Normal: 12-20 rpm</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-thermometer-half text-warning me-1"></i>
+                            Temperatura
+                        </label>
+                        <input type="number" step="0.1" name="temperatura" class="form-control" 
+                               placeholder="°C" min="30" max="45">
+                        <small class="text-muted">Normal: 36-37.5 °C</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-wind text-info me-1"></i>
+                            Saturação O₂
+                        </label>
+                        <input type="number" name="saturacao_oxigenio" class="form-control" 
+                               placeholder="%" min="50" max="100">
+                        <small class="text-muted">Normal: ≥ 95%</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-tint text-danger me-1"></i>
+                            Glicemia
+                        </label>
+                        <input type="number" name="glicemia" class="form-control" 
+                               placeholder="mg/dL" min="20" max="600">
+                        <small class="text-muted">Normal: 70-140 mg/dL</small>
+                    </div>
+                    
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-weight-scale text-secondary me-1"></i>
+                            Peso
+                        </label>
+                        <input type="number" step="0.1" name="peso" class="form-control" 
+                               placeholder="kg" min="1" max="300">
+                    </div>
+                    
+                    <div class="col-12 mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-notes-medical me-1"></i>
+                            Observações
+                        </label>
+                        <textarea name="observacoes" class="form-control" rows="3" 
+                                  placeholder="Observações adicionais..."></textarea>
+                    </div>
+                </div>
+                
+                <hr class="my-4">
+                
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger btn-lg px-4">
+                        <i class="fas fa-save me-2"></i> Salvar Sinais Vitais
+                    </button>
+                    <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta_id) }}" 
+                       class="btn btn-secondary btn-lg px-4">
+                        <i class="fas fa-times me-2"></i> Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header bg-info text-white">
+            <i class="fas fa-info-circle me-2"></i> Valores de Referência
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><strong>Pressão Arterial:</strong> &lt; 120/80 mmHg</li>
+                        <li><strong>Frequência Cardíaca:</strong> 60-100 bpm</li>
+                        <li><strong>Frequência Respiratória:</strong> 12-20 rpm</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <ul class="list-unstyled">
+                        <li><strong>Temperatura:</strong> 36-37.5 °C</li>
+                        <li><strong>Saturação O₂:</strong> ≥ 95%</li>
+                        <li><strong>Glicemia:</strong> 70-140 mg/dL</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
