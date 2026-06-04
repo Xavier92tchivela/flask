@@ -47,13 +47,28 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 # Verificar se é médico ou enfermeira/enfermeiro
                 if user_type not in ['medico', 'enfermeira', 'enfermeiro']:
-                    flash('Acesso restrito a profissionais de santé.', 'warning')
+                    flash('Acesso restrito a profissionais de saúde.', 'warning')
                     return redirect(url_for('dashboard'))
                 
                 return f(*args, **kwargs)
             return decorated_function
         
-        # ===================== FUNÇÃO AUXILIAR =====================
+        # ===================== FUNÇÃO AUXILIAR PARA DECODIFICAR =====================
+        def safe_str(value):
+            """Converte qualquer valor para string de forma segura"""
+            if value is None:
+                return ''
+            if isinstance(value, bytes):
+                try:
+                    return value.decode('utf-8')
+                except:
+                    return str(value)
+            if isinstance(value, datetime):
+                return value.strftime('%d/%m/%Y %H:%M')
+            if isinstance(value, date):
+                return value.strftime('%d/%m/%Y')
+            return str(value)
+        
         def decode_bytes(value):
             if value is None:
                 return None
@@ -498,7 +513,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
         
-        # ===================== ROTA: HISTÓRICO DO PACIENTE =====================
+        # ===================== ROTA: HISTÓRICO DO PACIENTE (CORRIGIDA) =====================
         @medico_bp.route('/historico/paciente/<int:paciente_id>')
         @profissional_saude_required
         def historico_paciente(paciente_id):
@@ -517,18 +532,26 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     flash('Paciente não encontrado.', 'danger')
                     return redirect(url_for('medico.consultas'))
                 
-                # Converter paciente para dict
+                # Converter paciente para dict com decodificação
                 if isinstance(paciente_result, dict):
-                    paciente = paciente_result
+                    paciente = {
+                        'id': paciente_result.get('id'),
+                        'data_nascimento': paciente_result.get('data_nascimento'),
+                        'genero': safe_str(paciente_result.get('genero')),
+                        'telefone': safe_str(paciente_result.get('telefone')),
+                        'endereco': safe_str(paciente_result.get('endereco')),
+                        'nome': safe_str(paciente_result.get('nome')),
+                        'email': safe_str(paciente_result.get('email'))
+                    }
                 else:
                     paciente = {
                         'id': paciente_result[0] if len(paciente_result) > 0 else None,
                         'data_nascimento': paciente_result[1] if len(paciente_result) > 1 else None,
-                        'genero': decode_bytes(paciente_result[2]) if len(paciente_result) > 2 else '',
-                        'telefone': decode_bytes(paciente_result[3]) if len(paciente_result) > 3 else '',
-                        'endereco': decode_bytes(paciente_result[4]) if len(paciente_result) > 4 else '',
-                        'nome': decode_bytes(paciente_result[5]) if len(paciente_result) > 5 else '',
-                        'email': decode_bytes(paciente_result[6]) if len(paciente_result) > 6 else ''
+                        'genero': safe_str(paciente_result[2]) if len(paciente_result) > 2 else '',
+                        'telefone': safe_str(paciente_result[3]) if len(paciente_result) > 3 else '',
+                        'endereco': safe_str(paciente_result[4]) if len(paciente_result) > 4 else '',
+                        'nome': safe_str(paciente_result[5]) if len(paciente_result) > 5 else '',
+                        'email': safe_str(paciente_result[6]) if len(paciente_result) > 6 else ''
                     }
                 
                 # Calcular idade
@@ -548,9 +571,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     except:
                         pass
                 
-                # Buscar consultas do paciente
-                consultas = base['execute_query']("""
-                    SELECT c.id, c.data_hora, c.status, c.observacoes, c.sintomas,
+                # Buscar consultas do paciente - INCLUINDO diagnostico_final e diagnostico_ia
+                consultas_raw = base['execute_query']("""
+                    SELECT c.id, DATE_FORMAT(c.data_hora, '%%d/%%m/%%Y %%H:%%i') as data_hora,
+                           c.status, c.observacoes, c.sintomas,
+                           c.diagnostico_final, c.diagnostico_ia,
                            m_u.nome as medico_nome, m.especialidade
                     FROM consultas c
                     JOIN medicos m ON c.medico_id = m.id
@@ -559,18 +584,73 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     ORDER BY c.data_hora DESC
                 """, (paciente_id,), fetch=True) or []
                 
+                # Processar consultas
+                consultas = []
+                for row in consultas_raw:
+                    if isinstance(row, dict):
+                        consultas.append({
+                            'id': row.get('id'),
+                            'data_hora': row.get('data_hora', ''),
+                            'status': safe_str(row.get('status')),
+                            'observacoes': safe_str(row.get('observacoes')),
+                            'sintomas': safe_str(row.get('sintomas')),
+                            'diagnostico_final': safe_str(row.get('diagnostico_final')),
+                            'diagnostico_ia': safe_str(row.get('diagnostico_ia')),
+                            'medico_nome': safe_str(row.get('medico_nome')),
+                            'especialidade': safe_str(row.get('especialidade'))
+                        })
+                    else:
+                        consultas.append({
+                            'id': row[0] if len(row) > 0 else None,
+                            'data_hora': row[1] if len(row) > 1 else '',
+                            'status': safe_str(row[2]) if len(row) > 2 else '',
+                            'observacoes': safe_str(row[3]) if len(row) > 3 else '',
+                            'sintomas': safe_str(row[4]) if len(row) > 4 else '',
+                            'diagnostico_final': safe_str(row[5]) if len(row) > 5 else '',
+                            'diagnostico_ia': safe_str(row[6]) if len(row) > 6 else '',
+                            'medico_nome': safe_str(row[7]) if len(row) > 7 else '',
+                            'especialidade': safe_str(row[8]) if len(row) > 8 else ''
+                        })
+                
                 # Buscar receitas
-                receitas = base['execute_query']("""
-                    SELECT r.id, r.created_at, r.diagnostico, r.prescricao, r.recomendacoes
+                receitas_raw = base['execute_query']("""
+                    SELECT r.id, DATE_FORMAT(r.created_at, '%%d/%%m/%%Y %%H:%%i') as created_at,
+                           r.diagnostico, r.prescricao, r.recomendacoes,
+                           r.profissional_tipo, r.profissional_nome
                     FROM receita r
                     JOIN consultas c ON r.consulta_id = c.id
                     WHERE c.paciente_id = %s
                     ORDER BY r.created_at DESC
                 """, (paciente_id,), fetch=True) or []
                 
+                # Processar receitas
+                receitas = []
+                for row in receitas_raw:
+                    if isinstance(row, dict):
+                        receitas.append({
+                            'id': row.get('id'),
+                            'created_at': row.get('created_at', ''),
+                            'diagnostico': safe_str(row.get('diagnostico')),
+                            'prescricao': safe_str(row.get('prescricao')),
+                            'recomendacoes': safe_str(row.get('recomendacoes')),
+                            'profissional_tipo': safe_str(row.get('profissional_tipo')),
+                            'profissional_nome': safe_str(row.get('profissional_nome'))
+                        })
+                    else:
+                        receitas.append({
+                            'id': row[0] if len(row) > 0 else None,
+                            'created_at': row[1] if len(row) > 1 else '',
+                            'diagnostico': safe_str(row[2]) if len(row) > 2 else '',
+                            'prescricao': safe_str(row[3]) if len(row) > 3 else '',
+                            'recomendacoes': safe_str(row[4]) if len(row) > 4 else '',
+                            'profissional_tipo': safe_str(row[5]) if len(row) > 5 else '',
+                            'profissional_nome': safe_str(row[6]) if len(row) > 6 else ''
+                        })
+                
                 # Buscar exames/pedidos
-                exames = base['execute_query']("""
-                    SELECT pa.id, pa.tipo_exame, pa.status, pa.data_solicitacao, 
+                exames_raw = base['execute_query']("""
+                    SELECT pa.id, pa.tipo_exame, pa.status, 
+                           DATE_FORMAT(pa.data_solicitacao, '%%d/%%m/%%Y') as data_solicitacao,
                            pa.resultado_analise, pa.diagnostico_analista
                     FROM pedidos_analise pa
                     JOIN consultas c ON pa.consulta_id = c.id
@@ -578,11 +658,34 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     ORDER BY pa.data_solicitacao DESC
                 """, (paciente_id,), fetch=True) or []
                 
+                # Processar exames
+                exames = []
+                for row in exames_raw:
+                    if isinstance(row, dict):
+                        exames.append({
+                            'id': row.get('id'),
+                            'tipo_exame': safe_str(row.get('tipo_exame')),
+                            'status': safe_str(row.get('status')),
+                            'data_solicitacao': row.get('data_solicitacao', ''),
+                            'resultado_analise': safe_str(row.get('resultado_analise')),
+                            'diagnostico_analista': safe_str(row.get('diagnostico_analista'))
+                        })
+                    else:
+                        exames.append({
+                            'id': row[0] if len(row) > 0 else None,
+                            'tipo_exame': safe_str(row[1]) if len(row) > 1 else '',
+                            'status': safe_str(row[2]) if len(row) > 2 else '',
+                            'data_solicitacao': row[3] if len(row) > 3 else '',
+                            'resultado_analise': safe_str(row[4]) if len(row) > 4 else '',
+                            'diagnostico_analista': safe_str(row[5]) if len(row) > 5 else ''
+                        })
+                
                 # Buscar sinais vitais
-                sinais_vitais = base['execute_query']("""
+                sinais_vitais_raw = base['execute_query']("""
                     SELECT sv.pressao_arterial, sv.frequencia_cardiaca, sv.frequencia_respiratoria,
                            sv.temperatura, sv.saturacao_oxigenio, sv.glicemia, sv.peso,
-                           sv.data_afericao, sv.observacoes, u.nome as enfermeiro_nome
+                           DATE_FORMAT(sv.data_afericao, '%%d/%%m/%%Y %%H:%%i') as data_afericao,
+                           sv.observacoes, u.nome as enfermeiro_nome
                     FROM sinais_vitais sv
                     JOIN consultas c ON sv.consulta_id = c.id
                     LEFT JOIN usuarios u ON sv.enfermeiro_id = u.id
@@ -590,6 +693,36 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     ORDER BY sv.data_afericao DESC
                     LIMIT 20
                 """, (paciente_id,), fetch=True) or []
+                
+                # Processar sinais vitais
+                sinais_vitais = []
+                for row in sinais_vitais_raw:
+                    if isinstance(row, dict):
+                        sinais_vitais.append({
+                            'pressao_arterial': safe_str(row.get('pressao_arterial')),
+                            'frequencia_cardiaca': safe_str(row.get('frequencia_cardiaca')),
+                            'frequencia_respiratoria': safe_str(row.get('frequencia_respiratoria')),
+                            'temperatura': safe_str(row.get('temperatura')),
+                            'saturacao_oxigenio': safe_str(row.get('saturacao_oxigenio')),
+                            'glicemia': safe_str(row.get('glicemia')),
+                            'peso': safe_str(row.get('peso')),
+                            'data_afericao': row.get('data_afericao', ''),
+                            'observacoes': safe_str(row.get('observacoes')),
+                            'enfermeiro_nome': safe_str(row.get('enfermeiro_nome'))
+                        })
+                    else:
+                        sinais_vitais.append({
+                            'pressao_arterial': safe_str(row[0]) if len(row) > 0 else '',
+                            'frequencia_cardiaca': safe_str(row[1]) if len(row) > 1 else '',
+                            'frequencia_respiratoria': safe_str(row[2]) if len(row) > 2 else '',
+                            'temperatura': safe_str(row[3]) if len(row) > 3 else '',
+                            'saturacao_oxigenio': safe_str(row[4]) if len(row) > 4 else '',
+                            'glicemia': safe_str(row[5]) if len(row) > 5 else '',
+                            'peso': safe_str(row[6]) if len(row) > 6 else '',
+                            'data_afericao': row[7] if len(row) > 7 else '',
+                            'observacoes': safe_str(row[8]) if len(row) > 8 else '',
+                            'enfermeiro_nome': safe_str(row[9]) if len(row) > 9 else ''
+                        })
                 
                 return render_template('medico/historico_paciente.html',
                                      paciente=paciente,
@@ -601,6 +734,8 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                  
             except Exception as e:
                 logger.error(f"Erro ao carregar histórico: {e}")
+                import traceback as tb
+                tb.print_exc()
                 flash(f'Erro ao carregar histórico: {str(e)}', 'danger')
                 return redirect(url_for('medico.consultas'))
         
@@ -633,11 +768,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     consulta = {
                         'id': consulta[0] if len(consulta) > 0 else None,
                         'paciente_id': consulta[1] if len(consulta) > 1 else None,
-                        'status': decode_bytes(consulta[2]) if len(consulta) > 2 else '',
+                        'status': safe_str(consulta[2]) if len(consulta) > 2 else '',
                         'data_hora': consulta[3] if len(consulta) > 3 else None,
-                        'paciente_nome': decode_bytes(consulta[4]) if len(consulta) > 4 else '',
+                        'paciente_nome': safe_str(consulta[4]) if len(consulta) > 4 else '',
                         'data_nascimento': consulta[5] if len(consulta) > 5 else None,
-                        'genero': decode_bytes(consulta[6]) if len(consulta) > 6 else ''
+                        'genero': safe_str(consulta[6]) if len(consulta) > 6 else ''
                     }
                 
                 # Calcular idade
@@ -675,7 +810,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
                             return redirect(url_for('medico.medico_sinais_vitais', consulta_id=consulta_id))
                     
-                    # CORREÇÃO: Removido commit=True
+                    # Inserir sinais vitais
                     base['execute_query']("""
                         INSERT INTO sinais_vitais 
                         (consulta_id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
@@ -749,11 +884,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "<td><th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
+            output += "<tr><th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
-            output += "\\弥<br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
+            output += "</table><br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
             return output
         
         logger.info("Blueprint médico inicializado com sucesso!")
