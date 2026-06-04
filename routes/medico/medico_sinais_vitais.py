@@ -164,7 +164,7 @@ def init_medico_sinais_vitais(base):
                         flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
                         return redirect(url_for('medico.registrar_sinais_vitais', consulta_id=consulta_id))
                 
-                # Inserir sinais vitais
+                # Inserir sinais vitais (sem commit=True)
                 execute_query("""
                     INSERT INTO sinais_vitais 
                     (consulta_id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
@@ -173,12 +173,12 @@ def init_medico_sinais_vitais(base):
                 """, (consulta_id, pressao_arterial, frequencia_cardiaca or None, 
                       frequencia_respiratoria or None, temperatura or None, 
                       saturacao_oxigenio or None, glicemia or None, peso or None, 
-                      observacoes or None), commit=True)
+                      observacoes or None))
                 
                 flash('Sinais vitais registrados com sucesso!', 'success')
                 return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
             
-            return render_template('medico/sinais_vitais/registrar.html',
+            return render_template('medico/sinais_vitais.html',
                                  consulta=consulta,
                                  consulta_id=consulta_id,
                                  idade=idade)
