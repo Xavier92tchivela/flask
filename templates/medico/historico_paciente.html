@@ -42,42 +42,116 @@
         </div>
         <div class="card-body">
             {% if consultas and consultas|length > 0 %}
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Data</th>
-                                <th>Médico</th>
-                                <th>Especialidade</th>
-                                <th>Status</th>
-                                <th>Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for consulta in consultas %}
-                            <tr>
-                                <td>{{ consulta.data_hora }}</td>
-                                <td>{{ consulta.medico_nome }}</td>
-                                <td>{{ consulta.especialidade }}</td>
-                                <td><span class="badge bg-secondary">{{ consulta.status }}</span></td>
-                                <td>
-                                    <a href="{{ url_for('consulta.detalhes_consulta', consulta_id=consulta.id) }}" 
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i> Ver
-                                    </a>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                {% for consulta in consultas %}
+                <div class="card mb-3 border">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <strong>Consulta #{{ consulta.id }}</strong>
+                            <span class="badge bg-secondary">{{ consulta.data_hora }}</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-user-md text-info me-1"></i>Médico:</strong> {{ consulta.medico_nome }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong><i class="fas fa-stethoscope text-info me-1"></i>Especialidade:</strong> {{ consulta.especialidade }}</p>
+                            </div>
+                        </div>
+                        
+                        <p><strong><i class="fas fa-tag me-1"></i>Status:</strong> 
+                            <span class="badge bg-{{ 'success' if consulta.status == 'realizada' else 'warning' if consulta.status == 'agendada' else 'danger' }}">
+                                {{ consulta.status|upper }}
+                            </span>
+                        </p>
+                        
+                        <!-- SINTOMAS -->
+                        {% if consulta.sintomas and consulta.sintomas|length > 0 %}
+                        <div class="mb-3">
+                            <h6 class="text-warning mb-2">
+                                <i class="fas fa-thermometer-half me-2"></i>Sintomas
+                            </h6>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% set sintomas_lista = consulta.sintomas.split(',') %}
+                                {% for sintoma in sintomas_lista %}
+                                <span class="badge bg-warning text-dark p-2">
+                                    <i class="fas fa-check-circle me-1"></i>{{ sintoma|trim }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- OBSERVAÇÕES -->
+                        {% if consulta.observacoes %}
+                        <div class="mb-3">
+                            <h6 class="text-secondary mb-2">
+                                <i class="fas fa-sticky-note me-2"></i>Observações
+                            </h6>
+                            <p class="mb-0 text-muted">{{ consulta.observacoes }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
+                {% endfor %}
             {% else %}
                 <p class="text-muted text-center">Nenhuma consulta encontrada.</p>
             {% endif %}
         </div>
     </div>
 
-    <!-- Receitas -->
+    <!-- Diagnósticos (da tabela consultas - diagnostico_final) -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Diagnósticos</h5>
+        </div>
+        <div class="card-body">
+            {% if consultas and consultas|length > 0 %}
+                {% for consulta in consultas %}
+                    {% if consulta.diagnostico_final and consulta.diagnostico_final|length > 0 %}
+                    <div class="card mb-3 border">
+                        <div class="card-header bg-light">
+                            <strong>Consulta #{{ consulta.id }} - {{ consulta.data_hora }}</strong>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0"><strong>Diagnóstico Final:</strong> {{ consulta.diagnostico_final }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center">Nenhum diagnóstico registrado.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Diagnósticos por IA -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0"><i class="fas fa-robot me-2"></i>Diagnósticos por IA</h5>
+        </div>
+        <div class="card-body">
+            {% if consultas and consultas|length > 0 %}
+                {% for consulta in consultas %}
+                    {% if consulta.diagnostico_ia and consulta.diagnostico_ia|length > 0 %}
+                    <div class="card mb-3 border">
+                        <div class="card-header bg-light">
+                            <strong>Consulta #{{ consulta.id }} - {{ consulta.data_hora }}</strong>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-0"><strong>Diagnóstico IA:</strong> {{ consulta.diagnostico_ia }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+                <p class="text-muted text-center">Nenhum diagnóstico por IA registrado.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Receitas Médicas -->
     <div class="card shadow mb-4">
         <div class="card-header bg-warning text-dark">
             <h5 class="mb-0"><i class="fas fa-prescription me-2"></i>Receitas Médicas</h5>
@@ -87,17 +161,29 @@
                 {% for receita in receitas %}
                 <div class="card mb-3 border">
                     <div class="card-header bg-light">
-                        <strong>Receita #{{ receita.id }}</strong>
-                        <small class="text-muted float-end">{{ receita.created_at }}</small>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <strong>Receita #{{ receita.id }}</strong>
+                            <small class="text-muted">{{ receita.created_at }}</small>
+                        </div>
                     </div>
                     <div class="card-body">
-                        {% if receita.diagnostico %}
-                        <p><strong>Diagnóstico:</strong> {{ receita.diagnostico }}</p>
+                        {% if receita.diagnostico and receita.diagnostico|length > 0 %}
+                        <p><strong><i class="fas fa-stethoscope text-success me-1"></i>Diagnóstico:</strong> {{ receita.diagnostico }}</p>
                         {% endif %}
-                        <p><strong>Prescrição:</strong></p>
-                        <pre class="bg-light p-2 rounded" style="white-space: pre-wrap;">{{ receita.prescricao }}</pre>
-                        {% if receita.recomendacoes %}
-                        <p><strong>Recomendações:</strong> {{ receita.recomendacoes }}</p>
+                        
+                        <p><strong><i class="fas fa-pills text-danger me-1"></i>Prescrição:</strong></p>
+                        <pre class="bg-light p-3 rounded" style="white-space: pre-wrap; font-family: inherit;">{{ receita.prescricao }}</pre>
+                        
+                        {% if receita.recomendacoes and receita.recomendacoes|length > 0 %}
+                        <p><strong><i class="fas fa-notes-medical text-info me-1"></i>Recomendações:</strong> {{ receita.recomendacoes }}</p>
+                        {% endif %}
+                        
+                        {% if receita.profissional_nome %}
+                        <hr>
+                        <small class="text-muted">
+                            <i class="fas fa-user-md me-1"></i> Prescrito por: {{ receita.profissional_nome }}
+                            ({{ receita.profissional_tipo or 'Médico' }})
+                        </small>
                         {% endif %}
                     </div>
                 </div>
@@ -107,5 +193,114 @@
             {% endif %}
         </div>
     </div>
+
+    <!-- Exames Laboratoriais -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0"><i class="fas fa-microscope me-2"></i>Exames Laboratoriais</h5>
+        </div>
+        <div class="card-body">
+            {% if exames and exames|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Data Solicitação</th>
+                                <th>Tipo</th>
+                                <th>Status</th>
+                                <th>Resultado</th>
+                                <th>Diagnóstico</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for exame in exames %}
+                            <tr>
+                                <td><small>{{ exame.data_solicitacao }}</small></td>
+                                <td>{{ exame.tipo_exame }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if exame.status == 'concluido' else 'warning' }}">
+                                        {{ exame.status or 'pendente' }}
+                                    </span>
+                                </td>
+                                <td><small>{{ exame.resultado_analise|truncate(50) or '-' }}</small></td>
+                                <td><small>{{ exame.diagnostico_analista|truncate(50) or '-' }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted text-center">Nenhum exame encontrado.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Sinais Vitais -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0"><i class="fas fa-heartbeat me-2"></i>Sinais Vitais</h5>
+        </div>
+        <div class="card-body">
+            {% if sinais_vitais and sinais_vitais|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Data</th>
+                                <th>Pressão Arterial</th>
+                                <th>Frequência Cardíaca</th>
+                                <th>Frequência Respiratória</th>
+                                <th>Temperatura</th>
+                                <th>SpO₂</th>
+                                <th>Glicemia</th>
+                                <th>Peso</th>
+                                <th>Registrado por</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sinal in sinais_vitais %}
+                            <tr>
+                                <td><small>{{ sinal.data_afericao }}</small></td>
+                                <td>{{ sinal.pressao_arterial or '-' }}</td>
+                                <td>{{ sinal.frequencia_cardiaca or '-' }}</td>
+                                <td>{{ sinal.frequencia_respiratoria or '-' }}</td>
+                                <td>{{ sinal.temperatura or '-' }}</td>
+                                <td>{{ sinal.saturacao_oxigenio or '-' }}</td>
+                                <td>{{ sinal.glicemia or '-' }}</td>
+                                <td>{{ sinal.peso or '-' }}</td>
+                                <td><small>{{ sinal.enfermeiro_nome or 'Sistema' }}</small></td>
+                            </tr>
+                            {% if sinal.observacoes %}
+                            <tr>
+                                <td colspan="9" class="bg-light">
+                                    <small><i class="fas fa-comment me-1"></i> <strong>Obs:</strong> {{ sinal.observacoes }}</small>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted text-center">Nenhum sinal vital registrado.</p>
+            {% endif %}
+        </div>
+    </div>
 </div>
+
+<style>
+    .badge {
+        font-size: 0.8rem;
+        padding: 0.4em 0.6em;
+    }
+    pre {
+        background-color: #f8f9fa;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    .table td {
+        vertical-align: middle;
+    }
+</style>
 {% endblock %}
