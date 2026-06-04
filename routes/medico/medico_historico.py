@@ -12,11 +12,22 @@ def init_medico_historico(base):
         """Converte bytes para string de forma segura"""
         if value is None:
             return ''
+        # Se for datetime, retorna string formatada
+        if isinstance(value, datetime):
+            return value.strftime('%d/%m/%Y %H:%M')
+        # Se for date
+        if isinstance(value, date):
+            return value.strftime('%d/%m/%Y')
+        # Se for bytes, decodifica
         if isinstance(value, bytes):
             try:
                 return value.decode('utf-8')
             except:
                 return str(value)
+        # Se for string, retorna direto
+        if isinstance(value, str):
+            return value
+        # Outros tipos
         return str(value) if value else ''
     
     @medico_required
@@ -232,6 +243,8 @@ def init_medico_historico(base):
                                  sinais_vitais=sinais_vitais)
                                  
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             flash(f'Erro ao carregar histórico: {str(e)}', 'danger')
             return redirect(url_for('medico.consultas'))
     
