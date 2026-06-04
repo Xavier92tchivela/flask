@@ -37,7 +37,6 @@ def init_medico_sinais_vitais(base):
         try:
             medico_id = session.get('medico_id')
             
-            # Buscar sinais vitais das consultas do médico
             sinais = execute_query("""
                 SELECT 
                     sv.id,
@@ -65,7 +64,6 @@ def init_medico_sinais_vitais(base):
                 ORDER BY sv.data_afericao DESC
             """, (medico_id,), fetch=True) or []
             
-            # Processar resultados
             resultados = []
             for s in sinais:
                 resultados.append({
@@ -100,7 +98,6 @@ def init_medico_sinais_vitais(base):
         try:
             medico_id = session.get('medico_id')
             
-            # Buscar dados da consulta
             consulta = execute_query("""
                 SELECT c.id, c.paciente_id, c.status, c.data_hora,
                        u.nome as paciente_nome,
@@ -116,7 +113,6 @@ def init_medico_sinais_vitais(base):
                 flash('Consulta não encontrada.', 'danger')
                 return redirect(url_for('medico.consultas'))
             
-            # Converter para dict se for tuple
             if not isinstance(consulta, dict):
                 consulta = {
                     'id': consulta[0] if len(consulta) > 0 else None,
@@ -128,7 +124,6 @@ def init_medico_sinais_vitais(base):
                     'genero': decode_value(consulta[6]) if len(consulta) > 6 else ''
                 }
             
-            # Calcular idade
             idade = None
             data_nasc = consulta.get('data_nascimento')
             if data_nasc:
@@ -147,7 +142,6 @@ def init_medico_sinais_vitais(base):
                     pass
             
             if request.method == 'POST':
-                # Coletar dados do formulário
                 pressao_arterial = request.form.get('pressao_arterial')
                 frequencia_cardiaca = request.form.get('frequencia_cardiaca')
                 frequencia_respiratoria = request.form.get('frequencia_respiratoria')
@@ -157,14 +151,13 @@ def init_medico_sinais_vitais(base):
                 peso = request.form.get('peso')
                 observacoes = request.form.get('observacoes')
                 
-                # Validar pressão arterial
                 if pressao_arterial:
                     pressao_arterial = pressao_arterial.replace('/', 'x')
                     if not re.match(r'^\d{2,3}x\d{2,3}$', pressao_arterial):
                         flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
                         return redirect(url_for('medico.registrar_sinais_vitais', consulta_id=consulta_id))
                 
-                # Inserir sinais vitais (sem commit=True)
+                # CORREÇÃO: Removido commit=True
                 execute_query("""
                     INSERT INTO sinais_vitais 
                     (consulta_id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
@@ -224,7 +217,6 @@ def init_medico_sinais_vitais(base):
                 flash('Registro não encontrado.', 'danger')
                 return redirect(url_for('medico.listar_sinais_vitais'))
             
-            # Converter para dict se for tuple
             if not isinstance(sinal, dict):
                 sinal = {
                     'id': sinal[0],
@@ -244,8 +236,7 @@ def init_medico_sinais_vitais(base):
                     'responsavel_nome': decode_value(sinal[14])
                 }
             
-            return render_template('medico/sinais_vitais/detalhes.html',
-                                 sinal=sinal)
+            return render_template('medico/sinais_vitais/detalhes.html', sinal=sinal)
         except Exception as e:
             logger.error(f"Erro ao verificar sinal vital: {e}")
             flash('Erro ao carregar detalhes.', 'danger')
@@ -257,7 +248,6 @@ def init_medico_sinais_vitais(base):
         try:
             medico_id = session.get('medico_id')
             
-            # Buscar paciente
             paciente = execute_query("""
                 SELECT p.id, u.nome, p.data_nascimento, p.genero
                 FROM pacientes p
@@ -269,7 +259,6 @@ def init_medico_sinais_vitais(base):
                 flash('Paciente não encontrado.', 'danger')
                 return redirect(url_for('medico.dashboard'))
             
-            # Buscar sinais vitais do paciente
             sinais = execute_query("""
                 SELECT 
                     sv.id,
@@ -311,7 +300,6 @@ def init_medico_sinais_vitais(base):
                     'responsavel_nome': decode_value(s[12])
                 })
             
-            # Converter paciente para dict
             if not isinstance(paciente, dict):
                 paciente = {
                     'id': paciente[0],
