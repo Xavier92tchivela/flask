@@ -11,7 +11,7 @@ from .medico_pacientes import init_medico_pacientes
 from .medico_api import init_medico_api
 from .medico_debug import init_medico_debug
 from .medico_receitas import init_medico_receitas
-from .medico_sinais_vitais import init_medico_sinais_vitais  # NOVO IMPORT
+from .medico_sinais_vitais import init_medico_sinais_vitais
 from .consulta import create_consulta_blueprint
 from datetime import datetime
 import json
@@ -47,7 +47,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 
                 # Verificar se é médico ou enfermeira/enfermeiro
                 if user_type not in ['medico', 'enfermeira', 'enfermeiro']:
-                    flash('Acesso restrito a profissionais de saúde.', 'warning')
+                    flash('Acesso restrito a profissionais de santé.', 'warning')
                     return redirect(url_for('dashboard'))
                 
                 return f(*args, **kwargs)
@@ -243,7 +243,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                 profissional_nome = %s,
                                 atualizado_em = NOW()
                             WHERE consulta_id = %s
-                        """, (diagnostico, prescricao_texto, observacoes, user_type, profesional_nome, consulta_id))
+                        """, (diagnostico, prescricao_texto, observacoes, user_type, profissional_nome, consulta_id))
                         receita_id = existing_id
                     else:
                         cursor.execute("""
@@ -675,7 +675,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                             flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
                             return redirect(url_for('medico.medico_sinais_vitais', consulta_id=consulta_id))
                     
-                    # Inserir sinais vitais
+                    # CORREÇÃO: Removido commit=True
                     base['execute_query']("""
                         INSERT INTO sinais_vitais 
                         (consulta_id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
@@ -684,7 +684,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     """, (consulta_id, pressao_arterial, frequencia_cardiaca or None, 
                           frequencia_respiratoria or None, temperatura or None, 
                           saturacao_oxigenio or None, glicemia or None, peso or None, 
-                          observacoes or None), commit=True)
+                          observacoes or None))
                     
                     flash('Sinais vitais registrados com sucesso!', 'success')
                     return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
@@ -708,7 +708,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
             init_medico_pacientes(mysql, base),
             init_medico_api(mysql, base),
             init_medico_debug(base),
-            init_medico_sinais_vitais(base),  # NOVO MÓDULO
+            init_medico_sinais_vitais(base),
         ]
         
         # Inicializar módulo de receitas
@@ -749,11 +749,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "<tr><th>Endpoint</th><th>URL</th><th>Métodos</th></table>"
+            output += "<td><th>Endpoint</th><th>URL</th><th>Métodos</th></tr>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
-            output += "</table><br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
+            output += "\\弥<br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
             return output
         
         logger.info("Blueprint médico inicializado com sucesso!")
