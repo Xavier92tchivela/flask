@@ -11,9 +11,11 @@ from .medico_pacientes import init_medico_pacientes
 from .medico_api import init_medico_api
 from .medico_debug import init_medico_debug
 from .medico_receitas import init_medico_receitas
+from .medico_sinais_vitais import init_medico_sinais_vitais  # NOVO IMPORT
 from .consulta import create_consulta_blueprint
 from datetime import datetime
 import json
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +243,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                                 profissional_nome = %s,
                                 atualizado_em = NOW()
                             WHERE consulta_id = %s
-                        """, (diagnostico, prescricao_texto, observacoes, user_type, profissional_nome, consulta_id))
+                        """, (diagnostico, prescricao_texto, observacoes, user_type, profesional_nome, consulta_id))
                         receita_id = existing_id
                     else:
                         cursor.execute("""
@@ -496,7 +498,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash('Erro ao carregar lista de receitas.', 'danger')
                 return redirect(url_for('medico.dashboard'))
         
-        # ===================== ROTA: HISTÓRICO DO PACIENTE (CORRIGIDA) =====================
+        # ===================== ROTA: HISTÓRICO DO PACIENTE =====================
         @medico_bp.route('/historico/paciente/<int:paciente_id>')
         @profissional_saude_required
         def historico_paciente(paciente_id):
@@ -522,11 +524,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                     paciente = {
                         'id': paciente_result[0] if len(paciente_result) > 0 else None,
                         'data_nascimento': paciente_result[1] if len(paciente_result) > 1 else None,
-                        'genero': paciente_result[2] if len(paciente_result) > 2 else '',
-                        'telefone': paciente_result[3] if len(paciente_result) > 3 else '',
-                        'endereco': paciente_result[4] if len(paciente_result) > 4 else '',
-                        'nome': paciente_result[5] if len(paciente_result) > 5 else '',
-                        'email': paciente_result[6] if len(paciente_result) > 6 else ''
+                        'genero': decode_bytes(paciente_result[2]) if len(paciente_result) > 2 else '',
+                        'telefone': decode_bytes(paciente_result[3]) if len(paciente_result) > 3 else '',
+                        'endereco': decode_bytes(paciente_result[4]) if len(paciente_result) > 4 else '',
+                        'nome': decode_bytes(paciente_result[5]) if len(paciente_result) > 5 else '',
+                        'email': decode_bytes(paciente_result[6]) if len(paciente_result) > 6 else ''
                     }
                 
                 # Calcular idade
@@ -602,6 +604,101 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
                 flash(f'Erro ao carregar histórico: {str(e)}', 'danger')
                 return redirect(url_for('medico.consultas'))
         
+        # ===================== ROTA: SINAIS VITAIS PARA MÉDICO =====================
+        @medico_bp.route('/consulta/<int:consulta_id>/sinais-vitais', methods=['GET', 'POST'])
+        @profissional_saude_required
+        def medico_sinais_vitais(consulta_id):
+            """Médico registra sinais vitais"""
+            try:
+                medico_id = session.get('medico_id')
+                
+                # Buscar dados da consulta
+                consulta = base['execute_query']("""
+                    SELECT c.id, c.paciente_id, c.status, c.data_hora,
+                           u.nome as paciente_nome,
+                           p.data_nascimento,
+                           p.genero
+                    FROM consultas c
+                    JOIN pacientes p ON c.paciente_id = p.id
+                    JOIN usuarios u ON p.usuario_id = u.id
+                    WHERE c.id = %s AND c.medico_id = %s
+                """, (consulta_id, medico_id), fetch=True, one=True)
+                
+                if not consulta:
+                    flash('Consulta não encontrada.', 'danger')
+                    return redirect(url_for('medico.consultas'))
+                
+                # Converter para dict se for tuple
+                if not isinstance(consulta, dict):
+                    consulta = {
+                        'id': consulta[0] if len(consulta) > 0 else None,
+                        'paciente_id': consulta[1] if len(consulta) > 1 else None,
+                        'status': decode_bytes(consulta[2]) if len(consulta) > 2 else '',
+                        'data_hora': consulta[3] if len(consulta) > 3 else None,
+                        'paciente_nome': decode_bytes(consulta[4]) if len(consulta) > 4 else '',
+                        'data_nascimento': consulta[5] if len(consulta) > 5 else None,
+                        'genero': decode_bytes(consulta[6]) if len(consulta) > 6 else ''
+                    }
+                
+                # Calcular idade
+                idade = None
+                data_nasc = consulta.get('data_nascimento')
+                if data_nasc:
+                    try:
+                        if isinstance(data_nasc, datetime):
+                            data_nasc = data_nasc.date()
+                        elif isinstance(data_nasc, str):
+                            data_nasc = datetime.strptime(data_nasc, '%Y-%m-%d').date()
+                        from datetime import date
+                        hoje = date.today()
+                        idade = hoje.year - data_nasc.year
+                        if (hoje.month, hoje.day) < (data_nasc.month, data_nasc.day):
+                            idade -= 1
+                    except:
+                        pass
+                
+                if request.method == 'POST':
+                    # Coletar dados do formulário
+                    pressao_arterial = request.form.get('pressao_arterial')
+                    frequencia_cardiaca = request.form.get('frequencia_cardiaca')
+                    frequencia_respiratoria = request.form.get('frequencia_respiratoria')
+                    temperatura = request.form.get('temperatura')
+                    saturacao_oxigenio = request.form.get('saturacao_oxigenio')
+                    glicemia = request.form.get('glicemia')
+                    peso = request.form.get('peso')
+                    observacoes = request.form.get('observacoes')
+                    
+                    # Validar pressão arterial
+                    if pressao_arterial:
+                        pressao_arterial = pressao_arterial.replace('/', 'x')
+                        if not re.match(r'^\d{2,3}x\d{2,3}$', pressao_arterial):
+                            flash('Formato de pressão arterial inválido. Use: 120/80 ou 120x80', 'danger')
+                            return redirect(url_for('medico.medico_sinais_vitais', consulta_id=consulta_id))
+                    
+                    # Inserir sinais vitais
+                    base['execute_query']("""
+                        INSERT INTO sinais_vitais 
+                        (consulta_id, pressao_arterial, frequencia_cardiaca, frequencia_respiratoria,
+                         temperatura, saturacao_oxigenio, glicemia, peso, observacoes, data_afericao)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                    """, (consulta_id, pressao_arterial, frequencia_cardiaca or None, 
+                          frequencia_respiratoria or None, temperatura or None, 
+                          saturacao_oxigenio or None, glicemia or None, peso or None, 
+                          observacoes or None), commit=True)
+                    
+                    flash('Sinais vitais registrados com sucesso!', 'success')
+                    return redirect(url_for('consulta.detalhes_consulta', consulta_id=consulta_id))
+                
+                return render_template('medico/sinais_vitais.html',
+                                     consulta=consulta,
+                                     consulta_id=consulta_id,
+                                     idade=idade)
+                                     
+            except Exception as e:
+                logger.error(f"Erro ao registrar sinais vitais: {e}")
+                flash(f'Erro ao registrar sinais vitais: {str(e)}', 'danger')
+                return redirect(url_for('medico.consultas'))
+        
         # ===================== LISTA DE MÓDULOS EXISTENTES =====================
         modules = [
             init_medico_dashboard(base),
@@ -611,6 +708,7 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
             init_medico_pacientes(mysql, base),
             init_medico_api(mysql, base),
             init_medico_debug(base),
+            init_medico_sinais_vitais(base),  # NOVO MÓDULO
         ]
         
         # Inicializar módulo de receitas
@@ -651,11 +749,11 @@ def init_medico(mysql, client, gemini_available, MODEL_NAME, app, receita_servic
         def debug_rotas():
             output = "<h1>🔍 Rotas disponíveis em 'medico':</h1>"
             output += "<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #ddd; padding: 8px; } th { background-color: #4CAF50; color: white; }</style>"
-            output += "<table><th>Endpoint</th><th>URL</th><th>Métodos</th><tr>"
+            output += "<tr><th>Endpoint</th><th>URL</th><th>Métodos</th></table>"
             for rule in app.url_map.iter_rules():
                 if str(rule).startswith('/medico/'):
                     output += f"<tr><td style='font-family: monospace;'>{rule.endpoint}</td><td>{rule}</td><td>{', '.join(rule.methods)}</td></tr>"
-            output += "\\弥<br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
+            output += "</table><br><a href='/medico/dashboard'>Voltar ao Dashboard</a>"
             return output
         
         logger.info("Blueprint médico inicializado com sucesso!")
