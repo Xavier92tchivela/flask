@@ -1,4 +1,4 @@
-# utils/gemini.py - VERSAO LIMPA (SEM EMOJIS)
+# utils/gemini.py - VERSAO CORRIGIDA
 import google.generativeai as genai
 import logging
 import traceback
@@ -10,12 +10,15 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 
 logger = logging.getLogger(__name__)
 
+# ===== MODELOS PRIORIZADOS (MAIS RECENTES PRIMEIRO) =====
 PREFERRED_MODELS = [
-    "gemini-1.5-pro",
-    "gemini-1.5-flash",
-    "gemini-1.0-pro",
-    "gemini-pro",
-    "gemini-2.5-flash",
+    "gemini-2.5-flash",        # 1° - MAIS RECENTE E RÁPIDO
+    "gemini-2.5-pro",          # 2° - Versão Pro do 2.5
+    "gemini-2.0-flash-exp",    # 3° - Experimental
+    "gemini-2.0-flash",        # 4° - Estável
+    "gemini-1.5-flash",        # 5° - Fallback estável
+    "gemini-1.5-pro",          # 6° - Fallback Pro
+    "gemini-pro",              # 7° - Último fallback
 ]
 
 def configurar_gemini(api_key: str, force_paid: bool = False) -> Tuple[Optional[Dict[str, Any]], bool, Optional[str]]:
@@ -49,23 +52,41 @@ def configurar_gemini(api_key: str, force_paid: bool = False) -> Tuple[Optional[
         genai.configure(api_key=api_key)
         print("API Gemini configurada")
         
+        # ===== LISTA MODELOS DISPONÍVEIS =====
+        try:
+            available_models = []
+            for m in genai.list_models():
+                if 'generateContent' in m.supported_generation_methods:
+                    available_models.append(m.name)
+            print(f"Modelos disponiveis: {available_models}")
+        except Exception as e:
+            print(f"AVISO: Nao foi possivel listar modelos: {e}")
+            available_models = []
+        
         print("Testando modelos...")
         
+        # ===== TESTA MODELOS EM ORDEM DE PREFERÊNCIA =====
         modelos_testar = PREFERRED_MODELS
         if force_paid:
-            modelos_testar = [m for m in PREFERRED_MODELS if 'pro' in m or 'flash' in m]
+            modelos_testar = [m for m in PREFERRED_MODELS if 'pro' in m]
         
         for model_name in modelos_testar:
             try:
+                # Verifica se o modelo está disponível
+                if available_models and model_name not in available_models:
+                    print(f"  INFO: Modelo {model_name} nao disponivel na conta")
+                    continue
+                
                 print(f"  Tentando modelo: {model_name}")
                 
                 model = genai.GenerativeModel(model_name)
                 
+                # Teste rápido
                 response = model.generate_content(
-                    "Responda apenas com a palavra 'CONECTADO'",
+                    "Responda apenas com 'OK'",
                     generation_config=genai.types.GenerationConfig(
                         temperature=0.1,
-                        max_output_tokens=10
+                        max_output_tokens=5
                     )
                 )
                 
@@ -80,7 +101,8 @@ def configurar_gemini(api_key: str, force_paid: bool = False) -> Tuple[Optional[
                         'configured': True,
                         'model_name': model_name,
                         'model': model,
-                        'genai': genai
+                        'genai': genai,
+                        'available_models': available_models
                     }
                     break
                 else:
@@ -90,9 +112,9 @@ def configurar_gemini(api_key: str, force_paid: bool = False) -> Tuple[Optional[
                 error_msg = str(model_error)
                 if "not found" in error_msg.lower():
                     print(f"  INFO: Modelo {model_name} nao disponivel")
-                elif "quota" in error_msg.lower():
+                elif "quota" in error_msg.lower() or "429" in error_msg:
                     print(f"  ERRO: Limite excedido para {model_name}")
-                elif "permission" in error_msg.lower():
+                elif "permission" in error_msg.lower() or "403" in error_msg:
                     print(f"  ERRO: Permissao negada para {model_name}")
                 elif "billing" in error_msg.lower():
                     print(f"  ERRO: Problema de faturamento para {model_name}")
@@ -100,29 +122,15 @@ def configurar_gemini(api_key: str, force_paid: bool = False) -> Tuple[Optional[
                     print(f"  ERRO: {model_name} falhou: {error_msg[:100]}...")
                 continue
         
+        # ===== SE NENHUM MODELO FUNCIONOU =====
         if not gemini_available:
-            print("Tentando modelo generico...")
-            try:
-                model = genai.GenerativeModel('gemini-pro')
-                response = model.generate_content("Teste de conexao")
-                
-                if response and response.text:
-                    MODEL_NAME = 'gemini-pro'
-                    gemini_available = True
-                    client = {
-                        'configured': True,
-                        'model_name': 'gemini-pro',
-                        'model': model,
-                        'genai': genai
-                    }
-                    print(f"SUCESSO: Conexao com modelo generico: {MODEL_NAME}")
-                else:
-                    print("ERRO: Resposta vazia do modelo generico")
-                    
-            except Exception as generic_error:
-                print(f"ERRO: Modelo generico tambem falhou: {generic_error}")
-                gemini_available = False
-                
+            print("\nERRO: Nenhum modelo Gemini respondeu")
+            
+            # Tenta diagnóstico
+            if available_models:
+                print(f"Modelos disponiveis: {available_models}")
+                print("Tente usar um desses modelos manualmente")
+            
     except Exception as e:
         print(f"ERRO CRITICO: Erro geral ao configurar Gemini: {str(e)[:200]}")
         gemini_available = False
@@ -172,8 +180,11 @@ def testar_modelos_disponiveis(api_key: str):
         print(f"Modelos gratuitos: {len(gratuitos)}")
         print("=" * 70)
         
+        return pagos + gratuitos
+        
     except Exception as e:
         print(f"Erro ao listar modelos: {e}")
+        return []
 
 
 def gerar_com_retry(model, prompt, max_tentativas=3, delay_base=1):
