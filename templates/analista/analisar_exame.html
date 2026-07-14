@@ -450,30 +450,17 @@
             {% endif %}
         {% endwith %}
 
-        <!-- Status da API Gemini -->
-        {% if gemini_available %}
-            <div class="alert alert-info alert-dismissible fade show mb-3 mb-md-4 animate-fade-in" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-robot me-2"></i>
-                    <div class="flex-grow-1">
-                        <strong>API Gemini Configurada:</strong> {{ MODEL_NAME }}
-                        <br><small class="text-muted">Análise com IA disponível</small>
-                    </div>
-                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+        <!-- Status da API Gemini - VERSÃO QUE ATUALIZA AUTOMATICAMENTE -->
+        <div class="alert alert-info alert-dismissible fade show mb-3 mb-md-4 animate-fade-in" role="alert" id="alertGeminiStatus">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-robot me-2" id="geminiIcon"></i>
+                <div class="flex-grow-1" id="geminiStatusContent">
+                    <strong id="geminiTitle">Verificando API Gemini...</strong>
+                    <br><small class="text-muted" id="geminiDetail">Aguardando diagnóstico</small>
                 </div>
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
             </div>
-        {% else %}
-            <div class="alert alert-warning alert-dismissible fade show mb-3 mb-md-4 animate-fade-in" role="alert">
-                <div class="d-flex align-items-center">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <div class="flex-grow-1">
-                        <strong>Atenção:</strong> API Gemini não configurada.
-                        <br><small class="text-muted">Use análise manual.</small>
-                    </div>
-                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
-                </div>
-            </div>
-        {% endif %}
+        </div>
 
         <div class="row animate-fade-in" style="animation-delay: 0.1s;">
             <!-- Informações do Pedido (Lado Esquerdo) -->
@@ -795,6 +782,10 @@
                         <li>Adicione a chave no arquivo <code>.env</code>: <code>GEMINI_API_KEY=sua_chave_aqui</code></li>
                         <li>Reinicie a aplicação</li>
                     </ol>
+                    <div class="alert alert-info mt-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Dica:</strong> Se você já tem a chave configurada, tente <strong>reiniciar o servidor</strong> ou <strong>clicar no botão "Testar Gemini API"</strong> acima.
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
@@ -811,9 +802,14 @@
         let currentPedidoId = {{ pedido.id }};
         let modalInstance = null;
 
-        // Inicialização
+        // ============================================================
+        // DIAGNÓSTICO AUTOMÁTICO DO GEMINI AO CARREGAR A PÁGINA
+        // ============================================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Página carregada - Pedido #{{ pedido.id }}');
+            
+            // Verifica o status do Gemini automaticamente
+            verificarStatusGemini();
             
             // Botão de análise com IA
             const btnAnalisarIA = document.getElementById('btnAnalisarIA');
@@ -878,7 +874,85 @@
             if (btnRefresh) btnRefresh.onclick = function() { window.location.reload(); };
         });
 
-        // Função para iniciar análise com IA
+        // ============================================================
+        // FUNÇÃO PARA VERIFICAR STATUS DO GEMINI
+        // ============================================================
+        function verificarStatusGemini() {
+            const statusDiv = document.getElementById('geminiStatusContent');
+            const icon = document.getElementById('geminiIcon');
+            const title = document.getElementById('geminiTitle');
+            const detail = document.getElementById('geminiDetail');
+            const alertDiv = document.getElementById('alertGeminiStatus');
+            
+            console.log('🔍 Verificando status do Gemini...');
+            
+            fetch('/analista/api/diagnostico-rapido')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('📊 Diagnóstico Gemini:', data);
+                    
+                    if (data.working_model) {
+                        // GEMINI FUNCIONANDO!
+                        icon.className = 'fas fa-robot me-2 text-success';
+                        title.textContent = '✅ API Gemini Configurada!';
+                        title.style.color = '#155724';
+                        detail.innerHTML = `Modelo: <strong>${data.working_model}</strong> - Análise com IA disponível`;
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show mb-3 mb-md-4 animate-fade-in';
+                        
+                        // Ativa o botão de IA
+                        const btnIA = document.getElementById('btnAnalisarIA');
+                        if (btnIA) {
+                            btnIA.disabled = false;
+                            btnIA.innerHTML = '<i class="fas fa-robot me-2"></i> Analisar com IA (Gemini)';
+                        }
+                        
+                        // Variável global
+                        window.geminiDisponivel = true;
+                        window.modeloGemini = data.working_model;
+                        
+                    } else {
+                        // GEMINI NÃO FUNCIONA
+                        let erroMsg = data.error || 'API Gemini não disponível';
+                        if (data.models_tested) {
+                            let modelosTestados = Object.entries(data.models_tested)
+                                .filter(([k,v]) => v !== 'success')
+                                .map(([k,v]) => `${k}: ${v}`)
+                                .join(', ');
+                            if (modelosTestados) {
+                                erroMsg += ` (${modelosTestados})`;
+                            }
+                        }
+                        
+                        icon.className = 'fas fa-exclamation-triangle me-2 text-warning';
+                        title.textContent = '⚠️ Atenção: API Gemini não configurada.';
+                        title.style.color = '#856404';
+                        detail.textContent = `Erro: ${erroMsg} - Use análise manual.`;
+                        alertDiv.className = 'alert alert-warning alert-dismissible fade show mb-3 mb-md-4 animate-fade-in';
+                        
+                        // Desativa o botão de IA
+                        const btnIA = document.getElementById('btnAnalisarIA');
+                        if (btnIA) {
+                            btnIA.disabled = true;
+                            btnIA.innerHTML = '<i class="fas fa-robot me-2"></i> IA Indisponível (use manual)';
+                            btnIA.title = 'Gemini não disponível - use análise manual';
+                        }
+                        
+                        window.geminiDisponivel = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Erro ao verificar Gemini:', error);
+                    icon.className = 'fas fa-exclamation-triangle me-2 text-warning';
+                    title.textContent = '⚠️ Não foi possível verificar API Gemini';
+                    title.style.color = '#856404';
+                    detail.textContent = 'Erro de conexão - Use análise manual.';
+                    alertDiv.className = 'alert alert-warning alert-dismissible fade show mb-3 mb-md-4 animate-fade-in';
+                });
+        }
+
+        // ============================================================
+        // FUNÇÃO PARA INICIAR ANÁLISE COM IA
+        // ============================================================
         async function iniciarAnaliseIA() {
             const imagemInput = document.getElementById('imagem');
             const tipoAnalise = document.getElementById('tipo_analise');
@@ -1052,16 +1126,21 @@
         async function testarGeminiAPI() {
             mostrarToast('info', 'Testando API Gemini...');
             try {
-                const response = await fetch('/analista/api/gemini-status');
+                const response = await fetch('/analista/api/diagnostico-rapido');
                 const data = await response.json();
-                if (data.success && data.gemini_available) {
-                    mostrarToast('success', `✅ Gemini disponível! Modelo: ${data.model_name}`);
+                console.log('🔍 Teste Gemini:', data);
+                
+                if (data.working_model) {
+                    mostrarToast('success', `✅ Gemini disponível! Modelo: ${data.working_model}`);
+                    // Atualiza o status
+                    verificarStatusGemini();
                 } else {
                     mostrarToast('warning', '⚠️ API Gemini não disponível');
                     const modal = new bootstrap.Modal(document.getElementById('modalInstrucoesGemini'));
                     modal.show();
                 }
             } catch (error) {
+                console.error('❌ Erro ao testar:', error);
                 mostrarToast('danger', 'Erro ao testar API');
             }
         }
